@@ -138,21 +138,30 @@ function App() {
     const today = new Date();
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   };
-// NOVO: Sistema de Gamificação (Títulos do Fogo Interno)
-  const getStreakTitle = (days) => {
-    if (days >= 365) return { title: "Fogo Prometeico", desc: "A chama divina da sabedoria inabalável." };
-    if (days >= 180) return { title: "Sol Interior", desc: "Luz própria e autodomínio estabelecido." };
-    if (days >= 90) return { title: "Farol de Sabedoria", desc: "Sua constância ilumina a si e aos outros." };
-    if (days >= 30) return { title: "Forja Filosófica", desc: "O caráter é moldado pelo hábito." };
-    if (days >= 21) return { title: "Fogueira", desc: "O calor da disciplina já se estabeleceu." };
-    if (days >= 7) return { title: "Tocha Iluminadora", desc: "A luz que guia seus passos." };
-    if (days >= 3) return { title: "Chama Desperta", desc: "O fogo da vontade começa a crescer." };
-    if (days >= 1) return { title: "Centelha", desc: "A primeira faísca do seu compromisso." };
-    return { title: "Cinzas Frias", desc: "O fogo aguarda para ser aceso novamente." };
-  };
-  const canDrawToday = () => {
-    const today = getTodayKey();
-    return lastDrawDate !== today;
+// NOVO: Sistema de Gamificação Inteligente (Grau Atual e Próximo Nível)
+  const getStreakInfo = (days) => {
+    const levels = [
+      { min: 0, title: "Cinzas Frias", desc: "O fogo aguarda para ser aceso." },
+      { min: 1, title: "Centelha", desc: "A primeira faísca do seu compromisso." },
+      { min: 3, title: "Chama Desperta", desc: "O fogo da vontade começa a crescer." },
+      { min: 7, title: "Tocha Iluminadora", desc: "A luz que guia seus passos." },
+      { min: 21, title: "Fogueira", desc: "O calor da disciplina se estabeleceu." },
+      { min: 30, title: "Forja Filosófica", desc: "O caráter é moldado pelo hábito." },
+      { min: 90, title: "Farol de Sabedoria", desc: "Sua constância ilumina a si e aos outros." },
+      { min: 180, title: "Sol Interior", desc: "Luz própria e autodomínio." },
+      { min: 365, title: "Fogo Prometeico", desc: "A chama divina da sabedoria inabalável." }
+    ];
+
+    let current = levels[0];
+    let next = levels[1];
+
+    for (let i = 0; i < levels.length; i++) {
+      if (days >= levels[i].min) {
+        current = levels[i];
+        next = i + 1 < levels.length ? levels[i + 1] : null; // Pega o próximo, se existir
+      }
+    }
+    return { current, next };
   };
 
   const getUserFirstName = () => {
@@ -717,20 +726,22 @@ function App() {
     }
   };
 
+  // Salvar dados FV
   const saveFVData = async () => {
     if (user) {
       try {
         await setDoc(doc(db, 'fvData', user.uid), {
-          cartaDegrau: fvCartaDegrau,
-          lastCartaDate: fvLastCartaDate,
-          nextCartaDate: fvNextCartaDate,
-          gdveDesafios: fvGdveDesafios,
-          gdveReuniao: fvGdveReuniao,
+          cartaDegrau: fvCartaDegrau || '',
+          lastCartaDate: fvLastCartaDate || '',
+          nextCartaDate: fvNextCartaDate || '',
+          gdveDesafios: fvGdveDesafios || [],
+          gdveReuniao: fvGdveReuniao || '',
           updatedAt: Timestamp.now()
-        });
-        alert('✅ Dados FV salvos!');
+        }, { merge: true }); // Esse 'merge: true' é o que salva o GDVE sem apagar o resto!
+        alert('✅ Dados da Força Viva salvos!');
       } catch (error) {
-        alert('Erro ao salvar dados FV.');
+        console.error(error);
+        alert('Erro ao salvar dados.');
       }
     }
   };
@@ -1420,13 +1431,15 @@ function App() {
             <div style={{ background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 165, 0, 0.1) 100%)', padding: '2rem', borderRadius: '16px', border: '2px solid #FFD700', boxShadow: '0 0 20px rgba(255, 215, 0, 0.3)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
                 <Award size={32} color="#FFD700" />
-                <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: '#FFD700', fontFamily: "'Cinzel', serif" }}>Seção FV</h2>
+                <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: '#FFD700', fontFamily: "'Cinzel', serif" }}>Seção Força Viva</h2>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                
                 <div>
                   <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: 600, fontSize: '1.1rem', color: '#FFD700', fontFamily: "'Cinzel', serif" }}>Carta de Degrau</label>
                   <textarea value={fvCartaDegrau} onChange={(e) => setFvCartaDegrau(e.target.value)} placeholder="Cole aqui o conteúdo da sua carta de degrau..." rows={8} style={{ width: '100%', padding: '1rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical', lineHeight: '1.7' }} />
                 </div>
+                
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
                   <div>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#FFD700' }}>Última Entrega</label>
@@ -1437,11 +1450,10 @@ function App() {
                         const novaData = e.target.value;
                         setFvLastCartaDate(novaData);
                         
-                        // Inteligência: Calcula automaticamente +3 meses
+                        // Matemática Blindada: Calcula +3 meses
                         if (novaData) {
                           const [ano, mes, dia] = novaData.split('-');
-                          // Cria a data e soma 3 meses (o sistema lida com as viradas de ano sozinho)
-                          const dataCalculada = new Date(ano, parseInt(mes) - 1 + 3, dia);
+                          const dataCalculada = new Date(parseInt(ano, 10), parseInt(mes, 10) - 1 + 3, parseInt(dia, 10));
                           
                           const proxAno = dataCalculada.getFullYear();
                           const proxMes = String(dataCalculada.getMonth() + 1).padStart(2, '0');
@@ -1457,16 +1469,29 @@ function App() {
                   </div>
                   <div>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#FFD700' }}>Próxima Entrega Prevista</label>
-                    <input type="date" value={fvNextCartaDate || ''} onChange={(e) => setFvNextCartaDate(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                    <input 
+                      type="date" 
+                      value={fvNextCartaDate || ''} 
+                      onChange={(e) => setFvNextCartaDate(e.target.value)} 
+                      style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} 
+                    />
                   </div>
                 </div>
+                
                 <div>
                   <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: 600, fontSize: '1.1rem', color: '#FFD700', fontFamily: "'Cinzel', serif" }}>Próxima Reunião GDVE</label>
-                  <input type="datetime-local" value={fvGdveReuniao || ''} onChange={(e) => setFvGdveReuniao(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                  <input 
+                    type="datetime-local" 
+                    value={fvGdveReuniao || ''} 
+                    onChange={(e) => setFvGdveReuniao(e.target.value)} 
+                    style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} 
+                  />
                 </div>
+                
                 <button onClick={saveFVData} style={{ padding: '1rem 2rem', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: '#000', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', alignSelf: 'flex-end', boxShadow: '0 4px 12px rgba(255, 215, 0, 0.3)' }}>
                   <Save size={20} /> Salvar Dados FV
                 </button>
+                
               </div>
             </div>
           </div>
