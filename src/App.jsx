@@ -486,39 +486,41 @@ function App() {
     }
   };
 
-  // NOVO: Salvar (Adicionar ou Editar) tarefa personalizada com segurança anti-duplicação
+  // NOVO: Salvar (Adicionar ou Editar) tarefa personalizada
   const saveCustomTask = async () => {
     if (!newTaskName.trim()) return;
-    if (newTaskRecurrence === 'weekly' && newTaskWeekDays.length === 0) {
+    
+    if (newTaskRecurrence === 'weekly' && (!newTaskWeekDays || newTaskWeekDays.length === 0)) {
       alert('Por favor, selecione pelo menos um dia da semana.');
       return;
     }
+    
     if (newTaskRecurrence === 'biweekly' && !newTaskBaseDate) {
       alert('Por favor, selecione a data de início para a tarefa quinzenal.');
       return;
     }
 
-    // Verifica se o nome já existe (ignorando a própria tarefa se estivermos editando)
+    // Anti-duplicação inteligente
     const isDuplicate = customTasks.some(t => 
       t.name.toLowerCase().trim() === newTaskName.trim().toLowerCase() && 
       t.id !== editingTaskId
     );
-    
+
     if (isDuplicate) {
       alert('Você já tem uma prática cadastrada com este nome!');
       return;
     }
 
-    // Cria um ID realmente único usando o timestamp e um número aleatório
+    // Garante que a tarefa tenha um ID absolutamente único
     const uniqueId = editingTaskId || `task_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
     const taskData = {
       id: uniqueId, 
       name: newTaskName.trim(),
       recurrence: newTaskRecurrence,
-      weekDays: newTaskRecurrence === 'weekly' ? newTaskWeekDays : null,
-      monthDay: newTaskRecurrence === 'monthly' ? newTaskMonthDay : null,
-      baseDate: newTaskRecurrence === 'biweekly' ? newTaskBaseDate : null
+      weekDays: newTaskRecurrence === 'weekly' ? newTaskWeekDays : [],
+      monthDay: newTaskRecurrence === 'monthly' ? parseInt(newTaskMonthDay) || 1 : 1,
+      baseDate: newTaskRecurrence === 'biweekly' ? newTaskBaseDate : ""
     };
 
     let newTasks;
@@ -528,9 +530,13 @@ function App() {
       newTasks = [...customTasks, taskData];
     }
 
-    setCustomTasks(newTasks);
+    // TRUQUE DE MESTRE: Converte para texto e de volta para objeto
+    // Isso aniquila completamente qualquer "undefined" que faria o Firebase travar
+    const cleanTasksForFirebase = JSON.parse(JSON.stringify(newTasks));
+
+    setCustomTasks(cleanTasksForFirebase);
     
-    // Limpa o formulário
+    // Limpa o formulário e fecha
     setNewTaskName('');
     setShowAddTask(false);
     setEditingTaskId(null);
@@ -541,10 +547,10 @@ function App() {
 
     if (user) {
       try {
-        await setDoc(doc(db, 'customTasks', user.uid), { tasks: newTasks });
+        await setDoc(doc(db, 'customTasks', user.uid), { tasks: cleanTasksForFirebase });
       } catch (error) {
-        console.error("Erro ao salvar tarefa no banco:", error);
-        alert("Erro ao salvar a tarefa online, mas ela foi salva no seu dispositivo.");
+        console.error("Erro ao salvar:", error);
+        alert('O Firebase reclamou de algo, mas a tarefa está salva no seu dispositivo.');
       }
     }
   };
@@ -556,23 +562,24 @@ function App() {
     setNewTaskRecurrence(task.recurrence || 'daily');
     setNewTaskWeekDays(task.weekDays || []);
     setNewTaskMonthDay(task.monthDay || 1);
-    setNewTaskBaseDate(task.baseDate || '');
+    setNewTaskBaseDate(task.baseDate || ''); 
     setShowAddTask(true);
     
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // NOVO: Remover tarefa personalizada com precisão
+  // NOVO: Remover tarefa personalizada
   const removeCustomTask = async (taskId) => {
-    // Filtra exatamente pelo ID para garantir que só a tarefa correta será apagada
     const newTasks = customTasks.filter(t => t.id !== taskId);
-    setCustomTasks(newTasks);
+    const cleanTasksForFirebase = JSON.parse(JSON.stringify(newTasks));
+    
+    setCustomTasks(cleanTasksForFirebase);
 
     if (user) {
       try {
-        await setDoc(doc(db, 'customTasks', user.uid), { tasks: newTasks });
+        await setDoc(doc(db, 'customTasks', user.uid), { tasks: cleanTasksForFirebase });
       } catch (error) {
-         console.error("Erro ao excluir tarefa do banco:", error);
+        console.error("Erro ao excluir:", error);
       }
     }
   };
