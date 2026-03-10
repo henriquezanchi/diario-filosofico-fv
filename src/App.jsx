@@ -1670,17 +1670,42 @@ function App() {
                 <h2 style={{ margin: 0, fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.8rem' }}>Seu Fogo Interno</h2>
               </div>
 
-              {/* NOVO: Exibição do Título Gamificado */}
-              <div style={{ background: isDark ? 'linear-gradient(135deg, rgba(255, 152, 0, 0.2) 0%, rgba(230, 81, 0, 0.1) 100%)' : 'linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%)', padding: '1rem', borderRadius: '12px', border: `1px solid ${isDark ? '#ff9800' : '#ffb74d'}`, textAlign: 'center', marginBottom: '2rem' }}>
-                <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 'bold', color: isDark ? '#ffb74d' : '#e65100', display: 'block', marginBottom: '0.2rem' }}>Grau Atual</span>
-                <h3 style={{ margin: '0 0 0.5rem', fontFamily: "'Cinzel', serif", fontSize: '1.4rem', color: isDark ? '#f0e6d2' : '#2c1810' }}>
-                  {getStreakTitle(streak).title}
+              {/* CAIXA DO GRAU COM MENSAGEM DE INCENTIVO */}
+              <div style={{ background: isDark ? 'transparent' : 'transparent', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? '#ff9800' : '#ffb74d'}`, textAlign: 'center', marginBottom: '2rem' }}>
+                <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 'bold', color: isDark ? '#ffb74d' : '#e65100', display: 'block', marginBottom: '0.4rem' }}>Grau Atual</span>
+                <h3 style={{ margin: '0 0 0.5rem', fontFamily: "'Cinzel', serif", fontSize: '1.5rem', color: isDark ? '#f0e6d2' : '#2c1810' }}>
+                  {getStreakInfo(streak).current.title}
                 </h3>
-                <p style={{ margin: 0, fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic' }}>
-                  {getStreakTitle(streak).desc}
+                <p style={{ margin: '0 0 1rem', fontSize: '0.95rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic' }}>
+                  "{getStreakInfo(streak).current.desc}"
                 </p>
+
+                {/* Linha Divisória */}
+                <div style={{ height: '1px', background: isDark ? 'rgba(255, 152, 0, 0.3)' : 'rgba(230, 81, 0, 0.2)', margin: '1rem 0' }}></div>
+
+                {/* INFORMAÇÃO DO PRÓXIMO NÍVEL */}
+                {getStreakInfo(streak).next ? (
+                  <div style={{ textAlign: 'center' }}>
+                    <p style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', color: isDark ? '#f0e6d2' : '#2c1810' }}>
+                      Próximo nível: <strong style={{ color: isDark ? '#ffb74d' : '#e65100' }}>{getStreakInfo(streak).next.title}</strong>
+                    </p>
+                    <p style={{ margin: '0 0 0.75rem', fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744' }}>
+                      Alcance <strong>{getStreakInfo(streak).next.min} dias consecutivos</strong> para conquistá-lo.
+                    </p>
+                    <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 'bold', color: isDark ? '#d4af37' : '#8b7355' }}>
+                      🔥 Continue preenchendo todos os dias e suba de nível!
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center' }}>
+                    <p style={{ margin: 0, fontSize: '0.95rem', color: isDark ? '#ffb74d' : '#e65100', fontWeight: 'bold' }}>
+                      🌟 Você alcançou o nível máximo de constância! Um verdadeiro exemplo de virtude.
+                    </p>
+                  </div>
+                )}
               </div>
 
+              {/* Contadores */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
                 <div style={{ background: isDark ? 'rgba(255, 152, 0, 0.1)' : '#fff3e0', padding: '1.5rem', borderRadius: '12px', textAlign: 'center', border: `1px solid ${isDark ? 'rgba(255, 152, 0, 0.3)' : 'rgba(230, 81, 0, 0.2)'}` }}>
                   <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: isDark ? '#ffb74d' : '#e65100' }}>{streak}</div>
