@@ -89,7 +89,7 @@ function App() {
     item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
     horasGuarda: '', horasAula: '',
     praticas: {
-      tratack: false, recitarHonra: false, recitar7Fases: false,
+      tratak: false, recitarHonra: false, recitar7Fases: false,
       camara: false, templo: false, porta: false, patioAberto: false,
       patioColunas: false, santuario: false
     }
@@ -194,7 +194,7 @@ function App() {
     setFvDaily({
       item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
       horasGuarda: '', horasAula: '',
-      praticas: { tratack: false, recitarHonra: false, recitar7Fases: false, camara: false, templo: false, porta: false, patioAberto: false, patioColunas: false, santuario: false }
+      praticas: { tratak: false, recitarHonra: false, recitar7Fases: false, camara: false, templo: false, porta: false, patioAberto: false, patioColunas: false, santuario: false }
     });
   };
 
@@ -366,17 +366,17 @@ function App() {
         setDidMorning(data.didMorning !== false);
         setDailyQuote(data.quote || null);
         setTodayTasksStatus(data.tasksStatus || {});
-        // Carregar os dados diários do FV, se existirem para hoje
+        // Carregar os dados diários do FV
         setFvDaily(data.fvDaily || {
           item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
           horasGuarda: '', horasAula: '',
-          praticas: { tratack: false, recitarHonra: false, recitar7Fases: false, camara: false, templo: false, porta: false, patioAberto: false, patioColunas: false, santuario: false }
+          praticas: { tratak: false, recitarHonra: false, recitar7Fases: false, camara: false, templo: false, porta: false, patioAberto: false, patioColunas: false, santuario: false }
         });
       } else {
          setFvDaily({
           item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
           horasGuarda: '', horasAula: '',
-          praticas: { tratack: false, recitarHonra: false, recitar7Fases: false, camara: false, templo: false, porta: false, patioAberto: false, patioColunas: false, santuario: false }
+          praticas: { tratak: false, recitarHonra: false, recitar7Fases: false, camara: false, templo: false, porta: false, patioAberto: false, patioColunas: false, santuario: false }
         });
       }
 
@@ -408,7 +408,7 @@ function App() {
       if (loadedEntries.length > 0) {
         let maxStreak = 1;
         let tempCalc = 1;
-        // Calcula apenas dias que tiveram o Epílogo concluído
+        // Calcula a ofensiva apenas para dias que tiveram o Epílogo concluído
         const streakEntries = loadedEntries.filter(e => e.eveningDone);
         
         for (let i = 0; i < streakEntries.length - 1; i++) {
@@ -638,13 +638,13 @@ function App() {
       const todayKey = getTodayKey();
       try {
         await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), {
-          userId: user.uid, // Garante que a entry tenha o dono caso seja criada agora
+          userId: user.uid,
           date: todayKey,
           fvDaily: fvDaily,
           fvDailyTimestamp: Timestamp.now()
         }, { merge: true }); 
         alert('✅ Registro Diário FV salvo com sucesso para o dia de hoje!');
-        await loadAllEntries(user.uid); // Atualiza o histórico para mostrar o selinho
+        await loadAllEntries(user.uid);
       } catch (error) { console.error(error); alert('Erro ao salvar registro FV.'); }
     }
   };
@@ -663,6 +663,82 @@ function App() {
       await deleteDoc(doc(db, 'entries', `${user.uid}_${dateKey}`));
       setEntries(entries.filter(e => e.date !== dateKey));
     } catch (error) { alert('Erro ao excluir entrada.'); }
+  };
+
+  const exportToCSV = () => {
+    if (entries.length === 0) { alert('Não há entradas para exportar'); return; }
+    const headers = ['Data', 'Fez Prólogo', 'Virtude', 'Compromisso', 'Onde Errei', 'O Que Fiz Bem', 'O Que Deixei de Fazer'];
+    const rows = entries.map(entry => [
+      entry.date, entry.didMorning ? 'Sim' : 'Não', entry.virtue || '', entry.intention || '',
+      entry.whereIFailed || '', entry.whatIDidWell || '', entry.whatILeftUndone || ''
+    ]);
+    let csvContent = '\uFEFF' + headers.join(',') + '\n';
+    rows.forEach(row => { csvContent += row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',') + '\n'; });
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a'); link.href = URL.createObjectURL(blob);
+    link.download = `diario-filosofico-${getTodayKey()}.csv`; link.click();
+  };
+
+  const importDiary = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const content = e.target.result;
+        if (file.name.endsWith('.csv')) await importFromCSV(content);
+        else if (file.name.endsWith('.json')) await importFromJSON(content);
+        else if (file.name.endsWith('.txt')) await importFromTXT(content);
+        else alert('Formato não suportado. Use CSV, JSON ou TXT.');
+      } catch (error) { alert('Erro ao importar arquivo.'); }
+    };
+    reader.readAsText(file);
+  };
+
+  const importFromCSV = async (content) => {
+    const lines = content.split('\n').slice(1);
+    let imported = 0;
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      const parts = line.split(',').map(p => p.replace(/^"|"$/g, '').replace(/""/g, '"'));
+      if (parts.length < 6) continue;
+      const [date, didMorningStr, virtue, intention, whereIFailed, whatIDidWell, whatILeftUndone] = parts;
+      const entry = { userId: user.uid, date, didMorning: didMorningStr === 'Sim', virtue, intention, whereIFailed, whatIDidWell, whatILeftUndone, morningDone: true, eveningDone: true, importedAt: Timestamp.now() };
+      try { await setDoc(doc(db, 'entries', `${user.uid}_${date}`), entry); imported++; } catch (error) { console.error(`Erro ao importar ${date}`); }
+    }
+    await loadAllEntries(user.uid); alert(`✅ ${imported} entradas importadas com sucesso!`);
+  };
+
+  const importFromJSON = async (content) => {
+    const data = JSON.parse(content);
+    let imported = 0;
+    for (const entry of data) {
+      if (!entry.date) continue;
+      const newEntry = { ...entry, userId: user.uid, importedAt: Timestamp.now() };
+      try { await setDoc(doc(db, 'entries', `${user.uid}_${entry.date}`), newEntry); imported++; } catch (error) { console.error(`Erro ao importar ${entry.date}`); }
+    }
+    await loadAllEntries(user.uid); alert(`✅ ${imported} entradas importadas com sucesso!`);
+  };
+
+  const importFromTXT = async (content) => {
+    const entriesText = content.split('---');
+    let imported = 0;
+    for (const entryText of entriesText) {
+      if (!entryText.trim()) continue;
+      const lines = entryText.trim().split('\n');
+      const entry = { userId: user.uid, date: getTodayKey(), whereIFailed: '', whatIDidWell: '', whatILeftUndone: '', morningDone: false, eveningDone: true, importedAt: Timestamp.now() };
+      lines.forEach(line => {
+        if (line.startsWith('Data:')) entry.date = line.replace('Data:', '').trim();
+        if (line.startsWith('Virtude:')) entry.virtue = line.replace('Virtude:', '').trim();
+        if (line.startsWith('Onde errei:')) entry.whereIFailed = line.replace('Onde errei:', '').trim();
+        if (line.startsWith('O que fiz bem:')) entry.whatIDidWell = line.replace('O que fiz bem:', '').trim();
+        if (line.startsWith('O que deixei:')) entry.whatILeftUndone = line.replace('O que deixei:', '').trim();
+      });
+      if (entry.date && entry.whereIFailed) {
+        try { await setDoc(doc(db, 'entries', `${user.uid}_${entry.date}`), entry); imported++; } catch (error) { console.error(`Erro ao importar ${entry.date}`); }
+      }
+    }
+    await loadAllEntries(user.uid); alert(`✅ ${imported} entradas importadas com sucesso!`);
   };
 
   const handleGoogleLogin = async () => {
@@ -929,7 +1005,7 @@ function App() {
           </div>
         )}
 
-        {/* VIEW: TASKS - Tarefas Personalizadas */}
+        {/* VIEW: TASKS */}
         {view === 'tasks' && (
           <div className="animate-fadeIn">
             <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
@@ -1100,7 +1176,7 @@ function App() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
                 <Award size={32} color="#FFD700" />
                 <div>
-                  <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: '#FFD700', fontFamily: "'Cinzel', serif" }}>Registro Diário Força Viva</h2>
+                  <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: '#FFD700', fontFamily: "'Cinzel', serif" }}>Registro Diário da Força Viva | CD </h2>
                   <p style={{ margin: '0.25rem 0 0 0', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.9rem' }}>Dia: {new Date().toLocaleDateString('pt-BR')}</p>
                 </div>
               </div>
@@ -1132,40 +1208,52 @@ function App() {
                 {/* HORAS */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', background: isDark ? 'rgba(255,215,0,0.05)' : 'rgba(255,215,0,0.1)', padding: '1.5rem', borderRadius: '12px', border: '1px solid rgba(255, 215, 0, 0.3)' }}>
                   <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#FFD700' }}>Horas-Guarda (ex: 2.5)</label>
-                    <input type="number" step="0.5" value={fvDaily.horasGuarda || ''} onChange={(e) => handleFvDailyTextChange('horasGuarda', e.target.value)} placeholder="0.0" style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#FFD700' }}>Horas-Guarda (HH:mm)</label>
+                    <input type="time" value={fvDaily.horasGuarda || ''} onChange={(e) => handleFvDailyTextChange('horasGuarda', e.target.value)} style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }} />
                   </div>
                   <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#FFD700' }}>Horas-Aula (ex: 2.5)</label>
-                    <input type="number" step="0.5" value={fvDaily.horasAula || ''} onChange={(e) => handleFvDailyTextChange('horasAula', e.target.value)} placeholder="0.0" style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#FFD700' }}>Horas-Aula (HH:mm)</label>
+                    <input type="time" value={fvDaily.horasAula || ''} onChange={(e) => handleFvDailyTextChange('horasAula', e.target.value)} style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }} />
                   </div>
                 </div>
 
-                {/* PRÁTICAS CHECKBOXES */}
+                {/* PRÁTICAS CHECKBOXES - NOVA ESTRUTURA */}
                 <div style={{ background: isDark ? 'rgba(255,215,0,0.05)' : 'rgba(255,215,0,0.1)', padding: '1.5rem', borderRadius: '12px', border: '1px solid rgba(255, 215, 0, 0.3)' }}>
                   <h3 style={{ margin: '0 0 1rem 0', color: '#FFD700', fontSize: '1.1rem', fontFamily: "'Cinzel', serif" }}>Práticas do Dia</h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                    {[
-                      { key: 'tratack', label: 'Tratack' },
-                      { key: 'recitarHonra', label: 'Recitar Código de Honra' },
-                      { key: 'recitar7Fases', label: 'Recitar 7 fases da ED' },
-                      { key: 'camara', label: 'Câmara de Purificação' },
-                      { key: 'templo', label: 'Templo Interior' },
-                      { key: 'porta', label: 'Porta' },
-                      { key: 'patioAberto', label: 'Pátio Aberto' },
-                      { key: 'patioColunas', label: 'Pátio de Colunas' },
-                      { key: 'santuario', label: 'Santuário' }
-                    ].map(prac => (
-                      <label key={prac.key} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
-                        <input 
-                          type="checkbox" 
-                          checked={fvDaily.praticas?.[prac.key] || false} 
-                          onChange={(e) => handleFvDailyPracticeChange(prac.key, e.target.checked)} 
-                          style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: '#FFD700' }} 
-                        />
-                        <span style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem' }}>{prac.label}</span>
-                      </label>
-                    ))}
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    {/* Práticas Gerais */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                      {[
+                        { key: 'tratack', label: 'Tratak' }, // A chave continua 'tratack' pro banco de dados não quebrar, mas visualmente é Tratak
+                        { key: 'recitarHonra', label: 'Recitar Código de Honra' },
+                        { key: 'recitar7Fases', label: 'Recitar 7 fases da ED' },
+                        { key: 'camara', label: 'Câmara de Purificação' }
+                      ].map(prac => (
+                        <label key={prac.key} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
+                          <input type="checkbox" checked={fvDaily.praticas?.[prac.key] || false} onChange={(e) => handleFvDailyPracticeChange(prac.key, e.target.checked)} style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: '#FFD700' }} />
+                          <span style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem' }}>{prac.label}</span>
+                        </label>
+                      ))}
+                    </div>
+
+                    {/* Grupo: Templo Interior */}
+                    <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.4)', padding: '1rem', borderRadius: '8px', borderLeft: '3px solid #FFD700' }}>
+                      <h4 style={{ margin: '0 0 0.75rem 0', color: isDark ? '#d4af37' : '#8b7355', fontSize: '1rem' }}>Templo Interior</h4>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+                        {[
+                          { key: 'porta', label: '1. Porta' },
+                          { key: 'patioAberto', label: '2. Pátio Aberto' },
+                          { key: 'patioColunas', label: '3. Pátio de Colunas' },
+                          { key: 'santuario', label: '4. Santuário' }
+                        ].map(prac => (
+                          <label key={prac.key} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
+                            <input type="checkbox" checked={fvDaily.praticas?.[prac.key] || false} onChange={(e) => handleFvDailyPracticeChange(prac.key, e.target.checked)} style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#FFD700' }} />
+                            <span style={{ color: isDark ? '#c8b896' : '#6b5744', fontSize: '0.9rem' }}>{prac.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -1240,7 +1328,7 @@ function App() {
             {/* PAINEL DATAS FV NO HISTÓRICO */}
             {fvUnlocked && (fvLastCartaDate || fvGdveReuniao) && (
               <div className="animate-fadeIn" style={{ background: isDark ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.05) 0%, rgba(255, 165, 0, 0.05) 100%)' : '#fffbf0', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255, 215, 0, 0.3)' : '#ffe082'}`, marginBottom: '2rem', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-                <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#ffd700' : '#d4af37', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.2rem' }}><Award size={20} /> Planejamento Força Viva</h3>
+                <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#ffd700' : '#d4af37', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.2rem' }}><Award size={20} /> Planejamento da Força Viva</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                   {fvLastCartaDate && (<div><span style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', display: 'block' }}>Última Carta:</span><strong style={{ color: isDark ? '#f0e6d2' : '#2c1810' }}>{new Date(fvLastCartaDate + 'T12:00:00').toLocaleDateString('pt-BR')}</strong></div>)}
                   {fvNextCartaDate && (<div><span style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', display: 'block' }}>Próxima Entrega:</span><strong style={{ color: '#e74c3c' }}>{new Date(fvNextCartaDate + 'T12:00:00').toLocaleDateString('pt-BR')}</strong></div>)}
@@ -1334,53 +1422,53 @@ function App() {
           </div>
         )}
 
-        {/* MODAL DO FOGO INTERNO */}
+        {/* MODAL DO FOGO INTERNO (COMPACTO) */}
         {showStreakModal && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(3px)' }} onClick={() => setShowStreakModal(false)}>
-            <div style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '2rem', borderRadius: '16px', maxWidth: '400px', width: '100%', border: `2px solid ${isDark ? '#ff9800' : '#e65100'}`, position: 'relative', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setShowStreakModal(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}><X size={24} /></button>
+            <div style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '1.5rem', borderRadius: '16px', maxWidth: '350px', width: '100%', border: `2px solid ${isDark ? '#ff9800' : '#e65100'}`, position: 'relative', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setShowStreakModal(false)} style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}><X size={20} /></button>
               
-              <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-                <Flame size={48} fill={isDark ? '#ff9800' : '#e65100'} color={isDark ? '#ff9800' : '#e65100'} style={{ margin: '0 auto 1rem' }} />
-                <h2 style={{ margin: 0, fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.8rem' }}>Seu Fogo Interno</h2>
+              <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+                <Flame size={40} fill={isDark ? '#ff9800' : '#e65100'} color={isDark ? '#ff9800' : '#e65100'} style={{ margin: '0 auto 0.5rem' }} />
+                <h2 style={{ margin: 0, fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.4rem' }}>Fogo Interno</h2>
               </div>
 
-              <div style={{ background: isDark ? 'transparent' : 'transparent', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? '#ff9800' : '#ffb74d'}`, textAlign: 'center', marginBottom: '2rem' }}>
-                <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 'bold', color: isDark ? '#ffb74d' : '#e65100', display: 'block', marginBottom: '0.4rem' }}>Grau Atual</span>
-                <h3 style={{ margin: '0 0 0.5rem', fontFamily: "'Cinzel', serif", fontSize: '1.5rem', color: isDark ? '#f0e6d2' : '#2c1810' }}>{getStreakInfo(streak).current.title}</h3>
-                <p style={{ margin: '0 0 1rem', fontSize: '0.95rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic' }}>"{getStreakInfo(streak).current.desc}"</p>
-
-                <div style={{ height: '1px', background: isDark ? 'rgba(255, 152, 0, 0.3)' : 'rgba(230, 81, 0, 0.2)', margin: '1rem 0' }}></div>
-
+              {/* CAIXA COMPACTA DO GRAU E PROGRESSO */}
+              <div style={{ background: isDark ? 'rgba(255, 255, 255, 0.03)' : '#fff', padding: '1rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255, 152, 0, 0.3)' : '#ffb74d'}`, textAlign: 'center', marginBottom: '1.5rem' }}>
+                <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 'bold', color: isDark ? '#ffb74d' : '#e65100', display: 'block', marginBottom: '0.2rem' }}>Grau Atual</span>
+                <h3 style={{ margin: '0 0 0.5rem', fontFamily: "'Cinzel', serif", fontSize: '1.3rem', color: isDark ? '#f0e6d2' : '#2c1810' }}>{getStreakInfo(streak).current.title}</h3>
+                
                 {getStreakInfo(streak).next ? (
-                  <div style={{ textAlign: 'center' }}>
-                    <p style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', color: isDark ? '#f0e6d2' : '#2c1810' }}>Próximo nível: <strong style={{ color: isDark ? '#ffb74d' : '#e65100' }}>{getStreakInfo(streak).next.title}</strong></p>
-                    <p style={{ margin: '0 0 0.75rem', fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744' }}>Alcance <strong>{getStreakInfo(streak).next.min} dias consecutivos</strong> para conquistá-lo.</p>
-                    <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 'bold', color: isDark ? '#d4af37' : '#8b7355' }}>🔥 Continue preenchendo todos os dias e suba de nível!</p>
+                  <div style={{ marginTop: '0.75rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '0.3rem', fontWeight: 'bold' }}>
+                      <span>Próximo: {getStreakInfo(streak).next.title}</span>
+                      <span>{getStreakInfo(streak).next.min} dias</span>
+                    </div>
+                    <div style={{ width: '100%', height: '6px', background: isDark ? 'rgba(255,255,255,0.1)' : '#eee', borderRadius: '3px', overflow: 'hidden' }}>
+                      <div style={{ width: `${Math.min(100, (streak / getStreakInfo(streak).next.min) * 100)}%`, height: '100%', background: isDark ? '#ff9800' : '#e65100', transition: 'width 0.5s ease' }}></div>
+                    </div>
                   </div>
                 ) : (
-                  <div style={{ textAlign: 'center' }}><p style={{ margin: 0, fontSize: '0.95rem', color: isDark ? '#ffb74d' : '#e65100', fontWeight: 'bold' }}>🌟 Você alcançou o nível máximo de constância! Um verdadeiro exemplo de virtude.</p></div>
+                  <p style={{ margin: '0.5rem 0 0', fontSize: '0.85rem', color: isDark ? '#ffb74d' : '#e65100', fontWeight: 'bold' }}>🌟 Nível máximo alcançado!</p>
                 )}
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
-                <div style={{ background: isDark ? 'rgba(255, 152, 0, 0.1)' : '#fff3e0', padding: '1.5rem', borderRadius: '12px', textAlign: 'center', border: `1px solid ${isDark ? 'rgba(255, 152, 0, 0.3)' : 'rgba(230, 81, 0, 0.2)'}` }}>
-                  <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: isDark ? '#ffb74d' : '#e65100' }}>{streak}</div>
-                  <div style={{ fontSize: '0.75rem', color: isDark ? '#c8b896' : '#6b5744', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>Dias Seguidos</div>
+              {/* GRID COMPACTO DE 3 COLUNAS */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
+                <div style={{ background: isDark ? 'rgba(255, 152, 0, 0.1)' : '#fff3e0', padding: '0.75rem 0.5rem', borderRadius: '10px', textAlign: 'center', border: `1px solid ${isDark ? 'rgba(255, 152, 0, 0.3)' : 'rgba(230, 81, 0, 0.2)'}` }}>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: isDark ? '#ffb74d' : '#e65100' }}>{streak}</div>
+                  <div style={{ fontSize: '0.65rem', color: isDark ? '#c8b896' : '#6b5744', textTransform: 'uppercase', fontWeight: 'bold' }}>Atual</div>
                 </div>
-                <div style={{ background: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(255, 245, 220, 0.6)', padding: '1.5rem', borderRadius: '12px', textAlign: 'center', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}` }}>
-                  <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: isDark ? '#d4af37' : '#8b7355' }}>{longestStreak}</div>
-                  <div style={{ fontSize: '0.75rem', color: isDark ? '#c8b896' : '#6b5744', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>Maior Ofensiva</div>
+                <div style={{ background: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(255, 245, 220, 0.6)', padding: '0.75rem 0.5rem', borderRadius: '10px', textAlign: 'center', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}` }}>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: isDark ? '#d4af37' : '#8b7355' }}>{longestStreak}</div>
+                  <div style={{ fontSize: '0.65rem', color: isDark ? '#c8b896' : '#6b5744', textTransform: 'uppercase', fontWeight: 'bold' }}>Recorde</div>
+                </div>
+                <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.5)' : 'white', padding: '0.75rem 0.5rem', borderRadius: '10px', textAlign: 'center', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}` }}>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: isDark ? '#d4af37' : '#8b7355' }}>{entries.length}</div>
+                  <div style={{ fontSize: '0.65rem', color: isDark ? '#c8b896' : '#6b5744', textTransform: 'uppercase', fontWeight: 'bold' }}>Total</div>
                 </div>
               </div>
 
-              <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.5)' : 'white', padding: '1.2rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, textAlign: 'center' }}>
-                <p style={{ margin: '0 0 0.5rem', fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', letterSpacing: '1px' }}>Total de Dias Registrados</p>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: isDark ? '#d4af37' : '#8b7355' }}>
-                  <BookOpen size={20} />
-                  <span style={{ fontSize: '1.4rem', fontWeight: 'bold', fontFamily: 'Georgia, serif' }}>{entries.length}</span>
-                </div>
-              </div>
             </div>
           </div>
         )}
