@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
+// Adicione o ícone Bell na lista do lucide-react:
 import { 
   BookOpen, Sunrise, Sunset, Search, Calendar, Moon, Sun, 
   Sparkles, ChevronRight, LogOut, Shuffle, Plus, X, 
   AlertCircle, Eye, EyeOff, CheckCircle, Download, Upload,
   Target, TrendingUp, Award, FileText, Book, Settings,
-  Trash2, Edit, Save, XCircle, Flame,
-  Zap, Shield, Star, Crown // Ícones novos de Patente!
+  Trash2, Edit, Save, XCircle, Flame, Zap, Shield, Star, Crown, 
+  Bell // 👈 ÍCONE DO SINO ADICIONADO AQUI
 } from 'lucide-react';
-import { auth, db } from './config/firebase-config';
+// Na importação do Firebase, puxe o messaging e o getToken:
+import { auth, db, messaging } from './config/firebase-config'; // 👈 Adicione o messaging aqui
+import { getToken } from 'firebase/messaging'; // 👈 Importação nova
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
@@ -31,6 +34,30 @@ function App() {
   const [isLogin, setIsLogin] = useState(true);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+
+// Função para pedir permissão de Notificações
+  const enableNotifications = async () => {
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        // Usa a SUA chave (VAPID Key) para gerar o token do celular!
+        const token = await getToken(messaging, { 
+          vapidKey: 'BCbaqmBk9-neW0G2xxxszZk7nlj89NDaLdeLqkiW9-wUb2GW1JxnneFaTmFcLaYjQUE49mG1lAMnZNCqLp4ZXL0' 
+        });
+        
+        if (token && user) {
+           // Salva o "endereço" do celular do usuário no Firebase
+           await updateDoc(doc(db, 'users', user.uid), { fcmToken: token });
+           alert('🔔 Notificações ativadas com sucesso! Agora você receberá lembretes.');
+        }
+      } else {
+        alert('Você negou a permissão. Mude nas configurações do seu navegador se quiser receber lembretes.');
+      }
+    } catch (error) {
+      console.error('Erro ao ativar notificações:', error);
+      alert('Erro ao ativar notificações. Verifique se seu navegador tem suporte.');
+    }
+  };
 
   // Estados de Navegação e Fogo Interno
   const [view, setView] = useState('today');
@@ -855,9 +882,14 @@ function App() {
             {fvUnlocked && (
               <button onClick={handleFvLockClick} style={{ padding: '0.5rem 1rem', background: view === 'fv' ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'transparent', color: view === 'fv' ? '#000' : '#FFD700', border: '2px solid #FFD700', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, boxShadow: '0 0 10px rgba(255, 215, 0, 0.3)' }}>FV</button>
             )}
+            {/* NOVO: Botão de Notificação */}
+            <button onClick={enableNotifications} title="Ativar Lembretes" style={{ padding: '0.5rem', background: 'transparent', border: `2px solid ${isDark ? '#d4af37' : '#8b7355'}`, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Bell size={20} color={isDark ? '#d4af37' : '#8b7355'} />
+            </button>
             <button onClick={toggleTheme} style={{ padding: '0.5rem', background: 'transparent', border: `2px solid ${isDark ? '#d4af37' : '#8b7355'}`, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {isDark ? <Sun size={20} color="#d4af37" /> : <Moon size={20} color="#8b7355" />}
             </button>
+            
             <button onClick={handleLogout} style={{ padding: '0.5rem 1rem', background: 'transparent', color: isDark ? '#d4af37' : '#8b7355', border: `2px solid ${isDark ? '#d4af37' : '#8b7355'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <LogOut size={16} /> <span style={{ display: window.innerWidth > 768 ? 'inline' : 'none' }}>Sair</span>
             </button>
