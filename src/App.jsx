@@ -1419,7 +1419,30 @@ function App() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
                   <div>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#FFD700' }}>Última Entrega</label>
-                    <input type="date" value={fvLastCartaDate || ''} onChange={(e) => setFvLastCartaDate(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                    <input 
+                      type="date" 
+                      value={fvLastCartaDate || ''} 
+                      onChange={(e) => {
+                        const novaData = e.target.value;
+                        setFvLastCartaDate(novaData);
+                        
+                        // Inteligência: Calcula automaticamente +3 meses
+                        if (novaData) {
+                          const [ano, mes, dia] = novaData.split('-');
+                          // Cria a data e soma 3 meses (o sistema lida com as viradas de ano sozinho)
+                          const dataCalculada = new Date(ano, parseInt(mes) - 1 + 3, dia);
+                          
+                          const proxAno = dataCalculada.getFullYear();
+                          const proxMes = String(dataCalculada.getMonth() + 1).padStart(2, '0');
+                          const proxDia = String(dataCalculada.getDate()).padStart(2, '0');
+                          
+                          setFvNextCartaDate(`${proxAno}-${proxMes}-${proxDia}`);
+                        } else {
+                          setFvNextCartaDate('');
+                        }
+                      }} 
+                      style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} 
+                    />
                   </div>
                   <div>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#FFD700' }}>Próxima Entrega Prevista</label>
@@ -1442,6 +1465,61 @@ function App() {
         {view === 'history' && (
           <div className="animate-fadeIn">
             <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+             {/* NOVO: RESUMO FV NO HISTÓRICO (SÓ APARECE SE DESBLOQUEADO E SE TIVER ALGO PREENCHIDO) */}
+            {fvUnlocked && (fvCartaDegrau || fvLastCartaDate || fvGdveReuniao) && (
+              <div className="animate-fadeIn" style={{
+                background: isDark ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.05) 0%, rgba(255, 165, 0, 0.05) 100%)' : '#fffbf0',
+                padding: '1.5rem',
+                borderRadius: '12px',
+                border: `1px solid ${isDark ? 'rgba(255, 215, 0, 0.3)' : '#ffe082'}`,
+                marginBottom: '2rem',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+              }}>
+                <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#ffd700' : '#d4af37', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.2rem' }}>
+                  <Award size={20} /> Painel da Força Vital
+                </h3>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: fvCartaDegrau ? '1rem' : '0' }}>
+                  {fvLastCartaDate && (
+                    <div>
+                      <span style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', display: 'block' }}>Última Carta:</span>
+                      <strong style={{ color: isDark ? '#f0e6d2' : '#2c1810' }}>
+                        {new Date(fvLastCartaDate + 'T12:00:00').toLocaleDateString('pt-BR')}
+                      </strong>
+                    </div>
+                  )}
+                  {fvNextCartaDate && (
+                    <div>
+                      <span style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', display: 'block' }}>Próxima Entrega:</span>
+                      <strong style={{ color: '#e74c3c' }}>
+                        {new Date(fvNextCartaDate + 'T12:00:00').toLocaleDateString('pt-BR')}
+                      </strong>
+                    </div>
+                  )}
+                  {fvGdveReuniao && (
+                    <div>
+                      <span style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', display: 'block' }}>Próx. Reunião GDVE:</span>
+                      <strong style={{ color: isDark ? '#f0e6d2' : '#2c1810' }}>
+                        {new Date(fvGdveReuniao).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+                      </strong>
+                    </div>
+                  )}
+                </div>
+
+                {fvCartaDegrau && (
+                  <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: `1px dashed ${isDark ? 'rgba(255, 215, 0, 0.2)' : '#ffe082'}` }}>
+                    <span style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', display: 'block', marginBottom: '0.5rem' }}>Fragmento da Carta:</span>
+                    <p style={{ 
+                      margin: 0, color: isDark ? '#c8b896' : '#6b5744', fontStyle: 'italic', 
+                      fontSize: '0.95rem', whiteSpace: 'pre-line', display: '-webkit-box', 
+                      WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' 
+                    }}>
+                      "{fvCartaDegrau}"
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
               <h2 style={{ fontFamily: "'Cinzel', serif", fontSize: '1.5rem', color: isDark ? '#d4af37' : '#8b7355', margin: 0 }}>Histórico de Reflexões</h2>
               <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                 <button onClick={exportToCSV} disabled={entries.length === 0} style={{ padding: '0.75rem 1.5rem', background: entries.length > 0 ? (isDark ? '#d4af37' : '#8b7355') : '#ccc', color: 'white', border: 'none', borderRadius: '8px', cursor: entries.length > 0 ? 'pointer' : 'not-allowed', fontFamily: 'Georgia, serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
