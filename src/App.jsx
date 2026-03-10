@@ -1378,11 +1378,25 @@ const importFromCSV = async (content) => {
                   borderRadius: '12px',
                   border: `2px solid ${isDark ? 'rgba(76, 175, 80, 0.4)' : '#4caf50'}`
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                    <CheckCircle size={24} color="#4caf50" />
-                    <h3 style={{ margin: 0, color: isDark ? '#81c784' : '#2e7d32' }}>
-                      Prólogo Completo!
-                    </h3>
+                  {/* Container do Titulo + Botão Editar */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <CheckCircle size={24} color="#4caf50" />
+                      <h3 style={{ margin: 0, color: isDark ? '#81c784' : '#2e7d32' }}>
+                        Prólogo Completo!
+                      </h3>
+                    </div>
+                    {/* NOVO: Botão Editar */}
+                    <button 
+                      onClick={() => setMorningDone(false)}
+                      style={{
+                        background: 'transparent', border: 'none', cursor: 'pointer',
+                        color: isDark ? '#81c784' : '#2e7d32', display: 'flex', alignItems: 'center', gap: '0.3rem',
+                        fontSize: '0.9rem', fontWeight: 'bold'
+                      }}
+                    >
+                      <Edit size={16} /> Editar
+                    </button>
                   </div>
                   <p style={{ margin: '0.5rem 0', color: isDark ? '#c8e6c9' : '#1b5e20' }}>
                     <strong>Virtude do dia:</strong> {selectedVirtue || customVirtue}
@@ -1595,11 +1609,25 @@ const importFromCSV = async (content) => {
                   borderRadius: '12px',
                   border: `2px solid ${isDark ? 'rgba(76, 175, 80, 0.4)' : '#4caf50'}`
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                    <CheckCircle size={24} color="#4caf50" />
-                    <h3 style={{ margin: 0, color: isDark ? '#81c784' : '#2e7d32' }}>
-                      Epílogo Completo!
-                    </h3>
+                  {/* Container do Titulo + Botão Editar */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <CheckCircle size={24} color="#4caf50" />
+                      <h3 style={{ margin: 0, color: isDark ? '#81c784' : '#2e7d32' }}>
+                        Epílogo Completo!
+                      </h3>
+                    </div>
+                    {/* NOVO: Botão Editar */}
+                    <button 
+                      onClick={() => setEveningDone(false)}
+                      style={{
+                        background: 'transparent', border: 'none', cursor: 'pointer',
+                        color: isDark ? '#81c784' : '#2e7d32', display: 'flex', alignItems: 'center', gap: '0.3rem',
+                        fontSize: '0.9rem', fontWeight: 'bold'
+                      }}
+                    >
+                      <Edit size={16} /> Editar
+                    </button>
                   </div>
                   <p style={{ color: isDark ? '#c8e6c9' : '#1b5e20' }}>
                     Exame noturno realizado. Descanse bem! 🌙
