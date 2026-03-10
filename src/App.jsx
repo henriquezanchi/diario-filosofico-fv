@@ -486,7 +486,7 @@ function App() {
     }
   };
 
-  // NOVO: Salvar (Adicionar ou Editar) tarefa personalizada
+  // NOVO: Salvar (Adicionar ou Editar) tarefa personalizada com segurança anti-duplicação
   const saveCustomTask = async () => {
     if (!newTaskName.trim()) return;
     if (newTaskRecurrence === 'weekly' && newTaskWeekDays.length === 0) {
@@ -498,22 +498,27 @@ function App() {
       return;
     }
 
-    // Verifica se o nome já existe (apenas ao criar nova)
-    if (!editingTaskId) {
-      const isDuplicate = customTasks.some(t => t.name.toLowerCase().trim() === newTaskName.trim().toLowerCase());
-      if (isDuplicate) {
-        alert('Você já tem uma prática cadastrada com este nome!');
-        return;
-      }
+    // Verifica se o nome já existe (ignorando a própria tarefa se estivermos editando)
+    const isDuplicate = customTasks.some(t => 
+      t.name.toLowerCase().trim() === newTaskName.trim().toLowerCase() && 
+      t.id !== editingTaskId
+    );
+    
+    if (isDuplicate) {
+      alert('Você já tem uma prática cadastrada com este nome!');
+      return;
     }
 
+    // Cria um ID realmente único usando o timestamp e um número aleatório
+    const uniqueId = editingTaskId || `task_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+
     const taskData = {
-      id: editingTaskId || Date.now(), 
+      id: uniqueId, 
       name: newTaskName.trim(),
       recurrence: newTaskRecurrence,
       weekDays: newTaskRecurrence === 'weekly' ? newTaskWeekDays : null,
       monthDay: newTaskRecurrence === 'monthly' ? newTaskMonthDay : null,
-      baseDate: newTaskRecurrence === 'biweekly' ? newTaskBaseDate : null // NOVO
+      baseDate: newTaskRecurrence === 'biweekly' ? newTaskBaseDate : null
     };
 
     let newTasks;
@@ -525,17 +530,22 @@ function App() {
 
     setCustomTasks(newTasks);
     
-    // Limpa o formulário e fecha
+    // Limpa o formulário
     setNewTaskName('');
     setShowAddTask(false);
     setEditingTaskId(null);
     setNewTaskRecurrence('daily');
     setNewTaskWeekDays([]);
     setNewTaskMonthDay(1);
-    setNewTaskBaseDate(''); // Limpa a data
+    setNewTaskBaseDate('');
 
     if (user) {
-      await setDoc(doc(db, 'customTasks', user.uid), { tasks: newTasks });
+      try {
+        await setDoc(doc(db, 'customTasks', user.uid), { tasks: newTasks });
+      } catch (error) {
+        console.error("Erro ao salvar tarefa no banco:", error);
+        alert("Erro ao salvar a tarefa online, mas ela foi salva no seu dispositivo.");
+      }
     }
   };
 
@@ -546,20 +556,24 @@ function App() {
     setNewTaskRecurrence(task.recurrence || 'daily');
     setNewTaskWeekDays(task.weekDays || []);
     setNewTaskMonthDay(task.monthDay || 1);
-    setNewTaskBaseDate(task.baseDate || ''); // Carrega a data salva
+    setNewTaskBaseDate(task.baseDate || '');
     setShowAddTask(true);
     
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-
-  // NOVO: Remover tarefa personalizada
+  // NOVO: Remover tarefa personalizada com precisão
   const removeCustomTask = async (taskId) => {
+    // Filtra exatamente pelo ID para garantir que só a tarefa correta será apagada
     const newTasks = customTasks.filter(t => t.id !== taskId);
     setCustomTasks(newTasks);
 
     if (user) {
-      await setDoc(doc(db, 'customTasks', user.uid), { tasks: newTasks });
+      try {
+        await setDoc(doc(db, 'customTasks', user.uid), { tasks: newTasks });
+      } catch (error) {
+         console.error("Erro ao excluir tarefa do banco:", error);
+      }
     }
   };
 
