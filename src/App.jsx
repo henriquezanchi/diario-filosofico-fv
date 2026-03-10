@@ -37,11 +37,13 @@ function App() {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  // Estados de Navegação
+  // Estados de Navegação e Fogo Interno
   const [view, setView] = useState('today');
   const [theme, setTheme] = useState('light');
   const [searchTerm, setSearchTerm] = useState('');
-  const [streak, setStreak] = useState(0);
+  const [streak, setStreak] = useState(0); 
+  const [longestStreak, setLongestStreak] = useState(0); 
+  const [showStreakModal, setShowStreakModal] = useState(false); 
 
   // Estados do Prólogo
   const [morningDone, setMorningDone] = useState(false);
@@ -50,18 +52,18 @@ function App() {
   const [showCustomVirtue, setShowCustomVirtue] = useState(false);
   const [dailyQuote, setDailyQuote] = useState(null);
   const [dailyIntention, setDailyIntention] = useState('');
-  const [morningChallenges, setMorningChallenges] = useState('');
-  const [morningVehicles, setMorningVehicles] = useState('');
+  const [morningChallenges, setMorningChallenges] = useState(''); 
+  const [morningVehicles, setMorningVehicles] = useState(''); 
   const [lastDrawDate, setLastDrawDate] = useState(null);
 
   // Estados do Epílogo
   const [eveningDone, setEveningDone] = useState(false);
-  const [didMorning, setDidMorning] = useState(true);
+  const [didMorning, setDidMorning] = useState(true); 
   const [whereIFailed, setWhereIFailed] = useState('');
   const [whatIDidWell, setWhatIDidWell] = useState('');
   const [whatILeftUndone, setWhatILeftUndone] = useState('');
 
-  // Estados de Tarefas Personalizadas (DEDUPLICADOS E CORRIGIDOS)
+  // Estados de Tarefas Personalizadas
   const [customTasks, setCustomTasks] = useState([]);
   const [newTaskName, setNewTaskName] = useState('');
   const [showAddTask, setShowAddTask] = useState(false);
@@ -69,15 +71,15 @@ function App() {
   const [newTaskRecurrence, setNewTaskRecurrence] = useState('daily');
   const [newTaskWeekDays, setNewTaskWeekDays] = useState([]); 
   const [newTaskMonthDay, setNewTaskMonthDay] = useState(1);
-  const [newTaskBaseDate, setNewTaskBaseDate] = useState('');
+  const [newTaskBaseDate, setNewTaskBaseDate] = useState(''); 
   const [editingTaskId, setEditingTaskId] = useState(null);
 
-  // Estados de Metas de Longo Prazo
+  // Estados de Metas de Longo Prazo 
   const [yearGoals, setYearGoals] = useState('');
   const [lifeGoals, setLifeGoals] = useState('');
   const [showGoalsEditor, setShowGoalsEditor] = useState(false);
 
-  // Estados de Biblioteca de Virtudes
+  // Estados de Biblioteca de Virtudes 
   const [selectedVirtueDetail, setSelectedVirtueDetail] = useState(null);
 
   // Estados de Histórico
@@ -397,6 +399,24 @@ function App() {
       setEntries(loadedEntries);
 
       if (loadedEntries.length > 0) {
+        // 1. Calcular a Maior Ofensiva (Recorde Histórico)
+        let maxStreak = 1;
+        let tempCalc = 1;
+        for (let i = 0; i < loadedEntries.length - 1; i++) {
+          const date1 = new Date(loadedEntries[i].date + 'T12:00:00');
+          const date2 = new Date(loadedEntries[i+1].date + 'T12:00:00');
+          const diffDays = Math.round((date1 - date2) / (1000 * 60 * 60 * 24));
+          
+          if (diffDays === 1) {
+            tempCalc++;
+            if (tempCalc > maxStreak) maxStreak = tempCalc;
+          } else if (diffDays > 1) {
+            tempCalc = 1;
+          }
+        }
+        setLongestStreak(maxStreak);
+
+        // 2. Calcular Fogo Interno Atual
         const todayKey = getTodayKey();
         const d = new Date();
         d.setDate(d.getDate() - 1);
@@ -420,6 +440,7 @@ function App() {
         setStreak(currentStreak);
       } else {
         setStreak(0);
+        setLongestStreak(0);
       }
     } catch (error) {
       console.error('Erro ao carregar entradas:', error);
@@ -982,15 +1003,26 @@ function App() {
           </div>
 
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            {streak > 0 && (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem',
-                background: isDark ? 'rgba(255, 100, 0, 0.15)' : '#fff3e0', border: `1px solid ${isDark ? '#ff9800' : '#ffb74d'}`,
-                borderRadius: '20px', color: isDark ? '#ffb74d' : '#e65100', fontWeight: 'bold',
-                fontFamily: 'Georgia, serif', fontSize: '0.9rem', marginRight: '0.5rem',
-                boxShadow: isDark ? '0 0 10px rgba(255, 152, 0, 0.2)' : 'none'
-              }}>
-                <Flame size={18} fill={isDark ? '#ff9800' : '#e65100'} color={isDark ? '#ff9800' : '#e65100'} />
+            
+            {/* NOVO: BADGE DO FOGO INTERNO CLICÁVEL */}
+            {entries.length > 0 && (
+              <div 
+                onClick={() => setShowStreakModal(true)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '0.4rem',
+                  padding: '0.5rem 1rem',
+                  background: streak > 0 ? (isDark ? 'rgba(255, 100, 0, 0.15)' : '#fff3e0') : 'transparent',
+                  border: `1px solid ${streak > 0 ? (isDark ? '#ff9800' : '#ffb74d') : (isDark ? '#555' : '#ccc')}`,
+                  borderRadius: '20px',
+                  color: streak > 0 ? (isDark ? '#ffb74d' : '#e65100') : (isDark ? '#888' : '#666'),
+                  fontWeight: 'bold', fontFamily: 'Georgia, serif', fontSize: '0.9rem',
+                  marginRight: '0.5rem', cursor: 'pointer', transition: 'all 0.2s',
+                  boxShadow: streak > 0 && isDark ? '0 0 10px rgba(255, 152, 0, 0.2)' : 'none'
+                }}>
+                <Flame size={18} 
+                  fill={streak > 0 ? (isDark ? '#ff9800' : '#e65100') : 'transparent'} 
+                  color={streak > 0 ? (isDark ? '#ff9800' : '#e65100') : (isDark ? '#888' : '#666')} 
+                />
                 <span>{streak} {streak === 1 ? 'dia' : 'dias'}</span>
               </div>
             )}
@@ -1188,6 +1220,7 @@ function App() {
                 Cadastre práticas que deseja acompanhar (ex: Tratak, Meditação, Leitura, Exercícios)
               </p>
 
+              {/* FORMULÁRIO DE ADICIONAR/EDITAR */}
               {showAddTask && (
                 <div style={{ padding: '1.5rem', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.3)', borderRadius: '12px', marginBottom: '2rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}` }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
@@ -1243,6 +1276,7 @@ function App() {
                 </div>
               )}
 
+              {/* LISTA DE TAREFAS */}
               {customTasks.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '3rem', color: isDark ? '#b8a88a' : '#6b5744' }}>
                   <CheckCircle size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
@@ -1430,11 +1464,19 @@ function App() {
                       </div>
                     )}
 
-                    {entry.tasksSnapshot && entry.tasksSnapshot.filter(t => t.completed).length > 0 && (
-                      <div style={{ marginBottom: '1rem', padding: '1rem', background: isDark ? 'rgba(76, 175, 80, 0.05)' : '#f8fff8', borderRadius: '8px', borderLeft: `4px solid ${isDark ? '#4caf50' : '#81c784'}` }}>
-                        <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem' }}>Práticas Realizadas:</h4>
-                        <ul style={{ margin: 0, paddingLeft: '1.2rem', color: isDark ? '#c8b896' : '#6b5744', fontSize: '0.95rem', lineHeight: '1.6' }}>
-                          {entry.tasksSnapshot.filter(t => t.completed).map((task, idx) => <li key={idx}>{task.name}</li>)}
+                    {/* NOVO: Exibição Completa das Tarefas no Histórico */}
+                    {entry.tasksSnapshot && entry.tasksSnapshot.length > 0 && (
+                      <div style={{ marginBottom: '1rem', padding: '1rem', background: isDark ? 'rgba(212, 175, 55, 0.05)' : '#fdfbf7', borderRadius: '8px', borderLeft: `4px solid ${isDark ? '#d4af37' : '#8b7355'}` }}>
+                        <h4 style={{ margin: '0 0 0.75rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem' }}>Acompanhamento de Práticas:</h4>
+                        <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          {entry.tasksSnapshot.map((task, idx) => (
+                            <li key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: isDark ? '#c8b896' : '#6b5744', fontSize: '0.95rem' }}>
+                              {task.completed ? <CheckCircle size={16} color="#4caf50" /> : <XCircle size={16} color="#e74c3c" />}
+                              <span style={{ textDecoration: task.completed ? 'none' : 'line-through', opacity: task.completed ? 1 : 0.6 }}>
+                                {task.name}
+                              </span>
+                            </li>
+                          ))}
                         </ul>
                       </div>
                     )}
@@ -1457,6 +1499,46 @@ function App() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* MODAL DO FOGO INTERNO (ESTATÍSTICAS) */}
+        {showStreakModal && (
+          <div 
+            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(3px)' }} 
+            onClick={() => setShowStreakModal(false)}
+          >
+            <div 
+              style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '2rem', borderRadius: '16px', maxWidth: '400px', width: '100%', border: `2px solid ${isDark ? '#ff9800' : '#e65100'}`, position: 'relative', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }} 
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button onClick={() => setShowStreakModal(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}><X size={24} /></button>
+              
+              <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                <Flame size={48} fill={isDark ? '#ff9800' : '#e65100'} color={isDark ? '#ff9800' : '#e65100'} style={{ margin: '0 auto 1rem' }} />
+                <h2 style={{ margin: 0, fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.8rem' }}>Seu Fogo Interno</h2>
+                <p style={{ margin: '0.5rem 0 0', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic' }}>A consistência forja o caráter.</p>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
+                <div style={{ background: isDark ? 'rgba(255, 152, 0, 0.1)' : '#fff3e0', padding: '1.5rem', borderRadius: '12px', textAlign: 'center', border: `1px solid ${isDark ? 'rgba(255, 152, 0, 0.3)' : 'rgba(230, 81, 0, 0.2)'}` }}>
+                  <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: isDark ? '#ffb74d' : '#e65100' }}>{streak}</div>
+                  <div style={{ fontSize: '0.75rem', color: isDark ? '#c8b896' : '#6b5744', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>Dias Seguidos</div>
+                </div>
+                <div style={{ background: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(255, 245, 220, 0.6)', padding: '1.5rem', borderRadius: '12px', textAlign: 'center', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}` }}>
+                  <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: isDark ? '#d4af37' : '#8b7355' }}>{longestStreak}</div>
+                  <div style={{ fontSize: '0.75rem', color: isDark ? '#c8b896' : '#6b5744', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>Maior Ofensiva</div>
+                </div>
+              </div>
+
+              <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.5)' : 'white', padding: '1.2rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, textAlign: 'center' }}>
+                <p style={{ margin: '0 0 0.5rem', fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', letterSpacing: '1px' }}>Total de Dias Registrados</p>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', color: isDark ? '#d4af37' : '#8b7355' }}>
+                  <BookOpen size={20} />
+                  <span style={{ fontSize: '1.4rem', fontWeight: 'bold', fontFamily: 'Georgia, serif' }}>{entries.length}</span>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </main>
