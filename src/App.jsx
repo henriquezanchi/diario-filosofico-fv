@@ -984,12 +984,7 @@ function App() {
             >
               {isLogin ? 'Entrar' : 'Criar Conta'}
             </button>
-            <button
-              type="button" onClick={() => { setIsLogin(!isLogin); setError(''); }}
-              style={{ width: '100%', padding: '0.75rem', background: 'transparent', color: '#8b7355', border: '2px solid #8b7355', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontFamily: 'Georgia, serif', transition: 'all 0.2s' }}
-            >
-              {isLogin ? 'Criar nova conta' : 'Já tenho conta'}
-            </button>
+
             <button
               type="button" onClick={() => { setIsLogin(!isLogin); setError(''); }}
               style={{ width: '100%', padding: '0.75rem', background: 'transparent', color: '#8b7355', border: '2px solid #8b7355', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontFamily: 'Georgia, serif', transition: 'all 0.2s' }}
@@ -997,7 +992,7 @@ function App() {
               {isLogin ? 'Criar nova conta' : 'Já tenho conta'}
             </button>
 
-            {/* NOVO: Divisor e Botão do Google */}
+            {/* Divisor e Botão do Google */}
             <div style={{ display: 'flex', alignItems: 'center', margin: '1.5rem 0', color: '#8b7355' }}>
               <div style={{ flex: 1, height: '1px', background: '#e8dcc4' }}></div>
               <span style={{ padding: '0 1rem', fontSize: '0.9rem', fontStyle: 'italic' }}>ou</span>
