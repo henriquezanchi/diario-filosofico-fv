@@ -66,11 +66,10 @@ function App() {
   const [newTaskName, setNewTaskName] = useState('');
   const [showAddTask, setShowAddTask] = useState(false);
   const [todayTasksStatus, setTodayTasksStatus] = useState({});
-
-  // NOVO: Periodicidade das tarefas
   const [newTaskRecurrence, setNewTaskRecurrence] = useState('daily');
-  const [newTaskWeekDays, setNewTaskWeekDays] = useState([]); // 0=Dom, 1=Seg...
+  const [newTaskWeekDays, setNewTaskWeekDays] = useState([]); 
   const [newTaskMonthDay, setNewTaskMonthDay] = useState(1);
+  const [editingTaskId, setEditingTaskId] = useState(null); // NOVO: Guarda o ID da tarefa sendo editada
 
   // Estados de Metas de Longo Prazo (NOVO)
   const [yearGoals, setYearGoals] = useState('');
@@ -471,28 +470,46 @@ function App() {
     }
   };
 
-  // NOVO: Adicionar tarefa personalizada com Periodicidade
-  const addCustomTask = async () => {
+  // NOVO: Salvar (Adicionar ou Editar) tarefa personalizada
+  const saveCustomTask = async () => {
     if (!newTaskName.trim()) return;
     if (newTaskRecurrence === 'weekly' && newTaskWeekDays.length === 0) {
       alert('Por favor, selecione pelo menos um dia da semana.');
       return;
     }
 
-    const newTask = {
-      id: Date.now(),
-      name: newTaskName,
+    // Se estiver criando uma NOVA tarefa, verifica se o nome já existe
+    if (!editingTaskId) {
+      const isDuplicate = customTasks.some(t => t.name.toLowerCase().trim() === newTaskName.trim().toLowerCase());
+      if (isDuplicate) {
+        alert('Você já tem uma prática cadastrada com este nome!');
+        return;
+      }
+    }
+
+    const taskData = {
+      id: editingTaskId || Date.now(), // Mantém o ID antigo se estiver editando
+      name: newTaskName.trim(),
       recurrence: newTaskRecurrence,
       weekDays: newTaskRecurrence === 'weekly' ? newTaskWeekDays : null,
       monthDay: newTaskRecurrence === 'monthly' ? newTaskMonthDay : null
     };
 
-    const newTasks = [...customTasks, newTask];
+    let newTasks;
+    if (editingTaskId) {
+      // Atualiza a lista substituindo a tarefa antiga pela editada
+      newTasks = customTasks.map(t => t.id === editingTaskId ? taskData : t);
+    } else {
+      // Adiciona a nova na lista
+      newTasks = [...customTasks, taskData];
+    }
+
     setCustomTasks(newTasks);
     
-    // Reseta o formulário
+    // Limpa o formulário e fecha
     setNewTaskName('');
     setShowAddTask(false);
+    setEditingTaskId(null);
     setNewTaskRecurrence('daily');
     setNewTaskWeekDays([]);
     setNewTaskMonthDay(1);
@@ -500,6 +517,19 @@ function App() {
     if (user) {
       await setDoc(doc(db, 'customTasks', user.uid), { tasks: newTasks });
     }
+  };
+
+  // NOVO: Prepara o formulário para editar uma tarefa existente
+  const startEditingTask = (task) => {
+    setEditingTaskId(task.id);
+    setNewTaskName(task.name);
+    setNewTaskRecurrence(task.recurrence || 'daily');
+    setNewTaskWeekDays(task.weekDays || []);
+    setNewTaskMonthDay(task.monthDay || 1);
+    setShowAddTask(true);
+    
+    // Rola a tela suavemente para o topo onde está o formulário
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // NOVO: Remover tarefa personalizada
@@ -1649,7 +1679,7 @@ const importFromCSV = async (content) => {
                       <Edit size={16} /> Editar
                     </button>
                   </div>
-                  <p style={{ color: isDark ? '#c8e6c9' : '#1b5e20' }}>
+                  <p style={{ margin: 0, color: isDark ? '#c8e6c9' : '#1b5e20' }}>
                     Exame noturno realizado. Descanse bem! 🌙
                   </p>
                 </div>
@@ -1819,7 +1849,7 @@ const importFromCSV = async (content) => {
               border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`,
               boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
                 <h2 style={{
                   margin: 0,
                   fontSize: 'clamp(1.3rem, 3vw, 1.8rem)',
@@ -1829,7 +1859,13 @@ const importFromCSV = async (content) => {
                   Tarefas Personalizadas
                 </h2>
                 <button
-                  onClick={() => setShowAddTask(true)}
+                  onClick={() => {
+                    setEditingTaskId(null);
+                    setNewTaskName('');
+                    setNewTaskRecurrence('daily');
+                    setNewTaskWeekDays([]);
+                    setShowAddTask(true);
+                  }}
                   style={{
                     padding: '0.75rem 1.5rem',
                     background: isDark ? '#d4af37' : '#8b7355',
@@ -1854,9 +1890,10 @@ const importFromCSV = async (content) => {
                 marginBottom: '2rem',
                 fontSize: '1rem'
               }}>
-                Cadastre práticas que deseja acompanhar diariamente (ex: Tratak, Meditação, Leitura, Exercícios)
+                Cadastre práticas que deseja acompanhar (ex: Tratak, Meditação, Leitura, Exercícios)
               </p>
 
+              {/* FORMULÁRIO DE ADICIONAR/EDITAR */}
               {showAddTask && (
                 <div style={{
                   padding: '1.5rem',
@@ -1865,6 +1902,18 @@ const importFromCSV = async (content) => {
                   marginBottom: '2rem',
                   border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`
                 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                    <h3 style={{ margin: 0, color: isDark ? '#d4af37' : '#8b7355', fontFamily: "'Cinzel', serif" }}>
+                      {editingTaskId ? 'Editar Prática' : 'Nova Prática'}
+                    </h3>
+                    <button onClick={() => {
+                      setShowAddTask(false);
+                      setEditingTaskId(null);
+                    }} style={{
+                      background: 'transparent', color: '#e74c3c', border: 'none', cursor: 'pointer'
+                    }}><X size={24} /></button>
+                  </div>
+
                   <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
                     <input
                       type="text"
@@ -1877,10 +1926,6 @@ const importFromCSV = async (content) => {
                         background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810'
                       }}
                     />
-                    <button onClick={() => setShowAddTask(false)} style={{
-                      padding: '0.75rem', background: 'transparent', color: '#e74c3c',
-                      border: '1px solid #e74c3c', borderRadius: '8px', cursor: 'pointer'
-                    }}><X size={20} /></button>
                   </div>
 
                   <div style={{ marginBottom: '1rem' }}>
@@ -1943,22 +1988,25 @@ const importFromCSV = async (content) => {
                   )}
 
                   <button
-                    onClick={addCustomTask}
+                    onClick={saveCustomTask}
                     style={{
                       width: '100%', padding: '0.75rem', background: isDark ? '#d4af37' : '#8b7355',
                       color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px',
-                      cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', fontSize: '1rem'
+                      cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', fontSize: '1rem',
+                      display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem'
                     }}
                   >
-                    Salvar Tarefa
+                    <Save size={18} />
+                    {editingTaskId ? 'Salvar Alterações' : 'Adicionar Tarefa'}
                   </button>
                 </div>
               )}
 
+              {/* LISTA DE TAREFAS */}
               {customTasks.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '3rem', color: isDark ? '#b8a88a' : '#6b5744' }}>
                   <CheckCircle size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
-                  <p style={{ fontSize: '1.1rem' }}>Nenhuma tarefa cadastrada</p>
+                  <p style={{ fontSize: '1.1rem' }}>Nenhuma prática cadastrada</p>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -1985,73 +2033,38 @@ const importFromCSV = async (content) => {
                             ↻ {freqText}
                           </div>
                         </div>
-                        <button
-                          onClick={() => removeCustomTask(task.id)}
-                          style={{
-                            padding: '0.5rem', background: 'transparent', color: '#e74c3c',
-                            border: '1px solid #e74c3c', borderRadius: '6px', cursor: 'pointer', display: 'flex'
-                          }}
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        
+                        {/* Botões de Editar e Excluir */}
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button
+                            onClick={() => startEditingTask(task)}
+                            style={{
+                              padding: '0.5rem', background: 'transparent', color: isDark ? '#d4af37' : '#8b7355',
+                              border: `1px solid ${isDark ? '#d4af37' : '#8b7355'}`, borderRadius: '6px', cursor: 'pointer', display: 'flex'
+                            }}
+                            title="Editar"
+                          >
+                            <Edit size={16} />
+                          </button>
+                          
+                          <button
+                            onClick={() => {
+                              if(window.confirm(`Deseja realmente excluir a prática "${task.name}"?`)) {
+                                removeCustomTask(task.id);
+                              }
+                            }}
+                            style={{
+                              padding: '0.5rem', background: 'transparent', color: '#e74c3c',
+                              border: '1px solid #e74c3c', borderRadius: '6px', cursor: 'pointer', display: 'flex'
+                            }}
+                            title="Excluir"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </div>
                     );
                   })}
-                </div>
-              )}
-
-              {customTasks.length === 0 ? (
-                <div style={{
-                  textAlign: 'center',
-                  padding: '3rem',
-                  color: isDark ? '#b8a88a' : '#6b5744'
-                }}>
-                  <CheckCircle size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
-                  <p style={{ fontSize: '1.1rem' }}>
-                    Nenhuma tarefa cadastrada ainda
-                  </p>
-                  <p style={{ fontSize: '0.95rem', opacity: 0.8 }}>
-                    Clique em "Nova Tarefa" para começar
-                  </p>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {customTasks.map(task => (
-                    <div
-                      key={task.id}
-                      style={{
-                        padding: '1rem',
-                        background: isDark ? 'rgba(26, 26, 46, 0.4)' : 'rgba(255, 255, 255, 0.8)',
-                        border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`,
-                        borderRadius: '8px',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                      }}
-                    >
-                      <span style={{
-                        fontSize: '1.05rem',
-                        color: isDark ? '#f0e6d2' : '#2c1810'
-                      }}>
-                        {task.name}
-                      </span>
-                      <button
-                        onClick={() => removeCustomTask(task.id)}
-                        style={{
-                          padding: '0.5rem',
-                          background: 'transparent',
-                          color: '#e74c3c',
-                          border: '2px solid #e74c3c',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center'
-                        }}
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  ))}
                 </div>
               )}
             </div>
