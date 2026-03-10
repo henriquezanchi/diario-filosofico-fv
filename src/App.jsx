@@ -138,7 +138,18 @@ function App() {
     const today = new Date();
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   };
-
+// NOVO: Sistema de Gamificação (Títulos do Fogo Interno)
+  const getStreakTitle = (days) => {
+    if (days >= 365) return { title: "Fogo Prometeico", desc: "A chama divina da sabedoria inabalável." };
+    if (days >= 180) return { title: "Sol Interior", desc: "Luz própria e autodomínio estabelecido." };
+    if (days >= 90) return { title: "Farol de Sabedoria", desc: "Sua constância ilumina a si e aos outros." };
+    if (days >= 30) return { title: "Forja Filosófica", desc: "O caráter é moldado pelo hábito." };
+    if (days >= 21) return { title: "Fogueira", desc: "O calor da disciplina já se estabeleceu." };
+    if (days >= 7) return { title: "Tocha Iluminadora", desc: "A luz que guia seus passos." };
+    if (days >= 3) return { title: "Chama Desperta", desc: "O fogo da vontade começa a crescer." };
+    if (days >= 1) return { title: "Centelha", desc: "A primeira faísca do seu compromisso." };
+    return { title: "Cinzas Frias", desc: "O fogo aguarda para ser aceso novamente." };
+  };
   const canDrawToday = () => {
     const today = getTodayKey();
     return lastDrawDate !== today;
