@@ -1628,7 +1628,7 @@ function App() {
           </div>
         )}
 
-        {/* MODAL DO FOGO INTERNO (ESTATÍSTICAS) */}
+        {/* MODAL DO FOGO INTERNO (ESTATÍSTICAS GAMIFICADAS) */}
         {showStreakModal && (
           <div 
             style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(3px)' }} 
@@ -1640,10 +1640,20 @@ function App() {
             >
               <button onClick={() => setShowStreakModal(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}><X size={24} /></button>
               
-              <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+              <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
                 <Flame size={48} fill={isDark ? '#ff9800' : '#e65100'} color={isDark ? '#ff9800' : '#e65100'} style={{ margin: '0 auto 1rem' }} />
                 <h2 style={{ margin: 0, fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.8rem' }}>Seu Fogo Interno</h2>
-                <p style={{ margin: '0.5rem 0 0', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic' }}>A consistência forja o caráter.</p>
+              </div>
+
+              {/* NOVO: Exibição do Título Gamificado */}
+              <div style={{ background: isDark ? 'linear-gradient(135deg, rgba(255, 152, 0, 0.2) 0%, rgba(230, 81, 0, 0.1) 100%)' : 'linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%)', padding: '1rem', borderRadius: '12px', border: `1px solid ${isDark ? '#ff9800' : '#ffb74d'}`, textAlign: 'center', marginBottom: '2rem' }}>
+                <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 'bold', color: isDark ? '#ffb74d' : '#e65100', display: 'block', marginBottom: '0.2rem' }}>Grau Atual</span>
+                <h3 style={{ margin: '0 0 0.5rem', fontFamily: "'Cinzel', serif", fontSize: '1.4rem', color: isDark ? '#f0e6d2' : '#2c1810' }}>
+                  {getStreakTitle(streak).title}
+                </h3>
+                <p style={{ margin: 0, fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic' }}>
+                  {getStreakTitle(streak).desc}
+                </p>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
