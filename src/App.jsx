@@ -1476,7 +1476,7 @@ function App() {
                 boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
               }}>
                 <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#ffd700' : '#d4af37', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.2rem' }}>
-                  <Award size={20} /> Painel da Força Vital
+                  <Award size={20} /> Painel da Força Viva
                 </h3>
                 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: fvCartaDegrau ? '1rem' : '0' }}>
