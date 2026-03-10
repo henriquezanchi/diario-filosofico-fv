@@ -39,13 +39,17 @@ function App() {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  // Estados de Navegação e Fogo Interno
+// Estados de Navegação e Fogo Interno
   const [view, setView] = useState('today');
   const [theme, setTheme] = useState('light');
   const [searchTerm, setSearchTerm] = useState('');
   const [streak, setStreak] = useState(0); 
   const [longestStreak, setLongestStreak] = useState(0); 
   const [showStreakModal, setShowStreakModal] = useState(false); 
+
+  // NOVO: Controle de Inatividade
+  const [showInactivityWarning, setShowInactivityWarning] = useState(false);
+  const [logoutCountdown, setLogoutCountdown] = useState(15);
 
   // Estados do Prólogo
   const [morningDone, setMorningDone] = useState(false);
@@ -391,7 +395,69 @@ function App() {
       console.error('Erro ao carregar dados:', error);
     }
   };
+// NOVO: Motor de Inatividade (Vigia de Mouse e Teclado)
+  useEffect(() => {
+    if (!user) return; // Só vigia se alguém estiver logado
 
+    let inactivityTimer;
+    let countdownInterval;
+
+    // Reinicia o cronômetro de 1 minuto (60.000 milissegundos)
+    const resetTimer = () => {
+      if (showInactivityWarning) return; // Se a tela de aviso já abriu, não reinicia
+      
+      clearTimeout(inactivityTimer);
+      inactivityTimer = setTimeout(() => {
+        setShowInactivityWarning(true); // Estourou 1 minuto! Mostra o aviso.
+      }, 60000); 
+    };
+
+    const handleActivity = () => resetTimer();
+
+    // Fica de olho nos movimentos
+    window.addEventListener('mousemove', handleActivity);
+    window.addEventListener('keydown', handleActivity);
+    window.addEventListener('click', handleActivity);
+    window.addEventListener('scroll', handleActivity);
+
+    // Dá o play inicial
+    resetTimer();
+
+    // Se o aviso apareceu na tela, começa a contagem regressiva de 15 segundos
+    if (showInactivityWarning) {
+      countdownInterval = setInterval(() => {
+        setLogoutCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(countdownInterval);
+            // Tempo esgotado: Puxa o gatilho e expulsa por segurança
+            signOut(auth);
+            setView('today');
+            setShowInactivityWarning(false);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      setLogoutCountdown(15); // Garante que o contador volte pra 15s quando o aviso sumir
+    }
+
+    // Limpeza da memória ao fechar ou deslogar
+    return () => {
+      clearTimeout(inactivityTimer);
+      clearInterval(countdownInterval);
+      window.removeEventListener('mousemove', handleActivity);
+      window.removeEventListener('keydown', handleActivity);
+      window.removeEventListener('click', handleActivity);
+      window.removeEventListener('scroll', handleActivity);
+    };
+  }, [user, showInactivityWarning]);
+
+  // Função para o botão "Ainda estou aqui"
+  const keepAlive = () => {
+    setShowInactivityWarning(false);
+    setLogoutCountdown(15);
+  };
   const loadTodayEntry = async (uid) => {
     try {
       const today = getTodayKey();
