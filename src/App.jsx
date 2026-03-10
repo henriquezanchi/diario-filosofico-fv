@@ -16,16 +16,8 @@ import {
   signInWithPopup
 } from 'firebase/auth';
 import { 
-  doc, 
-  setDoc, 
-  getDoc,
-  collection,
-  query,
-  where,
-  getDocs,
-  updateDoc,
-  deleteDoc,
-  Timestamp 
+  doc, setDoc, getDoc, collection, query, where,
+  getDocs, updateDoc, deleteDoc, Timestamp 
 } from 'firebase/firestore';
 import './App.css';
 
@@ -51,7 +43,7 @@ function App() {
   const [showInactivityWarning, setShowInactivityWarning] = useState(false);
   const [logoutCountdown, setLogoutCountdown] = useState(15);
 
-  // Estados do Prólogo
+  // Estados do Prólogo e Epílogo
   const [morningDone, setMorningDone] = useState(false);
   const [selectedVirtue, setSelectedVirtue] = useState('');
   const [customVirtue, setCustomVirtue] = useState('');
@@ -61,15 +53,13 @@ function App() {
   const [morningChallenges, setMorningChallenges] = useState(''); 
   const [morningVehicles, setMorningVehicles] = useState(''); 
   const [lastDrawDate, setLastDrawDate] = useState(null);
-
-  // Estados do Epílogo
   const [eveningDone, setEveningDone] = useState(false);
   const [didMorning, setDidMorning] = useState(true); 
   const [whereIFailed, setWhereIFailed] = useState('');
   const [whatIDidWell, setWhatIDidWell] = useState('');
   const [whatILeftUndone, setWhatILeftUndone] = useState('');
 
-  // Estados de Tarefas Personalizadas
+  // Tarefas e Metas
   const [customTasks, setCustomTasks] = useState([]);
   const [newTaskName, setNewTaskName] = useState('');
   const [showAddTask, setShowAddTask] = useState(false);
@@ -79,27 +69,31 @@ function App() {
   const [newTaskMonthDay, setNewTaskMonthDay] = useState(1);
   const [newTaskBaseDate, setNewTaskBaseDate] = useState(''); 
   const [editingTaskId, setEditingTaskId] = useState(null);
-
-  // Estados de Metas de Longo Prazo
   const [yearGoals, setYearGoals] = useState('');
   const [lifeGoals, setLifeGoals] = useState('');
   const [showGoalsEditor, setShowGoalsEditor] = useState(false);
-
-  // Estados de Biblioteca de Virtudes
   const [selectedVirtueDetail, setSelectedVirtueDetail] = useState(null);
-
-  // Estados de Histórico
   const [entries, setEntries] = useState([]);
 
-  // Estados FV
+  // Estados FV (Força Viva)
   const [fvUnlocked, setFvUnlocked] = useState(false);
   const [fvClickCount, setFvClickCount] = useState(0);
-  const [fvCartaDegrau, setFvCartaDegrau] = useState('');
-  const [fvLastCartaDate, setFvLastCartaDate] = useState(null);
-  const [fvNextCartaDate, setFvNextCartaDate] = useState(null);
+  const [fvLockClickCount, setFvLockClickCount] = useState(0);
+  const [fvLastCartaDate, setFvLastCartaDate] = useState('');
+  const [fvNextCartaDate, setFvNextCartaDate] = useState('');
   const [fvGdveDesafios, setFvGdveDesafios] = useState([]);
   const [fvGdveReuniao, setFvGdveReuniao] = useState('');
-  const [fvLockClickCount, setFvLockClickCount] = useState(0); // NOVO: Contador para bloquear
+  
+  // NOVO: Estado Diário da Carta de Degrau FV
+  const [fvDaily, setFvDaily] = useState({
+    item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
+    horasGuarda: '', horasAula: '',
+    praticas: {
+      tratack: false, recitarHonra: false, recitar7Fases: false,
+      camara: false, templo: false, porta: false, patioAberto: false,
+      patioColunas: false, santuario: false
+    }
+  });
 
   const virtues = [
     { name: "Paciência", shortDesc: "Suportar dificuldades mantendo a serenidade", description: "A capacidade de suportar dificuldades sem se perturbar, mantendo a serenidade diante das adversidades e do tempo necessário para as coisas se realizarem.", practices: "• Respirar profundamente antes de reagir\n• Observar a irritação sem agir impulsivamente\n• Lembrar que tudo tem seu tempo", color: "#4A90E2" },
@@ -138,7 +132,7 @@ function App() {
     const today = new Date();
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   };
-// NOVO: Sistema de Gamificação Inteligente (Grau Atual e Próximo Nível)
+
   const getStreakInfo = (days) => {
     const levels = [
       { min: 0, title: "Cinzas Frias", desc: "O fogo aguarda para ser aceso." },
@@ -158,7 +152,7 @@ function App() {
     for (let i = 0; i < levels.length; i++) {
       if (days >= levels[i].min) {
         current = levels[i];
-        next = i + 1 < levels.length ? levels[i + 1] : null; // Pega o próximo, se existir
+        next = i + 1 < levels.length ? levels[i + 1] : null; 
       }
     }
     return { current, next };
@@ -192,12 +186,16 @@ function App() {
     setWhatILeftUndone('');
     setYearGoals('');
     setLifeGoals('');
-    setFvCartaDegrau('');
+    setFvLastCartaDate('');
+    setFvNextCartaDate('');
     setFvGdveReuniao('');
-    setFvLastCartaDate(null);
-    setFvNextCartaDate(null);
     setFvUnlocked(false);
     setLastDrawDate(null);
+    setFvDaily({
+      item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
+      horasGuarda: '', horasAula: '',
+      praticas: { tratack: false, recitarHonra: false, recitar7Fases: false, camara: false, templo: false, porta: false, patioAberto: false, patioColunas: false, santuario: false }
+    });
   };
 
   const getTasksForToday = () => {
@@ -226,34 +224,22 @@ function App() {
     if (fvClickCount >= 6) {
       setFvUnlocked(true);
       setFvClickCount(0);
-      if (user) {
-        updateDoc(doc(db, 'users', user.uid), { fvUnlocked: true });
-      }
-      alert('🔓 Modo FV desbloqueado!');
+      if (user) { updateDoc(doc(db, 'users', user.uid), { fvUnlocked: true }); }
+      alert('🔓 Modo Força Viva desbloqueado!');
     }
     setTimeout(() => setFvClickCount(0), 3000);
   };
 
-  // NOVO: Função para BLOQUEAR o FV novamente (3 cliques rápidos)
   const handleFvLockClick = () => {
-    setView('fv'); // No primeiro clique, ele continua funcionando normal e entra na tela
-
+    setView('fv'); 
     setFvLockClickCount(prev => prev + 1);
-    
-    // Se o contador chegar a 2 (ou seja, é o 3º clique seguido)
     if (fvLockClickCount >= 2) {
-      setFvUnlocked(false); // Tranca a porta
-      setView('today'); // Expulsa a pessoa para a tela inicial
-      setFvLockClickCount(0); // Zera o contador
-      
-      if (user) {
-        // Salva no banco de dados que a porta está trancada de novo
-        updateDoc(doc(db, 'users', user.uid), { fvUnlocked: false });
-      }
-      alert('🔒 Modo FV ocultado com segurança!');
+      setFvUnlocked(false); 
+      setView('today'); 
+      setFvLockClickCount(0); 
+      if (user) { updateDoc(doc(db, 'users', user.uid), { fvUnlocked: false }); }
+      alert('🔒 Modo Força Viva ocultado com segurança!');
     }
-    
-    // Zera o contador se os cliques não forem rápidos (menos de 2 segundos)
     setTimeout(() => setFvLockClickCount(0), 2000); 
   };
 
@@ -266,40 +252,34 @@ function App() {
     const selectedV = virtues[randomIndex].name;
     setSelectedVirtue(selectedV);
     setShowCustomVirtue(false);
-
     const today = getTodayKey();
     setLastDrawDate(today);
 
     if (user) {
-      try {
-        await updateDoc(doc(db, 'users', user.uid), { lastDrawDate: today });
-      } catch (error) {
-        console.log('Erro ao salvar data do sorteio');
-      }
+      try { await updateDoc(doc(db, 'users', user.uid), { lastDrawDate: today }); } 
+      catch (error) { console.log('Erro ao salvar data do sorteio'); }
     }
   };
 
-  // Motor de Inatividade 1: O Vigia (60 segundos)
+  const canDrawToday = () => {
+    const today = getTodayKey();
+    return lastDrawDate !== today;
+  };
+
+  // Motor de Inatividade
   useEffect(() => {
     if (!user || showInactivityWarning) return;
-
     let timeoutId;
     const resetTimer = () => {
       clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        setShowInactivityWarning(true);
-      }, 60000); // 1 minuto
+      timeoutId = setTimeout(() => setShowInactivityWarning(true), 60000);
     };
-
     const handleActivity = () => resetTimer();
-
     window.addEventListener('mousemove', handleActivity);
     window.addEventListener('keydown', handleActivity);
     window.addEventListener('click', handleActivity);
     window.addEventListener('scroll', handleActivity);
-
     resetTimer();
-
     return () => {
       clearTimeout(timeoutId);
       window.removeEventListener('mousemove', handleActivity);
@@ -309,7 +289,6 @@ function App() {
     };
   }, [user, showInactivityWarning]);
 
-  // Motor de Inatividade 2: O Cronômetro de Expulsão (15 segundos)
   useEffect(() => {
     let intervalId;
     if (showInactivityWarning) {
@@ -327,7 +306,6 @@ function App() {
     } else {
       setLogoutCountdown(15);
     }
-
     return () => clearInterval(intervalId);
   }, [showInactivityWarning]);
 
@@ -352,7 +330,6 @@ function App() {
       }
       setLoading(false);
     });
-
     return () => unsubscribe();
   }, []);
 
@@ -366,15 +343,10 @@ function App() {
         setFvUnlocked(data.fvUnlocked || false);
       } else {
         await setDoc(doc(db, 'users', uid), {
-          createdAt: Timestamp.now(),
-          theme: 'light',
-          lastDrawDate: null,
-          fvUnlocked: false
+          createdAt: Timestamp.now(), theme: 'light', lastDrawDate: null, fvUnlocked: false
         });
       }
-    } catch (error) {
-      console.error('Erro ao carregar dados:', error);
-    }
+    } catch (error) { console.error('Erro ao carregar dados:', error); }
   };
 
   const loadTodayEntry = async (uid) => {
@@ -387,8 +359,6 @@ function App() {
         setSelectedVirtue(data.virtue || '');
         setCustomVirtue(data.customVirtue || '');
         setDailyIntention(data.intention || '');
-        setMorningChallenges(data.morningChallenges || '');
-        setMorningVehicles(data.morningVehicles || '');
         setEveningDone(data.eveningDone || false);
         setWhereIFailed(data.whereIFailed || '');
         setWhatIDidWell(data.whatIDidWell || '');
@@ -396,6 +366,18 @@ function App() {
         setDidMorning(data.didMorning !== false);
         setDailyQuote(data.quote || null);
         setTodayTasksStatus(data.tasksStatus || {});
+        // Carregar os dados diários do FV, se existirem para hoje
+        setFvDaily(data.fvDaily || {
+          item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
+          horasGuarda: '', horasAula: '',
+          praticas: { tratack: false, recitarHonra: false, recitar7Fases: false, camara: false, templo: false, porta: false, patioAberto: false, patioColunas: false, santuario: false }
+        });
+      } else {
+         setFvDaily({
+          item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
+          horasGuarda: '', horasAula: '',
+          praticas: { tratack: false, recitarHonra: false, recitar7Fases: false, camara: false, templo: false, porta: false, patioAberto: false, patioColunas: false, santuario: false }
+        });
       }
 
       if (!dailyQuote) {
@@ -416,7 +398,7 @@ function App() {
       const loadedEntries = [];
       querySnapshot.forEach((doc) => {
         const data = doc.data();
-        if (data.eveningDone) {
+        if (data.eveningDone || data.fvDaily) { // Carrega se tiver epílogo ou registro FV
           loadedEntries.push({ id: doc.id, ...data });
         }
       });
@@ -426,9 +408,12 @@ function App() {
       if (loadedEntries.length > 0) {
         let maxStreak = 1;
         let tempCalc = 1;
-        for (let i = 0; i < loadedEntries.length - 1; i++) {
-          const date1 = new Date(loadedEntries[i].date + 'T12:00:00');
-          const date2 = new Date(loadedEntries[i+1].date + 'T12:00:00');
+        // Calcula apenas dias que tiveram o Epílogo concluído
+        const streakEntries = loadedEntries.filter(e => e.eveningDone);
+        
+        for (let i = 0; i < streakEntries.length - 1; i++) {
+          const date1 = new Date(streakEntries[i].date + 'T12:00:00');
+          const date2 = new Date(streakEntries[i+1].date + 'T12:00:00');
           const diffDays = Math.round((date1 - date2) / (1000 * 60 * 60 * 24));
           
           if (diffDays === 1) {
@@ -446,10 +431,10 @@ function App() {
         const yesterdayKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         
         let currentStreak = 0;
-        let dateToCheck = loadedEntries[0].date === todayKey ? todayKey : (loadedEntries[0].date === yesterdayKey ? yesterdayKey : null);
+        let dateToCheck = streakEntries.length > 0 && streakEntries[0].date === todayKey ? todayKey : (streakEntries.length > 0 && streakEntries[0].date === yesterdayKey ? yesterdayKey : null);
         
         if (dateToCheck) {
-          for (const entry of loadedEntries) {
+          for (const entry of streakEntries) {
             if (entry.date === dateToCheck) {
               currentStreak++;
               const prevD = new Date(dateToCheck + 'T12:00:00');
@@ -465,20 +450,14 @@ function App() {
         setStreak(0);
         setLongestStreak(0);
       }
-    } catch (error) {
-      console.error('Erro ao carregar entradas:', error);
-    }
+    } catch (error) { console.error('Erro ao carregar entradas:', error); }
   };
 
   const loadCustomTasks = async (uid) => {
     try {
       const tasksDoc = await getDoc(doc(db, 'customTasks', uid));
-      if (tasksDoc.exists()) {
-        setCustomTasks(tasksDoc.data().tasks || []);
-      }
-    } catch (error) {
-      console.error('Erro ao carregar tarefas:', error);
-    }
+      if (tasksDoc.exists()) setCustomTasks(tasksDoc.data().tasks || []);
+    } catch (error) { console.error('Erro ao carregar tarefas:', error); }
   };
 
   const loadLongTermGoals = async (uid) => {
@@ -489,9 +468,7 @@ function App() {
         setYearGoals(data.yearGoals || '');
         setLifeGoals(data.lifeGoals || '');
       }
-    } catch (error) {
-      console.error('Erro ao carregar metas:', error);
-    }
+    } catch (error) { console.error('Erro ao carregar metas:', error); }
   };
 
   const loadFVData = async (uid) => {
@@ -499,186 +476,117 @@ function App() {
       const fvDoc = await getDoc(doc(db, 'fvData', uid));
       if (fvDoc.exists()) {
         const data = fvDoc.data();
-        setFvCartaDegrau(data.cartaDegrau || '');
-        setFvLastCartaDate(data.lastCartaDate || null);
-        setFvNextCartaDate(data.nextCartaDate || null);
+        setFvLastCartaDate(data.lastCartaDate || '');
+        setFvNextCartaDate(data.nextCartaDate || '');
         setFvGdveDesafios(data.gdveDesafios || []);
         setFvGdveReuniao(data.gdveReuniao || '');
       }
-    } catch (error) {
-      console.error('Erro ao carregar dados FV:', error);
-    }
+    } catch (error) { console.error('Erro ao carregar dados FV:', error); }
   };
 
   const saveCustomTask = async () => {
     if (!newTaskName.trim()) return;
-    
     if (newTaskRecurrence === 'weekly' && (!newTaskWeekDays || newTaskWeekDays.length === 0)) {
       alert('Por favor, selecione pelo menos um dia da semana.');
       return;
     }
-    
     if (newTaskRecurrence === 'biweekly' && !newTaskBaseDate) {
       alert('Por favor, selecione a data de início para a tarefa quinzenal.');
       return;
     }
 
-    const isDuplicate = customTasks.some(t => 
-      t.name.toLowerCase().trim() === newTaskName.trim().toLowerCase() && 
-      t.id !== editingTaskId
-    );
-
+    const isDuplicate = customTasks.some(t => t.name.toLowerCase().trim() === newTaskName.trim().toLowerCase() && t.id !== editingTaskId);
     if (isDuplicate) {
       alert('Você já tem uma prática cadastrada com este nome!');
       return;
     }
 
     const uniqueId = editingTaskId || `task_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-
     const taskData = {
-      id: uniqueId, 
-      name: newTaskName.trim(),
-      recurrence: newTaskRecurrence,
+      id: uniqueId, name: newTaskName.trim(), recurrence: newTaskRecurrence,
       weekDays: newTaskRecurrence === 'weekly' ? newTaskWeekDays : [],
       monthDay: newTaskRecurrence === 'monthly' ? parseInt(newTaskMonthDay) || 1 : 1,
       baseDate: newTaskRecurrence === 'biweekly' ? newTaskBaseDate : ""
     };
 
-    let newTasks;
-    if (editingTaskId) {
-      newTasks = customTasks.map(t => t.id === editingTaskId ? taskData : t);
-    } else {
-      newTasks = [...customTasks, taskData];
-    }
-
+    let newTasks = editingTaskId ? customTasks.map(t => t.id === editingTaskId ? taskData : t) : [...customTasks, taskData];
     const cleanTasksForFirebase = JSON.parse(JSON.stringify(newTasks));
 
     setCustomTasks(cleanTasksForFirebase);
-    
-    setNewTaskName('');
-    setShowAddTask(false);
-    setEditingTaskId(null);
-    setNewTaskRecurrence('daily');
-    setNewTaskWeekDays([]);
-    setNewTaskMonthDay(1);
-    setNewTaskBaseDate('');
+    setNewTaskName(''); setShowAddTask(false); setEditingTaskId(null);
+    setNewTaskRecurrence('daily'); setNewTaskWeekDays([]); setNewTaskMonthDay(1); setNewTaskBaseDate('');
 
     if (user) {
-      try {
-        await setDoc(doc(db, 'customTasks', user.uid), { tasks: cleanTasksForFirebase });
-      } catch (error) {
-        console.error("Erro ao salvar:", error);
-        alert('O Firebase reclamou de algo, mas a tarefa está salva no seu dispositivo.');
-      }
+      try { await setDoc(doc(db, 'customTasks', user.uid), { tasks: cleanTasksForFirebase }); } 
+      catch (error) { alert('O Firebase reclamou de algo, mas a tarefa está salva no seu dispositivo.'); }
     }
   };
 
   const startEditingTask = (task) => {
-    setEditingTaskId(task.id);
-    setNewTaskName(task.name);
-    setNewTaskRecurrence(task.recurrence || 'daily');
-    setNewTaskWeekDays(task.weekDays || []);
-    setNewTaskMonthDay(task.monthDay || 1);
-    setNewTaskBaseDate(task.baseDate || ''); 
-    setShowAddTask(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setEditingTaskId(task.id); setNewTaskName(task.name); setNewTaskRecurrence(task.recurrence || 'daily');
+    setNewTaskWeekDays(task.weekDays || []); setNewTaskMonthDay(task.monthDay || 1); setNewTaskBaseDate(task.baseDate || ''); 
+    setShowAddTask(true); window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const removeCustomTask = async (taskId) => {
     const newTasks = customTasks.filter(t => t.id !== taskId);
     const cleanTasksForFirebase = JSON.parse(JSON.stringify(newTasks));
-    
     setCustomTasks(cleanTasksForFirebase);
-
     if (user) {
-      try {
-        await setDoc(doc(db, 'customTasks', user.uid), { tasks: cleanTasksForFirebase });
-      } catch (error) {
-        console.error("Erro ao excluir:", error);
-      }
+      try { await setDoc(doc(db, 'customTasks', user.uid), { tasks: cleanTasksForFirebase }); } 
+      catch (error) { console.error("Erro ao excluir:", error); }
     }
   };
 
   const toggleTaskStatus = async (taskId) => {
-    const newStatus = {
-      ...todayTasksStatus,
-      [taskId]: !todayTasksStatus[taskId]
-    };
+    const newStatus = { ...todayTasksStatus, [taskId]: !todayTasksStatus[taskId] };
     setTodayTasksStatus(newStatus);
 
     if (user) {
       const todayKey = getTodayKey();
       const updatedSnapshot = getTasksForToday().map(task => ({
-        id: task.id,
-        name: task.name,
-        completed: !!newStatus[task.id]
+        id: task.id, name: task.name, completed: !!newStatus[task.id]
       }));
 
       try {
         await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), {
-          tasksStatus: newStatus,
-          tasksSnapshot: updatedSnapshot
+          tasksStatus: newStatus, tasksSnapshot: updatedSnapshot
         }, { merge: true }); 
         await loadAllEntries(user.uid);
-      } catch (error) {
-        console.error('Erro ao salvar o status da tarefa:', error);
-      }
+      } catch (error) { console.error('Erro ao salvar o status da tarefa:', error); }
     }
   };  
 
   const saveMorning = async () => {
     const finalVirtue = showCustomVirtue ? customVirtue : selectedVirtue;
-
-    if (!finalVirtue || !finalVirtue.trim()) {
-      alert('Por favor, selecione ou digite uma virtude para o dia.');
-      return;
-    }
+    if (!finalVirtue || !finalVirtue.trim()) { alert('Por favor, selecione ou digite uma virtude para o dia.'); return; }
 
     const tasksSnapshot = getTasksForToday().map(task => ({
-      id: task.id,
-      name: task.name,
-      completed: !!todayTasksStatus[task.id]
+      id: task.id, name: task.name, completed: !!todayTasksStatus[task.id]
     }));
 
     const todayKey = getTodayKey();
     const entry = {
-      userId: user.uid,
-      date: todayKey,
-      morningDone: true,
-      virtue: finalVirtue,
-      customVirtue: showCustomVirtue ? customVirtue : '',
-      quote: dailyQuote || null,
-      intention: dailyIntention || '',
-      morningChallenges: morningChallenges || '', 
-      morningVehicles: morningVehicles || '',     
-      tasksStatus: todayTasksStatus || {},
-      tasksSnapshot: tasksSnapshot || [],
-      morningTimestamp: Timestamp.now()
+      userId: user.uid, date: todayKey, morningDone: true, virtue: finalVirtue,
+      customVirtue: showCustomVirtue ? customVirtue : '', quote: dailyQuote || null,
+      intention: dailyIntention || '', tasksStatus: todayTasksStatus || {},
+      tasksSnapshot: tasksSnapshot || [], morningTimestamp: Timestamp.now()
     };
 
     try {
       await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), entry, { merge: true });
-      setMorningDone(true);
-      alert('✅ Prólogo salvo com sucesso!');
-    } catch (error) {
-      console.error(error); 
-      alert('Erro ao salvar prólogo. Verifique sua conexão.');
-    }
+      setMorningDone(true); alert('✅ Prólogo salvo com sucesso!');
+    } catch (error) { alert('Erro ao salvar prólogo. Verifique sua conexão.'); }
   };
 
   const saveEvening = async () => {
-    if (!whereIFailed || !whereIFailed.trim() || 
-        !whatIDidWell || !whatIDidWell.trim() || 
-        !whatILeftUndone || !whatILeftUndone.trim()) {
-      alert('Por favor, responda todas as três perguntas do exame noturno.');
-      return;
+    if (!whereIFailed || !whereIFailed.trim() || !whatIDidWell || !whatIDidWell.trim() || !whatILeftUndone || !whatILeftUndone.trim()) {
+      alert('Por favor, responda todas as três perguntas do exame noturno.'); return;
     }
 
     const todayKey = getTodayKey();
     const tasksSnapshot = getTasksForToday().map(task => ({
-      id: task.id,
-      name: task.name,
-      completed: !!todayTasksStatus[task.id]
+      id: task.id, name: task.name, completed: !!todayTasksStatus[task.id]
     }));
 
     try {
@@ -687,63 +595,66 @@ function App() {
       const existingData = existing.exists() ? existing.data() : {};
 
       const updatedEntry = {
-        ...existingData, 
-        userId: user.uid,
-        date: todayKey,
-        eveningDone: true,
-        whereIFailed: whereIFailed || '',
-        whatIDidWell: whatIDidWell || '',
-        whatILeftUndone: whatILeftUndone || '',
-        didMorning: didMorning !== false, 
-        tasksStatus: todayTasksStatus || {},
-        tasksSnapshot: tasksSnapshot || [],
-        eveningTimestamp: Timestamp.now()
+        ...existingData, userId: user.uid, date: todayKey, eveningDone: true,
+        whereIFailed: whereIFailed || '', whatIDidWell: whatIDidWell || '', whatILeftUndone: whatILeftUndone || '',
+        didMorning: didMorning !== false, tasksStatus: todayTasksStatus || {},
+        tasksSnapshot: tasksSnapshot || [], eveningTimestamp: Timestamp.now()
       };
 
       await setDoc(entryRef, updatedEntry, { merge: true });
-      setEveningDone(true);
-      await loadAllEntries(user.uid);
+      setEveningDone(true); await loadAllEntries(user.uid);
       alert('✅ Epílogo salvo com sucesso!');
-    } catch (error) {
-      console.error(error);
-      alert('Erro ao salvar epílogo. Tente novamente.');
-    }
+    } catch (error) { alert('Erro ao salvar epílogo. Tente novamente.'); }
   };
 
   const saveLongTermGoals = async () => {
     if (user) {
       try {
-        await setDoc(doc(db, 'longTermGoals', user.uid), {
-          yearGoals,
-          lifeGoals,
-          updatedAt: Timestamp.now()
-        });
-        setShowGoalsEditor(false);
-        alert('✅ Metas salvas com sucesso!');
-      } catch (error) {
-        alert('Erro ao salvar metas.');
-      }
+        await setDoc(doc(db, 'longTermGoals', user.uid), { yearGoals, lifeGoals, updatedAt: Timestamp.now() });
+        setShowGoalsEditor(false); alert('✅ Metas salvas com sucesso!');
+      } catch (error) { alert('Erro ao salvar metas.'); }
     }
   };
 
-  // Salvar dados FV
-  const saveFVData = async () => {
+  // Salvar Dados Estáticos do Planejamento FV (Datas)
+  const saveFvPlanning = async () => {
     if (user) {
       try {
         await setDoc(doc(db, 'fvData', user.uid), {
-          cartaDegrau: fvCartaDegrau || '',
           lastCartaDate: fvLastCartaDate || '',
           nextCartaDate: fvNextCartaDate || '',
           gdveDesafios: fvGdveDesafios || [],
           gdveReuniao: fvGdveReuniao || '',
           updatedAt: Timestamp.now()
-        }, { merge: true }); // Esse 'merge: true' é o que salva o GDVE sem apagar o resto!
-        alert('✅ Dados da Força Viva salvos!');
-      } catch (error) {
-        console.error(error);
-        alert('Erro ao salvar dados.');
-      }
+        }, { merge: true }); 
+        alert('✅ Datas do Planejamento da Força Viva salvas!');
+      } catch (error) { console.error(error); alert('Erro ao salvar dados.'); }
     }
+  };
+
+  // NOVO: Salvar Registro Diário da Carta de Degrau (FV)
+  const saveFvDailyRecord = async () => {
+    if (user) {
+      const todayKey = getTodayKey();
+      try {
+        await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), {
+          userId: user.uid, // Garante que a entry tenha o dono caso seja criada agora
+          date: todayKey,
+          fvDaily: fvDaily,
+          fvDailyTimestamp: Timestamp.now()
+        }, { merge: true }); 
+        alert('✅ Registro Diário FV salvo com sucesso para o dia de hoje!');
+        await loadAllEntries(user.uid); // Atualiza o histórico para mostrar o selinho
+      } catch (error) { console.error(error); alert('Erro ao salvar registro FV.'); }
+    }
+  };
+
+  const handleFvDailyTextChange = (key, value) => {
+    setFvDaily(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleFvDailyPracticeChange = (key, value) => {
+    setFvDaily(prev => ({ ...prev, praticas: { ...prev.praticas, [key]: value } }));
   };
 
   const deleteEntry = async (dateKey) => {
@@ -751,162 +662,25 @@ function App() {
     try {
       await deleteDoc(doc(db, 'entries', `${user.uid}_${dateKey}`));
       setEntries(entries.filter(e => e.date !== dateKey));
-    } catch (error) {
-      alert('Erro ao excluir entrada.');
-    }
-  };
-
-  const exportToCSV = () => {
-    if (entries.length === 0) {
-      alert('Não há entradas para exportar');
-      return;
-    }
-    const headers = ['Data', 'Fez Prólogo', 'Virtude', 'Compromisso', 'Onde Errei', 'O Que Fiz Bem', 'O Que Deixei de Fazer'];
-    const rows = entries.map(entry => [
-      entry.date,
-      entry.didMorning ? 'Sim' : 'Não',
-      entry.virtue || '',
-      entry.intention || '',
-      entry.whereIFailed || '',
-      entry.whatIDidWell || '',
-      entry.whatILeftUndone || ''
-    ]);
-
-    let csvContent = '\uFEFF' + headers.join(',') + '\n';
-    rows.forEach(row => {
-      csvContent += row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',') + '\n';
-    });
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `diario-filosofico-${getTodayKey()}.csv`;
-    link.click();
-  };
-
-  const importDiary = (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const content = e.target.result;
-        if (file.name.endsWith('.csv')) {
-          await importFromCSV(content);
-        } else if (file.name.endsWith('.json')) {
-          await importFromJSON(content);
-        } else if (file.name.endsWith('.txt')) {
-          await importFromTXT(content);
-        } else {
-          alert('Formato não suportado. Use CSV, JSON ou TXT.');
-        }
-      } catch (error) {
-        alert('Erro ao importar arquivo.');
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  const importFromCSV = async (content) => {
-    const lines = content.split('\n').slice(1);
-    let imported = 0;
-    for (const line of lines) {
-      if (!line.trim()) continue;
-      const parts = line.split(',').map(p => p.replace(/^"|"$/g, '').replace(/""/g, '"'));
-      if (parts.length < 6) continue;
-
-      const [date, didMorningStr, virtue, intention, whereIFailed, whatIDidWell, whatILeftUndone] = parts;
-      const entry = {
-        userId: user.uid, date, didMorning: didMorningStr === 'Sim',
-        virtue, intention, whereIFailed, whatIDidWell, whatILeftUndone,
-        morningDone: true, eveningDone: true, importedAt: Timestamp.now()
-      };
-
-      try {
-        await setDoc(doc(db, 'entries', `${user.uid}_${date}`), entry);
-        imported++;
-      } catch (error) {
-        console.error(`Erro ao importar ${date}`);
-      }
-    }
-    await loadAllEntries(user.uid);
-    alert(`✅ ${imported} entradas importadas com sucesso!`);
-  };
-
-  const importFromJSON = async (content) => {
-    const data = JSON.parse(content);
-    let imported = 0;
-    for (const entry of data) {
-      if (!entry.date) continue;
-      const newEntry = { ...entry, userId: user.uid, importedAt: Timestamp.now() };
-      try {
-        await setDoc(doc(db, 'entries', `${user.uid}_${entry.date}`), newEntry);
-        imported++;
-      } catch (error) {
-        console.error(`Erro ao importar ${entry.date}`);
-      }
-    }
-    await loadAllEntries(user.uid);
-    alert(`✅ ${imported} entradas importadas com sucesso!`);
-  };
-
-  const importFromTXT = async (content) => {
-    const entriesText = content.split('---');
-    let imported = 0;
-    for (const entryText of entriesText) {
-      if (!entryText.trim()) continue;
-      const lines = entryText.trim().split('\n');
-      const entry = {
-        userId: user.uid, date: getTodayKey(), whereIFailed: '', whatIDidWell: '',
-        whatILeftUndone: '', morningDone: false, eveningDone: true, importedAt: Timestamp.now()
-      };
-      lines.forEach(line => {
-        if (line.startsWith('Data:')) entry.date = line.replace('Data:', '').trim();
-        if (line.startsWith('Virtude:')) entry.virtue = line.replace('Virtude:', '').trim();
-        if (line.startsWith('Onde errei:')) entry.whereIFailed = line.replace('Onde errei:', '').trim();
-        if (line.startsWith('O que fiz bem:')) entry.whatIDidWell = line.replace('O que fiz bem:', '').trim();
-        if (line.startsWith('O que deixei:')) entry.whatILeftUndone = line.replace('O que deixei:', '').trim();
-      });
-      if (entry.date && entry.whereIFailed) {
-        try {
-          await setDoc(doc(db, 'entries', `${user.uid}_${entry.date}`), entry);
-          imported++;
-        } catch (error) {
-          console.error(`Erro ao importar ${entry.date}`);
-        }
-      }
-    }
-    await loadAllEntries(user.uid);
-    alert(`✅ ${imported} entradas importadas com sucesso!`);
+    } catch (error) { alert('Erro ao excluir entrada.'); }
   };
 
   const handleGoogleLogin = async () => {
     setError('');
     const provider = new GoogleAuthProvider();
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (err) {
-      console.error(err);
-      setError('Erro ao fazer login com o Google. Verifique se ativou no Firebase.');
-    }
+    try { await signInWithPopup(auth, provider); } 
+    catch (err) { setError('Erro ao fazer login com o Google. Verifique se ativou no Firebase.'); }
   };
 
   const handleAuth = async (e) => {
-    e.preventDefault();
-    setError('');
+    e.preventDefault(); setError('');
     try {
-      if (isLogin) {
-        await signInWithEmailAndPassword(auth, email, password);
-      } else {
-        if (password.length < 6) {
-          setError('A senha deve ter pelo menos 6 caracteres');
-          return;
-        }
+      if (isLogin) { await signInWithEmailAndPassword(auth, email, password); } 
+      else {
+        if (password.length < 6) { setError('A senha deve ter pelo menos 6 caracteres'); return; }
         await createUserWithEmailAndPassword(auth, email, password);
       }
-      setEmail('');
-      setPassword('');
+      setEmail(''); setPassword('');
     } catch (err) {
       if (err.code === 'auth/email-already-in-use') setError('Este e-mail já está em uso');
       else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') setError('E-mail ou senha incorretos');
@@ -915,17 +689,12 @@ function App() {
     }
   };
 
-  const handleLogout = async () => {
-    await signOut(auth);
-    setView('today');
-  };
+  const handleLogout = async () => { await signOut(auth); setView('today'); };
 
   const toggleTheme = async () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
-    if (user) {
-      await updateDoc(doc(db, 'users', user.uid), { theme: newTheme });
-    }
+    if (user) { await updateDoc(doc(db, 'users', user.uid), { theme: newTheme }); }
   };
 
   const filteredEntries = entries.filter(entry =>
@@ -939,11 +708,7 @@ function App() {
 
   if (loading) {
     return (
-      <div style={{ 
-        minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: isDark ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)' : 'linear-gradient(135deg, #f0e6d2 0%, #e8dcc4 100%)',
-        color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif'
-      }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: isDark ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)' : 'linear-gradient(135deg, #f0e6d2 0%, #e8dcc4 100%)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }}>
         <div style={{ textAlign: 'center' }}>
           <BookOpen size={48} />
           <p style={{ marginTop: '1rem', fontSize: '1.1rem' }}>Carregando...</p>
@@ -954,80 +719,28 @@ function App() {
 
   if (!user) {
     return (
-      <div style={{ 
-        minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: 'linear-gradient(135deg, #f0e6d2 0%, #e8dcc4 100%)', padding: '1rem'
-      }}>
-        <div style={{
-          background: 'white', padding: '2rem', borderRadius: '16px',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.1)', width: '100%', maxWidth: '400px'
-        }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #f0e6d2 0%, #e8dcc4 100%)', padding: '1rem' }}>
+        <div style={{ background: 'white', padding: '2rem', borderRadius: '16px', boxShadow: '0 8px 32px rgba(0,0,0,0.1)', width: '100%', maxWidth: '400px' }}>
           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
             <BookOpen size={48} color="#8b7355" style={{ margin: '0 auto' }} />
-            <h1 style={{ fontFamily: 'Georgia, serif', color: '#2c1810', marginTop: '1rem', fontSize: '1.8rem' }}>
-              Diário Filosófico
-            </h1>
-            <p style={{ color: '#6b5744', fontSize: '0.9rem', fontStyle: 'italic', marginTop: '0.5rem' }}>
-              "Examina tua vida diariamente"
-            </p>
+            <h1 style={{ fontFamily: 'Georgia, serif', color: '#2c1810', marginTop: '1rem', fontSize: '1.8rem' }}>Diário Filosófico</h1>
+            <p style={{ color: '#6b5744', fontSize: '0.9rem', fontStyle: 'italic', marginTop: '0.5rem' }}>"Examina tua vida diariamente"</p>
           </div>
 
           <form onSubmit={handleAuth}>
-            <input
-              type="email" placeholder="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} required
-              style={{ width: '100%', padding: '0.75rem', marginBottom: '1rem', border: '2px solid #8b7355', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif' }}
-            />
+            <input type="email" placeholder="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} required style={{ width: '100%', padding: '0.75rem', marginBottom: '1rem', border: '2px solid #8b7355', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif' }} />
             <div style={{ position: 'relative', marginBottom: '1rem' }}>
-              <input
-                type={showPassword ? 'text' : 'password'} placeholder="Senha" value={password} onChange={(e) => setPassword(e.target.value)} required
-                style={{ width: '100%', padding: '0.75rem', paddingRight: '3rem', border: '2px solid #8b7355', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif' }}
-              />
-              <button
-                type="button" onClick={() => setShowPassword(!showPassword)}
-                style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}
-              >
+              <input type={showPassword ? 'text' : 'password'} placeholder="Senha" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ width: '100%', padding: '0.75rem', paddingRight: '3rem', border: '2px solid #8b7355', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif' }} />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}>
                 {showPassword ? <EyeOff size={20} color="#8b7355" /> : <Eye size={20} color="#8b7355" />}
               </button>
             </div>
-
-            {error && (
-              <div style={{ background: '#fee', color: '#c33', padding: '0.75rem', borderRadius: '8px', fontSize: '0.9rem', marginBottom: '1rem', border: '1px solid #fcc', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <AlertCircle size={16} /> {error}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              style={{ width: '100%', padding: '0.75rem', background: '#8b7355', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', marginBottom: '1rem', fontFamily: 'Georgia, serif', transition: 'all 0.2s' }}
-            >
-              {isLogin ? 'Entrar' : 'Criar Conta'}
-            </button>
-            <button
-              type="button" onClick={() => { setIsLogin(!isLogin); setError(''); }}
-              style={{ width: '100%', padding: '0.75rem', background: 'transparent', color: '#8b7355', border: '2px solid #8b7355', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontFamily: 'Georgia, serif', transition: 'all 0.2s' }}
-            >
-              {isLogin ? 'Criar nova conta' : 'Já tenho conta'}
-            </button>
-
-            <div style={{ display: 'flex', alignItems: 'center', margin: '1.5rem 0', color: '#8b7355' }}>
-              <div style={{ flex: 1, height: '1px', background: '#e8dcc4' }}></div>
-              <span style={{ padding: '0 1rem', fontSize: '0.9rem', fontStyle: 'italic' }}>ou</span>
-              <div style={{ flex: 1, height: '1px', background: '#e8dcc4' }}></div>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleGoogleLogin}
-              style={{ 
-                width: '100%', padding: '0.75rem', background: '#fff', color: '#444', 
-                border: '1px solid #ccc', borderRadius: '8px', fontSize: '1rem', 
-                fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', 
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', 
-                boxShadow: '0 2px 4px rgba(0,0,0,0.05)' 
-              }}
-            >
-              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo" style={{ width: '20px', height: '20px' }} />
-              Entrar com o Google
+            {error && <div style={{ background: '#fee', color: '#c33', padding: '0.75rem', borderRadius: '8px', fontSize: '0.9rem', marginBottom: '1rem', border: '1px solid #fcc', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><AlertCircle size={16} /> {error}</div>}
+            <button type="submit" style={{ width: '100%', padding: '0.75rem', background: '#8b7355', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', marginBottom: '1rem', fontFamily: 'Georgia, serif', transition: 'all 0.2s' }}>{isLogin ? 'Entrar' : 'Criar Conta'}</button>
+            <button type="button" onClick={() => { setIsLogin(!isLogin); setError(''); }} style={{ width: '100%', padding: '0.75rem', background: 'transparent', color: '#8b7355', border: '2px solid #8b7355', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontFamily: 'Georgia, serif', transition: 'all 0.2s' }}>{isLogin ? 'Criar nova conta' : 'Já tenho conta'}</button>
+            <div style={{ display: 'flex', alignItems: 'center', margin: '1.5rem 0', color: '#8b7355' }}><div style={{ flex: 1, height: '1px', background: '#e8dcc4' }}></div><span style={{ padding: '0 1rem', fontSize: '0.9rem', fontStyle: 'italic' }}>ou</span><div style={{ flex: 1, height: '1px', background: '#e8dcc4' }}></div></div>
+            <button type="button" onClick={handleGoogleLogin} style={{ width: '100%', padding: '0.75rem', background: '#fff', color: '#444', border: '1px solid #ccc', borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo" style={{ width: '20px', height: '20px' }} /> Entrar com o Google
             </button>
           </form>
         </div>
@@ -1036,16 +749,8 @@ function App() {
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: isDark ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)' : 'linear-gradient(135deg, #f0e6d2 0%, #e8dcc4 100%)',
-      fontFamily: 'Georgia, serif', transition: 'background 0.3s ease'
-    }}>
-      <header style={{
-        padding: '1rem 2rem', borderBottom: `2px solid ${isDark ? '#d4af37' : '#8b7355'}`,
-        background: isDark ? 'rgba(26, 26, 46, 0.95)' : 'rgba(240, 230, 210, 0.95)',
-        backdropFilter: 'blur(10px)', position: 'sticky', top: 0, zIndex: 100
-      }}>
+    <div style={{ minHeight: '100vh', background: isDark ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)' : 'linear-gradient(135deg, #f0e6d2 0%, #e8dcc4 100%)', fontFamily: 'Georgia, serif', transition: 'background 0.3s ease' }}>
+      <header style={{ padding: '1rem 2rem', borderBottom: `2px solid ${isDark ? '#d4af37' : '#8b7355'}`, background: isDark ? 'rgba(26, 26, 46, 0.95)' : 'rgba(240, 230, 210, 0.95)', backdropFilter: 'blur(10px)', position: 'sticky', top: 0, zIndex: 100 }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <div onClick={handleLogoClick} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
             <BookOpen size={32} color={isDark ? '#d4af37' : '#8b7355'} />
@@ -1056,20 +761,11 @@ function App() {
 
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
             {streak > 0 && (
-              <div 
-                onClick={() => setShowStreakModal(true)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem',
-                  background: isDark ? 'rgba(255, 100, 0, 0.15)' : '#fff3e0', border: `1px solid ${isDark ? '#ff9800' : '#ffb74d'}`,
-                  borderRadius: '20px', color: isDark ? '#ffb74d' : '#e65100', fontWeight: 'bold',
-                  fontFamily: 'Georgia, serif', fontSize: '0.9rem', marginRight: '0.5rem', cursor: 'pointer',
-                  boxShadow: isDark ? '0 0 10px rgba(255, 152, 0, 0.2)' : 'none'
-                }}>
+              <div onClick={() => setShowStreakModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: isDark ? 'rgba(255, 100, 0, 0.15)' : '#fff3e0', border: `1px solid ${isDark ? '#ff9800' : '#ffb74d'}`, borderRadius: '20px', color: isDark ? '#ffb74d' : '#e65100', fontWeight: 'bold', fontFamily: 'Georgia, serif', fontSize: '0.9rem', marginRight: '0.5rem', cursor: 'pointer', boxShadow: isDark ? '0 0 10px rgba(255, 152, 0, 0.2)' : 'none' }}>
                 <Flame size={18} fill={isDark ? '#ff9800' : '#e65100'} color={isDark ? '#ff9800' : '#e65100'} />
                 <span>{streak} {streak === 1 ? 'dia' : 'dias'}</span>
               </div>
             )}
-
             <button onClick={() => setView('today')} style={{ padding: '0.5rem 1rem', background: view === 'today' ? (isDark ? '#d4af37' : '#8b7355') : 'transparent', color: view === 'today' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#8b7355'), border: `2px solid ${isDark ? '#d4af37' : '#8b7355'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Hoje</button>
             <button onClick={() => setView('history')} style={{ padding: '0.5rem 1rem', background: view === 'history' ? (isDark ? '#d4af37' : '#8b7355') : 'transparent', color: view === 'history' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#8b7355'), border: `2px solid ${isDark ? '#d4af37' : '#8b7355'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Histórico</button>
             <button onClick={() => setView('tasks')} style={{ padding: '0.5rem 1rem', background: view === 'tasks' ? (isDark ? '#d4af37' : '#8b7355') : 'transparent', color: view === 'tasks' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#8b7355'), border: `2px solid ${isDark ? '#d4af37' : '#8b7355'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Tarefas</button>
@@ -1077,18 +773,11 @@ function App() {
             <button onClick={() => setView('biblioteca')} style={{ padding: '0.5rem 1rem', background: view === 'biblioteca' ? (isDark ? '#d4af37' : '#8b7355') : 'transparent', color: view === 'biblioteca' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#8b7355'), border: `2px solid ${isDark ? '#d4af37' : '#8b7355'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Virtudes</button>
 
             {fvUnlocked && (
-              <button 
-                onClick={handleFvLockClick} 
-                style={{ padding: '0.5rem 1rem', background: view === 'fv' ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'transparent', color: view === 'fv' ? '#000' : '#FFD700', border: '2px solid #FFD700', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, boxShadow: '0 0 10px rgba(255, 215, 0, 0.3)' }}
-              >
-                FV
-              </button>
+              <button onClick={handleFvLockClick} style={{ padding: '0.5rem 1rem', background: view === 'fv' ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'transparent', color: view === 'fv' ? '#000' : '#FFD700', border: '2px solid #FFD700', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, boxShadow: '0 0 10px rgba(255, 215, 0, 0.3)' }}>FV</button>
             )}
-
             <button onClick={toggleTheme} style={{ padding: '0.5rem', background: 'transparent', border: `2px solid ${isDark ? '#d4af37' : '#8b7355'}`, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {isDark ? <Sun size={20} color="#d4af37" /> : <Moon size={20} color="#8b7355" />}
             </button>
-
             <button onClick={handleLogout} style={{ padding: '0.5rem 1rem', background: 'transparent', color: isDark ? '#d4af37' : '#8b7355', border: `2px solid ${isDark ? '#d4af37' : '#8b7355'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <LogOut size={16} /> <span style={{ display: window.innerWidth > 768 ? 'inline' : 'none' }}>Sair</span>
             </button>
@@ -1250,12 +939,8 @@ function App() {
                 </h2>
                 <button
                   onClick={() => {
-                    setEditingTaskId(null);
-                    setNewTaskName('');
-                    setNewTaskRecurrence('daily');
-                    setNewTaskWeekDays([]);
-                    setNewTaskMonthDay(1);
-                    setNewTaskBaseDate('');
+                    setEditingTaskId(null); setNewTaskName(''); setNewTaskRecurrence('daily');
+                    setNewTaskWeekDays([]); setNewTaskMonthDay(1); setNewTaskBaseDate('');
                     setShowAddTask(true);
                   }}
                   style={{ padding: '0.75rem 1.5rem', background: isDark ? '#d4af37' : '#8b7355', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}
@@ -1265,24 +950,18 @@ function App() {
               </div>
 
               <p style={{ color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2rem', fontSize: '1rem' }}>
-                Cadastre práticas que deseja acompanhar (ex: Tratak, Meditação, Leitura, Exercícios)
+                Cadastre práticas que deseja acompanhar (ex: Meditação, Leitura, Exercícios)
               </p>
 
               {showAddTask && (
                 <div style={{ padding: '1.5rem', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.3)', borderRadius: '12px', marginBottom: '2rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}` }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                    <h3 style={{ margin: 0, color: isDark ? '#d4af37' : '#8b7355', fontFamily: "'Cinzel', serif" }}>
-                      {editingTaskId ? 'Editar Prática' : 'Nova Prática'}
-                    </h3>
-                    <button onClick={() => { setShowAddTask(false); setEditingTaskId(null); }} style={{ background: 'transparent', color: '#e74c3c', border: 'none', cursor: 'pointer' }}>
-                      <X size={24} />
-                    </button>
+                    <h3 style={{ margin: 0, color: isDark ? '#d4af37' : '#8b7355', fontFamily: "'Cinzel', serif" }}>{editingTaskId ? 'Editar Prática' : 'Nova Prática'}</h3>
+                    <button onClick={() => { setShowAddTask(false); setEditingTaskId(null); }} style={{ background: 'transparent', color: '#e74c3c', border: 'none', cursor: 'pointer' }}><X size={24} /></button>
                   </div>
-
                   <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
-                    <input type="text" value={newTaskName} onChange={(e) => setNewTaskName(e.target.value)} placeholder="Nome da prática (ex: Tratak, Meditação...)" style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', fontSize: '1rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                    <input type="text" value={newTaskName} onChange={(e) => setNewTaskName(e.target.value)} placeholder="Nome da prática..." style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', fontSize: '1rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
                   </div>
-
                   <div style={{ marginBottom: '1rem' }}>
                     <label style={{ display: 'block', marginBottom: '0.5rem', color: isDark ? '#d4af37' : '#8b7355', fontWeight: 'bold' }}>Periodicidade:</label>
                     <select value={newTaskRecurrence} onChange={(e) => setNewTaskRecurrence(e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }}>
@@ -1296,9 +975,7 @@ function App() {
                   {newTaskRecurrence === 'weekly' && (
                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
                       {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((day, idx) => (
-                        <button key={idx} onClick={() => { if (newTaskWeekDays.includes(idx)) { setNewTaskWeekDays(newTaskWeekDays.filter(d => d !== idx)); } else { setNewTaskWeekDays([...newTaskWeekDays, idx]); } }} style={{ padding: '0.5rem', flex: 1, minWidth: '40px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', background: newTaskWeekDays.includes(idx) ? (isDark ? '#d4af37' : '#8b7355') : 'transparent', color: newTaskWeekDays.includes(idx) ? (isDark ? '#1a1a2e' : 'white') : (isDark ? '#b8a88a' : '#8b7355'), border: `1px solid ${isDark ? '#d4af37' : '#8b7355'}` }}>
-                          {day}
-                        </button>
+                        <button key={idx} onClick={() => { if (newTaskWeekDays.includes(idx)) { setNewTaskWeekDays(newTaskWeekDays.filter(d => d !== idx)); } else { setNewTaskWeekDays([...newTaskWeekDays, idx]); } }} style={{ padding: '0.5rem', flex: 1, minWidth: '40px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', background: newTaskWeekDays.includes(idx) ? (isDark ? '#d4af37' : '#8b7355') : 'transparent', color: newTaskWeekDays.includes(idx) ? (isDark ? '#1a1a2e' : 'white') : (isDark ? '#b8a88a' : '#8b7355'), border: `1px solid ${isDark ? '#d4af37' : '#8b7355'}` }}>{day}</button>
                       ))}
                     </div>
                   )}
@@ -1336,12 +1013,7 @@ function App() {
                       const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
                       freqText = task.weekDays?.map(d => days[d]).join(', ');
                     } else if (task.recurrence === 'biweekly') {
-                      if (task.baseDate) {
-                        const [y, m, d] = task.baseDate.split('-');
-                        freqText = `Quinzenal (a partir de ${d}/${m})`;
-                      } else {
-                        freqText = 'Quinzenalmente';
-                      }
+                      freqText = task.baseDate ? `Quinzenal (a partir de ${task.baseDate.split('-')[2]}/${task.baseDate.split('-')[1]})` : 'Quinzenalmente';
                     } else if (task.recurrence === 'monthly') {
                       freqText = `Todo dia ${task.monthDay}`;
                     }
@@ -1353,12 +1025,8 @@ function App() {
                           <div style={{ fontSize: '0.85rem', color: isDark ? '#d4af37' : '#8b7355', marginTop: '0.2rem' }}>↻ {freqText}</div>
                         </div>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <button onClick={() => startEditingTask(task)} style={{ padding: '0.5rem', background: 'transparent', color: isDark ? '#d4af37' : '#8b7355', border: `1px solid ${isDark ? '#d4af37' : '#8b7355'}`, borderRadius: '6px', cursor: 'pointer', display: 'flex' }} title="Editar">
-                            <Edit size={16} />
-                          </button>
-                          <button onClick={() => { if(window.confirm(`Deseja realmente excluir a prática "${task.name}"?`)) { removeCustomTask(task.id); } }} style={{ padding: '0.5rem', background: 'transparent', color: '#e74c3c', border: '1px solid #e74c3c', borderRadius: '6px', cursor: 'pointer', display: 'flex' }} title="Excluir">
-                            <Trash2 size={16} />
-                          </button>
+                          <button onClick={() => startEditingTask(task)} style={{ padding: '0.5rem', background: 'transparent', color: isDark ? '#d4af37' : '#8b7355', border: `1px solid ${isDark ? '#d4af37' : '#8b7355'}`, borderRadius: '6px', cursor: 'pointer', display: 'flex' }} title="Editar"><Edit size={16} /></button>
+                          <button onClick={() => { if(window.confirm(`Deseja realmente excluir a prática "${task.name}"?`)) { removeCustomTask(task.id); } }} style={{ padding: '0.5rem', background: 'transparent', color: '#e74c3c', border: '1px solid #e74c3c', borderRadius: '6px', cursor: 'pointer', display: 'flex' }} title="Excluir"><Trash2 size={16} /></button>
                         </div>
                       </div>
                     );
@@ -1381,15 +1049,13 @@ function App() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                 <div>
                   <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: 600, fontSize: '1.1rem', color: isDark ? '#d4af37' : '#8b7355', fontFamily: "'Cinzel', serif" }}>Metas para Este Ano</label>
-                  <textarea value={yearGoals} onChange={(e) => setYearGoals(e.target.value)} placeholder="Como você quer estar no final deste ano? Que virtudes quer ter desenvolvido? Que objetivos quer alcançar?" rows={6} style={{ width: '100%', padding: '1rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical', lineHeight: '1.7' }} />
+                  <textarea value={yearGoals} onChange={(e) => setYearGoals(e.target.value)} placeholder="Como você quer estar no final deste ano? Que virtudes quer ter desenvolvido?" rows={6} style={{ width: '100%', padding: '1rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical', lineHeight: '1.7' }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: 600, fontSize: '1.1rem', color: isDark ? '#d4af37' : '#8b7355', fontFamily: "'Cinzel', serif" }}>Visão de Longo Prazo (Vida)</label>
-                  <textarea value={lifeGoals} onChange={(e) => setLifeGoals(e.target.value)} placeholder="Qual é sua visão maior? Que tipo de pessoa você quer ser? Que legado quer deixar?" rows={8} style={{ width: '100%', padding: '1rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical', lineHeight: '1.7' }} />
+                  <textarea value={lifeGoals} onChange={(e) => setLifeGoals(e.target.value)} placeholder="Qual é sua visão maior? Que tipo de pessoa você quer ser?" rows={8} style={{ width: '100%', padding: '1rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical', lineHeight: '1.7' }} />
                 </div>
-                <button onClick={saveLongTermGoals} style={{ padding: '1rem 2rem', background: isDark ? '#d4af37' : '#8b7355', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', alignSelf: 'flex-end' }}>
-                  <Save size={20} /> Salvar Metas
-                </button>
+                <button onClick={saveLongTermGoals} style={{ padding: '1rem 2rem', background: isDark ? '#d4af37' : '#8b7355', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', alignSelf: 'flex-end' }}><Save size={20} /> Salvar Metas</button>
               </div>
             </div>
           </div>
@@ -1429,17 +1095,93 @@ function App() {
         {view === 'fv' && fvUnlocked && (
           <div className="animate-fadeIn">
             <div style={{ background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 165, 0, 0.1) 100%)', padding: '2rem', borderRadius: '16px', border: '2px solid #FFD700', boxShadow: '0 0 20px rgba(255, 215, 0, 0.3)' }}>
+              
+              {/* TÍTULO */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
                 <Award size={32} color="#FFD700" />
-                <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: '#FFD700', fontFamily: "'Cinzel', serif" }}>Seção Força Viva</h2>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                
                 <div>
-                  <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: 600, fontSize: '1.1rem', color: '#FFD700', fontFamily: "'Cinzel', serif" }}>Carta de Degrau</label>
-                  <textarea value={fvCartaDegrau} onChange={(e) => setFvCartaDegrau(e.target.value)} placeholder="Cole aqui o conteúdo da sua carta de degrau..." rows={8} style={{ width: '100%', padding: '1rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical', lineHeight: '1.7' }} />
+                  <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: '#FFD700', fontFamily: "'Cinzel', serif" }}>Registro Diário Força Viva</h2>
+                  <p style={{ margin: '0.25rem 0 0 0', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.9rem' }}>Dia: {new Date().toLocaleDateString('pt-BR')}</p>
                 </div>
+              </div>
+
+              {/* FORMULÁRIO DIÁRIO FV */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', marginBottom: '3rem' }}>
                 
+                {[
+                  { id: 'item1', title: '1 – VARRER POR DENTRO', desc: 'Exame da personalidade, descobrir os nós, buscar as causas que os geraram, encontrar a fórmula de limpeza (redenção) e aplicá-las.' },
+                  { id: 'item2', title: '2 – AS LEIS DA MATÉRIA', desc: 'Descobrir como atuam em nós os ciclos da matéria (para não nos afetarem): instintos de conservação/procriação, idade, enfermidade, ânimo, humor, ideias, sentimentos, ambiente.' },
+                  { id: 'item34', title: '3 e 4 – TRABALHO ORDENADO E EFICAZ', desc: 'Colocar ordem na vida. Necessária disciplina e perseverança: exercícios de ordem e limpeza.' },
+                  { id: 'item5', title: '5 – ECONOMIA DE TEMPO E ENERGIA', desc: 'Requer atenção.' },
+                  { id: 'item6', title: '6 – OS VÍCIOS', desc: 'Superar: preguiça, gula e luxúria e outros da mesma natureza (apatia, moleza, debilidade, negligência). Moderar: álcool e fumo. Proibido: drogas.' },
+                  { id: 'item7', title: '7 – AS VIRTUDES: PERSEVERANÇA E CONSTÂNCIA', desc: 'Perseverança: repetir sem rotina com sentido de perfeição. Constância: estabilidade e consciência elevada. (Nota: Comentar sobre frequência no diário, carta, exercícios, ED, etc).' }
+                ].map(item => (
+                  <div key={item.id}>
+                    <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 600, fontSize: '1.1rem', color: '#FFD700', fontFamily: "'Cinzel', serif" }}>{item.title}</label>
+                    <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '0.75rem', fontStyle: 'italic', lineHeight: '1.4' }}>{item.desc}</p>
+                    <textarea 
+                      value={fvDaily[item.id] || ''} 
+                      onChange={(e) => handleFvDailyTextChange(item.id, e.target.value)} 
+                      placeholder={`Reflexões do dia para o item ${item.title.split(' ')[0]}...`} 
+                      rows={3} 
+                      style={{ width: '100%', padding: '1rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical' }} 
+                    />
+                  </div>
+                ))}
+
+                {/* HORAS */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', background: isDark ? 'rgba(255,215,0,0.05)' : 'rgba(255,215,0,0.1)', padding: '1.5rem', borderRadius: '12px', border: '1px solid rgba(255, 215, 0, 0.3)' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#FFD700' }}>Horas-Guarda (ex: 2.5)</label>
+                    <input type="number" step="0.5" value={fvDaily.horasGuarda || ''} onChange={(e) => handleFvDailyTextChange('horasGuarda', e.target.value)} placeholder="0.0" style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#FFD700' }}>Horas-Aula (ex: 2.5)</label>
+                    <input type="number" step="0.5" value={fvDaily.horasAula || ''} onChange={(e) => handleFvDailyTextChange('horasAula', e.target.value)} placeholder="0.0" style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                  </div>
+                </div>
+
+                {/* PRÁTICAS CHECKBOXES */}
+                <div style={{ background: isDark ? 'rgba(255,215,0,0.05)' : 'rgba(255,215,0,0.1)', padding: '1.5rem', borderRadius: '12px', border: '1px solid rgba(255, 215, 0, 0.3)' }}>
+                  <h3 style={{ margin: '0 0 1rem 0', color: '#FFD700', fontSize: '1.1rem', fontFamily: "'Cinzel', serif" }}>Práticas do Dia</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                    {[
+                      { key: 'tratack', label: 'Tratack' },
+                      { key: 'recitarHonra', label: 'Recitar Código de Honra' },
+                      { key: 'recitar7Fases', label: 'Recitar 7 fases da ED' },
+                      { key: 'camara', label: 'Câmara de Purificação' },
+                      { key: 'templo', label: 'Templo Interior' },
+                      { key: 'porta', label: 'Porta' },
+                      { key: 'patioAberto', label: 'Pátio Aberto' },
+                      { key: 'patioColunas', label: 'Pátio de Colunas' },
+                      { key: 'santuario', label: 'Santuário' }
+                    ].map(prac => (
+                      <label key={prac.key} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
+                        <input 
+                          type="checkbox" 
+                          checked={fvDaily.praticas?.[prac.key] || false} 
+                          onChange={(e) => handleFvDailyPracticeChange(prac.key, e.target.checked)} 
+                          style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: '#FFD700' }} 
+                        />
+                        <span style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem' }}>{prac.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* BOTÃO SALVAR DIÁRIO FV */}
+                <button onClick={saveFvDailyRecord} style={{ padding: '1rem 2rem', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: '#000', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(255, 215, 0, 0.3)' }}>
+                  <CheckCircle size={20} /> Salvar Registro de Hoje (FV)
+                </button>
+
+              </div>
+
+              {/* LINHA DIVISÓRIA */}
+              <div style={{ height: '2px', background: 'rgba(255,215,0,0.3)', margin: '3rem 0 2rem' }}></div>
+
+              {/* PLANEJAMENTO DATAS FV */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                <h3 style={{ margin: 0, color: '#FFD700', fontSize: '1.4rem', fontFamily: "'Cinzel', serif" }}>Planejamento de Datas</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
                   <div>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#FFD700' }}>Última Entrega</label>
@@ -1449,49 +1191,31 @@ function App() {
                       onChange={(e) => {
                         const novaData = e.target.value;
                         setFvLastCartaDate(novaData);
-                        
-                        // Matemática Blindada: Calcula +3 meses
                         if (novaData) {
                           const [ano, mes, dia] = novaData.split('-');
                           const dataCalculada = new Date(parseInt(ano, 10), parseInt(mes, 10) - 1 + 3, parseInt(dia, 10));
-                          
                           const proxAno = dataCalculada.getFullYear();
                           const proxMes = String(dataCalculada.getMonth() + 1).padStart(2, '0');
                           const proxDia = String(dataCalculada.getDate()).padStart(2, '0');
-                          
                           setFvNextCartaDate(`${proxAno}-${proxMes}-${proxDia}`);
-                        } else {
-                          setFvNextCartaDate('');
-                        }
+                        } else { setFvNextCartaDate(''); }
                       }} 
                       style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} 
                     />
                   </div>
                   <div>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#FFD700' }}>Próxima Entrega Prevista</label>
-                    <input 
-                      type="date" 
-                      value={fvNextCartaDate || ''} 
-                      onChange={(e) => setFvNextCartaDate(e.target.value)} 
-                      style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} 
-                    />
+                    <input type="date" value={fvNextCartaDate || ''} onChange={(e) => setFvNextCartaDate(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
                   </div>
                 </div>
-                
                 <div>
                   <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: 600, fontSize: '1.1rem', color: '#FFD700', fontFamily: "'Cinzel', serif" }}>Próxima Reunião GDVE</label>
-                  <input 
-                    type="datetime-local" 
-                    value={fvGdveReuniao || ''} 
-                    onChange={(e) => setFvGdveReuniao(e.target.value)} 
-                    style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} 
-                  />
+                  <input type="datetime-local" value={fvGdveReuniao || ''} onChange={(e) => setFvGdveReuniao(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
                 </div>
                 
-                <button onClick={saveFVData} style={{ padding: '1rem 2rem', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: '#000', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', alignSelf: 'flex-end', boxShadow: '0 4px 12px rgba(255, 215, 0, 0.3)' }}>
-                  <Save size={20} /> Salvar Dados FV
+                <button onClick={saveFvPlanning} style={{ padding: '0.75rem 1.5rem', background: 'transparent', color: '#FFD700', border: '2px solid #FFD700', borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', alignSelf: 'flex-start' }}>
+                  <Save size={18} /> Salvar Datas de Planejamento
                 </button>
-                
               </div>
             </div>
           </div>
@@ -1501,61 +1225,6 @@ function App() {
         {view === 'history' && (
           <div className="animate-fadeIn">
             <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-             {/* NOVO: RESUMO FV NO HISTÓRICO (SÓ APARECE SE DESBLOQUEADO E SE TIVER ALGO PREENCHIDO) */}
-            {fvUnlocked && (fvCartaDegrau || fvLastCartaDate || fvGdveReuniao) && (
-              <div className="animate-fadeIn" style={{
-                background: isDark ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.05) 0%, rgba(255, 165, 0, 0.05) 100%)' : '#fffbf0',
-                padding: '1.5rem',
-                borderRadius: '12px',
-                border: `1px solid ${isDark ? 'rgba(255, 215, 0, 0.3)' : '#ffe082'}`,
-                marginBottom: '2rem',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
-              }}>
-                <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#ffd700' : '#d4af37', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.2rem' }}>
-                  <Award size={20} /> Painel da Força Viva
-                </h3>
-                
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: fvCartaDegrau ? '1rem' : '0' }}>
-                  {fvLastCartaDate && (
-                    <div>
-                      <span style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', display: 'block' }}>Última Carta:</span>
-                      <strong style={{ color: isDark ? '#f0e6d2' : '#2c1810' }}>
-                        {new Date(fvLastCartaDate + 'T12:00:00').toLocaleDateString('pt-BR')}
-                      </strong>
-                    </div>
-                  )}
-                  {fvNextCartaDate && (
-                    <div>
-                      <span style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', display: 'block' }}>Próxima Entrega:</span>
-                      <strong style={{ color: '#e74c3c' }}>
-                        {new Date(fvNextCartaDate + 'T12:00:00').toLocaleDateString('pt-BR')}
-                      </strong>
-                    </div>
-                  )}
-                  {fvGdveReuniao && (
-                    <div>
-                      <span style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', display: 'block' }}>Próx. Reunião GDVE:</span>
-                      <strong style={{ color: isDark ? '#f0e6d2' : '#2c1810' }}>
-                        {new Date(fvGdveReuniao).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
-                      </strong>
-                    </div>
-                  )}
-                </div>
-
-                {fvCartaDegrau && (
-                  <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: `1px dashed ${isDark ? 'rgba(255, 215, 0, 0.2)' : '#ffe082'}` }}>
-                    <span style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', display: 'block', marginBottom: '0.5rem' }}>Fragmento da Carta:</span>
-                    <p style={{ 
-                      margin: 0, color: isDark ? '#c8b896' : '#6b5744', fontStyle: 'italic', 
-                      fontSize: '0.95rem', whiteSpace: 'pre-line', display: '-webkit-box', 
-                      WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' 
-                    }}>
-                      "{fvCartaDegrau}"
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
               <h2 style={{ fontFamily: "'Cinzel', serif", fontSize: '1.5rem', color: isDark ? '#d4af37' : '#8b7355', margin: 0 }}>Histórico de Reflexões</h2>
               <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                 <button onClick={exportToCSV} disabled={entries.length === 0} style={{ padding: '0.75rem 1.5rem', background: entries.length > 0 ? (isDark ? '#d4af37' : '#8b7355') : '#ccc', color: 'white', border: 'none', borderRadius: '8px', cursor: entries.length > 0 ? 'pointer' : 'not-allowed', fontFamily: 'Georgia, serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -1567,6 +1236,18 @@ function App() {
                 </label>
               </div>
             </div>
+
+            {/* PAINEL DATAS FV NO HISTÓRICO */}
+            {fvUnlocked && (fvLastCartaDate || fvGdveReuniao) && (
+              <div className="animate-fadeIn" style={{ background: isDark ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.05) 0%, rgba(255, 165, 0, 0.05) 100%)' : '#fffbf0', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255, 215, 0, 0.3)' : '#ffe082'}`, marginBottom: '2rem', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#ffd700' : '#d4af37', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.2rem' }}><Award size={20} /> Planejamento Força Viva</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                  {fvLastCartaDate && (<div><span style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', display: 'block' }}>Última Carta:</span><strong style={{ color: isDark ? '#f0e6d2' : '#2c1810' }}>{new Date(fvLastCartaDate + 'T12:00:00').toLocaleDateString('pt-BR')}</strong></div>)}
+                  {fvNextCartaDate && (<div><span style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', display: 'block' }}>Próxima Entrega:</span><strong style={{ color: '#e74c3c' }}>{new Date(fvNextCartaDate + 'T12:00:00').toLocaleDateString('pt-BR')}</strong></div>)}
+                  {fvGdveReuniao && (<div><span style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', display: 'block' }}>Próx. Reunião GDVE:</span><strong style={{ color: isDark ? '#f0e6d2' : '#2c1810' }}>{new Date(fvGdveReuniao).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</strong></div>)}
+                </div>
+              </div>
+            )}
 
             <div style={{ position: 'relative', marginBottom: '2rem' }}>
               <Search size={20} color={isDark ? '#d4af37' : '#8b7355'} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
@@ -1582,17 +1263,24 @@ function App() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {filteredEntries.map((entry) => (
                   <div key={entry.id} style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '1.5rem', borderRadius: '12px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                       <div>
-                        <h3 style={{ margin: 0, color: isDark ? '#d4af37' : '#8b7355', fontSize: '1.2rem' }}>
+                        <h3 style={{ margin: 0, color: isDark ? '#d4af37' : '#8b7355', fontSize: '1.2rem', marginBottom: '0.5rem' }}>
                           {new Date(entry.date).toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                         </h3>
-                        {entry.virtue && <p style={{ margin: '0.25rem 0 0 0', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.9rem' }}>Virtude: <strong>{entry.virtue}</strong></p>}
-                        {!entry.didMorning && <p style={{ margin: '0.25rem 0 0 0', color: '#ff9800', fontSize: '0.85rem', fontStyle: 'italic' }}>⚠️ Prólogo não realizado</p>}
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          {entry.virtue && <span style={{ padding: '0.2rem 0.6rem', background: isDark ? 'rgba(212,175,55,0.2)' : '#fdf5e6', borderRadius: '4px', fontSize: '0.85rem', color: isDark ? '#d4af37' : '#8b7355', border: `1px solid ${isDark ? 'rgba(212,175,55,0.4)' : '#e8dcc4'}` }}>Virtude: <strong>{entry.virtue}</strong></span>}
+                          {!entry.didMorning && <span style={{ padding: '0.2rem 0.6rem', background: 'rgba(255,152,0,0.1)', borderRadius: '4px', fontSize: '0.85rem', color: '#ff9800', border: '1px solid rgba(255,152,0,0.3)' }}>⚠️ Sem Prólogo</span>}
+                          
+                          {/* SELO DE FORÇA VIVA NO HISTÓRICO */}
+                          {entry.fvDaily && fvUnlocked && (
+                            <span style={{ padding: '0.2rem 0.6rem', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', borderRadius: '4px', fontSize: '0.85rem', color: '#000', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.3rem', boxShadow: '0 2px 4px rgba(255,215,0,0.2)' }}>
+                              <Award size={12} /> Registro FV Realizado
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <button onClick={() => deleteEntry(entry.date)} style={{ padding: '0.5rem', background: 'transparent', color: '#e74c3c', border: '2px solid #e74c3c', borderRadius: '8px', cursor: 'pointer' }}>
-                        <X size={16} />
-                      </button>
+                      <button onClick={() => deleteEntry(entry.date)} style={{ padding: '0.5rem', background: 'transparent', color: '#e74c3c', border: '2px solid #e74c3c', borderRadius: '8px', cursor: 'pointer' }}><X size={16} /></button>
                     </div>
 
                     {entry.intention && (
@@ -1602,28 +1290,19 @@ function App() {
                       </div>
                     )}
 
-                    {/* Exibição Completa das Tarefas no Histórico (Realizadas e Falhas) */}
                     {entry.tasksSnapshot && entry.tasksSnapshot.length > 0 && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
-                        
-                        {/* Verdes: Realizadas */}
                         {entry.tasksSnapshot.filter(t => t.completed).length > 0 && (
                           <div style={{ padding: '1rem', background: isDark ? 'rgba(76, 175, 80, 0.05)' : '#f8fff8', borderRadius: '8px', borderLeft: `4px solid ${isDark ? '#4caf50' : '#81c784'}` }}>
-                            <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#81c784' : '#2e7d32', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                              <CheckCircle size={16} /> Práticas Realizadas:
-                            </h4>
+                            <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#81c784' : '#2e7d32', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><CheckCircle size={16} /> Práticas Realizadas:</h4>
                             <ul style={{ margin: 0, paddingLeft: '1.2rem', color: isDark ? '#c8b896' : '#4caf50', fontSize: '0.95rem', lineHeight: '1.6' }}>
                               {entry.tasksSnapshot.filter(t => t.completed).map((task, idx) => <li key={idx}>{task.name}</li>)}
                             </ul>
                           </div>
                         )}
-
-                        {/* Vermelhas: NÃO Realizadas */}
                         {entry.tasksSnapshot.filter(t => !t.completed).length > 0 && (
                           <div style={{ padding: '1rem', background: isDark ? 'rgba(244, 67, 54, 0.05)' : '#fff5f5', borderRadius: '8px', borderLeft: `4px solid ${isDark ? '#f44336' : '#e53935'}` }}>
-                            <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#e57373' : '#c62828', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                              <XCircle size={16} /> Práticas Não Realizadas:
-                            </h4>
+                            <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#e57373' : '#c62828', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><XCircle size={16} /> Práticas Não Realizadas:</h4>
                             <ul style={{ margin: 0, paddingLeft: '1.2rem', color: isDark ? '#b8a88a' : '#c62828', fontSize: '0.95rem', lineHeight: '1.6', textDecoration: 'line-through', opacity: 0.8 }}>
                               {entry.tasksSnapshot.filter(t => !t.completed).map((task, idx) => <li key={idx}>{task.name}</li>)}
                             </ul>
@@ -1632,20 +1311,22 @@ function App() {
                       </div>
                     )}
 
-                    <div style={{ marginBottom: '1rem' }}>
-                      <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem' }}>Em que falhei:</h4>
-                      <p style={{ margin: 0, color: isDark ? '#c8b896' : '#6b5744', lineHeight: '1.6' }}>{entry.whereIFailed}</p>
-                    </div>
-
-                    <div style={{ marginBottom: '1rem' }}>
-                      <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem' }}>O que fiz bem:</h4>
-                      <p style={{ margin: 0, color: isDark ? '#c8b896' : '#6b5744', lineHeight: '1.6' }}>{entry.whatIDidWell}</p>
-                    </div>
-
-                    <div>
-                      <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem' }}>O que deixei de fazer:</h4>
-                      <p style={{ margin: 0, color: isDark ? '#c8b896' : '#6b5744', lineHeight: '1.6' }}>{entry.whatILeftUndone}</p>
-                    </div>
+                    {entry.eveningDone && (
+                      <>
+                        <div style={{ marginBottom: '1rem' }}>
+                          <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem' }}>Em que falhei:</h4>
+                          <p style={{ margin: 0, color: isDark ? '#c8b896' : '#6b5744', lineHeight: '1.6' }}>{entry.whereIFailed}</p>
+                        </div>
+                        <div style={{ marginBottom: '1rem' }}>
+                          <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem' }}>O que fiz bem:</h4>
+                          <p style={{ margin: 0, color: isDark ? '#c8b896' : '#6b5744', lineHeight: '1.6' }}>{entry.whatIDidWell}</p>
+                        </div>
+                        <div>
+                          <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem' }}>O que deixei de fazer:</h4>
+                          <p style={{ margin: 0, color: isDark ? '#c8b896' : '#6b5744', lineHeight: '1.6' }}>{entry.whatILeftUndone}</p>
+                        </div>
+                      </>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1653,16 +1334,10 @@ function App() {
           </div>
         )}
 
-        {/* MODAL DO FOGO INTERNO (ESTATÍSTICAS GAMIFICADAS) */}
+        {/* MODAL DO FOGO INTERNO */}
         {showStreakModal && (
-          <div 
-            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(3px)' }} 
-            onClick={() => setShowStreakModal(false)}
-          >
-            <div 
-              style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '2rem', borderRadius: '16px', maxWidth: '400px', width: '100%', border: `2px solid ${isDark ? '#ff9800' : '#e65100'}`, position: 'relative', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }} 
-              onClick={(e) => e.stopPropagation()}
-            >
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(3px)' }} onClick={() => setShowStreakModal(false)}>
+            <div style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '2rem', borderRadius: '16px', maxWidth: '400px', width: '100%', border: `2px solid ${isDark ? '#ff9800' : '#e65100'}`, position: 'relative', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
               <button onClick={() => setShowStreakModal(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}><X size={24} /></button>
               
               <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
@@ -1670,41 +1345,24 @@ function App() {
                 <h2 style={{ margin: 0, fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.8rem' }}>Seu Fogo Interno</h2>
               </div>
 
-              {/* CAIXA DO GRAU COM MENSAGEM DE INCENTIVO */}
               <div style={{ background: isDark ? 'transparent' : 'transparent', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? '#ff9800' : '#ffb74d'}`, textAlign: 'center', marginBottom: '2rem' }}>
                 <span style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 'bold', color: isDark ? '#ffb74d' : '#e65100', display: 'block', marginBottom: '0.4rem' }}>Grau Atual</span>
-                <h3 style={{ margin: '0 0 0.5rem', fontFamily: "'Cinzel', serif", fontSize: '1.5rem', color: isDark ? '#f0e6d2' : '#2c1810' }}>
-                  {getStreakInfo(streak).current.title}
-                </h3>
-                <p style={{ margin: '0 0 1rem', fontSize: '0.95rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic' }}>
-                  "{getStreakInfo(streak).current.desc}"
-                </p>
+                <h3 style={{ margin: '0 0 0.5rem', fontFamily: "'Cinzel', serif", fontSize: '1.5rem', color: isDark ? '#f0e6d2' : '#2c1810' }}>{getStreakInfo(streak).current.title}</h3>
+                <p style={{ margin: '0 0 1rem', fontSize: '0.95rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic' }}>"{getStreakInfo(streak).current.desc}"</p>
 
-                {/* Linha Divisória */}
                 <div style={{ height: '1px', background: isDark ? 'rgba(255, 152, 0, 0.3)' : 'rgba(230, 81, 0, 0.2)', margin: '1rem 0' }}></div>
 
-                {/* INFORMAÇÃO DO PRÓXIMO NÍVEL */}
                 {getStreakInfo(streak).next ? (
                   <div style={{ textAlign: 'center' }}>
-                    <p style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', color: isDark ? '#f0e6d2' : '#2c1810' }}>
-                      Próximo nível: <strong style={{ color: isDark ? '#ffb74d' : '#e65100' }}>{getStreakInfo(streak).next.title}</strong>
-                    </p>
-                    <p style={{ margin: '0 0 0.75rem', fontSize: '0.80rem', color: isDark ? '#b8a88a' : '#6b5744' }}>
-                      Alcance <strong>{getStreakInfo(streak).next.min} dias consecutivos</strong> para conquistá-lo.
-                    </p>
-                    <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 'bold', color: isDark ? '#d4af37' : '#8b7355' }}>
-                    </p>
+                    <p style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', color: isDark ? '#f0e6d2' : '#2c1810' }}>Próximo nível: <strong style={{ color: isDark ? '#ffb74d' : '#e65100' }}>{getStreakInfo(streak).next.title}</strong></p>
+                    <p style={{ margin: '0 0 0.75rem', fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744' }}>Alcance <strong>{getStreakInfo(streak).next.min} dias consecutivos</strong> para conquistá-lo.</p>
+                    <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 'bold', color: isDark ? '#d4af37' : '#8b7355' }}>🔥 Continue preenchendo todos os dias e suba de nível!</p>
                   </div>
                 ) : (
-                  <div style={{ textAlign: 'center' }}>
-                    <p style={{ margin: 0, fontSize: '0.95rem', color: isDark ? '#ffb74d' : '#e65100', fontWeight: 'bold' }}>
-                      🌟 Você alcançou o nível máximo de constância! Um verdadeiro exemplo de virtude.
-                    </p>
-                  </div>
+                  <div style={{ textAlign: 'center' }}><p style={{ margin: 0, fontSize: '0.95rem', color: isDark ? '#ffb74d' : '#e65100', fontWeight: 'bold' }}>🌟 Você alcançou o nível máximo de constância! Um verdadeiro exemplo de virtude.</p></div>
                 )}
               </div>
 
-              {/* Contadores */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
                 <div style={{ background: isDark ? 'rgba(255, 152, 0, 0.1)' : '#fff3e0', padding: '1.5rem', borderRadius: '12px', textAlign: 'center', border: `1px solid ${isDark ? 'rgba(255, 152, 0, 0.3)' : 'rgba(230, 81, 0, 0.2)'}` }}>
                   <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: isDark ? '#ffb74d' : '#e65100' }}>{streak}</div>
@@ -1727,28 +1385,14 @@ function App() {
           </div>
         )}
 
-        {/* MODAL DE SEGURANÇA (INATIVIDADE) */}
+        {/* MODAL DE SEGURANÇA */}
         {showInactivityWarning && (
-          <div 
-            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(5px)' }} 
-          >
-            <div 
-              style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '2.5rem', borderRadius: '16px', maxWidth: '450px', width: '100%', border: `2px solid #e74c3c`, textAlign: 'center', boxShadow: '0 10px 40px rgba(231, 76, 60, 0.4)' }} 
-            >
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(5px)' }}>
+            <div style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '2.5rem', borderRadius: '16px', maxWidth: '450px', width: '100%', border: `2px solid #e74c3c`, textAlign: 'center', boxShadow: '0 10px 40px rgba(231, 76, 60, 0.4)' }}>
               <AlertCircle size={56} color="#e74c3c" style={{ margin: '0 auto 1rem' }} />
-              <h2 style={{ margin: '0 0 1rem 0', fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.5rem' }}>
-                Você ainda está aí?
-              </h2>
-              <p style={{ margin: '0 0 1.5rem 0', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '1.1rem', lineHeight: '1.6' }}>
-                Para sua segurança, o diário será fechado automaticamente em <strong style={{ color: '#e74c3c', fontSize: '1.3rem' }}>{logoutCountdown}</strong> segundos.
-              </p>
-              
-              <button 
-                onClick={keepAlive} 
-                style={{ width: '100%', padding: '1rem', background: isDark ? '#d4af37' : '#8b7355', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}
-              >
-                Continuar conectado
-              </button>
+              <h2 style={{ margin: '0 0 1rem 0', fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.5rem' }}>Você ainda está aí?</h2>
+              <p style={{ margin: '0 0 1.5rem 0', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '1.1rem', lineHeight: '1.6' }}>Para sua segurança, o diário será fechado em <strong style={{ color: '#e74c3c', fontSize: '1.3rem' }}>{logoutCountdown}</strong> segundos.</p>
+              <button onClick={keepAlive} style={{ width: '100%', padding: '1rem', background: isDark ? '#d4af37' : '#8b7355', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>Continuar conectado</button>
             </div>
           </div>
         )}
