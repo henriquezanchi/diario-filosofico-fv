@@ -12,8 +12,8 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
-  GoogleAuthProvider, // NOVO
-  signInWithPopup     // NOVO
+  GoogleAuthProvider,
+  signInWithPopup
 } from 'firebase/auth';
 import { 
   doc, 
@@ -39,7 +39,7 @@ function App() {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-// Estados de Navegação e Fogo Interno
+  // Estados de Navegação e Fogo Interno
   const [view, setView] = useState('today');
   const [theme, setTheme] = useState('light');
   const [searchTerm, setSearchTerm] = useState('');
@@ -47,7 +47,7 @@ function App() {
   const [longestStreak, setLongestStreak] = useState(0); 
   const [showStreakModal, setShowStreakModal] = useState(false); 
 
-  // NOVO: Controle de Inatividade
+  // Inatividade
   const [showInactivityWarning, setShowInactivityWarning] = useState(false);
   const [logoutCountdown, setLogoutCountdown] = useState(15);
 
@@ -80,12 +80,12 @@ function App() {
   const [newTaskBaseDate, setNewTaskBaseDate] = useState(''); 
   const [editingTaskId, setEditingTaskId] = useState(null);
 
-  // Estados de Metas de Longo Prazo 
+  // Estados de Metas de Longo Prazo
   const [yearGoals, setYearGoals] = useState('');
   const [lifeGoals, setLifeGoals] = useState('');
   const [showGoalsEditor, setShowGoalsEditor] = useState(false);
 
-  // Estados de Biblioteca de Virtudes 
+  // Estados de Biblioteca de Virtudes
   const [selectedVirtueDetail, setSelectedVirtueDetail] = useState(null);
 
   // Estados de Histórico
@@ -100,134 +100,25 @@ function App() {
   const [fvGdveDesafios, setFvGdveDesafios] = useState([]);
   const [fvGdveReuniao, setFvGdveReuniao] = useState('');
 
-  // Virtudes expandidas
   const virtues = [
-    {
-      name: "Paciência",
-      shortDesc: "Suportar dificuldades mantendo a serenidade",
-      description: "A capacidade de suportar dificuldades sem se perturbar, mantendo a serenidade diante das adversidades e do tempo necessário para as coisas se realizarem.",
-      practices: "• Respirar profundamente antes de reagir\n• Observar a irritação sem agir impulsivamente\n• Lembrar que tudo tem seu tempo",
-      color: "#4A90E2"
-    },
-    {
-      name: "Ordem",
-      shortDesc: "Harmonia no mundo exterior e interior",
-      description: "Disposição harmoniosa das coisas em seu devido lugar, tanto no mundo exterior quanto no interior.",
-      practices: "• Organizar espaço físico diariamente\n• Criar rotinas conscientes\n• Planejar o dia com antecedência",
-      color: "#7B68EE"
-    },
-    {
-      name: "Generosidade",
-      shortDesc: "Dar livremente sem esperar retorno",
-      description: "Compartilhar tempo, atenção, recursos e conhecimento com quem necessita, sem expectativa de recompensa.",
-      practices: "• Oferecer ajuda sem ser pedido\n• Compartilhar conhecimento\n• Doar tempo e atenção genuína",
-      color: "#50C878"
-    },
-    {
-      name: "Coragem",
-      shortDesc: "Agir corretamente mesmo sob pressão",
-      description: "Força interior para enfrentar o medo, agir corretamente mesmo sob pressão e defender princípios mesmo quando difícil.",
-      practices: "• Fazer o certo mesmo com medo\n• Falar a verdade com tato\n• Enfrentar desafios ao invés de evitá-los",
-      color: "#E74C3C"
-    },
-    {
-      name: "Temperança",
-      shortDesc: "Moderação e equilíbrio",
-      description: "Moderação em todas as coisas, equilíbrio entre extremos, domínio sobre impulsos e desejos desmedidos.",
-      practices: "• Evitar excessos em todas as áreas\n• Buscar o meio-termo\n• Dominar impulsos automáticos",
-      color: "#9B59B6"
-    },
-    {
-      name: "Honestidade",
-      shortDesc: "Viver em consonância com a verdade",
-      description: "Ser íntegro em palavras e ações, não enganar a si mesmo nem aos outros.",
-      practices: "• Falar a verdade com compaixão\n• Reconhecer erros abertamente\n• Ser transparente nas intenções",
-      color: "#3498DB"
-    },
-    {
-      name: "Humildade",
-      shortDesc: "Reconhecer limitações e estar aberto",
-      description: "Reconhecer limitações sem falsa modéstia, estar aberto a aprender, não se colocar acima dos outros.",
-      practices: "• Ouvir mais que falar\n• Reconhecer que sempre há mais a aprender\n• Aceitar críticas construtivas",
-      color: "#95A5A6"
-    },
-    {
-      name: "Disciplina",
-      shortDesc: "Manter compromissos consigo mesmo",
-      description: "Capacidade de seguir princípios escolhidos mesmo sem supervisão externa.",
-      practices: "• Cumprir pequenos compromissos diários\n• Manter práticas mesmo sem vontade\n• Criar e seguir uma rotina",
-      color: "#34495E"
-    },
-    {
-      name: "Compaixão",
-      shortDesc: "Sentir com o outro",
-      description: "Compreender o sofrimento alheio e agir para aliviá-lo quando possível.",
-      practices: "• Ver além das aparências\n• Oferecer presença empática\n• Perdoar falhas humanas",
-      color: "#E67E22"
-    },
-    {
-      name: "Prudência",
-      shortDesc: "Sabedoria prática",
-      description: "Avaliar situações, prever consequências e tomar decisões ponderadas.",
-      practices: "• Pensar antes de agir\n• Considerar consequências\n• Buscar conselho quando necessário",
-      color: "#16A085"
-    },
-    {
-      name: "Justiça",
-      shortDesc: "Dar a cada um o que lhe é devido",
-      description: "Agir com equidade, respeitar direitos e cumprir deveres.",
-      practices: "• Tratar todos com equidade\n• Cumprir compromissos assumidos\n• Reconhecer méritos alheios",
-      color: "#C0392B"
-    },
-    {
-      name: "Gratidão",
-      shortDesc: "Reconhecer e valorizar",
-      description: "Cultivar apreciação pelas bênçãos da vida.",
-      practices: "• Agradecer diariamente por três coisas\n• Valorizar pequenas coisas\n• Expressar reconhecimento aos outros",
-      color: "#F39C12"
-    },
-    {
-      name: "Serenidade",
-      shortDesc: "Paz interior",
-      description: "Tranquilidade da mente e do coração independente das circunstâncias.",
-      practices: "• Meditar regularmente\n• Não reagir automaticamente\n• Cultivar paz interior através da contemplação",
-      color: "#1ABC9C"
-    },
-    {
-      name: "Diligência",
-      shortDesc: "Aplicação cuidadosa",
-      description: "Fazer bem o que precisa ser feito, com atenção e dedicação.",
-      practices: "• Fazer cada tarefa com atenção plena\n• Não deixar para depois\n• Completar o que começou",
-      color: "#2ECC71"
-    },
-    {
-      name: "Bondade",
-      shortDesc: "Inclinação natural para o bem",
-      description: "Agir com gentileza e benevolência em todas as circunstâncias.",
-      practices: "• Fazer pequenos gestos gentis diariamente\n• Falar palavras encorajadoras\n• Agir com benevolência mesmo quando difícil",
-      color: "#FF69B4"
-    },
-    {
-      name: "Sabedoria",
-      shortDesc: "Conhecimento com discernimento",
-      description: "Compreensão profunda da vida e capacidade de ver a essência das coisas.",
-      practices: "• Estudar filosofia regularmente\n• Refletir sobre experiências\n• Buscar compreensão profunda, não superficial",
-      color: "#8E44AD"
-    },
-    {
-      name: "Fortaleza",
-      shortDesc: "Resistência interior",
-      description: "Perseverar em objetivos nobres mesmo diante de dificuldades prolongadas.",
-      practices: "• Perseverar em objetivos importantes\n• Manter-se firme em princípios\n• Não desistir facilmente",
-      color: "#D35400"
-    },
-    {
-      name: "Fraternidade",
-      shortDesc: "Reconhecer a unidade",
-      description: "Tratar os outros como irmãos na jornada humana.",
-      practices: "• Ver a humanidade comum em todos\n• Ajudar sem distinção\n• Cultivar sentimento de união",
-      color: "#27AE60"
-    }
+    { name: "Paciência", shortDesc: "Suportar dificuldades mantendo a serenidade", description: "A capacidade de suportar dificuldades sem se perturbar, mantendo a serenidade diante das adversidades e do tempo necessário para as coisas se realizarem.", practices: "• Respirar profundamente antes de reagir\n• Observar a irritação sem agir impulsivamente\n• Lembrar que tudo tem seu tempo", color: "#4A90E2" },
+    { name: "Ordem", shortDesc: "Harmonia no mundo exterior e interior", description: "Disposição harmoniosa das coisas em seu devido lugar, tanto no mundo exterior quanto no interior.", practices: "• Organizar espaço físico diariamente\n• Criar rotinas conscientes\n• Planejar o dia com antecedência", color: "#7B68EE" },
+    { name: "Generosidade", shortDesc: "Dar livremente sem esperar retorno", description: "Compartilhar tempo, atenção, recursos e conhecimento com quem necessita, sem expectativa de recompensa.", practices: "• Oferecer ajuda sem ser pedido\n• Compartilhar conhecimento\n• Doar tempo e atenção genuína", color: "#50C878" },
+    { name: "Coragem", shortDesc: "Agir corretamente mesmo sob pressão", description: "Força interior para enfrentar o medo, agir corretamente mesmo sob pressão e defender princípios mesmo quando difícil.", practices: "• Fazer o certo mesmo com medo\n• Falar a verdade com tato\n• Enfrentar desafios ao invés de evitá-los", color: "#E74C3C" },
+    { name: "Temperança", shortDesc: "Moderação e equilíbrio", description: "Moderação em todas as coisas, equilíbrio entre extremos, domínio sobre impulsos e desejos desmedidos.", practices: "• Evitar excessos em todas as áreas\n• Buscar o meio-termo\n• Dominar impulsos automáticos", color: "#9B59B6" },
+    { name: "Honestidade", shortDesc: "Viver em consonância com a verdade", description: "Ser íntegro em palavras e ações, não enganar a si mesmo nem aos outros.", practices: "• Falar a verdade com compaixão\n• Reconhecer erros abertamente\n• Ser transparente nas intenções", color: "#3498DB" },
+    { name: "Humildade", shortDesc: "Reconhecer limitações e estar aberto", description: "Reconhecer limitações sem falsa modéstia, estar aberto a aprender, não se colocar acima dos outros.", practices: "• Ouvir mais que falar\n• Reconhecer que sempre há mais a aprender\n• Aceitar críticas construtivas", color: "#95A5A6" },
+    { name: "Disciplina", shortDesc: "Manter compromissos consigo mesmo", description: "Capacidade de seguir princípios escolhidos mesmo sem supervisão externa.", practices: "• Cumprir pequenos compromissos diários\n• Manter práticas mesmo sem vontade\n• Criar e seguir uma rotina", color: "#34495E" },
+    { name: "Compaixão", shortDesc: "Sentir com o outro", description: "Compreender o sofrimento alheio e agir para aliviá-lo quando possível.", practices: "• Ver além das aparências\n• Oferecer presença empática\n• Perdoar falhas humanas", color: "#E67E22" },
+    { name: "Prudência", shortDesc: "Sabedoria prática", description: "Avaliar situações, prever consequências e tomar decisões ponderadas.", practices: "• Pensar antes de agir\n• Considerar consequências\n• Buscar conselho quando necessário", color: "#16A085" },
+    { name: "Justiça", shortDesc: "Dar a cada um o que lhe é devido", description: "Agir com equidade, respeitar direitos e cumprir deveres.", practices: "• Tratar todos com equidade\n• Cumprir compromissos assumidos\n• Reconhecer méritos alheios", color: "#C0392B" },
+    { name: "Gratidão", shortDesc: "Reconhecer e valorizar", description: "Cultivar apreciação pelas bênçãos da vida.", practices: "• Agradecer diariamente por três coisas\n• Valorizar pequenas coisas\n• Expressar reconhecimento aos outros", color: "#F39C12" },
+    { name: "Serenidade", shortDesc: "Paz interior", description: "Tranquilidade da mente e do coração independente das circunstâncias.", practices: "• Meditar regularmente\n• Não reagir automaticamente\n• Cultivar paz interior através da contemplação", color: "#1ABC9C" },
+    { name: "Diligência", shortDesc: "Aplicação cuidadosa", description: "Fazer bem o que precisa ser feito, com atenção e dedicação.", practices: "• Fazer cada tarefa com atenção plena\n• Não deixar para depois\n• Completar o que começou", color: "#2ECC71" },
+    { name: "Bondade", shortDesc: "Inclinação natural para o bem", description: "Agir com gentileza e benevolência em todas as circunstâncias.", practices: "• Fazer pequenos gestos gentis diariamente\n• Falar palavras encorajadoras\n• Agir com benevolência mesmo quando difícil", color: "#FF69B4" },
+    { name: "Sabedoria", shortDesc: "Conhecimento com discernimento", description: "Compreensão profunda da vida e capacidade de ver a essência das coisas.", practices: "• Estudar filosofia regularmente\n• Refletir sobre experiências\n• Buscar compreensão profunda, não superficial", color: "#8E44AD" },
+    { name: "Fortaleza", shortDesc: "Resistência interior", description: "Perseverar em objetivos nobres mesmo diante de dificuldades prolongadas.", practices: "• Perseverar em objetivos importantes\n• Manter-se firme em princípios\n• Não desistir facilmente", color: "#D35400" },
+    { name: "Fraternidade", shortDesc: "Reconhecer a unidade", description: "Tratar os outros como irmãos na jornada humana.", practices: "• Ver a humanidade comum em todos\n• Ajudar sem distinção\n• Cultivar sentimento de união", color: "#27AE60" }
   ];
 
   const philosophicalQuotes = [
@@ -242,7 +133,6 @@ function App() {
     { text: "A vida não examinada não vale a pena ser vivida", author: "Sócrates" }
   ];
 
-  // Funções auxiliares
   const getTodayKey = () => {
     const today = new Date();
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -253,70 +143,6 @@ function App() {
     return lastDrawDate !== today;
   };
 
-  // Filtra as tarefas para mostrar apenas as do dia correto
-  const getTasksForToday = () => {
-    const todayDate = new Date();
-    const currentDayOfWeek = todayDate.getDay(); 
-    const currentDayOfMonth = todayDate.getDate();
-
-    // Zera as horas para o cálculo quinzenal ser exato
-    const todayObj = new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate());
-
-    return customTasks.filter(task => {
-      if (!task.recurrence || task.recurrence === 'daily') return true;
-      if (task.recurrence === 'weekly') return task.weekDays?.includes(currentDayOfWeek);
-      if (task.recurrence === 'monthly') return parseInt(task.monthDay) === currentDayOfMonth;
-      if (task.recurrence === 'biweekly' && task.baseDate) {
-        const [y, m, d] = task.baseDate.split('-');
-        const baseDateObj = new Date(y, m - 1, d);
-        const diffTime = todayObj.getTime() - baseDateObj.getTime();
-        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-        
-        return diffDays >= 0 && diffDays % 14 === 0;
-      }
-      return true;
-    });
-  };
-
-  // Desbloquear FV
-  const handleLogoClick = () => {
-    setFvClickCount(prev => prev + 1);
-    if (fvClickCount >= 6) {
-      setFvUnlocked(true);
-      setFvClickCount(0);
-      if (user) {
-        updateDoc(doc(db, 'users', user.uid), { fvUnlocked: true });
-      }
-      alert('🔓 Modo FV desbloqueado!');
-    }
-    setTimeout(() => setFvClickCount(0), 3000);
-  };
-
-  // Sortear virtude
-  const selectRandomVirtue = async () => {
-    if (!canDrawToday()) {
-      alert('Você já sorteou sua virtude hoje! Comprometa-se com ela até o fim do dia. 🎯');
-      return;
-    }
-
-    const randomIndex = Math.floor(Math.random() * virtues.length);
-    const selectedV = virtues[randomIndex].name;
-    setSelectedVirtue(selectedV);
-    setShowCustomVirtue(false);
-
-    const today = getTodayKey();
-    setLastDrawDate(today);
-
-    if (user) {
-      try {
-        await updateDoc(doc(db, 'users', user.uid), { lastDrawDate: today });
-      } catch (error) {
-        console.log('Erro ao salvar data do sorteio');
-      }
-    }
-  };
-
-  // NOVO: Função para extrair o primeiro nome do usuário
   const getUserFirstName = () => {
     if (!user) return 'Filósofo';
     if (user.displayName) return user.displayName.split(' ')[0];
@@ -327,7 +153,6 @@ function App() {
     return 'Filósofo';
   };
 
-  // NOVO: Função para limpar completamente a memória ao sair (Evita vazamento de dados)
   const clearAllData = () => {
     setEntries([]);
     setCustomTasks([]);
@@ -354,7 +179,119 @@ function App() {
     setLastDrawDate(null);
   };
 
-  // Monitorar autenticação
+  const getTasksForToday = () => {
+    const todayDate = new Date();
+    const currentDayOfWeek = todayDate.getDay(); 
+    const currentDayOfMonth = todayDate.getDate();
+    const todayObj = new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate());
+
+    return customTasks.filter(task => {
+      if (!task.recurrence || task.recurrence === 'daily') return true;
+      if (task.recurrence === 'weekly') return task.weekDays?.includes(currentDayOfWeek);
+      if (task.recurrence === 'monthly') return parseInt(task.monthDay) === currentDayOfMonth;
+      if (task.recurrence === 'biweekly' && task.baseDate) {
+        const [y, m, d] = task.baseDate.split('-');
+        const baseDateObj = new Date(y, m - 1, d);
+        const diffTime = todayObj.getTime() - baseDateObj.getTime();
+        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays >= 0 && diffDays % 14 === 0;
+      }
+      return true;
+    });
+  };
+
+  const handleLogoClick = () => {
+    setFvClickCount(prev => prev + 1);
+    if (fvClickCount >= 6) {
+      setFvUnlocked(true);
+      setFvClickCount(0);
+      if (user) {
+        updateDoc(doc(db, 'users', user.uid), { fvUnlocked: true });
+      }
+      alert('🔓 Modo FV desbloqueado!');
+    }
+    setTimeout(() => setFvClickCount(0), 3000);
+  };
+
+  const selectRandomVirtue = async () => {
+    if (!canDrawToday()) {
+      alert('Você já sorteou sua virtude hoje! Comprometa-se com ela até o fim do dia. 🎯');
+      return;
+    }
+    const randomIndex = Math.floor(Math.random() * virtues.length);
+    const selectedV = virtues[randomIndex].name;
+    setSelectedVirtue(selectedV);
+    setShowCustomVirtue(false);
+
+    const today = getTodayKey();
+    setLastDrawDate(today);
+
+    if (user) {
+      try {
+        await updateDoc(doc(db, 'users', user.uid), { lastDrawDate: today });
+      } catch (error) {
+        console.log('Erro ao salvar data do sorteio');
+      }
+    }
+  };
+
+  // Motor de Inatividade 1: O Vigia (60 segundos)
+  useEffect(() => {
+    if (!user || showInactivityWarning) return;
+
+    let timeoutId;
+    const resetTimer = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        setShowInactivityWarning(true);
+      }, 60000); // 1 minuto
+    };
+
+    const handleActivity = () => resetTimer();
+
+    window.addEventListener('mousemove', handleActivity);
+    window.addEventListener('keydown', handleActivity);
+    window.addEventListener('click', handleActivity);
+    window.addEventListener('scroll', handleActivity);
+
+    resetTimer();
+
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('mousemove', handleActivity);
+      window.removeEventListener('keydown', handleActivity);
+      window.removeEventListener('click', handleActivity);
+      window.removeEventListener('scroll', handleActivity);
+    };
+  }, [user, showInactivityWarning]);
+
+  // Motor de Inatividade 2: O Cronômetro de Expulsão (15 segundos)
+  useEffect(() => {
+    let intervalId;
+    if (showInactivityWarning) {
+      intervalId = setInterval(() => {
+        setLogoutCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(intervalId);
+            signOut(auth);
+            setShowInactivityWarning(false);
+            return 15;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      setLogoutCountdown(15);
+    }
+
+    return () => clearInterval(intervalId);
+  }, [showInactivityWarning]);
+
+  const keepAlive = () => {
+    setShowInactivityWarning(false);
+    setLogoutCountdown(15);
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
@@ -367,14 +304,14 @@ function App() {
         await loadFVData(currentUser.uid);
       } else {
         setUser(null);
-        clearAllData(); // O SEGREDO ESTÁ AQUI: Limpa a tela inteira se não tiver ninguém logado
+        clearAllData();
       }
       setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
-  // Carregamentos
+
   const loadUserData = async (uid) => {
     try {
       const userDoc = await getDoc(doc(db, 'users', uid));
@@ -395,69 +332,7 @@ function App() {
       console.error('Erro ao carregar dados:', error);
     }
   };
-// NOVO: Motor de Inatividade (Vigia de Mouse e Teclado)
-  useEffect(() => {
-    if (!user) return; // Só vigia se alguém estiver logado
 
-    let inactivityTimer;
-    let countdownInterval;
-
-    // Reinicia o cronômetro de 1 minuto (60.000 milissegundos)
-    const resetTimer = () => {
-      if (showInactivityWarning) return; // Se a tela de aviso já abriu, não reinicia
-      
-      clearTimeout(inactivityTimer);
-      inactivityTimer = setTimeout(() => {
-        setShowInactivityWarning(true); // Estourou 1 minuto! Mostra o aviso.
-      }, 60000); 
-    };
-
-    const handleActivity = () => resetTimer();
-
-    // Fica de olho nos movimentos
-    window.addEventListener('mousemove', handleActivity);
-    window.addEventListener('keydown', handleActivity);
-    window.addEventListener('click', handleActivity);
-    window.addEventListener('scroll', handleActivity);
-
-    // Dá o play inicial
-    resetTimer();
-
-    // Se o aviso apareceu na tela, começa a contagem regressiva de 15 segundos
-    if (showInactivityWarning) {
-      countdownInterval = setInterval(() => {
-        setLogoutCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(countdownInterval);
-            // Tempo esgotado: Puxa o gatilho e expulsa por segurança
-            signOut(auth);
-            setView('today');
-            setShowInactivityWarning(false);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } else {
-      setLogoutCountdown(15); // Garante que o contador volte pra 15s quando o aviso sumir
-    }
-
-    // Limpeza da memória ao fechar ou deslogar
-    return () => {
-      clearTimeout(inactivityTimer);
-      clearInterval(countdownInterval);
-      window.removeEventListener('mousemove', handleActivity);
-      window.removeEventListener('keydown', handleActivity);
-      window.removeEventListener('click', handleActivity);
-      window.removeEventListener('scroll', handleActivity);
-    };
-  }, [user, showInactivityWarning]);
-
-  // Função para o botão "Ainda estou aqui"
-  const keepAlive = () => {
-    setShowInactivityWarning(false);
-    setLogoutCountdown(15);
-  };
   const loadTodayEntry = async (uid) => {
     try {
       const today = getTodayKey();
@@ -505,7 +380,6 @@ function App() {
       setEntries(loadedEntries);
 
       if (loadedEntries.length > 0) {
-        // 1. Calcular a Maior Ofensiva (Recorde Histórico)
         let maxStreak = 1;
         let tempCalc = 1;
         for (let i = 0; i < loadedEntries.length - 1; i++) {
@@ -522,7 +396,6 @@ function App() {
         }
         setLongestStreak(maxStreak);
 
-        // 2. Calcular Fogo Interno Atual
         const todayKey = getTodayKey();
         const d = new Date();
         d.setDate(d.getDate() - 1);
@@ -593,7 +466,6 @@ function App() {
     }
   };
 
-  // --- TRUQUE DE MESTRE: GESTÃO DE TAREFAS BLINDADA ---
   const saveCustomTask = async () => {
     if (!newTaskName.trim()) return;
     
@@ -692,7 +564,6 @@ function App() {
 
     if (user) {
       const todayKey = getTodayKey();
-      // CORREÇÃO: Tira foto APENAS das tarefas agendadas para hoje
       const updatedSnapshot = getTasksForToday().map(task => ({
         id: task.id,
         name: task.name,
@@ -711,7 +582,6 @@ function App() {
     }
   };  
 
- // Salvar Prólogo
   const saveMorning = async () => {
     const finalVirtue = showCustomVirtue ? customVirtue : selectedVirtue;
 
@@ -720,7 +590,6 @@ function App() {
       return;
     }
 
-    // CORREÇÃO: Tira foto APENAS das tarefas agendadas para hoje
     const tasksSnapshot = getTasksForToday().map(task => ({
       id: task.id,
       name: task.name,
@@ -753,7 +622,6 @@ function App() {
     }
   };
 
-  // Salvar Epílogo
   const saveEvening = async () => {
     if (!whereIFailed || !whereIFailed.trim() || 
         !whatIDidWell || !whatIDidWell.trim() || 
@@ -763,8 +631,6 @@ function App() {
     }
 
     const todayKey = getTodayKey();
-    
-    // CORREÇÃO: Tira foto APENAS das tarefas agendadas para hoje
     const tasksSnapshot = getTasksForToday().map(task => ({
       id: task.id,
       name: task.name,
@@ -800,7 +666,6 @@ function App() {
     }
   };
 
-  // Salvar metas
   const saveLongTermGoals = async () => {
     if (user) {
       try {
@@ -817,7 +682,6 @@ function App() {
     }
   };
 
-  // Salvar dados FV
   const saveFVData = async () => {
     if (user) {
       try {
@@ -971,6 +835,17 @@ function App() {
     alert(`✅ ${imported} entradas importadas com sucesso!`);
   };
 
+  const handleGoogleLogin = async () => {
+    setError('');
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (err) {
+      console.error(err);
+      setError('Erro ao fazer login com o Google. Verifique se ativou no Firebase.');
+    }
+  };
+
   const handleAuth = async (e) => {
     e.preventDefault();
     setError('');
@@ -993,18 +868,7 @@ function App() {
       else setError('Erro ao autenticar. Tente novamente.');
     }
   };
-// NOVO: Login com o Google
-  const handleGoogleLogin = async () => {
-    setError('');
-    const provider = new GoogleAuthProvider();
-    try {
-      await signInWithPopup(auth, provider);
-      // O onAuthStateChanged (já existente) vai cuidar de entrar no app automaticamente
-    } catch (err) {
-      console.error(err);
-      setError('Erro ao fazer login com o Google. Verifique se ativou no Firebase.');
-    }
-  };
+
   const handleLogout = async () => {
     await signOut(auth);
     setView('today');
@@ -1092,7 +956,6 @@ function App() {
             >
               {isLogin ? 'Entrar' : 'Criar Conta'}
             </button>
-
             <button
               type="button" onClick={() => { setIsLogin(!isLogin); setError(''); }}
               style={{ width: '100%', padding: '0.75rem', background: 'transparent', color: '#8b7355', border: '2px solid #8b7355', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontFamily: 'Georgia, serif', transition: 'all 0.2s' }}
@@ -1100,7 +963,6 @@ function App() {
               {isLogin ? 'Criar nova conta' : 'Já tenho conta'}
             </button>
 
-            {/* Divisor e Botão do Google */}
             <div style={{ display: 'flex', alignItems: 'center', margin: '1.5rem 0', color: '#8b7355' }}>
               <div style={{ flex: 1, height: '1px', background: '#e8dcc4' }}></div>
               <span style={{ padding: '0 1rem', fontSize: '0.9rem', fontStyle: 'italic' }}>ou</span>
@@ -1142,31 +1004,22 @@ function App() {
           <div onClick={handleLogoClick} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
             <BookOpen size={32} color={isDark ? '#d4af37' : '#8b7355'} />
             <h1 style={{ margin: 0, fontFamily: 'Georgia, serif', fontSize: 'clamp(1.2rem, 4vw, 1.5rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 700 }}>
-              Diário Filosófico
+              Diário Filosófico <span style={{ fontWeight: 'normal', fontStyle: 'italic', fontSize: '0.85em', opacity: 0.9 }}>de {getUserFirstName()}</span>
             </h1>
           </div>
 
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            
-            {/* NOVO: BADGE DO FOGO INTERNO CLICÁVEL */}
-            {entries.length > 0 && (
+            {streak > 0 && (
               <div 
                 onClick={() => setShowStreakModal(true)}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: '0.4rem',
-                  padding: '0.5rem 1rem',
-                  background: streak > 0 ? (isDark ? 'rgba(255, 100, 0, 0.15)' : '#fff3e0') : 'transparent',
-                  border: `1px solid ${streak > 0 ? (isDark ? '#ff9800' : '#ffb74d') : (isDark ? '#555' : '#ccc')}`,
-                  borderRadius: '20px',
-                  color: streak > 0 ? (isDark ? '#ffb74d' : '#e65100') : (isDark ? '#888' : '#666'),
-                  fontWeight: 'bold', fontFamily: 'Georgia, serif', fontSize: '0.9rem',
-                  marginRight: '0.5rem', cursor: 'pointer', transition: 'all 0.2s',
-                  boxShadow: streak > 0 && isDark ? '0 0 10px rgba(255, 152, 0, 0.2)' : 'none'
+                  display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem',
+                  background: isDark ? 'rgba(255, 100, 0, 0.15)' : '#fff3e0', border: `1px solid ${isDark ? '#ff9800' : '#ffb74d'}`,
+                  borderRadius: '20px', color: isDark ? '#ffb74d' : '#e65100', fontWeight: 'bold',
+                  fontFamily: 'Georgia, serif', fontSize: '0.9rem', marginRight: '0.5rem', cursor: 'pointer',
+                  boxShadow: isDark ? '0 0 10px rgba(255, 152, 0, 0.2)' : 'none'
                 }}>
-                <Flame size={18} 
-                  fill={streak > 0 ? (isDark ? '#ff9800' : '#e65100') : 'transparent'} 
-                  color={streak > 0 ? (isDark ? '#ff9800' : '#e65100') : (isDark ? '#888' : '#666')} 
-                />
+                <Flame size={18} fill={isDark ? '#ff9800' : '#e65100'} color={isDark ? '#ff9800' : '#e65100'} />
                 <span>{streak} {streak === 1 ? 'dia' : 'dias'}</span>
               </div>
             )}
@@ -1364,7 +1217,6 @@ function App() {
                 Cadastre práticas que deseja acompanhar (ex: Tratak, Meditação, Leitura, Exercícios)
               </p>
 
-              {/* FORMULÁRIO DE ADICIONAR/EDITAR */}
               {showAddTask && (
                 <div style={{ padding: '1.5rem', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.3)', borderRadius: '12px', marginBottom: '2rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}` }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
@@ -1420,7 +1272,6 @@ function App() {
                 </div>
               )}
 
-              {/* LISTA DE TAREFAS */}
               {customTasks.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '3rem', color: isDark ? '#b8a88a' : '#6b5744' }}>
                   <CheckCircle size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
@@ -1635,7 +1486,6 @@ function App() {
                             </ul>
                           </div>
                         )}
-
                       </div>
                     )}
 
@@ -1699,6 +1549,33 @@ function App() {
             </div>
           </div>
         )}
+
+        {/* MODAL DE SEGURANÇA (INATIVIDADE) */}
+        {showInactivityWarning && (
+          <div 
+            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(5px)' }} 
+          >
+            <div 
+              style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '2.5rem', borderRadius: '16px', maxWidth: '450px', width: '100%', border: `2px solid #e74c3c`, textAlign: 'center', boxShadow: '0 10px 40px rgba(231, 76, 60, 0.4)' }} 
+            >
+              <AlertCircle size={56} color="#e74c3c" style={{ margin: '0 auto 1rem' }} />
+              <h2 style={{ margin: '0 0 1rem 0', fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.5rem' }}>
+                Você ainda está aí?
+              </h2>
+              <p style={{ margin: '0 0 1.5rem 0', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '1.1rem', lineHeight: '1.6' }}>
+                Para sua segurança, o diário será fechado automaticamente em <strong style={{ color: '#e74c3c', fontSize: '1.3rem' }}>{logoutCountdown}</strong> segundos.
+              </p>
+              
+              <button 
+                onClick={keepAlive} 
+                style={{ width: '100%', padding: '1rem', background: isDark ? '#d4af37' : '#8b7355', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}
+              >
+                Continuar conectado
+              </button>
+            </div>
+          </div>
+        )}
+
       </main>
 
       <footer style={{ padding: '2rem', textAlign: 'center', color: isDark ? '#b8a88a' : '#6b5744', borderTop: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, marginTop: '2rem' }}>
