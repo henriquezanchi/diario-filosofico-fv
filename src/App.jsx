@@ -1689,7 +1689,7 @@ function App() {
                     <p style={{ margin: '0 0 0.5rem', fontSize: '0.9rem', color: isDark ? '#f0e6d2' : '#2c1810' }}>
                       Próximo nível: <strong style={{ color: isDark ? '#ffb74d' : '#e65100' }}>{getStreakInfo(streak).next.title}</strong>
                     </p>
-                    <p style={{ margin: '0 0 0.75rem', fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744' }}>
+                    <p style={{ margin: '0 0 0.75rem', fontSize: '0.80rem', color: isDark ? '#b8a88a' : '#6b5744' }}>
                       Alcance <strong>{getStreakInfo(streak).next.min} dias consecutivos</strong> para conquistá-lo.
                     </p>
                     <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 'bold', color: isDark ? '#d4af37' : '#8b7355' }}>
