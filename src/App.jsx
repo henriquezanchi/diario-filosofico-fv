@@ -588,7 +588,8 @@ function App() {
 
     if (user) {
       const todayKey = getTodayKey();
-      const updatedSnapshot = customTasks.map(task => ({
+      // CORREÇÃO: Tira foto APENAS das tarefas agendadas para hoje
+      const updatedSnapshot = getTasksForToday().map(task => ({
         id: task.id,
         name: task.name,
         completed: !!newStatus[task.id]
@@ -615,7 +616,8 @@ function App() {
       return;
     }
 
-    const tasksSnapshot = customTasks.map(task => ({
+    // CORREÇÃO: Tira foto APENAS das tarefas agendadas para hoje
+    const tasksSnapshot = getTasksForToday().map(task => ({
       id: task.id,
       name: task.name,
       completed: !!todayTasksStatus[task.id]
@@ -657,7 +659,9 @@ function App() {
     }
 
     const todayKey = getTodayKey();
-    const tasksSnapshot = customTasks.map(task => ({
+    
+    // CORREÇÃO: Tira foto APENAS das tarefas agendadas para hoje
+    const tasksSnapshot = getTasksForToday().map(task => ({
       id: task.id,
       name: task.name,
       completed: !!todayTasksStatus[task.id]
