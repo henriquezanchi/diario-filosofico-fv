@@ -4,7 +4,7 @@ import {
   Sparkles, ChevronRight, LogOut, Shuffle, Plus, X, 
   AlertCircle, Eye, EyeOff, CheckCircle, Download, Upload,
   Target, TrendingUp, Award, FileText, Book, Settings,
-  Trash2, Edit, Save, XCircle
+  Trash2, Edit, Save, XCircle, Flame // <-- ADICIONE O FLAME AQUI
 } from 'lucide-react';
 import { auth, db } from './config/firebase-config';
 import { 
@@ -37,10 +37,11 @@ function App() {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  // Estados de Navegação
+ // Estados de Navegação
   const [view, setView] = useState('today');
   const [theme, setTheme] = useState('light');
   const [searchTerm, setSearchTerm] = useState('');
+  const [streak, setStreak] = useState(0); // NOVO: Contador do Fogo Interno
 
  // Estados do Prólogo
   const [morningDone, setMorningDone] = useState(false);
@@ -352,7 +353,7 @@ function App() {
     }
   };
 
-  // Carregar todas as entradas
+  // Carregar todas as entradas e calcular Fogo Interno
   const loadAllEntries = async (uid) => {
     try {
       const q = query(
@@ -369,6 +370,40 @@ function App() {
       });
       loadedEntries.sort((a, b) => new Date(b.date) - new Date(a.date));
       setEntries(loadedEntries);
+
+      // --- NOVO: CALCULAR O FOGO INTERNO (STREAK) ---
+      if (loadedEntries.length > 0) {
+        const todayKey = getTodayKey();
+        
+        // Pega a data de ontem
+        const d = new Date();
+        d.setDate(d.getDate() - 1);
+        const yesterdayKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        
+        let currentStreak = 0;
+        
+        // Verifica se a última entrada foi hoje ou ontem. Se foi antes disso, quebrou a corrente (0).
+        let dateToCheck = loadedEntries[0].date === todayKey ? todayKey : (loadedEntries[0].date === yesterdayKey ? yesterdayKey : null);
+        
+        if (dateToCheck) {
+          for (const entry of loadedEntries) {
+            if (entry.date === dateToCheck) {
+              currentStreak++;
+              // Volta um dia para verificar a próxima entrada do histórico
+              const prevD = new Date(dateToCheck + 'T12:00:00');
+              prevD.setDate(prevD.getDate() - 1);
+              dateToCheck = `${prevD.getFullYear()}-${String(prevD.getMonth() + 1).padStart(2, '0')}-${String(prevD.getDate()).padStart(2, '0')}`;
+            } else {
+              break; // Se pulou um dia, para de contar
+            }
+          }
+        }
+        setStreak(currentStreak);
+      } else {
+        setStreak(0);
+      }
+      // ---------------------------------------------
+
     } catch (error) {
       console.error('Erro ao carregar entradas:', error);
     }
@@ -1054,6 +1089,27 @@ const importFromCSV = async (content) => {
           </div>
 
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            
+            {/* NOVO: BADGE DO FOGO INTERNO */}
+            {streak > 0 && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '0.4rem',
+                padding: '0.5rem 1rem',
+                background: isDark ? 'rgba(255, 100, 0, 0.15)' : '#fff3e0',
+                border: `1px solid ${isDark ? '#ff9800' : '#ffb74d'}`,
+                borderRadius: '20px',
+                color: isDark ? '#ffb74d' : '#e65100',
+                fontWeight: 'bold',
+                fontFamily: 'Georgia, serif',
+                fontSize: '0.9rem',
+                marginRight: '0.5rem',
+                boxShadow: isDark ? '0 0 10px rgba(255, 152, 0, 0.2)' : 'none'
+              }}>
+                <Flame size={18} fill={isDark ? '#ff9800' : '#e65100'} color={isDark ? '#ff9800' : '#e65100'} />
+                <span>{streak} {streak === 1 ? 'dia' : 'dias'}</span>
+              </div>
+            )}
+
             <button
               onClick={() => setView('today')}
               style={{
@@ -1070,7 +1126,7 @@ const importFromCSV = async (content) => {
             >
               Hoje
             </button>
-
+            
             <button
               onClick={() => setView('history')}
               style={{
