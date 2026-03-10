@@ -4,7 +4,8 @@ import {
   Sparkles, ChevronRight, LogOut, Shuffle, Plus, X, 
   AlertCircle, Eye, EyeOff, CheckCircle, Download, Upload,
   Target, TrendingUp, Award, FileText, Book, Settings,
-  Trash2, Edit, Save, XCircle, Flame
+  Trash2, Edit, Save, XCircle, Flame,
+  Zap, Shield, Star, Crown // Ícones novos de Patente!
 } from 'lucide-react';
 import { auth, db } from './config/firebase-config';
 import { 
@@ -133,17 +134,18 @@ function App() {
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   };
 
+  // NOVO: Sistema de Gamificação Inteligente (Com Ícones)
   const getStreakInfo = (days) => {
     const levels = [
-      { min: 0, title: "Cinzas Frias", desc: "O fogo aguarda para ser aceso." },
-      { min: 1, title: "Centelha", desc: "A primeira faísca do seu compromisso." },
-      { min: 3, title: "Chama Desperta", desc: "O fogo da vontade começa a crescer." },
-      { min: 7, title: "Tocha Iluminadora", desc: "A luz que guia seus passos." },
-      { min: 21, title: "Fogueira", desc: "O calor da disciplina se estabeleceu." },
-      { min: 30, title: "Forja Filosófica", desc: "O caráter é moldado pelo hábito." },
-      { min: 90, title: "Farol de Sabedoria", desc: "Sua constância ilumina a si e aos outros." },
-      { min: 180, title: "Sol Interior", desc: "Luz própria e autodomínio." },
-      { min: 365, title: "Fogo Prometeico", desc: "A chama divina da sabedoria inabalável." }
+      { min: 0, title: "Cinzas Frias", desc: "O fogo aguarda para ser aceso.", icon: Moon },
+      { min: 1, title: "Centelha", desc: "A primeira faísca do seu compromisso.", icon: Sparkles },
+      { min: 3, title: "Chama Desperta", desc: "O fogo da vontade começa a crescer.", icon: Flame },
+      { min: 7, title: "Tocha Iluminadora", desc: "A luz que guia seus passos.", icon: Zap },
+      { min: 21, title: "Fogueira", desc: "O calor da disciplina se estabeleceu.", icon: Flame },
+      { min: 30, title: "Forja Filosófica", desc: "O caráter é moldado pelo hábito.", icon: Shield },
+      { min: 90, title: "Farol de Sabedoria", desc: "Sua constância ilumina a si e aos outros.", icon: Sun },
+      { min: 180, title: "Sol Interior", desc: "Luz própria e autodomínio.", icon: Star },
+      { min: 365, title: "Fogo Prometeico", desc: "A chama divina da sabedoria inabalável.", icon: Crown }
     ];
 
     let current = levels[0];
@@ -781,6 +783,8 @@ function App() {
   );
 
   const isDark = theme === 'dark';
+  const streakInfo = getStreakInfo(streak); // Pega os dados do seu nível atual
+  const StreakIcon = streakInfo.current.icon; // Extrai a imagem do seu "brasão"
 
   if (loading) {
     return (
@@ -838,7 +842,7 @@ function App() {
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
             {streak > 0 && (
               <div onClick={() => setShowStreakModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: isDark ? 'rgba(255, 100, 0, 0.15)' : '#fff3e0', border: `1px solid ${isDark ? '#ff9800' : '#ffb74d'}`, borderRadius: '20px', color: isDark ? '#ffb74d' : '#e65100', fontWeight: 'bold', fontFamily: 'Georgia, serif', fontSize: '0.9rem', marginRight: '0.5rem', cursor: 'pointer', boxShadow: isDark ? '0 0 10px rgba(255, 152, 0, 0.2)' : 'none' }}>
-                <Flame size={18} fill={isDark ? '#ff9800' : '#e65100'} color={isDark ? '#ff9800' : '#e65100'} />
+                <StreakIcon size={18} fill={isDark ? '#ff9800' : '#e65100'} color={isDark ? '#ff9800' : '#e65100'} />
                 <span>{streak} {streak === 1 ? 'dia' : 'dias'}</span>
               </div>
             )}
@@ -1422,34 +1426,38 @@ function App() {
           </div>
         )}
 
-        {/* MODAL DO FOGO INTERNO (COMPACTO) */}
+      {/* MODAL DO FOGO INTERNO (MEDIDA IDEAL + MOTIVACIONAL) */}
         {showStreakModal && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(3px)' }} onClick={() => setShowStreakModal(false)}>
-            <div style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '1.5rem', borderRadius: '16px', maxWidth: '350px', width: '100%', border: `2px solid ${isDark ? '#ff9800' : '#e65100'}`, position: 'relative', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '1.5rem', borderRadius: '16px', maxWidth: '380px', width: '100%', border: `2px solid ${isDark ? '#ff9800' : '#e65100'}`, position: 'relative', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
               <button onClick={() => setShowStreakModal(false)} style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}><X size={20} /></button>
               
               <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
-                <Flame size={40} fill={isDark ? '#ff9800' : '#e65100'} color={isDark ? '#ff9800' : '#e65100'} style={{ margin: '0 auto 0.5rem' }} />
-                <h2 style={{ margin: 0, fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.4rem' }}>Fogo Interno</h2>
+                <StreakIcon size={46} fill={isDark ? '#ff9800' : '#e65100'} color={isDark ? '#ff9800' : '#e65100'} style={{ margin: '0 auto 0.5rem' }} />
+                <h2 style={{ margin: 0, fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.5rem' }}>Fogo Interno</h2>
               </div>
 
-              {/* CAIXA COMPACTA DO GRAU E PROGRESSO */}
-              <div style={{ background: isDark ? 'rgba(255, 255, 255, 0.03)' : '#fff', padding: '1rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255, 152, 0, 0.3)' : '#ffb74d'}`, textAlign: 'center', marginBottom: '1.5rem' }}>
-                <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 'bold', color: isDark ? '#ffb74d' : '#e65100', display: 'block', marginBottom: '0.2rem' }}>Grau Atual</span>
-                <h3 style={{ margin: '0 0 0.5rem', fontFamily: "'Cinzel', serif", fontSize: '1.3rem', color: isDark ? '#f0e6d2' : '#2c1810' }}>{getStreakInfo(streak).current.title}</h3>
+              {/* CAIXA DO GRAU E PROGRESSO */}
+              <div style={{ background: isDark ? 'rgba(255, 255, 255, 0.03)' : '#fff', padding: '1.2rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255, 152, 0, 0.3)' : '#ffb74d'}`, textAlign: 'center', marginBottom: '1.5rem' }}>
+                <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 'bold', color: isDark ? '#ffb74d' : '#e65100', display: 'block', marginBottom: '0.2rem' }}>Grau Atual</span>
+                <h3 style={{ margin: '0 0 0.25rem', fontFamily: "'Cinzel', serif", fontSize: '1.4rem', color: isDark ? '#f0e6d2' : '#2c1810' }}>{streakInfo.current.title}</h3>
+                <p style={{ margin: '0 0 1rem', fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic' }}>"{streakInfo.current.desc}"</p>
                 
-                {getStreakInfo(streak).next ? (
-                  <div style={{ marginTop: '0.75rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '0.3rem', fontWeight: 'bold' }}>
-                      <span>Próximo: {getStreakInfo(streak).next.title}</span>
-                      <span>{getStreakInfo(streak).next.min} dias</span>
+                {streakInfo.next ? (
+                  <div style={{ marginTop: '0.5rem', paddingTop: '1rem', borderTop: `1px solid ${isDark ? 'rgba(255, 152, 0, 0.2)' : 'rgba(230, 81, 0, 0.1)'}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '0.4rem', fontWeight: 'bold' }}>
+                      <span>Rumo a: {streakInfo.next.title}</span>
+                      <span>Faltam {streakInfo.next.min - streak} dias</span>
                     </div>
-                    <div style={{ width: '100%', height: '6px', background: isDark ? 'rgba(255,255,255,0.1)' : '#eee', borderRadius: '3px', overflow: 'hidden' }}>
-                      <div style={{ width: `${Math.min(100, (streak / getStreakInfo(streak).next.min) * 100)}%`, height: '100%', background: isDark ? '#ff9800' : '#e65100', transition: 'width 0.5s ease' }}></div>
+                    <div style={{ width: '100%', height: '8px', background: isDark ? 'rgba(255,255,255,0.1)' : '#eee', borderRadius: '4px', overflow: 'hidden', marginBottom: '0.75rem' }}>
+                      <div style={{ width: `${Math.min(100, (streak / streakInfo.next.min) * 100)}%`, height: '100%', background: isDark ? '#ff9800' : '#e65100', transition: 'width 0.5s ease' }}></div>
                     </div>
+                    <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 'bold', color: isDark ? '#ffb74d' : '#e65100' }}>🔥 Mantenha a constância! Preencha hoje para forjar seu caráter.</p>
                   </div>
                 ) : (
-                  <p style={{ margin: '0.5rem 0 0', fontSize: '0.85rem', color: isDark ? '#ffb74d' : '#e65100', fontWeight: 'bold' }}>🌟 Nível máximo alcançado!</p>
+                  <div style={{ marginTop: '0.5rem', paddingTop: '1rem', borderTop: `1px solid ${isDark ? 'rgba(255, 152, 0, 0.2)' : 'rgba(230, 81, 0, 0.1)'}` }}>
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#ffb74d' : '#e65100', fontWeight: 'bold' }}>🌟 Você atingiu o mais alto grau de maestria e constância!</p>
+                  </div>
                 )}
               </div>
 
