@@ -312,6 +312,44 @@ function App() {
     }
   };
 
+  // NOVO: Função para extrair o primeiro nome do usuário
+  const getUserFirstName = () => {
+    if (!user) return 'Filósofo';
+    if (user.displayName) return user.displayName.split(' ')[0];
+    if (user.email) {
+      const namePart = user.email.split('@')[0];
+      return namePart.charAt(0).toUpperCase() + namePart.slice(1);
+    }
+    return 'Filósofo';
+  };
+
+  // NOVO: Função para limpar completamente a memória ao sair (Evita vazamento de dados)
+  const clearAllData = () => {
+    setEntries([]);
+    setCustomTasks([]);
+    setTodayTasksStatus({});
+    setStreak(0);
+    setLongestStreak(0);
+    setMorningDone(false);
+    setEveningDone(false);
+    setSelectedVirtue('');
+    setCustomVirtue('');
+    setDailyIntention('');
+    setMorningChallenges('');
+    setMorningVehicles('');
+    setWhereIFailed('');
+    setWhatIDidWell('');
+    setWhatILeftUndone('');
+    setYearGoals('');
+    setLifeGoals('');
+    setFvCartaDegrau('');
+    setFvGdveReuniao('');
+    setFvLastCartaDate(null);
+    setFvNextCartaDate(null);
+    setFvUnlocked(false);
+    setLastDrawDate(null);
+  };
+
   // Monitorar autenticação
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -325,13 +363,13 @@ function App() {
         await loadFVData(currentUser.uid);
       } else {
         setUser(null);
+        clearAllData(); // O SEGREDO ESTÁ AQUI: Limpa a tela inteira se não tiver ninguém logado
       }
       setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
-
   // Carregamentos
   const loadUserData = async (uid) => {
     try {
