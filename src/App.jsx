@@ -69,7 +69,8 @@ function App() {
   const [newTaskRecurrence, setNewTaskRecurrence] = useState('daily');
   const [newTaskWeekDays, setNewTaskWeekDays] = useState([]); 
   const [newTaskMonthDay, setNewTaskMonthDay] = useState(1);
-  const [editingTaskId, setEditingTaskId] = useState(null); // NOVO: Guarda o ID da tarefa sendo editada
+  const [newTaskBaseDate, setNewTaskBaseDate] = useState(''); // NOVO: Para tarefas quinzenais
+  const [editingTaskId, setEditingTaskId] = useState(null);
 
   // Estados de Metas de Longo Prazo (NOVO)
   const [yearGoals, setYearGoals] = useState('');
@@ -249,11 +250,26 @@ function App() {
     const currentDayOfWeek = todayDate.getDay(); // 0 = Domingo, 1 = Segunda...
     const currentDayOfMonth = todayDate.getDate(); // 1 a 31
 
+    // Zera as horas para o cálculo quinzenal ser exato
+    const todayObj = new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate());
+
     return customTasks.filter(task => {
-      // Se for uma tarefa antiga do sistema, assume que é diária para não sumir
+      // Diariamente (padrão antigo)
       if (!task.recurrence || task.recurrence === 'daily') return true;
+      // Semanalmente
       if (task.recurrence === 'weekly') return task.weekDays?.includes(currentDayOfWeek);
+      // Mensalmente
       if (task.recurrence === 'monthly') return parseInt(task.monthDay) === currentDayOfMonth;
+      // Quinzenalmente (a cada 14 dias exatos baseados num dia da semana)
+      if (task.recurrence === 'biweekly' && task.baseDate) {
+        const [y, m, d] = task.baseDate.split('-');
+        const baseDateObj = new Date(y, m - 1, d);
+        const diffTime = todayObj.getTime() - baseDateObj.getTime();
+        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+        
+        // Se já passou da data ou é a própria data, e a diferença é múltipla de 14
+        return diffDays >= 0 && diffDays % 14 === 0;
+      }
       return true;
     });
   };
@@ -477,8 +493,12 @@ function App() {
       alert('Por favor, selecione pelo menos um dia da semana.');
       return;
     }
+    if (newTaskRecurrence === 'biweekly' && !newTaskBaseDate) {
+      alert('Por favor, selecione a data de início para a tarefa quinzenal.');
+      return;
+    }
 
-    // Se estiver criando uma NOVA tarefa, verifica se o nome já existe
+    // Verifica se o nome já existe (apenas ao criar nova)
     if (!editingTaskId) {
       const isDuplicate = customTasks.some(t => t.name.toLowerCase().trim() === newTaskName.trim().toLowerCase());
       if (isDuplicate) {
@@ -488,19 +508,18 @@ function App() {
     }
 
     const taskData = {
-      id: editingTaskId || Date.now(), // Mantém o ID antigo se estiver editando
+      id: editingTaskId || Date.now(), 
       name: newTaskName.trim(),
       recurrence: newTaskRecurrence,
       weekDays: newTaskRecurrence === 'weekly' ? newTaskWeekDays : null,
-      monthDay: newTaskRecurrence === 'monthly' ? newTaskMonthDay : null
+      monthDay: newTaskRecurrence === 'monthly' ? newTaskMonthDay : null,
+      baseDate: newTaskRecurrence === 'biweekly' ? newTaskBaseDate : null // NOVO
     };
 
     let newTasks;
     if (editingTaskId) {
-      // Atualiza a lista substituindo a tarefa antiga pela editada
       newTasks = customTasks.map(t => t.id === editingTaskId ? taskData : t);
     } else {
-      // Adiciona a nova na lista
       newTasks = [...customTasks, taskData];
     }
 
@@ -513,6 +532,7 @@ function App() {
     setNewTaskRecurrence('daily');
     setNewTaskWeekDays([]);
     setNewTaskMonthDay(1);
+    setNewTaskBaseDate(''); // Limpa a data
 
     if (user) {
       await setDoc(doc(db, 'customTasks', user.uid), { tasks: newTasks });
@@ -526,11 +546,12 @@ function App() {
     setNewTaskRecurrence(task.recurrence || 'daily');
     setNewTaskWeekDays(task.weekDays || []);
     setNewTaskMonthDay(task.monthDay || 1);
+    setNewTaskBaseDate(task.baseDate || ''); // Carrega a data salva
     setShowAddTask(true);
     
-    // Rola a tela suavemente para o topo onde está o formulário
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
 
   // NOVO: Remover tarefa personalizada
   const removeCustomTask = async (taskId) => {
@@ -1919,7 +1940,7 @@ const importFromCSV = async (content) => {
                       type="text"
                       value={newTaskName}
                       onChange={(e) => setNewTaskName(e.target.value)}
-                      placeholder="Nome da prática (ex: Tratak)"
+                      placeholder="Nome da prática (ex: Tratak, GAF)"
                       style={{
                         flex: 1, padding: '0.75rem', borderRadius: '8px', fontSize: '1rem',
                         border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`,
@@ -1943,6 +1964,7 @@ const importFromCSV = async (content) => {
                     >
                       <option value="daily">Diariamente</option>
                       <option value="weekly">Dias da Semana Específicos</option>
+                      <option value="biweekly">Quinzenalmente (A cada 14 dias)</option>
                       <option value="monthly">Uma vez ao Mês</option>
                     </select>
                   </div>
@@ -1969,6 +1991,24 @@ const importFromCSV = async (content) => {
                           {day}
                         </button>
                       ))}
+                    </div>
+                  )}
+
+                  {newTaskRecurrence === 'biweekly' && (
+                    <div style={{ marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <label style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.9rem' }}>
+                        Qual é a data do próximo encontro/prática?
+                      </label>
+                      <input
+                        type="date"
+                        value={newTaskBaseDate}
+                        onChange={(e) => setNewTaskBaseDate(e.target.value)}
+                        style={{
+                          padding: '0.75rem', borderRadius: '8px',
+                          border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`,
+                          background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810'
+                        }}
+                      />
                     </div>
                   )}
 
@@ -2002,6 +2042,78 @@ const importFromCSV = async (content) => {
                 </div>
               )}
 
+              {/* LISTA DE TAREFAS */}
+              {customTasks.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '3rem', color: isDark ? '#b8a88a' : '#6b5744' }}>
+                  <CheckCircle size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
+                  <p style={{ fontSize: '1.1rem' }}>Nenhuma prática cadastrada</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  {customTasks.map(task => {
+                    let freqText = 'Diariamente';
+                    if (task.recurrence === 'weekly') {
+                      const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+                      freqText = task.weekDays?.map(d => days[d]).join(', ');
+                    } else if (task.recurrence === 'biweekly') {
+                      if (task.baseDate) {
+                        const [y, m, d] = task.baseDate.split('-');
+                        freqText = `Quinzenal (a partir de ${d}/${m})`;
+                      } else {
+                        freqText = 'Quinzenalmente';
+                      }
+                    } else if (task.recurrence === 'monthly') {
+                      freqText = `Todo dia ${task.monthDay}`;
+                    }
+
+                    return (
+                      <div key={task.id} style={{
+                        padding: '1rem', background: isDark ? 'rgba(26, 26, 46, 0.4)' : 'rgba(255, 255, 255, 0.8)',
+                        border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`,
+                        borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                      }}>
+                        <div>
+                          <div style={{ fontSize: '1.05rem', color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 'bold' }}>
+                            {task.name}
+                          </div>
+                          <div style={{ fontSize: '0.85rem', color: isDark ? '#d4af37' : '#8b7355', marginTop: '0.2rem' }}>
+                            ↻ {freqText}
+                          </div>
+                        </div>
+                        
+                        {/* Botões de Editar e Excluir */}
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button
+                            onClick={() => startEditingTask(task)}
+                            style={{
+                              padding: '0.5rem', background: 'transparent', color: isDark ? '#d4af37' : '#8b7355',
+                              border: `1px solid ${isDark ? '#d4af37' : '#8b7355'}`, borderRadius: '6px', cursor: 'pointer', display: 'flex'
+                            }}
+                            title="Editar"
+                          >
+                            <Edit size={16} />
+                          </button>
+                          
+                          <button
+                            onClick={() => {
+                              if(window.confirm(`Deseja realmente excluir a prática "${task.name}"?`)) {
+                                removeCustomTask(task.id);
+                              }
+                            }}
+                            style={{
+                              padding: '0.5rem', background: 'transparent', color: '#e74c3c',
+                              border: '1px solid #e74c3c', borderRadius: '6px', cursor: 'pointer', display: 'flex'
+                            }}
+                            title="Excluir"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
               {/* LISTA DE TAREFAS */}
               {customTasks.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '3rem', color: isDark ? '#b8a88a' : '#6b5744' }}>
