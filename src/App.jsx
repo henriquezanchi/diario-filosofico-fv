@@ -11,7 +11,9 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
   signOut,
-  onAuthStateChanged 
+  onAuthStateChanged,
+  GoogleAuthProvider, // NOVO
+  signInWithPopup     // NOVO
 } from 'firebase/auth';
 import { 
   doc, 
@@ -883,7 +885,18 @@ function App() {
       else setError('Erro ao autenticar. Tente novamente.');
     }
   };
-
+// NOVO: Login com o Google
+  const handleGoogleLogin = async () => {
+    setError('');
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+      // O onAuthStateChanged (já existente) vai cuidar de entrar no app automaticamente
+    } catch (err) {
+      console.error(err);
+      setError('Erro ao fazer login com o Google. Verifique se ativou no Firebase.');
+    }
+  };
   const handleLogout = async () => {
     await signOut(auth);
     setView('today');
@@ -976,6 +989,34 @@ function App() {
               style={{ width: '100%', padding: '0.75rem', background: 'transparent', color: '#8b7355', border: '2px solid #8b7355', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontFamily: 'Georgia, serif', transition: 'all 0.2s' }}
             >
               {isLogin ? 'Criar nova conta' : 'Já tenho conta'}
+            </button>
+            <button
+              type="button" onClick={() => { setIsLogin(!isLogin); setError(''); }}
+              style={{ width: '100%', padding: '0.75rem', background: 'transparent', color: '#8b7355', border: '2px solid #8b7355', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontFamily: 'Georgia, serif', transition: 'all 0.2s' }}
+            >
+              {isLogin ? 'Criar nova conta' : 'Já tenho conta'}
+            </button>
+
+            {/* NOVO: Divisor e Botão do Google */}
+            <div style={{ display: 'flex', alignItems: 'center', margin: '1.5rem 0', color: '#8b7355' }}>
+              <div style={{ flex: 1, height: '1px', background: '#e8dcc4' }}></div>
+              <span style={{ padding: '0 1rem', fontSize: '0.9rem', fontStyle: 'italic' }}>ou</span>
+              <div style={{ flex: 1, height: '1px', background: '#e8dcc4' }}></div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              style={{ 
+                width: '100%', padding: '0.75rem', background: '#fff', color: '#444', 
+                border: '1px solid #ccc', borderRadius: '8px', fontSize: '1rem', 
+                fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', 
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', 
+                boxShadow: '0 2px 4px rgba(0,0,0,0.05)' 
+              }}
+            >
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo" style={{ width: '20px', height: '20px' }} />
+              Entrar com o Google
             </button>
           </form>
         </div>
@@ -1464,20 +1505,34 @@ function App() {
                       </div>
                     )}
 
-                    {/* NOVO: Exibição Completa das Tarefas no Histórico */}
+                    {/* Exibição Completa das Tarefas no Histórico (Realizadas e Falhas) */}
                     {entry.tasksSnapshot && entry.tasksSnapshot.length > 0 && (
-                      <div style={{ marginBottom: '1rem', padding: '1rem', background: isDark ? 'rgba(212, 175, 55, 0.05)' : '#fdfbf7', borderRadius: '8px', borderLeft: `4px solid ${isDark ? '#d4af37' : '#8b7355'}` }}>
-                        <h4 style={{ margin: '0 0 0.75rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem' }}>Acompanhamento de Práticas:</h4>
-                        <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                          {entry.tasksSnapshot.map((task, idx) => (
-                            <li key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: isDark ? '#c8b896' : '#6b5744', fontSize: '0.95rem' }}>
-                              {task.completed ? <CheckCircle size={16} color="#4caf50" /> : <XCircle size={16} color="#e74c3c" />}
-                              <span style={{ textDecoration: task.completed ? 'none' : 'line-through', opacity: task.completed ? 1 : 0.6 }}>
-                                {task.name}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+                        
+                        {/* Verdes: Realizadas */}
+                        {entry.tasksSnapshot.filter(t => t.completed).length > 0 && (
+                          <div style={{ padding: '1rem', background: isDark ? 'rgba(76, 175, 80, 0.05)' : '#f8fff8', borderRadius: '8px', borderLeft: `4px solid ${isDark ? '#4caf50' : '#81c784'}` }}>
+                            <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#81c784' : '#2e7d32', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              <CheckCircle size={16} /> Práticas Realizadas:
+                            </h4>
+                            <ul style={{ margin: 0, paddingLeft: '1.2rem', color: isDark ? '#c8b896' : '#4caf50', fontSize: '0.95rem', lineHeight: '1.6' }}>
+                              {entry.tasksSnapshot.filter(t => t.completed).map((task, idx) => <li key={idx}>{task.name}</li>)}
+                            </ul>
+                          </div>
+                        )}
+
+                        {/* Vermelhas: NÃO Realizadas */}
+                        {entry.tasksSnapshot.filter(t => !t.completed).length > 0 && (
+                          <div style={{ padding: '1rem', background: isDark ? 'rgba(244, 67, 54, 0.05)' : '#fff5f5', borderRadius: '8px', borderLeft: `4px solid ${isDark ? '#f44336' : '#e53935'}` }}>
+                            <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#e57373' : '#c62828', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              <XCircle size={16} /> Práticas Não Realizadas:
+                            </h4>
+                            <ul style={{ margin: 0, paddingLeft: '1.2rem', color: isDark ? '#b8a88a' : '#c62828', fontSize: '0.95rem', lineHeight: '1.6', textDecoration: 'line-through', opacity: 0.8 }}>
+                              {entry.tasksSnapshot.filter(t => !t.completed).map((task, idx) => <li key={idx}>{task.name}</li>)}
+                            </ul>
+                          </div>
+                        )}
+
                       </div>
                     )}
 
