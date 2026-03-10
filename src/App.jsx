@@ -4,7 +4,7 @@ import {
   Sparkles, ChevronRight, LogOut, Shuffle, Plus, X, 
   AlertCircle, Eye, EyeOff, CheckCircle, Download, Upload,
   Target, TrendingUp, Award, FileText, Book, Settings,
-  Trash2, Edit, Save, XCircle, Flame // <-- ADICIONE O FLAME AQUI
+  Trash2, Edit, Save, XCircle, Flame
 } from 'lucide-react';
 import { auth, db } from './config/firebase-config';
 import { 
@@ -37,31 +37,31 @@ function App() {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
- // Estados de Navegação
+  // Estados de Navegação
   const [view, setView] = useState('today');
   const [theme, setTheme] = useState('light');
   const [searchTerm, setSearchTerm] = useState('');
-  const [streak, setStreak] = useState(0); // NOVO: Contador do Fogo Interno
+  const [streak, setStreak] = useState(0);
 
- // Estados do Prólogo
+  // Estados do Prólogo
   const [morningDone, setMorningDone] = useState(false);
   const [selectedVirtue, setSelectedVirtue] = useState('');
   const [customVirtue, setCustomVirtue] = useState('');
   const [showCustomVirtue, setShowCustomVirtue] = useState(false);
   const [dailyQuote, setDailyQuote] = useState(null);
   const [dailyIntention, setDailyIntention] = useState('');
-  const [morningChallenges, setMorningChallenges] = useState(''); // NOVO: Para o Premeditatio
-  const [morningVehicles, setMorningVehicles] = useState(''); // NOVO: Para o Premeditatio
+  const [morningChallenges, setMorningChallenges] = useState('');
+  const [morningVehicles, setMorningVehicles] = useState('');
   const [lastDrawDate, setLastDrawDate] = useState(null);
 
   // Estados do Epílogo
   const [eveningDone, setEveningDone] = useState(false);
-  const [didMorning, setDidMorning] = useState(true); // NOVO
+  const [didMorning, setDidMorning] = useState(true);
   const [whereIFailed, setWhereIFailed] = useState('');
   const [whatIDidWell, setWhatIDidWell] = useState('');
   const [whatILeftUndone, setWhatILeftUndone] = useState('');
 
-// Estados de Tarefas Personalizadas
+  // Estados de Tarefas Personalizadas (DEDUPLICADOS E CORRIGIDOS)
   const [customTasks, setCustomTasks] = useState([]);
   const [newTaskName, setNewTaskName] = useState('');
   const [showAddTask, setShowAddTask] = useState(false);
@@ -69,21 +69,21 @@ function App() {
   const [newTaskRecurrence, setNewTaskRecurrence] = useState('daily');
   const [newTaskWeekDays, setNewTaskWeekDays] = useState([]); 
   const [newTaskMonthDay, setNewTaskMonthDay] = useState(1);
-  const [newTaskBaseDate, setNewTaskBaseDate] = useState(''); // NOVO: Para tarefas quinzenais
+  const [newTaskBaseDate, setNewTaskBaseDate] = useState('');
   const [editingTaskId, setEditingTaskId] = useState(null);
 
-  // Estados de Metas de Longo Prazo (NOVO)
+  // Estados de Metas de Longo Prazo
   const [yearGoals, setYearGoals] = useState('');
   const [lifeGoals, setLifeGoals] = useState('');
   const [showGoalsEditor, setShowGoalsEditor] = useState(false);
 
-  // Estados de Biblioteca de Virtudes (NOVO)
+  // Estados de Biblioteca de Virtudes
   const [selectedVirtueDetail, setSelectedVirtueDetail] = useState(null);
 
   // Estados de Histórico
   const [entries, setEntries] = useState([]);
 
-  // Estados FV (oculto) (NOVO)
+  // Estados FV
   const [fvUnlocked, setFvUnlocked] = useState(false);
   const [fvClickCount, setFvClickCount] = useState(0);
   const [fvCartaDegrau, setFvCartaDegrau] = useState('');
@@ -244,37 +244,33 @@ function App() {
     const today = getTodayKey();
     return lastDrawDate !== today;
   };
-// NOVO: Filtra as tarefas para mostrar apenas as do dia correto
+
+  // Filtra as tarefas para mostrar apenas as do dia correto
   const getTasksForToday = () => {
     const todayDate = new Date();
-    const currentDayOfWeek = todayDate.getDay(); // 0 = Domingo, 1 = Segunda...
-    const currentDayOfMonth = todayDate.getDate(); // 1 a 31
+    const currentDayOfWeek = todayDate.getDay(); 
+    const currentDayOfMonth = todayDate.getDate();
 
     // Zera as horas para o cálculo quinzenal ser exato
     const todayObj = new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate());
 
     return customTasks.filter(task => {
-      // Diariamente (padrão antigo)
       if (!task.recurrence || task.recurrence === 'daily') return true;
-      // Semanalmente
       if (task.recurrence === 'weekly') return task.weekDays?.includes(currentDayOfWeek);
-      // Mensalmente
       if (task.recurrence === 'monthly') return parseInt(task.monthDay) === currentDayOfMonth;
-      // Quinzenalmente (a cada 14 dias exatos baseados num dia da semana)
       if (task.recurrence === 'biweekly' && task.baseDate) {
         const [y, m, d] = task.baseDate.split('-');
         const baseDateObj = new Date(y, m - 1, d);
         const diffTime = todayObj.getTime() - baseDateObj.getTime();
         const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
         
-        // Se já passou da data ou é a própria data, e a diferença é múltipla de 14
         return diffDays >= 0 && diffDays % 14 === 0;
       }
       return true;
     });
   };
 
-  // NOVO: Função para desbloquear FV (7 cliques no logo)
+  // Desbloquear FV
   const handleLogoClick = () => {
     setFvClickCount(prev => prev + 1);
     if (fvClickCount >= 6) {
@@ -288,7 +284,7 @@ function App() {
     setTimeout(() => setFvClickCount(0), 3000);
   };
 
-  // Sortear virtude (só uma vez por dia)
+  // Sortear virtude
   const selectRandomVirtue = async () => {
     if (!canDrawToday()) {
       alert('Você já sorteou sua virtude hoje! Comprometa-se com ela até o fim do dia. 🎯');
@@ -305,9 +301,7 @@ function App() {
 
     if (user) {
       try {
-        await updateDoc(doc(db, 'users', user.uid), {
-          lastDrawDate: today
-        });
+        await updateDoc(doc(db, 'users', user.uid), { lastDrawDate: today });
       } catch (error) {
         console.log('Erro ao salvar data do sorteio');
       }
@@ -334,7 +328,7 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // Carregar dados do usuário
+  // Carregamentos
   const loadUserData = async (uid) => {
     try {
       const userDoc = await getDoc(doc(db, 'users', uid));
@@ -356,7 +350,6 @@ function App() {
     }
   };
 
-  // Carregar entrada de hoje
   const loadTodayEntry = async (uid) => {
     try {
       const today = getTodayKey();
@@ -367,6 +360,8 @@ function App() {
         setSelectedVirtue(data.virtue || '');
         setCustomVirtue(data.customVirtue || '');
         setDailyIntention(data.intention || '');
+        setMorningChallenges(data.morningChallenges || '');
+        setMorningVehicles(data.morningVehicles || '');
         setEveningDone(data.eveningDone || false);
         setWhereIFailed(data.whereIFailed || '');
         setWhatIDidWell(data.whatIDidWell || '');
@@ -387,13 +382,9 @@ function App() {
     }
   };
 
-  // Carregar todas as entradas e calcular Fogo Interno
   const loadAllEntries = async (uid) => {
     try {
-      const q = query(
-        collection(db, 'entries'),
-        where('userId', '==', uid)
-      );
+      const q = query(collection(db, 'entries'), where('userId', '==', uid));
       const querySnapshot = await getDocs(q);
       const loadedEntries = [];
       querySnapshot.forEach((doc) => {
@@ -405,30 +396,24 @@ function App() {
       loadedEntries.sort((a, b) => new Date(b.date) - new Date(a.date));
       setEntries(loadedEntries);
 
-      // --- NOVO: CALCULAR O FOGO INTERNO (STREAK) ---
       if (loadedEntries.length > 0) {
         const todayKey = getTodayKey();
-        
-        // Pega a data de ontem
         const d = new Date();
         d.setDate(d.getDate() - 1);
         const yesterdayKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         
         let currentStreak = 0;
-        
-        // Verifica se a última entrada foi hoje ou ontem. Se foi antes disso, quebrou a corrente (0).
         let dateToCheck = loadedEntries[0].date === todayKey ? todayKey : (loadedEntries[0].date === yesterdayKey ? yesterdayKey : null);
         
         if (dateToCheck) {
           for (const entry of loadedEntries) {
             if (entry.date === dateToCheck) {
               currentStreak++;
-              // Volta um dia para verificar a próxima entrada do histórico
               const prevD = new Date(dateToCheck + 'T12:00:00');
               prevD.setDate(prevD.getDate() - 1);
               dateToCheck = `${prevD.getFullYear()}-${String(prevD.getMonth() + 1).padStart(2, '0')}-${String(prevD.getDate()).padStart(2, '0')}`;
             } else {
-              break; // Se pulou um dia, para de contar
+              break;
             }
           }
         }
@@ -436,14 +421,11 @@ function App() {
       } else {
         setStreak(0);
       }
-      // ---------------------------------------------
-
     } catch (error) {
       console.error('Erro ao carregar entradas:', error);
     }
   };
 
-  // NOVO: Carregar tarefas personalizadas
   const loadCustomTasks = async (uid) => {
     try {
       const tasksDoc = await getDoc(doc(db, 'customTasks', uid));
@@ -455,7 +437,6 @@ function App() {
     }
   };
 
-  // NOVO: Carregar metas de longo prazo
   const loadLongTermGoals = async (uid) => {
     try {
       const goalsDoc = await getDoc(doc(db, 'longTermGoals', uid));
@@ -469,7 +450,6 @@ function App() {
     }
   };
 
-  // NOVO: Carregar dados FV
   const loadFVData = async (uid) => {
     try {
       const fvDoc = await getDoc(doc(db, 'fvData', uid));
@@ -486,7 +466,7 @@ function App() {
     }
   };
 
-  // NOVO: Salvar (Adicionar ou Editar) tarefa personalizada
+  // --- TRUQUE DE MESTRE: GESTÃO DE TAREFAS BLINDADA ---
   const saveCustomTask = async () => {
     if (!newTaskName.trim()) return;
     
@@ -500,7 +480,6 @@ function App() {
       return;
     }
 
-    // Anti-duplicação inteligente
     const isDuplicate = customTasks.some(t => 
       t.name.toLowerCase().trim() === newTaskName.trim().toLowerCase() && 
       t.id !== editingTaskId
@@ -511,7 +490,6 @@ function App() {
       return;
     }
 
-    // Garante que a tarefa tenha um ID absolutamente único
     const uniqueId = editingTaskId || `task_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
     const taskData = {
@@ -530,13 +508,10 @@ function App() {
       newTasks = [...customTasks, taskData];
     }
 
-    // TRUQUE DE MESTRE: Converte para texto e de volta para objeto
-    // Isso aniquila completamente qualquer "undefined" que faria o Firebase travar
     const cleanTasksForFirebase = JSON.parse(JSON.stringify(newTasks));
 
     setCustomTasks(cleanTasksForFirebase);
     
-    // Limpa o formulário e fecha
     setNewTaskName('');
     setShowAddTask(false);
     setEditingTaskId(null);
@@ -555,7 +530,6 @@ function App() {
     }
   };
 
-  // NOVO: Prepara o formulário para editar uma tarefa existente
   const startEditingTask = (task) => {
     setEditingTaskId(task.id);
     setNewTaskName(task.name);
@@ -564,11 +538,9 @@ function App() {
     setNewTaskMonthDay(task.monthDay || 1);
     setNewTaskBaseDate(task.baseDate || ''); 
     setShowAddTask(true);
-    
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // NOVO: Remover tarefa personalizada
   const removeCustomTask = async (taskId) => {
     const newTasks = customTasks.filter(t => t.id !== taskId);
     const cleanTasksForFirebase = JSON.parse(JSON.stringify(newTasks));
@@ -584,20 +556,15 @@ function App() {
     }
   };
 
-  // NOVO: Marcar/desmarcar tarefa do dia com Auto-Save
   const toggleTaskStatus = async (taskId) => {
-    // 1. Atualiza a caixinha visualmente na mesma hora
     const newStatus = {
       ...todayTasksStatus,
       [taskId]: !todayTasksStatus[taskId]
     };
     setTodayTasksStatus(newStatus);
 
-    // 2. Salva essa mudança instantaneamente no banco de dados de hoje
     if (user) {
       const todayKey = getTodayKey();
-      
-      // Tira uma nova fotografia das tarefas atualizadas
       const updatedSnapshot = customTasks.map(task => ({
         id: task.id,
         name: task.name,
@@ -608,7 +575,8 @@ function App() {
         await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), {
           tasksStatus: newStatus,
           tasksSnapshot: updatedSnapshot
-        }, { merge: true }); // O 'merge: true' garante que não vai apagar seu prólogo!
+        }, { merge: true }); 
+        await loadAllEntries(user.uid);
       } catch (error) {
         console.error('Erro ao salvar o status da tarefa:', error);
       }
@@ -624,7 +592,6 @@ function App() {
       return;
     }
 
-    // Tira uma "foto" das tarefas de hoje com seus nomes atuais
     const tasksSnapshot = customTasks.map(task => ({
       id: task.id,
       name: task.name,
@@ -640,8 +607,8 @@ function App() {
       customVirtue: showCustomVirtue ? customVirtue : '',
       quote: dailyQuote || null,
       intention: dailyIntention || '',
-      morningChallenges: morningChallenges || '', // Correção: Garante que não é undefined
-      morningVehicles: morningVehicles || '',     // Correção: Garante que não é undefined
+      morningChallenges: morningChallenges || '', 
+      morningVehicles: morningVehicles || '',     
       tasksStatus: todayTasksStatus || {},
       tasksSnapshot: tasksSnapshot || [],
       morningTimestamp: Timestamp.now()
@@ -652,7 +619,7 @@ function App() {
       setMorningDone(true);
       alert('✅ Prólogo salvo com sucesso!');
     } catch (error) {
-      console.error(error); // Mostra o erro no F12 caso aconteça de novo
+      console.error(error); 
       alert('Erro ao salvar prólogo. Verifique sua conexão.');
     }
   };
@@ -667,8 +634,6 @@ function App() {
     }
 
     const todayKey = getTodayKey();
-    
-    // Atualiza a "foto" das tarefas no fim do dia
     const tasksSnapshot = customTasks.map(task => ({
       id: task.id,
       name: task.name,
@@ -681,14 +646,14 @@ function App() {
       const existingData = existing.exists() ? existing.data() : {};
 
       const updatedEntry = {
-        ...existingData, // Mantém tudo que já existia (Prólogo)
+        ...existingData, 
         userId: user.uid,
         date: todayKey,
         eveningDone: true,
         whereIFailed: whereIFailed || '',
         whatIDidWell: whatIDidWell || '',
         whatILeftUndone: whatILeftUndone || '',
-        didMorning: didMorning !== false, // Garante que seja booleano
+        didMorning: didMorning !== false, 
         tasksStatus: todayTasksStatus || {},
         tasksSnapshot: tasksSnapshot || [],
         eveningTimestamp: Timestamp.now()
@@ -699,12 +664,12 @@ function App() {
       await loadAllEntries(user.uid);
       alert('✅ Epílogo salvo com sucesso!');
     } catch (error) {
-      console.error(error); // Mostra o erro no F12
+      console.error(error);
       alert('Erro ao salvar epílogo. Tente novamente.');
     }
   };
 
-  // NOVO: Salvar metas de longo prazo
+  // Salvar metas
   const saveLongTermGoals = async () => {
     if (user) {
       try {
@@ -721,7 +686,7 @@ function App() {
     }
   };
 
-  // NOVO: Salvar dados FV
+  // Salvar dados FV
   const saveFVData = async () => {
     if (user) {
       try {
@@ -740,10 +705,8 @@ function App() {
     }
   };
 
-  // Deletar entrada
   const deleteEntry = async (dateKey) => {
     if (!window.confirm('Deseja realmente excluir este dia?')) return;
-
     try {
       await deleteDoc(doc(db, 'entries', `${user.uid}_${dateKey}`));
       setEntries(entries.filter(e => e.date !== dateKey));
@@ -752,13 +715,11 @@ function App() {
     }
   };
 
-  // Exportar CSV
   const exportToCSV = () => {
     if (entries.length === 0) {
       alert('Não há entradas para exportar');
       return;
     }
-
     const headers = ['Data', 'Fez Prólogo', 'Virtude', 'Compromisso', 'Onde Errei', 'O Que Fiz Bem', 'O Que Deixei de Fazer'];
     const rows = entries.map(entry => [
       entry.date,
@@ -782,7 +743,6 @@ function App() {
     link.click();
   };
 
-  // NOVO: Importar diários
   const importDiary = (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -791,8 +751,6 @@ function App() {
     reader.onload = async (e) => {
       try {
         const content = e.target.result;
-
-        // Detectar formato
         if (file.name.endsWith('.csv')) {
           await importFromCSV(content);
         } else if (file.name.endsWith('.json')) {
@@ -809,59 +767,38 @@ function App() {
     reader.readAsText(file);
   };
 
-const importFromCSV = async (content) => {
-  const lines = content.split('\n').slice(1); // Pular cabeçalho
-  let imported = 0;
+  const importFromCSV = async (content) => {
+    const lines = content.split('\n').slice(1);
+    let imported = 0;
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      const parts = line.split(',').map(p => p.replace(/^"|"$/g, '').replace(/""/g, '"'));
+      if (parts.length < 6) continue;
 
-  for (const line of lines) {
-    if (!line.trim()) continue;
+      const [date, didMorningStr, virtue, intention, whereIFailed, whatIDidWell, whatILeftUndone] = parts;
+      const entry = {
+        userId: user.uid, date, didMorning: didMorningStr === 'Sim',
+        virtue, intention, whereIFailed, whatIDidWell, whatILeftUndone,
+        morningDone: true, eveningDone: true, importedAt: Timestamp.now()
+      };
 
-    // REGEX CORRIGIDA - EM UMA LINHA SÓ
-    const parts = line.split(',').map(p => p.replace(/^"|"$/g, '').replace(/""/g, '"'));
-    if (parts.length < 6) continue;
-
-    const [date, didMorningStr, virtue, intention, whereIFailed, whatIDidWell, whatILeftUndone] = parts;
-
-    const entry = {
-      userId: user.uid,
-      date,
-      didMorning: didMorningStr === 'Sim',
-      virtue,
-      intention,
-      whereIFailed,
-      whatIDidWell,
-      whatILeftUndone,
-      morningDone: true,
-      eveningDone: true,
-      importedAt: Timestamp.now()
-    };
-
-    try {
-      await setDoc(doc(db, 'entries', `${user.uid}_${date}`), entry);
-      imported++;
-    } catch (error) {
-      console.error(`Erro ao importar ${date}`);
+      try {
+        await setDoc(doc(db, 'entries', `${user.uid}_${date}`), entry);
+        imported++;
+      } catch (error) {
+        console.error(`Erro ao importar ${date}`);
+      }
     }
-  }
-
-  await loadAllEntries(user.uid);
-  alert(`✅ ${imported} entradas importadas com sucesso!`);
-};
-
+    await loadAllEntries(user.uid);
+    alert(`✅ ${imported} entradas importadas com sucesso!`);
+  };
 
   const importFromJSON = async (content) => {
     const data = JSON.parse(content);
     let imported = 0;
-
     for (const entry of data) {
       if (!entry.date) continue;
-
-      const newEntry = {
-        ...entry,
-        userId: user.uid,
-        importedAt: Timestamp.now()
-      };
-
+      const newEntry = { ...entry, userId: user.uid, importedAt: Timestamp.now() };
       try {
         await setDoc(doc(db, 'entries', `${user.uid}_${entry.date}`), newEntry);
         imported++;
@@ -869,31 +806,20 @@ const importFromCSV = async (content) => {
         console.error(`Erro ao importar ${entry.date}`);
       }
     }
-
     await loadAllEntries(user.uid);
     alert(`✅ ${imported} entradas importadas com sucesso!`);
   };
 
   const importFromTXT = async (content) => {
-    // Formato simples: cada entrada separada por "---"
     const entriesText = content.split('---');
     let imported = 0;
-
     for (const entryText of entriesText) {
       if (!entryText.trim()) continue;
-
       const lines = entryText.trim().split('\n');
       const entry = {
-        userId: user.uid,
-        date: getTodayKey(),
-        whereIFailed: '',
-        whatIDidWell: '',
-        whatILeftUndone: '',
-        morningDone: false,
-        eveningDone: true,
-        importedAt: Timestamp.now()
+        userId: user.uid, date: getTodayKey(), whereIFailed: '', whatIDidWell: '',
+        whatILeftUndone: '', morningDone: false, eveningDone: true, importedAt: Timestamp.now()
       };
-
       lines.forEach(line => {
         if (line.startsWith('Data:')) entry.date = line.replace('Data:', '').trim();
         if (line.startsWith('Virtude:')) entry.virtue = line.replace('Virtude:', '').trim();
@@ -901,7 +827,6 @@ const importFromCSV = async (content) => {
         if (line.startsWith('O que fiz bem:')) entry.whatIDidWell = line.replace('O que fiz bem:', '').trim();
         if (line.startsWith('O que deixei:')) entry.whatILeftUndone = line.replace('O que deixei:', '').trim();
       });
-
       if (entry.date && entry.whereIFailed) {
         try {
           await setDoc(doc(db, 'entries', `${user.uid}_${entry.date}`), entry);
@@ -911,16 +836,13 @@ const importFromCSV = async (content) => {
         }
       }
     }
-
     await loadAllEntries(user.uid);
     alert(`✅ ${imported} entradas importadas com sucesso!`);
   };
 
-  // Autenticação
   const handleAuth = async (e) => {
     e.preventDefault();
     setError('');
-
     try {
       if (isLogin) {
         await signInWithEmailAndPassword(auth, email, password);
@@ -934,15 +856,10 @@ const importFromCSV = async (content) => {
       setEmail('');
       setPassword('');
     } catch (err) {
-      if (err.code === 'auth/email-already-in-use') {
-        setError('Este e-mail já está em uso');
-      } else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
-        setError('E-mail ou senha incorretos');
-      } else if (err.code === 'auth/invalid-email') {
-        setError('E-mail inválido');
-      } else {
-        setError('Erro ao autenticar. Tente novamente.');
-      }
+      if (err.code === 'auth/email-already-in-use') setError('Este e-mail já está em uso');
+      else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') setError('E-mail ou senha incorretos');
+      else if (err.code === 'auth/invalid-email') setError('E-mail inválido');
+      else setError('Erro ao autenticar. Tente novamente.');
     }
   };
 
@@ -968,21 +885,12 @@ const importFromCSV = async (content) => {
 
   const isDark = theme === 'dark';
 
-  // O código continua... (vou enviar a parte visual na próxima mensagem devido ao limite de caracteres)
-
-  // Tela de Loading
   if (loading) {
     return (
       <div style={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        background: isDark 
-          ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'
-          : 'linear-gradient(135deg, #f0e6d2 0%, #e8dcc4 100%)',
-        color: isDark ? '#f0e6d2' : '#2c1810',
-        fontFamily: 'Georgia, serif'
+        minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: isDark ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)' : 'linear-gradient(135deg, #f0e6d2 0%, #e8dcc4 100%)',
+        color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif'
       }}>
         <div style={{ textAlign: 'center' }}>
           <BookOpen size={48} />
@@ -992,33 +900,19 @@ const importFromCSV = async (content) => {
     );
   }
 
-  // Tela de Login/Registro
   if (!user) {
     return (
       <div style={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        background: 'linear-gradient(135deg, #f0e6d2 0%, #e8dcc4 100%)',
-        padding: '1rem'
+        minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: 'linear-gradient(135deg, #f0e6d2 0%, #e8dcc4 100%)', padding: '1rem'
       }}>
         <div style={{
-          background: 'white',
-          padding: '2rem',
-          borderRadius: '16px',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
-          width: '100%',
-          maxWidth: '400px'
+          background: 'white', padding: '2rem', borderRadius: '16px',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.1)', width: '100%', maxWidth: '400px'
         }}>
           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
             <BookOpen size={48} color="#8b7355" style={{ margin: '0 auto' }} />
-            <h1 style={{ 
-              fontFamily: 'Georgia, serif',
-              color: '#2c1810',
-              marginTop: '1rem',
-              fontSize: '1.8rem'
-            }}>
+            <h1 style={{ fontFamily: 'Georgia, serif', color: '#2c1810', marginTop: '1rem', fontSize: '1.8rem' }}>
               Diário Filosófico
             </h1>
             <p style={{ color: '#6b5744', fontSize: '0.9rem', fontStyle: 'italic', marginTop: '0.5rem' }}>
@@ -1028,115 +922,37 @@ const importFromCSV = async (content) => {
 
           <form onSubmit={handleAuth}>
             <input
-              type="email"
-              placeholder="E-mail"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                marginBottom: '1rem',
-                border: '2px solid #8b7355',
-                borderRadius: '8px',
-                fontSize: '1rem',
-                fontFamily: 'Georgia, serif'
-              }}
+              type="email" placeholder="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} required
+              style={{ width: '100%', padding: '0.75rem', marginBottom: '1rem', border: '2px solid #8b7355', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif' }}
             />
-
             <div style={{ position: 'relative', marginBottom: '1rem' }}>
               <input
-                type={showPassword ? 'text' : 'password'}
-                placeholder="Senha"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  paddingRight: '3rem',
-                  border: '2px solid #8b7355',
-                  borderRadius: '8px',
-                  fontSize: '1rem',
-                  fontFamily: 'Georgia, serif'
-                }}
+                type={showPassword ? 'text' : 'password'} placeholder="Senha" value={password} onChange={(e) => setPassword(e.target.value)} required
+                style={{ width: '100%', padding: '0.75rem', paddingRight: '3rem', border: '2px solid #8b7355', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif' }}
               />
               <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                style={{
-                  position: 'absolute',
-                  right: '0.75rem',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '0.25rem'
-                }}
+                type="button" onClick={() => setShowPassword(!showPassword)}
+                style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem' }}
               >
                 {showPassword ? <EyeOff size={20} color="#8b7355" /> : <Eye size={20} color="#8b7355" />}
               </button>
             </div>
 
             {error && (
-              <div style={{ 
-                background: '#fee', 
-                color: '#c33', 
-                padding: '0.75rem', 
-                borderRadius: '8px',
-                fontSize: '0.9rem',
-                marginBottom: '1rem',
-                border: '1px solid #fcc',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem'
-              }}>
-                <AlertCircle size={16} />
-                {error}
+              <div style={{ background: '#fee', color: '#c33', padding: '0.75rem', borderRadius: '8px', fontSize: '0.9rem', marginBottom: '1rem', border: '1px solid #fcc', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <AlertCircle size={16} /> {error}
               </div>
             )}
 
             <button
               type="submit"
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                background: '#8b7355',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '1rem',
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                marginBottom: '1rem',
-                fontFamily: 'Georgia, serif',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => e.target.style.background = '#6b5744'}
-              onMouseLeave={(e) => e.target.style.background = '#8b7355'}
+              style={{ width: '100%', padding: '0.75rem', background: '#8b7355', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', marginBottom: '1rem', fontFamily: 'Georgia, serif', transition: 'all 0.2s' }}
             >
               {isLogin ? 'Entrar' : 'Criar Conta'}
             </button>
-
             <button
-              type="button"
-              onClick={() => {
-                setIsLogin(!isLogin);
-                setError('');
-              }}
-              style={{
-                width: '100%',
-                padding: '0.75rem',
-                background: 'transparent',
-                color: '#8b7355',
-                border: '2px solid #8b7355',
-                borderRadius: '8px',
-                fontSize: '0.9rem',
-                cursor: 'pointer',
-                fontFamily: 'Georgia, serif',
-                transition: 'all 0.2s'
-              }}
+              type="button" onClick={() => { setIsLogin(!isLogin); setError(''); }}
+              style={{ width: '100%', padding: '0.75rem', background: 'transparent', color: '#8b7355', border: '2px solid #8b7355', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontFamily: 'Georgia, serif', transition: 'all 0.2s' }}
             >
               {isLogin ? 'Criar nova conta' : 'Já tenho conta'}
             </button>
@@ -1146,71 +962,32 @@ const importFromCSV = async (content) => {
     );
   }
 
-  // App Principal
   return (
     <div style={{
       minHeight: '100vh',
-      background: isDark 
-        ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'
-        : 'linear-gradient(135deg, #f0e6d2 0%, #e8dcc4 100%)',
-      fontFamily: 'Georgia, serif',
-      transition: 'background 0.3s ease'
+      background: isDark ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)' : 'linear-gradient(135deg, #f0e6d2 0%, #e8dcc4 100%)',
+      fontFamily: 'Georgia, serif', transition: 'background 0.3s ease'
     }}>
-      {/* Header */}
       <header style={{
-        padding: '1rem 2rem',
-        borderBottom: `2px solid ${isDark ? '#d4af37' : '#8b7355'}`,
+        padding: '1rem 2rem', borderBottom: `2px solid ${isDark ? '#d4af37' : '#8b7355'}`,
         background: isDark ? 'rgba(26, 26, 46, 0.95)' : 'rgba(240, 230, 210, 0.95)',
-        backdropFilter: 'blur(10px)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 100
+        backdropFilter: 'blur(10px)', position: 'sticky', top: 0, zIndex: 100
       }}>
-        <div style={{
-          maxWidth: '1200px',
-          margin: '0 auto',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '1rem'
-        }}>
-          <div 
-            onClick={handleLogoClick}
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '0.75rem',
-              cursor: 'pointer'
-            }}
-          >
+        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+          <div onClick={handleLogoClick} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
             <BookOpen size={32} color={isDark ? '#d4af37' : '#8b7355'} />
-            <h1 style={{
-              margin: 0,
-              fontFamily: 'Georgia, serif',
-              fontSize: 'clamp(1.2rem, 4vw, 1.5rem)',
-              color: isDark ? '#f0e6d2' : '#2c1810',
-              fontWeight: 700
-            }}>
+            <h1 style={{ margin: 0, fontFamily: 'Georgia, serif', fontSize: 'clamp(1.2rem, 4vw, 1.5rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 700 }}>
               Diário Filosófico
             </h1>
           </div>
 
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            
-            {/* NOVO: BADGE DO FOGO INTERNO */}
             {streak > 0 && (
               <div style={{
-                display: 'flex', alignItems: 'center', gap: '0.4rem',
-                padding: '0.5rem 1rem',
-                background: isDark ? 'rgba(255, 100, 0, 0.15)' : '#fff3e0',
-                border: `1px solid ${isDark ? '#ff9800' : '#ffb74d'}`,
-                borderRadius: '20px',
-                color: isDark ? '#ffb74d' : '#e65100',
-                fontWeight: 'bold',
-                fontFamily: 'Georgia, serif',
-                fontSize: '0.9rem',
-                marginRight: '0.5rem',
+                display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem',
+                background: isDark ? 'rgba(255, 100, 0, 0.15)' : '#fff3e0', border: `1px solid ${isDark ? '#ff9800' : '#ffb74d'}`,
+                borderRadius: '20px', color: isDark ? '#ffb74d' : '#e65100', fontWeight: 'bold',
+                fontFamily: 'Georgia, serif', fontSize: '0.9rem', marginRight: '0.5rem',
                 boxShadow: isDark ? '0 0 10px rgba(255, 152, 0, 0.2)' : 'none'
               }}>
                 <Flame size={18} fill={isDark ? '#ff9800' : '#e65100'} color={isDark ? '#ff9800' : '#e65100'} />
@@ -1218,661 +995,164 @@ const importFromCSV = async (content) => {
               </div>
             )}
 
-            <button
-              onClick={() => setView('today')}
-              style={{
-                padding: '0.5rem 1rem',
-                background: view === 'today' ? (isDark ? '#d4af37' : '#8b7355') : 'transparent',
-                color: view === 'today' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#8b7355'),
-                border: `2px solid ${isDark ? '#d4af37' : '#8b7355'}`,
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontFamily: 'Georgia, serif',
-                fontSize: '0.9rem',
-                fontWeight: 600
-              }}
-            >
-              Hoje
-            </button>
-            
-            <button
-              onClick={() => setView('history')}
-              style={{
-                padding: '0.5rem 1rem',
-                background: view === 'history' ? (isDark ? '#d4af37' : '#8b7355') : 'transparent',
-                color: view === 'history' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#8b7355'),
-                border: `2px solid ${isDark ? '#d4af37' : '#8b7355'}`,
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontFamily: 'Georgia, serif',
-                fontSize: '0.9rem',
-                fontWeight: 600
-              }}
-            >
-              Histórico
-            </button>
-
-            <button
-              onClick={() => setView('tasks')}
-              style={{
-                padding: '0.5rem 1rem',
-                background: view === 'tasks' ? (isDark ? '#d4af37' : '#8b7355') : 'transparent',
-                color: view === 'tasks' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#8b7355'),
-                border: `2px solid ${isDark ? '#d4af37' : '#8b7355'}`,
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontFamily: 'Georgia, serif',
-                fontSize: '0.9rem',
-                fontWeight: 600
-              }}
-            >
-              Tarefas
-            </button>
-
-            <button
-              onClick={() => setView('goals')}
-              style={{
-                padding: '0.5rem 1rem',
-                background: view === 'goals' ? (isDark ? '#d4af37' : '#8b7355') : 'transparent',
-                color: view === 'goals' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#8b7355'),
-                border: `2px solid ${isDark ? '#d4af37' : '#8b7355'}`,
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontFamily: 'Georgia, serif',
-                fontSize: '0.9rem',
-                fontWeight: 600
-              }}
-            >
-              Metas
-            </button>
-
-            <button
-              onClick={() => setView('biblioteca')}
-              style={{
-                padding: '0.5rem 1rem',
-                background: view === 'biblioteca' ? (isDark ? '#d4af37' : '#8b7355') : 'transparent',
-                color: view === 'biblioteca' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#8b7355'),
-                border: `2px solid ${isDark ? '#d4af37' : '#8b7355'}`,
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontFamily: 'Georgia, serif',
-                fontSize: '0.9rem',
-                fontWeight: 600
-              }}
-            >
-              Virtudes
-            </button>
+            <button onClick={() => setView('today')} style={{ padding: '0.5rem 1rem', background: view === 'today' ? (isDark ? '#d4af37' : '#8b7355') : 'transparent', color: view === 'today' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#8b7355'), border: `2px solid ${isDark ? '#d4af37' : '#8b7355'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Hoje</button>
+            <button onClick={() => setView('history')} style={{ padding: '0.5rem 1rem', background: view === 'history' ? (isDark ? '#d4af37' : '#8b7355') : 'transparent', color: view === 'history' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#8b7355'), border: `2px solid ${isDark ? '#d4af37' : '#8b7355'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Histórico</button>
+            <button onClick={() => setView('tasks')} style={{ padding: '0.5rem 1rem', background: view === 'tasks' ? (isDark ? '#d4af37' : '#8b7355') : 'transparent', color: view === 'tasks' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#8b7355'), border: `2px solid ${isDark ? '#d4af37' : '#8b7355'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Tarefas</button>
+            <button onClick={() => setView('goals')} style={{ padding: '0.5rem 1rem', background: view === 'goals' ? (isDark ? '#d4af37' : '#8b7355') : 'transparent', color: view === 'goals' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#8b7355'), border: `2px solid ${isDark ? '#d4af37' : '#8b7355'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Metas</button>
+            <button onClick={() => setView('biblioteca')} style={{ padding: '0.5rem 1rem', background: view === 'biblioteca' ? (isDark ? '#d4af37' : '#8b7355') : 'transparent', color: view === 'biblioteca' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#8b7355'), border: `2px solid ${isDark ? '#d4af37' : '#8b7355'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Virtudes</button>
 
             {fvUnlocked && (
-              <button
-                onClick={() => setView('fv')}
-                style={{
-                  padding: '0.5rem 1rem',
-                  background: view === 'fv' 
-                    ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)'
-                    : 'transparent',
-                  color: view === 'fv' ? '#000' : '#FFD700',
-                  border: '2px solid #FFD700',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontFamily: 'Georgia, serif',
-                  fontSize: '0.9rem',
-                  fontWeight: 600,
-                  boxShadow: '0 0 10px rgba(255, 215, 0, 0.3)'
-                }}
-              >
-                FV
-              </button>
+              <button onClick={() => setView('fv')} style={{ padding: '0.5rem 1rem', background: view === 'fv' ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'transparent', color: view === 'fv' ? '#000' : '#FFD700', border: '2px solid #FFD700', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, boxShadow: '0 0 10px rgba(255, 215, 0, 0.3)' }}>FV</button>
             )}
 
-            <button
-              onClick={toggleTheme}
-              style={{
-                padding: '0.5rem',
-                background: 'transparent',
-                border: `2px solid ${isDark ? '#d4af37' : '#8b7355'}`,
-                borderRadius: '50%',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
+            <button onClick={toggleTheme} style={{ padding: '0.5rem', background: 'transparent', border: `2px solid ${isDark ? '#d4af37' : '#8b7355'}`, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {isDark ? <Sun size={20} color="#d4af37" /> : <Moon size={20} color="#8b7355" />}
             </button>
 
-            <button
-              onClick={handleLogout}
-              style={{
-                padding: '0.5rem 1rem',
-                background: 'transparent',
-                color: isDark ? '#d4af37' : '#8b7355',
-                border: `2px solid ${isDark ? '#d4af37' : '#8b7355'}`,
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontFamily: 'Georgia, serif',
-                fontSize: '0.9rem',
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem'
-              }}
-            >
-              <LogOut size={16} />
-              <span style={{ display: window.innerWidth > 768 ? 'inline' : 'none' }}>Sair</span>
+            <button onClick={handleLogout} style={{ padding: '0.5rem 1rem', background: 'transparent', color: isDark ? '#d4af37' : '#8b7355', border: `2px solid ${isDark ? '#d4af37' : '#8b7355'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <LogOut size={16} /> <span style={{ display: window.innerWidth > 768 ? 'inline' : 'none' }}>Sair</span>
             </button>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main style={{
-        maxWidth: '1200px',
-        margin: '0 auto',
-        padding: '2rem 1rem'
-      }}>
+      <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem 1rem' }}>
         {/* VIEW: TODAY */}
         {view === 'today' && (
           <div>
-            {/* Citação do Dia */}
             {dailyQuote && (
-              <div style={{
-                padding: '2rem',
-                background: isDark 
-                  ? 'rgba(212, 175, 55, 0.1)' 
-                  : 'rgba(255, 245, 220, 0.6)',
-                borderRadius: '16px',
-                border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`,
-                marginBottom: '2rem'
-              }}>
-                <p style={{
-                  fontSize: 'clamp(1rem, 2vw, 1.2rem)',
-                  fontStyle: 'italic',
-                  color: isDark ? '#f0e6d2' : '#2c1810',
-                  marginBottom: '1rem',
-                  lineHeight: '1.8'
-                }}>
-                  "{dailyQuote.text}"
-                </p>
-                <p style={{
-                  fontSize: 'clamp(0.9rem, 1.5vw, 1rem)',
-                  color: isDark ? '#b8a88a' : '#6b5744',
-                  textAlign: 'right',
-                  margin: 0
-                }}>
-                  — {dailyQuote.author}
-                </p>
+              <div style={{ padding: '2rem', background: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(255, 245, 220, 0.6)', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`, marginBottom: '2rem' }}>
+                <p style={{ fontSize: 'clamp(1rem, 2vw, 1.2rem)', fontStyle: 'italic', color: isDark ? '#f0e6d2' : '#2c1810', marginBottom: '1rem', lineHeight: '1.8' }}>"{dailyQuote.text}"</p>
+                <p style={{ fontSize: 'clamp(0.9rem, 1.5vw, 1rem)', color: isDark ? '#b8a88a' : '#6b5744', textAlign: 'right', margin: 0 }}>— {dailyQuote.author}</p>
               </div>
             )}
 
-            {/* Tarefas do Dia Filtradas pela Periodicidade */}
             {getTasksForToday().length > 0 && (
-              <div style={{
-                background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white',
-                padding: '1.5rem',
-                borderRadius: '16px',
-                marginBottom: '2rem',
-                border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`
-              }}>
-                <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.3rem', color: isDark ? '#f0e6d2' : '#2c1810' }}>
-                  ✓ Práticas de Hoje
-                </h3>
+              <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '1.5rem', borderRadius: '16px', marginBottom: '2rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}` }}>
+                <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.3rem', color: isDark ? '#f0e6d2' : '#2c1810' }}>✓ Práticas de Hoje</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   {getTasksForToday().map(task => (
-                    <label key={task.id} style={{
-                      display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem',
-                      background: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(255, 245, 220, 0.3)',
-                      borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s'
-                    }}>
-                      <input
-                        type="checkbox"
-                        checked={todayTasksStatus[task.id] || false}
-                        onChange={() => toggleTaskStatus(task.id)}
-                        style={{ width: '20px', height: '20px', cursor: 'pointer' }}
-                      />
-                      <span style={{
-                        color: isDark ? '#f0e6d2' : '#2c1810',
-                        textDecoration: todayTasksStatus[task.id] ? 'line-through' : 'none',
-                        opacity: todayTasksStatus[task.id] ? 0.6 : 1
-                      }}>
-                        {task.name}
-                      </span>
+                    <label key={task.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(255, 245, 220, 0.3)', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s' }}>
+                      <input type="checkbox" checked={todayTasksStatus[task.id] || false} onChange={() => toggleTaskStatus(task.id)} style={{ width: '20px', height: '20px', cursor: 'pointer' }} />
+                      <span style={{ color: isDark ? '#f0e6d2' : '#2c1810', textDecoration: todayTasksStatus[task.id] ? 'line-through' : 'none', opacity: todayTasksStatus[task.id] ? 0.6 : 1 }}>{task.name}</span>
                     </label>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* PRÓLOGO - Continua igual ao código anterior... */}
-            <div style={{
-              background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white',
-              padding: '2rem',
-              borderRadius: '16px',
-              marginBottom: '2rem',
-              border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-            }}>
+            <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', marginBottom: '2rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
                 <Sunrise size={28} color={isDark ? '#ffd966' : '#ff9800'} />
-                <h2 style={{
-                  margin: 0,
-                  fontSize: 'clamp(1.3rem, 3vw, 1.8rem)',
-                  color: isDark ? '#f0e6d2' : '#2c1810'
-                }}>
-                  Prólogo Matinal
-                </h2>
+                <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: isDark ? '#f0e6d2' : '#2c1810' }}>Prólogo Matinal</h2>
               </div>
 
               {morningDone ? (
-                <div style={{
-                  padding: '1.5rem',
-                  background: isDark ? 'rgba(76, 175, 80, 0.2)' : '#e8f5e9',
-                  borderRadius: '12px',
-                  border: `2px solid ${isDark ? 'rgba(76, 175, 80, 0.4)' : '#4caf50'}`
-                }}>
-                  {/* Container do Titulo + Botão Editar */}
+                <div style={{ padding: '1.5rem', background: isDark ? 'rgba(76, 175, 80, 0.2)' : '#e8f5e9', borderRadius: '12px', border: `2px solid ${isDark ? 'rgba(76, 175, 80, 0.4)' : '#4caf50'}` }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <CheckCircle size={24} color="#4caf50" />
-                      <h3 style={{ margin: 0, color: isDark ? '#81c784' : '#2e7d32' }}>
-                        Prólogo Completo!
-                      </h3>
+                      <h3 style={{ margin: 0, color: isDark ? '#81c784' : '#2e7d32' }}>Prólogo Completo!</h3>
                     </div>
-                    {/* NOVO: Botão Editar */}
-                    <button 
-                      onClick={() => setMorningDone(false)}
-                      style={{
-                        background: 'transparent', border: 'none', cursor: 'pointer',
-                        color: isDark ? '#81c784' : '#2e7d32', display: 'flex', alignItems: 'center', gap: '0.3rem',
-                        fontSize: '0.9rem', fontWeight: 'bold'
-                      }}
-                    >
+                    <button onClick={() => setMorningDone(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: isDark ? '#81c784' : '#2e7d32', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.9rem', fontWeight: 'bold' }}>
                       <Edit size={16} /> Editar
                     </button>
                   </div>
-                  <p style={{ margin: '0.5rem 0', color: isDark ? '#c8e6c9' : '#1b5e20' }}>
-                    <strong>Virtude do dia:</strong> {selectedVirtue || customVirtue}
-                  </p>
-                  {dailyIntention && (
-                    <p style={{ margin: '0.5rem 0', color: isDark ? '#c8e6c9' : '#1b5e20' }}>
-                      <strong>Compromisso:</strong> {dailyIntention}
-                    </p>
-                  )}
+                  <p style={{ margin: '0.5rem 0', color: isDark ? '#c8e6c9' : '#1b5e20' }}><strong>Virtude do dia:</strong> {selectedVirtue || customVirtue}</p>
+                  {dailyIntention && <p style={{ margin: '0.5rem 0', color: isDark ? '#c8e6c9' : '#1b5e20' }}><strong>Compromisso:</strong> {dailyIntention}</p>}
                 </div>
               ) : (
                 <div>
-                  {/* Seleção de Virtude */}
                   <div style={{ marginBottom: '1.5rem' }}>
-                    <label style={{
-                      display: 'block',
-                      marginBottom: '0.5rem',
-                      fontWeight: 600,
-                      color: isDark ? '#f0e6d2' : '#2c1810'
-                    }}>
-                      Virtude do Dia:
-                    </label>
-
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#f0e6d2' : '#2c1810' }}>Virtude do Dia:</label>
                     <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-                      <button
-                        onClick={selectRandomVirtue}
-                        disabled={!canDrawToday()}
-                        style={{
-                          padding: '0.75rem 1.5rem',
-                          background: canDrawToday() 
-                            ? (isDark ? '#d4af37' : '#8b7355')
-                            : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'),
-                          color: canDrawToday() ? 'white' : (isDark ? '#888' : '#999'),
-                          border: 'none',
-                          borderRadius: '8px',
-                          cursor: canDrawToday() ? 'pointer' : 'not-allowed',
-                          fontFamily: 'Georgia, serif',
-                          fontWeight: 600,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.5rem',
-                          fontSize: 'clamp(0.85rem, 2vw, 1rem)'
-                        }}
-                      >
-                        <Shuffle size={18} />
-                        {canDrawToday() ? 'Sortear Virtude' : 'Já sorteou hoje'}
+                      <button onClick={selectRandomVirtue} disabled={!canDrawToday()} style={{ padding: '0.75rem 1.5rem', background: canDrawToday() ? (isDark ? '#d4af37' : '#8b7355') : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'), color: canDrawToday() ? 'white' : (isDark ? '#888' : '#999'), border: 'none', borderRadius: '8px', cursor: canDrawToday() ? 'pointer' : 'not-allowed', fontFamily: 'Georgia, serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: 'clamp(0.85rem, 2vw, 1rem)' }}>
+                        <Shuffle size={18} /> {canDrawToday() ? 'Sortear Virtude' : 'Já sorteou hoje'}
                       </button>
-
-                      <button
-                        onClick={() => setShowCustomVirtue(!showCustomVirtue)}
-                        style={{
-                          padding: '0.75rem 1.5rem',
-                          background: 'transparent',
-                          color: isDark ? '#d4af37' : '#8b7355',
-                          border: `2px solid ${isDark ? '#d4af37' : '#8b7355'}`,
-                          borderRadius: '8px',
-                          cursor: 'pointer',
-                          fontFamily: 'Georgia, serif',
-                          fontWeight: 600,
-                          fontSize: 'clamp(0.85rem, 2vw, 1rem)'
-                        }}
-                      >
+                      <button onClick={() => setShowCustomVirtue(!showCustomVirtue)} style={{ padding: '0.75rem 1.5rem', background: 'transparent', color: isDark ? '#d4af37' : '#8b7355', border: `2px solid ${isDark ? '#d4af37' : '#8b7355'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 600, fontSize: 'clamp(0.85rem, 2vw, 1rem)' }}>
                         {showCustomVirtue ? 'Escolher da Lista' : 'Escrever Própria'}
                       </button>
                     </div>
 
                     {showCustomVirtue ? (
-                      <input
-                        type="text"
-                        placeholder="Digite sua virtude..."
-                        value={customVirtue}
-                        onChange={(e) => setCustomVirtue(e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '0.75rem',
-                          border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`,
-                          borderRadius: '8px',
-                          fontSize: '1rem',
-                          fontFamily: 'Georgia, serif',
-                          background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white',
-                          color: isDark ? '#f0e6d2' : '#2c1810'
-                        }}
-                      />
+                      <input type="text" placeholder="Digite sua virtude..." value={customVirtue} onChange={(e) => setCustomVirtue(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
                     ) : (
-                      <select
-                        value={selectedVirtue}
-                        onChange={(e) => setSelectedVirtue(e.target.value)}
-                        style={{
-                          width: '100%',
-                          padding: '0.75rem',
-                          border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`,
-                          borderRadius: '8px',
-                          fontSize: '1rem',
-                          fontFamily: 'Georgia, serif',
-                          background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white',
-                          color: isDark ? '#f0e6d2' : '#2c1810'
-                        }}
-                      >
+                      <select value={selectedVirtue} onChange={(e) => setSelectedVirtue(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }}>
                         <option value="">Selecione uma virtude...</option>
-                        {virtues.map((v, idx) => (
-                          <option key={idx} value={v.name}>{v.name}</option>
-                        ))}
+                        {virtues.map((v, idx) => <option key={idx} value={v.name}>{v.name}</option>)}
                       </select>
                     )}
 
-                    {/* Descrição da Virtude Selecionada */}
                     {selectedVirtue && !showCustomVirtue && (
-                      <div style={{
-                        marginTop: '1rem',
-                        padding: '1rem',
-                        background: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(255, 245, 220, 0.5)',
-                        borderRadius: '8px',
-                        border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`
-                      }}>
-                        <h4 style={{ 
-                          margin: '0 0 0.5rem 0', 
-                          color: isDark ? '#d4af37' : '#8b7355' 
-                        }}>
-                          {selectedVirtue}
-                        </h4>
-                        <p style={{ 
-                          margin: '0.5rem 0', 
-                          fontSize: '0.95rem',
-                          color: isDark ? '#c8b896' : '#6b5744'
-                        }}>
-                          {virtues.find(v => v.name === selectedVirtue)?.shortDesc}
-                        </p>
+                      <div style={{ marginTop: '1rem', padding: '1rem', background: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(255, 245, 220, 0.5)', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}` }}>
+                        <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#d4af37' : '#8b7355' }}>{selectedVirtue}</h4>
+                        <p style={{ margin: '0.5rem 0', fontSize: '0.95rem', color: isDark ? '#c8b896' : '#6b5744' }}>{virtues.find(v => v.name === selectedVirtue)?.shortDesc}</p>
                       </div>
                     )}
                   </div>
 
-                  {/* Compromisso do Dia */}
                   <div style={{ marginBottom: '1.5rem' }}>
-                    <label style={{
-                      display: 'block',
-                      marginBottom: '0.5rem',
-                      fontWeight: 600,
-                      color: isDark ? '#f0e6d2' : '#2c1810'
-                    }}>
-                      Meu compromisso para hoje:
-                    </label>
-                    <textarea
-                      value={dailyIntention}
-                      onChange={(e) => setDailyIntention(e.target.value)}
-                      placeholder="Como vou praticar esta virtude hoje?"
-                      rows={4}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`,
-                        borderRadius: '8px',
-                        fontSize: '1rem',
-                        fontFamily: 'Georgia, serif',
-                        background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white',
-                        color: isDark ? '#f0e6d2' : '#2c1810',
-                        resize: 'vertical'
-                      }}
-                    />
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#f0e6d2' : '#2c1810' }}>Meu compromisso para hoje:</label>
+                    <textarea value={dailyIntention} onChange={(e) => setDailyIntention(e.target.value)} placeholder="Como vou praticar esta virtude hoje?" rows={4} style={{ width: '100%', padding: '0.75rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical' }} />
                   </div>
 
-                  <button
-                    onClick={saveMorning}
-                    style={{
-                      width: '100%',
-                      padding: '1rem',
-                      background: isDark ? '#d4af37' : '#8b7355',
-                      color: isDark ? '#1a1a2e' : 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontSize: 'clamp(1rem, 2vw, 1.1rem)',
-                      fontWeight: 'bold',
-                      cursor: 'pointer',
-                      fontFamily: 'Georgia, serif',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.5rem'
-                    }}
-                  >
-                    <CheckCircle size={20} />
-                    Salvar Prólogo
+                  <button onClick={saveMorning} style={{ width: '100%', padding: '1rem', background: isDark ? '#d4af37' : '#8b7355', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: 'clamp(1rem, 2vw, 1.1rem)', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                    <CheckCircle size={20} /> Salvar Prólogo
                   </button>
                 </div>
               )}
             </div>
 
-            {/* EPÍLOGO com opção "Não fiz o Prólogo" */}
-            <div style={{
-              background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white',
-              padding: '2rem',
-              borderRadius: '16px',
-              border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-            }}>
+            {/* EPÍLOGO */}
+            <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
                 <Sunset size={28} color={isDark ? '#b19cd9' : '#9c27b0'} />
-                <h2 style={{
-                  margin: 0,
-                  fontSize: 'clamp(1.3rem, 3vw, 1.8rem)',
-                  color: isDark ? '#f0e6d2' : '#2c1810'
-                }}>
-                  Epílogo Noturno
-                </h2>
+                <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: isDark ? '#f0e6d2' : '#2c1810' }}>Epílogo Noturno</h2>
               </div>
 
               {eveningDone ? (
-                <div style={{
-                  padding: '1.5rem',
-                  background: isDark ? 'rgba(76, 175, 80, 0.2)' : '#e8f5e9',
-                  borderRadius: '12px',
-                  border: `2px solid ${isDark ? 'rgba(76, 175, 80, 0.4)' : '#4caf50'}`
-                }}>
-                  {/* Container do Titulo + Botão Editar */}
+                <div style={{ padding: '1.5rem', background: isDark ? 'rgba(76, 175, 80, 0.2)' : '#e8f5e9', borderRadius: '12px', border: `2px solid ${isDark ? 'rgba(76, 175, 80, 0.4)' : '#4caf50'}` }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <CheckCircle size={24} color="#4caf50" />
-                      <h3 style={{ margin: 0, color: isDark ? '#81c784' : '#2e7d32' }}>
-                        Epílogo Completo!
-                      </h3>
+                      <h3 style={{ margin: 0, color: isDark ? '#81c784' : '#2e7d32' }}>Epílogo Completo!</h3>
                     </div>
-                    {/* NOVO: Botão Editar */}
-                    <button 
-                      onClick={() => setEveningDone(false)}
-                      style={{
-                        background: 'transparent', border: 'none', cursor: 'pointer',
-                        color: isDark ? '#81c784' : '#2e7d32', display: 'flex', alignItems: 'center', gap: '0.3rem',
-                        fontSize: '0.9rem', fontWeight: 'bold'
-                      }}
-                    >
+                    <button onClick={() => setEveningDone(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: isDark ? '#81c784' : '#2e7d32', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.9rem', fontWeight: 'bold' }}>
                       <Edit size={16} /> Editar
                     </button>
                   </div>
-                  <p style={{ margin: 0, color: isDark ? '#c8e6c9' : '#1b5e20' }}>
-                    Exame noturno realizado. Descanse bem! 🌙
-                  </p>
+                  <p style={{ margin: 0, color: isDark ? '#c8e6c9' : '#1b5e20' }}>Exame noturno realizado. Descanse bem! 🌙</p>
                 </div>
               ) : (
                 <div>
-                  {/* NOVO: Checkbox "Não fiz o Prólogo" */}
                   {!morningDone && (
-                    <div style={{
-                      padding: '1rem',
-                      background: isDark ? 'rgba(255, 152, 0, 0.1)' : 'rgba(255, 152, 0, 0.1)',
-                      borderRadius: '8px',
-                      marginBottom: '1.5rem',
-                      border: `2px solid ${isDark ? 'rgba(255, 152, 0, 0.3)' : 'rgba(255, 152, 0, 0.3)'}`
-                    }}>
-                      <label style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.75rem',
-                        cursor: 'pointer',
-                        color: isDark ? '#ffb74d' : '#e65100'
-                      }}>
-                        <input
-                          type="checkbox"
-                          checked={!didMorning}
-                          onChange={(e) => setDidMorning(!e.target.checked)}
-                          style={{
-                            width: '20px',
-                            height: '20px',
-                            cursor: 'pointer'
-                          }}
-                        />
-                        <span style={{ fontWeight: 600 }}>
-                          Não fiz o Prólogo hoje
-                        </span>
+                    <div style={{ padding: '1rem', background: isDark ? 'rgba(255, 152, 0, 0.1)' : 'rgba(255, 152, 0, 0.1)', borderRadius: '8px', marginBottom: '1.5rem', border: `2px solid ${isDark ? 'rgba(255, 152, 0, 0.3)' : 'rgba(255, 152, 0, 0.3)'}` }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', color: isDark ? '#ffb74d' : '#e65100' }}>
+                        <input type="checkbox" checked={!didMorning} onChange={(e) => setDidMorning(!e.target.checked)} style={{ width: '20px', height: '20px', cursor: 'pointer' }} />
+                        <span style={{ fontWeight: 600 }}>Não fiz o Prólogo hoje</span>
                       </label>
                     </div>
                   )}
 
-                  <p style={{
-                    marginBottom: '1.5rem',
-                    color: isDark ? '#b8a88a' : '#6b5744',
-                    fontStyle: 'italic'
-                  }}>
-                    "Que ninguém durma sem antes examinar as ações do dia" — Versos de Ouro de Pitágoras
-                  </p>
+                  <p style={{ marginBottom: '1.5rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic' }}>"Que ninguém durma sem antes examinar as ações do dia" — Versos de Ouro de Pitágoras</p>
 
                   <div style={{ marginBottom: '1.5rem' }}>
-                    <label style={{
-                      display: 'block',
-                      marginBottom: '0.5rem',
-                      fontWeight: 600,
-                      color: isDark ? '#f0e6d2' : '#2c1810'
-                    }}>
-                      1. Em que falhei hoje?
-                    </label>
-                    <textarea
-                      value={whereIFailed}
-                      onChange={(e) => setWhereIFailed(e.target.value)}
-                      placeholder="Onde não agi conforme meus princípios?"
-                      rows={4}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`,
-                        borderRadius: '8px',
-                        fontSize: '1rem',
-                        fontFamily: 'Georgia, serif',
-                        background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white',
-                        color: isDark ? '#f0e6d2' : '#2c1810',
-                        resize: 'vertical'
-                      }}
-                    />
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#f0e6d2' : '#2c1810' }}>1. Em que falhei hoje?</label>
+                    <textarea value={whereIFailed} onChange={(e) => setWhereIFailed(e.target.value)} placeholder="Onde não agi conforme meus princípios?" rows={4} style={{ width: '100%', padding: '0.75rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical' }} />
                   </div>
 
                   <div style={{ marginBottom: '1.5rem' }}>
-                    <label style={{
-                      display: 'block',
-                      marginBottom: '0.5rem',
-                      fontWeight: 600,
-                      color: isDark ? '#f0e6d2' : '#2c1810'
-                    }}>
-                      2. O que fiz bem?
-                    </label>
-                    <textarea
-                      value={whatIDidWell}
-                      onChange={(e) => setWhatIDidWell(e.target.value)}
-                      placeholder="Quais virtudes pratiquei?"
-                      rows={4}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`,
-                        borderRadius: '8px',
-                        fontSize: '1rem',
-                        fontFamily: 'Georgia, serif',
-                        background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white',
-                        color: isDark ? '#f0e6d2' : '#2c1810',
-                        resize: 'vertical'
-                      }}
-                    />
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#f0e6d2' : '#2c1810' }}>2. O que fiz bem?</label>
+                    <textarea value={whatIDidWell} onChange={(e) => setWhatIDidWell(e.target.value)} placeholder="Quais virtudes pratiquei?" rows={4} style={{ width: '100%', padding: '0.75rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical' }} />
                   </div>
 
                   <div style={{ marginBottom: '1.5rem' }}>
-                    <label style={{
-                      display: 'block',
-                      marginBottom: '0.5rem',
-                      fontWeight: 600,
-                      color: isDark ? '#f0e6d2' : '#2c1810'
-                    }}>
-                      3. O que deixei de fazer?
-                    </label>
-                    <textarea
-                      value={whatILeftUndone}
-                      onChange={(e) => setWhatILeftUndone(e.target.value)}
-                      placeholder="O que poderia ter feito melhor?"
-                      rows={4}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`,
-                        borderRadius: '8px',
-                        fontSize: '1rem',
-                        fontFamily: 'Georgia, serif',
-                        background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white',
-                        color: isDark ? '#f0e6d2' : '#2c1810',
-                        resize: 'vertical'
-                      }}
-                    />
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#f0e6d2' : '#2c1810' }}>3. O que deixei de fazer?</label>
+                    <textarea value={whatILeftUndone} onChange={(e) => setWhatILeftUndone(e.target.value)} placeholder="O que poderia ter feito melhor?" rows={4} style={{ width: '100%', padding: '0.75rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical' }} />
                   </div>
 
-                  <button
-                    onClick={saveEvening}
-                    style={{
-                      width: '100%',
-                      padding: '1rem',
-                      background: isDark ? '#b19cd9' : '#9c27b0',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontSize: 'clamp(1rem, 2vw, 1.1rem)',
-                      fontWeight: 'bold',
-                      cursor: 'pointer',
-                      fontFamily: 'Georgia, serif',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.5rem'
-                    }}
-                  >
-                    <CheckCircle size={20} />
-                    Salvar Epílogo
+                  <button onClick={saveEvening} style={{ width: '100%', padding: '1rem', background: isDark ? '#b19cd9' : '#9c27b0', color: 'white', border: 'none', borderRadius: '8px', fontSize: 'clamp(1rem, 2vw, 1.1rem)', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                    <CheckCircle size={20} /> Salvar Epílogo
                   </button>
                 </div>
               )}
@@ -1880,24 +1160,12 @@ const importFromCSV = async (content) => {
           </div>
         )}
 
-        {/* Continua na próxima mensagem... */}
         {/* VIEW: TASKS - Tarefas Personalizadas */}
         {view === 'tasks' && (
           <div className="animate-fadeIn">
-            <div style={{
-              background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white',
-              padding: '2rem',
-              borderRadius: '16px',
-              border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-            }}>
+            <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-                <h2 style={{
-                  margin: 0,
-                  fontSize: 'clamp(1.3rem, 3vw, 1.8rem)',
-                  color: isDark ? '#f0e6d2' : '#2c1810',
-                  fontFamily: "'Cinzel', serif"
-                }}>
+                <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif" }}>
                   Tarefas Personalizadas
                 </h2>
                 <button
@@ -1906,83 +1174,38 @@ const importFromCSV = async (content) => {
                     setNewTaskName('');
                     setNewTaskRecurrence('daily');
                     setNewTaskWeekDays([]);
+                    setNewTaskMonthDay(1);
+                    setNewTaskBaseDate('');
                     setShowAddTask(true);
                   }}
-                  style={{
-                    padding: '0.75rem 1.5rem',
-                    background: isDark ? '#d4af37' : '#8b7355',
-                    color: isDark ? '#1a1a2e' : 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontFamily: 'Georgia, serif',
-                    fontWeight: 600,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}
+                  style={{ padding: '0.75rem 1.5rem', background: isDark ? '#d4af37' : '#8b7355', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                 >
-                  <Plus size={18} />
-                  Nova Tarefa
+                  <Plus size={18} /> Nova Tarefa
                 </button>
               </div>
 
-              <p style={{
-                color: isDark ? '#b8a88a' : '#6b5744',
-                marginBottom: '2rem',
-                fontSize: '1rem'
-              }}>
+              <p style={{ color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2rem', fontSize: '1rem' }}>
                 Cadastre práticas que deseja acompanhar (ex: Tratak, Meditação, Leitura, Exercícios)
               </p>
 
-              {/* FORMULÁRIO DE ADICIONAR/EDITAR */}
               {showAddTask && (
-                <div style={{
-                  padding: '1.5rem',
-                  background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.3)',
-                  borderRadius: '12px',
-                  marginBottom: '2rem',
-                  border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`
-                }}>
+                <div style={{ padding: '1.5rem', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.3)', borderRadius: '12px', marginBottom: '2rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}` }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
                     <h3 style={{ margin: 0, color: isDark ? '#d4af37' : '#8b7355', fontFamily: "'Cinzel', serif" }}>
                       {editingTaskId ? 'Editar Prática' : 'Nova Prática'}
                     </h3>
-                    <button onClick={() => {
-                      setShowAddTask(false);
-                      setEditingTaskId(null);
-                    }} style={{
-                      background: 'transparent', color: '#e74c3c', border: 'none', cursor: 'pointer'
-                    }}><X size={24} /></button>
+                    <button onClick={() => { setShowAddTask(false); setEditingTaskId(null); }} style={{ background: 'transparent', color: '#e74c3c', border: 'none', cursor: 'pointer' }}>
+                      <X size={24} />
+                    </button>
                   </div>
 
                   <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
-                    <input
-                      type="text"
-                      value={newTaskName}
-                      onChange={(e) => setNewTaskName(e.target.value)}
-                      placeholder="Nome da prática (ex: Tratak, GAF)"
-                      style={{
-                        flex: 1, padding: '0.75rem', borderRadius: '8px', fontSize: '1rem',
-                        border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`,
-                        background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810'
-                      }}
-                    />
+                    <input type="text" value={newTaskName} onChange={(e) => setNewTaskName(e.target.value)} placeholder="Nome da prática (ex: Tratak, GAF)" style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', fontSize: '1rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
                   </div>
 
                   <div style={{ marginBottom: '1rem' }}>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', color: isDark ? '#d4af37' : '#8b7355', fontWeight: 'bold' }}>
-                      Periodicidade:
-                    </label>
-                    <select
-                      value={newTaskRecurrence}
-                      onChange={(e) => setNewTaskRecurrence(e.target.value)}
-                      style={{
-                        width: '100%', padding: '0.75rem', borderRadius: '8px',
-                        border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`,
-                        background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810'
-                      }}
-                    >
+                    <label style={{ display: 'block', marginBottom: '0.5rem', color: isDark ? '#d4af37' : '#8b7355', fontWeight: 'bold' }}>Periodicidade:</label>
+                    <select value={newTaskRecurrence} onChange={(e) => setNewTaskRecurrence(e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }}>
                       <option value="daily">Diariamente</option>
                       <option value="weekly">Dias da Semana Específicos</option>
                       <option value="biweekly">Quinzenalmente (A cada 14 dias)</option>
@@ -1993,22 +1216,7 @@ const importFromCSV = async (content) => {
                   {newTaskRecurrence === 'weekly' && (
                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
                       {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((day, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => {
-                            if (newTaskWeekDays.includes(idx)) {
-                              setNewTaskWeekDays(newTaskWeekDays.filter(d => d !== idx));
-                            } else {
-                              setNewTaskWeekDays([...newTaskWeekDays, idx]);
-                            }
-                          }}
-                          style={{
-                            padding: '0.5rem', flex: 1, minWidth: '40px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold',
-                            background: newTaskWeekDays.includes(idx) ? (isDark ? '#d4af37' : '#8b7355') : 'transparent',
-                            color: newTaskWeekDays.includes(idx) ? (isDark ? '#1a1a2e' : 'white') : (isDark ? '#b8a88a' : '#8b7355'),
-                            border: `1px solid ${isDark ? '#d4af37' : '#8b7355'}`
-                          }}
-                        >
+                        <button key={idx} onClick={() => { if (newTaskWeekDays.includes(idx)) { setNewTaskWeekDays(newTaskWeekDays.filter(d => d !== idx)); } else { setNewTaskWeekDays([...newTaskWeekDays, idx]); } }} style={{ padding: '0.5rem', flex: 1, minWidth: '40px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', background: newTaskWeekDays.includes(idx) ? (isDark ? '#d4af37' : '#8b7355') : 'transparent', color: newTaskWeekDays.includes(idx) ? (isDark ? '#1a1a2e' : 'white') : (isDark ? '#b8a88a' : '#8b7355'), border: `1px solid ${isDark ? '#d4af37' : '#8b7355'}` }}>
                           {day}
                         </button>
                       ))}
@@ -2017,53 +1225,24 @@ const importFromCSV = async (content) => {
 
                   {newTaskRecurrence === 'biweekly' && (
                     <div style={{ marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                      <label style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.9rem' }}>
-                        Qual é a data do próximo encontro/prática?
-                      </label>
-                      <input
-                        type="date"
-                        value={newTaskBaseDate}
-                        onChange={(e) => setNewTaskBaseDate(e.target.value)}
-                        style={{
-                          padding: '0.75rem', borderRadius: '8px',
-                          border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`,
-                          background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810'
-                        }}
-                      />
+                      <label style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.9rem' }}>Qual é a data do próximo encontro/prática?</label>
+                      <input type="date" value={newTaskBaseDate || ''} onChange={(e) => setNewTaskBaseDate(e.target.value)} style={{ padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
                     </div>
                   )}
 
                   {newTaskRecurrence === 'monthly' && (
                     <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <span style={{ color: isDark ? '#f0e6d2' : '#2c1810' }}>Todo dia:</span>
-                      <input
-                        type="number" min="1" max="31" value={newTaskMonthDay}
-                        onChange={(e) => setNewTaskMonthDay(e.target.value)}
-                        style={{
-                          width: '60px', padding: '0.5rem', borderRadius: '8px',
-                          border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`,
-                          background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810'
-                        }}
-                      />
+                      <input type="number" min="1" max="31" value={newTaskMonthDay} onChange={(e) => setNewTaskMonthDay(e.target.value)} style={{ width: '60px', padding: '0.5rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
                     </div>
                   )}
 
-                  <button
-                    onClick={saveCustomTask}
-                    style={{
-                      width: '100%', padding: '0.75rem', background: isDark ? '#d4af37' : '#8b7355',
-                      color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px',
-                      cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', fontSize: '1rem',
-                      display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem'
-                    }}
-                  >
-                    <Save size={18} />
-                    {editingTaskId ? 'Salvar Alterações' : 'Adicionar Tarefa'}
+                  <button onClick={saveCustomTask} style={{ width: '100%', padding: '0.75rem', background: isDark ? '#d4af37' : '#8b7355', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', fontSize: '1rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+                    <Save size={18} /> {editingTaskId ? 'Salvar Alterações' : 'Adicionar Tarefa'}
                   </button>
                 </div>
               )}
 
-              {/* LISTA DE TAREFAS */}
               {customTasks.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '3rem', color: isDark ? '#b8a88a' : '#6b5744' }}>
                   <CheckCircle size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
@@ -2088,110 +1267,16 @@ const importFromCSV = async (content) => {
                     }
 
                     return (
-                      <div key={task.id} style={{
-                        padding: '1rem', background: isDark ? 'rgba(26, 26, 46, 0.4)' : 'rgba(255, 255, 255, 0.8)',
-                        border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`,
-                        borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-                      }}>
+                      <div key={task.id} style={{ padding: '1rem', background: isDark ? 'rgba(26, 26, 46, 0.4)' : 'rgba(255, 255, 255, 0.8)', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>
-                          <div style={{ fontSize: '1.05rem', color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 'bold' }}>
-                            {task.name}
-                          </div>
-                          <div style={{ fontSize: '0.85rem', color: isDark ? '#d4af37' : '#8b7355', marginTop: '0.2rem' }}>
-                            ↻ {freqText}
-                          </div>
+                          <div style={{ fontSize: '1.05rem', color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 'bold' }}>{task.name}</div>
+                          <div style={{ fontSize: '0.85rem', color: isDark ? '#d4af37' : '#8b7355', marginTop: '0.2rem' }}>↻ {freqText}</div>
                         </div>
-                        
-                        {/* Botões de Editar e Excluir */}
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <button
-                            onClick={() => startEditingTask(task)}
-                            style={{
-                              padding: '0.5rem', background: 'transparent', color: isDark ? '#d4af37' : '#8b7355',
-                              border: `1px solid ${isDark ? '#d4af37' : '#8b7355'}`, borderRadius: '6px', cursor: 'pointer', display: 'flex'
-                            }}
-                            title="Editar"
-                          >
+                          <button onClick={() => startEditingTask(task)} style={{ padding: '0.5rem', background: 'transparent', color: isDark ? '#d4af37' : '#8b7355', border: `1px solid ${isDark ? '#d4af37' : '#8b7355'}`, borderRadius: '6px', cursor: 'pointer', display: 'flex' }} title="Editar">
                             <Edit size={16} />
                           </button>
-                          
-                          <button
-                            onClick={() => {
-                              if(window.confirm(`Deseja realmente excluir a prática "${task.name}"?`)) {
-                                removeCustomTask(task.id);
-                              }
-                            }}
-                            style={{
-                              padding: '0.5rem', background: 'transparent', color: '#e74c3c',
-                              border: '1px solid #e74c3c', borderRadius: '6px', cursor: 'pointer', display: 'flex'
-                            }}
-                            title="Excluir"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-              {/* LISTA DE TAREFAS */}
-              {customTasks.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '3rem', color: isDark ? '#b8a88a' : '#6b5744' }}>
-                  <CheckCircle size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
-                  <p style={{ fontSize: '1.1rem' }}>Nenhuma prática cadastrada</p>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {customTasks.map(task => {
-                    let freqText = 'Diariamente';
-                    if (task.recurrence === 'weekly') {
-                      const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-                      freqText = task.weekDays?.map(d => days[d]).join(', ');
-                    } else if (task.recurrence === 'monthly') {
-                      freqText = `Todo dia ${task.monthDay}`;
-                    }
-
-                    return (
-                      <div key={task.id} style={{
-                        padding: '1rem', background: isDark ? 'rgba(26, 26, 46, 0.4)' : 'rgba(255, 255, 255, 0.8)',
-                        border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`,
-                        borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-                      }}>
-                        <div>
-                          <div style={{ fontSize: '1.05rem', color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 'bold' }}>
-                            {task.name}
-                          </div>
-                          <div style={{ fontSize: '0.85rem', color: isDark ? '#d4af37' : '#8b7355', marginTop: '0.2rem' }}>
-                            ↻ {freqText}
-                          </div>
-                        </div>
-                        
-                        {/* Botões de Editar e Excluir */}
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                          <button
-                            onClick={() => startEditingTask(task)}
-                            style={{
-                              padding: '0.5rem', background: 'transparent', color: isDark ? '#d4af37' : '#8b7355',
-                              border: `1px solid ${isDark ? '#d4af37' : '#8b7355'}`, borderRadius: '6px', cursor: 'pointer', display: 'flex'
-                            }}
-                            title="Editar"
-                          >
-                            <Edit size={16} />
-                          </button>
-                          
-                          <button
-                            onClick={() => {
-                              if(window.confirm(`Deseja realmente excluir a prática "${task.name}"?`)) {
-                                removeCustomTask(task.id);
-                              }
-                            }}
-                            style={{
-                              padding: '0.5rem', background: 'transparent', color: '#e74c3c',
-                              border: '1px solid #e74c3c', borderRadius: '6px', cursor: 'pointer', display: 'flex'
-                            }}
-                            title="Excluir"
-                          >
+                          <button onClick={() => { if(window.confirm(`Deseja realmente excluir a prática "${task.name}"?`)) { removeCustomTask(task.id); } }} style={{ padding: '0.5rem', background: 'transparent', color: '#e74c3c', border: '1px solid #e74c3c', borderRadius: '6px', cursor: 'pointer', display: 'flex' }} title="Excluir">
                             <Trash2 size={16} />
                           </button>
                         </div>
@@ -2204,236 +1289,52 @@ const importFromCSV = async (content) => {
           </div>
         )}
 
-        {/* VIEW: GOALS - Metas de Longo Prazo */}
+        {/* VIEW: GOALS */}
         {view === 'goals' && (
           <div className="animate-fadeIn">
-            <div style={{
-              background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white',
-              padding: '2rem',
-              borderRadius: '16px',
-              border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-            }}>
+            <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
                 <Target size={32} color={isDark ? '#d4af37' : '#8b7355'} />
-                <h2 style={{
-                  margin: 0,
-                  fontSize: 'clamp(1.3rem, 3vw, 1.8rem)',
-                  color: isDark ? '#f0e6d2' : '#2c1810',
-                  fontFamily: "'Cinzel', serif"
-                }}>
-                  Metas de Longo Prazo
-                </h2>
+                <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif" }}>Metas de Longo Prazo</h2>
               </div>
-
-              <p style={{
-                color: isDark ? '#b8a88a' : '#6b5744',
-                marginBottom: '2rem',
-                fontSize: '1rem',
-                fontStyle: 'italic'
-              }}>
-                "Amanhã" - Descreva como você deseja ser no futuro
-              </p>
-
+              <p style={{ color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2rem', fontSize: '1rem', fontStyle: 'italic' }}>"Amanhã" - Descreva como você deseja ser no futuro</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                {/* Metas do Ano */}
                 <div>
-                  <label style={{
-                    display: 'block',
-                    marginBottom: '0.75rem',
-                    fontWeight: 600,
-                    fontSize: '1.1rem',
-                    color: isDark ? '#d4af37' : '#8b7355',
-                    fontFamily: "'Cinzel', serif"
-                  }}>
-                    Metas para Este Ano
-                  </label>
-                  <textarea
-                    value={yearGoals}
-                    onChange={(e) => setYearGoals(e.target.value)}
-                    placeholder="Como você quer estar no final deste ano? Que virtudes quer ter desenvolvido? Que objetivos quer alcançar?"
-                    rows={6}
-                    style={{
-                      width: '100%',
-                      padding: '1rem',
-                      border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`,
-                      borderRadius: '8px',
-                      fontSize: '1rem',
-                      fontFamily: 'Georgia, serif',
-                      background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white',
-                      color: isDark ? '#f0e6d2' : '#2c1810',
-                      resize: 'vertical',
-                      lineHeight: '1.7'
-                    }}
-                  />
+                  <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: 600, fontSize: '1.1rem', color: isDark ? '#d4af37' : '#8b7355', fontFamily: "'Cinzel', serif" }}>Metas para Este Ano</label>
+                  <textarea value={yearGoals} onChange={(e) => setYearGoals(e.target.value)} placeholder="Como você quer estar no final deste ano? Que virtudes quer ter desenvolvido? Que objetivos quer alcançar?" rows={6} style={{ width: '100%', padding: '1rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical', lineHeight: '1.7' }} />
                 </div>
-
-                {/* Metas da Vida */}
                 <div>
-                  <label style={{
-                    display: 'block',
-                    marginBottom: '0.75rem',
-                    fontWeight: 600,
-                    fontSize: '1.1rem',
-                    color: isDark ? '#d4af37' : '#8b7355',
-                    fontFamily: "'Cinzel', serif"
-                  }}>
-                    Visão de Longo Prazo (Vida)
-                  </label>
-                  <textarea
-                    value={lifeGoals}
-                    onChange={(e) => setLifeGoals(e.target.value)}
-                    placeholder="Qual é sua visão maior? Que tipo de pessoa você quer ser? Que legado quer deixar?"
-                    rows={8}
-                    style={{
-                      width: '100%',
-                      padding: '1rem',
-                      border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`,
-                      borderRadius: '8px',
-                      fontSize: '1rem',
-                      fontFamily: 'Georgia, serif',
-                      background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white',
-                      color: isDark ? '#f0e6d2' : '#2c1810',
-                      resize: 'vertical',
-                      lineHeight: '1.7'
-                    }}
-                  />
+                  <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: 600, fontSize: '1.1rem', color: isDark ? '#d4af37' : '#8b7355', fontFamily: "'Cinzel', serif" }}>Visão de Longo Prazo (Vida)</label>
+                  <textarea value={lifeGoals} onChange={(e) => setLifeGoals(e.target.value)} placeholder="Qual é sua visão maior? Que tipo de pessoa você quer ser? Que legado quer deixar?" rows={8} style={{ width: '100%', padding: '1rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical', lineHeight: '1.7' }} />
                 </div>
-
-                <button
-                  onClick={saveLongTermGoals}
-                  style={{
-                    padding: '1rem 2rem',
-                    background: isDark ? '#d4af37' : '#8b7355',
-                    color: isDark ? '#1a1a2e' : 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '1.1rem',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    fontFamily: 'Georgia, serif',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.5rem',
-                    alignSelf: 'flex-end'
-                  }}
-                >
-                  <Save size={20} />
-                  Salvar Metas
+                <button onClick={saveLongTermGoals} style={{ padding: '1rem 2rem', background: isDark ? '#d4af37' : '#8b7355', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', alignSelf: 'flex-end' }}>
+                  <Save size={20} /> Salvar Metas
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* VIEW: BIBLIOTECA - Biblioteca de Virtudes */}
+        {/* VIEW: BIBLIOTECA */}
         {view === 'biblioteca' && (
           <div className="animate-fadeIn">
-            <div style={{
-              background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white',
-              padding: '2rem',
-              borderRadius: '16px',
-              border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`,
-              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-            }}>
+            <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
                 <Book size={32} color={isDark ? '#d4af37' : '#8b7355'} />
-                <h2 style={{
-                  margin: 0,
-                  fontSize: 'clamp(1.3rem, 3vw, 1.8rem)',
-                  color: isDark ? '#f0e6d2' : '#2c1810',
-                  fontFamily: "'Cinzel', serif"
-                }}>
-                  Biblioteca de Virtudes
-                </h2>
+                <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif" }}>Biblioteca de Virtudes</h2>
               </div>
-
-              <p style={{
-                color: isDark ? '#b8a88a' : '#6b5744',
-                marginBottom: '2rem',
-                fontSize: '1rem'
-              }}>
-                Conheça as virtudes que estamos estudando e suas práticas
-              </p>
-
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                gap: '1.5rem'
-              }}>
+              <p style={{ color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2rem', fontSize: '1rem' }}>Conheça as virtudes que estamos estudando e suas práticas</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
                 {virtues.map((virtue, index) => (
-                  <div
-                    key={index}
-                    onClick={() => setSelectedVirtueDetail(selectedVirtueDetail === virtue.name ? null : virtue.name)}
-                    style={{
-                      padding: '1.5rem',
-                      background: selectedVirtueDetail === virtue.name
-                        ? (isDark ? `${virtue.color}20` : `${virtue.color}15`)
-                        : (isDark ? 'rgba(26, 26, 46, 0.4)' : 'rgba(255, 255, 255, 0.8)'),
-                      border: `2px solid ${selectedVirtueDetail === virtue.name ? virtue.color : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)')}`,
-                      borderRadius: '12px',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s ease'
-                    }}
-                  >
-                    <h3 style={{
-                      margin: '0 0 0.75rem 0',
-                      fontSize: '1.3rem',
-                      color: virtue.color,
-                      fontFamily: "'Cinzel', serif"
-                    }}>
-                      {virtue.name}
-                    </h3>
-
-                    <p style={{
-                      fontSize: '0.95rem',
-                      color: isDark ? '#c8b896' : '#6b5744',
-                      margin: '0 0 1rem 0',
-                      fontStyle: 'italic'
-                    }}>
-                      {virtue.shortDesc}
-                    </p>
-
+                  <div key={index} onClick={() => setSelectedVirtueDetail(selectedVirtueDetail === virtue.name ? null : virtue.name)} style={{ padding: '1.5rem', background: selectedVirtueDetail === virtue.name ? (isDark ? `${virtue.color}20` : `${virtue.color}15`) : (isDark ? 'rgba(26, 26, 46, 0.4)' : 'rgba(255, 255, 255, 0.8)'), border: `2px solid ${selectedVirtueDetail === virtue.name ? virtue.color : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)')}`, borderRadius: '12px', cursor: 'pointer', transition: 'all 0.3s ease' }}>
+                    <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '1.3rem', color: virtue.color, fontFamily: "'Cinzel', serif" }}>{virtue.name}</h3>
+                    <p style={{ fontSize: '0.95rem', color: isDark ? '#c8b896' : '#6b5744', margin: '0 0 1rem 0', fontStyle: 'italic' }}>{virtue.shortDesc}</p>
                     {selectedVirtueDetail === virtue.name && (
-                      <div style={{
-                        marginTop: '1rem',
-                        paddingTop: '1rem',
-                        borderTop: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`
-                      }}>
-                        <p style={{
-                          fontSize: '1rem',
-                          color: isDark ? '#f0e6d2' : '#2c1810',
-                          marginBottom: '1rem',
-                          lineHeight: '1.7'
-                        }}>
-                          {virtue.description}
-                        </p>
-
-                        <div style={{
-                          padding: '1rem',
-                          background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'rgba(255, 255, 255, 0.5)',
-                          borderRadius: '8px'
-                        }}>
-                          <h4 style={{
-                            margin: '0 0 0.75rem 0',
-                            fontSize: '0.9rem',
-                            color: virtue.color,
-                            fontWeight: 600,
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.5px'
-                          }}>
-                            Práticas Sugeridas:
-                          </h4>
-                          <p style={{
-                            fontSize: '0.95rem',
-                            color: isDark ? '#c8b896' : '#6b5744',
-                            margin: 0,
-                            lineHeight: '1.8',
-                            whiteSpace: 'pre-line'
-                          }}>
-                            {virtue.practices}
-                          </p>
+                      <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}` }}>
+                        <p style={{ fontSize: '1rem', color: isDark ? '#f0e6d2' : '#2c1810', marginBottom: '1rem', lineHeight: '1.7' }}>{virtue.description}</p>
+                        <div style={{ padding: '1rem', background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'rgba(255, 255, 255, 0.5)', borderRadius: '8px' }}>
+                          <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem', color: virtue.color, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Práticas Sugeridas:</h4>
+                          <p style={{ fontSize: '0.95rem', color: isDark ? '#c8b896' : '#6b5744', margin: 0, lineHeight: '1.8', whiteSpace: 'pre-line' }}>{virtue.practices}</p>
                         </div>
                       </div>
                     )}
@@ -2444,448 +1345,113 @@ const importFromCSV = async (content) => {
           </div>
         )}
 
-        {/* VIEW: FV - Seção Oculta */}
+        {/* VIEW: FV */}
         {view === 'fv' && fvUnlocked && (
           <div className="animate-fadeIn">
-            <div style={{
-              background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 165, 0, 0.1) 100%)',
-              padding: '2rem',
-              borderRadius: '16px',
-              border: '2px solid #FFD700',
-              boxShadow: '0 0 20px rgba(255, 215, 0, 0.3)'
-            }}>
+            <div style={{ background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 165, 0, 0.1) 100%)', padding: '2rem', borderRadius: '16px', border: '2px solid #FFD700', boxShadow: '0 0 20px rgba(255, 215, 0, 0.3)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
                 <Award size={32} color="#FFD700" />
-                <h2 style={{
-                  margin: 0,
-                  fontSize: 'clamp(1.3rem, 3vw, 1.8rem)',
-                  color: '#FFD700',
-                  fontFamily: "'Cinzel', serif"
-                }}>
-                  Seção FV
-                </h2>
+                <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: '#FFD700', fontFamily: "'Cinzel', serif" }}>Seção FV</h2>
               </div>
-
               <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                {/* Carta de Degrau */}
                 <div>
-                  <label style={{
-                    display: 'block',
-                    marginBottom: '0.75rem',
-                    fontWeight: 600,
-                    fontSize: '1.1rem',
-                    color: '#FFD700',
-                    fontFamily: "'Cinzel', serif"
-                  }}>
-                    Carta de Degrau
-                  </label>
-                  <textarea
-                    value={fvCartaDegrau}
-                    onChange={(e) => setFvCartaDegrau(e.target.value)}
-                    placeholder="Cole aqui o conteúdo da sua carta de degrau..."
-                    rows={8}
-                    style={{
-                      width: '100%',
-                      padding: '1rem',
-                      border: '2px solid rgba(255, 215, 0, 0.5)',
-                      borderRadius: '8px',
-                      fontSize: '1rem',
-                      fontFamily: 'Georgia, serif',
-                      background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white',
-                      color: isDark ? '#f0e6d2' : '#2c1810',
-                      resize: 'vertical',
-                      lineHeight: '1.7'
-                    }}
-                  />
+                  <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: 600, fontSize: '1.1rem', color: '#FFD700', fontFamily: "'Cinzel', serif" }}>Carta de Degrau</label>
+                  <textarea value={fvCartaDegrau} onChange={(e) => setFvCartaDegrau(e.target.value)} placeholder="Cole aqui o conteúdo da sua carta de degrau..." rows={8} style={{ width: '100%', padding: '1rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical', lineHeight: '1.7' }} />
                 </div>
-
-                {/* Datas da Carta */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
                   <div>
-                    <label style={{
-                      display: 'block',
-                      marginBottom: '0.5rem',
-                      fontWeight: 600,
-                      color: '#FFD700'
-                    }}>
-                      Última Entrega
-                    </label>
-                    <input
-                      type="date"
-                      value={fvLastCartaDate || ''}
-                      onChange={(e) => setFvLastCartaDate(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        border: '2px solid rgba(255, 215, 0, 0.5)',
-                        borderRadius: '8px',
-                        fontSize: '1rem',
-                        fontFamily: 'Georgia, serif',
-                        background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white',
-                        color: isDark ? '#f0e6d2' : '#2c1810'
-                      }}
-                    />
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#FFD700' }}>Última Entrega</label>
+                    <input type="date" value={fvLastCartaDate || ''} onChange={(e) => setFvLastCartaDate(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
                   </div>
-
                   <div>
-                    <label style={{
-                      display: 'block',
-                      marginBottom: '0.5rem',
-                      fontWeight: 600,
-                      color: '#FFD700'
-                    }}>
-                      Próxima Entrega Prevista
-                    </label>
-                    <input
-                      type="date"
-                      value={fvNextCartaDate || ''}
-                      onChange={(e) => setFvNextCartaDate(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        border: '2px solid rgba(255, 215, 0, 0.5)',
-                        borderRadius: '8px',
-                        fontSize: '1rem',
-                        fontFamily: 'Georgia, serif',
-                        background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white',
-                        color: isDark ? '#f0e6d2' : '#2c1810'
-                      }}
-                    />
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#FFD700' }}>Próxima Entrega Prevista</label>
+                    <input type="date" value={fvNextCartaDate || ''} onChange={(e) => setFvNextCartaDate(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
                   </div>
                 </div>
-
-                {/* GDVE */}
                 <div>
-                  <label style={{
-                    display: 'block',
-                    marginBottom: '0.75rem',
-                    fontWeight: 600,
-                    fontSize: '1.1rem',
-                    color: '#FFD700',
-                    fontFamily: "'Cinzel', serif"
-                  }}>
-                    Próxima Reunião GDVE
-                  </label>
-                  <input
-                    type="datetime-local"
-                    value={fvGdveReuniao || ''}
-                    onChange={(e) => setFvGdveReuniao(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      border: '2px solid rgba(255, 215, 0, 0.5)',
-                      borderRadius: '8px',
-                      fontSize: '1rem',
-                      fontFamily: 'Georgia, serif',
-                      background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white',
-                      color: isDark ? '#f0e6d2' : '#2c1810'
-                    }}
-                  />
+                  <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: 600, fontSize: '1.1rem', color: '#FFD700', fontFamily: "'Cinzel', serif" }}>Próxima Reunião GDVE</label>
+                  <input type="datetime-local" value={fvGdveReuniao || ''} onChange={(e) => setFvGdveReuniao(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
                 </div>
-
-                <button
-                  onClick={saveFVData}
-                  style={{
-                    padding: '1rem 2rem',
-                    background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
-                    color: '#000',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '1.1rem',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    fontFamily: 'Georgia, serif',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.5rem',
-                    alignSelf: 'flex-end',
-                    boxShadow: '0 4px 12px rgba(255, 215, 0, 0.3)'
-                  }}
-                >
-                  <Save size={20} />
-                  Salvar Dados FV
+                <button onClick={saveFVData} style={{ padding: '1rem 2rem', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: '#000', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', alignSelf: 'flex-end', boxShadow: '0 4px 12px rgba(255, 215, 0, 0.3)' }}>
+                  <Save size={20} /> Salvar Dados FV
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* VIEW: HISTORY (mantém o código anterior) */}
+        {/* VIEW: HISTORY */}
         {view === 'history' && (
           <div className="animate-fadeIn">
-            <div style={{
-              marginBottom: '2rem',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '1rem'
-            }}>
-              <h2 style={{
-                fontFamily: "'Cinzel', serif",
-                fontSize: '1.5rem',
-                color: isDark ? '#d4af37' : '#8b7355',
-                margin: 0
-              }}>
-                Histórico de Reflexões
-              </h2>
-
+            <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+              <h2 style={{ fontFamily: "'Cinzel', serif", fontSize: '1.5rem', color: isDark ? '#d4af37' : '#8b7355', margin: 0 }}>Histórico de Reflexões</h2>
               <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                <button
-                  onClick={exportToCSV}
-                  disabled={entries.length === 0}
-                  style={{
-                    padding: '0.75rem 1.5rem',
-                    background: entries.length > 0 ? (isDark ? '#d4af37' : '#8b7355') : '#ccc',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: entries.length > 0 ? 'pointer' : 'not-allowed',
-                    fontFamily: 'Georgia, serif',
-                    fontWeight: 600,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}
-                >
-                  <Download size={18} />
-                  Exportar CSV
+                <button onClick={exportToCSV} disabled={entries.length === 0} style={{ padding: '0.75rem 1.5rem', background: entries.length > 0 ? (isDark ? '#d4af37' : '#8b7355') : '#ccc', color: 'white', border: 'none', borderRadius: '8px', cursor: entries.length > 0 ? 'pointer' : 'not-allowed', fontFamily: 'Georgia, serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Download size={18} /> Exportar CSV
                 </button>
-
-                <label style={{
-                  padding: '0.75rem 1.5rem',
-                  background: isDark ? '#d4af37' : '#8b7355',
-                  color: isDark ? '#1a1a2e' : 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontFamily: 'Georgia, serif',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem'
-                }}>
-                  <Upload size={18} />
-                  Importar
-                  <input
-                    type="file"
-                    accept=".csv,.json,.txt"
-                    onChange={importDiary}
-                    style={{ display: 'none' }}
-                  />
+                <label style={{ padding: '0.75rem 1.5rem', background: isDark ? '#d4af37' : '#8b7355', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Upload size={18} /> Importar
+                  <input type="file" accept=".csv,.json,.txt" onChange={importDiary} style={{ display: 'none' }} />
                 </label>
               </div>
             </div>
 
             <div style={{ position: 'relative', marginBottom: '2rem' }}>
-              <Search
-                size={20}
-                color={isDark ? '#d4af37' : '#8b7355'}
-                style={{
-                  position: 'absolute',
-                  left: '1rem',
-                  top: '50%',
-                  transform: 'translateY(-50%)'
-                }}
-              />
-              <input
-                type="text"
-                placeholder="Buscar nas reflexões..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 0.75rem 0.75rem 3rem',
-                  border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`,
-                  borderRadius: '8px',
-                  fontSize: '1rem',
-                  fontFamily: 'Georgia, serif',
-                  background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white',
-                  color: isDark ? '#f0e6d2' : '#2c1810'
-                }}
-              />
+              <Search size={20} color={isDark ? '#d4af37' : '#8b7355'} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
+              <input type="text" placeholder="Buscar nas reflexões..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{ width: '100%', padding: '0.75rem 0.75rem 0.75rem 3rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
             </div>
 
             {filteredEntries.length === 0 ? (
-              <div style={{
-                padding: '3rem',
-                textAlign: 'center',
-                background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white',
-                borderRadius: '16px',
-                border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`
-              }}>
+              <div style={{ padding: '3rem', textAlign: 'center', background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}` }}>
                 <Calendar size={48} color={isDark ? '#d4af37' : '#8b7355'} style={{ margin: '0 auto 1rem' }} />
-                <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontSize: '1.1rem' }}>
-                  {searchTerm ? 'Nenhuma entrada encontrada' : 'Nenhuma reflexão registrada ainda'}
-                </p>
+                <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontSize: '1.1rem' }}>{searchTerm ? 'Nenhuma entrada encontrada' : 'Nenhuma reflexão registrada ainda'}</p>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {filteredEntries.map((entry) => (
-                  <div
-                    key={entry.id}
-                    style={{
-                      background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white',
-                      padding: '1.5rem',
-                      borderRadius: '12px',
-                      border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`,
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-                    }}
-                  >
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      marginBottom: '1rem'
-                    }}>
+                  <div key={entry.id} style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '1.5rem', borderRadius: '12px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                       <div>
-                        <h3 style={{
-                          margin: 0,
-                          color: isDark ? '#d4af37' : '#8b7355',
-                          fontSize: '1.2rem'
-                        }}>
-                          {new Date(entry.date).toLocaleDateString('pt-BR', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                          })}
+                        <h3 style={{ margin: 0, color: isDark ? '#d4af37' : '#8b7355', fontSize: '1.2rem' }}>
+                          {new Date(entry.date).toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                         </h3>
-                        {entry.virtue && (
-                          <p style={{
-                            margin: '0.25rem 0 0 0',
-                            color: isDark ? '#b8a88a' : '#6b5744',
-                            fontSize: '0.9rem'
-                          }}>
-                            Virtude: <strong>{entry.virtue}</strong>
-                          </p>
-                        )}
-                        {!entry.didMorning && (
-                          <p style={{
-                            margin: '0.25rem 0 0 0',
-                            color: '#ff9800',
-                            fontSize: '0.85rem',
-                            fontStyle: 'italic'
-                          }}>
-                            ⚠️ Prólogo não realizado
-                          </p>
-                        )}
+                        {entry.virtue && <p style={{ margin: '0.25rem 0 0 0', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.9rem' }}>Virtude: <strong>{entry.virtue}</strong></p>}
+                        {!entry.didMorning && <p style={{ margin: '0.25rem 0 0 0', color: '#ff9800', fontSize: '0.85rem', fontStyle: 'italic' }}>⚠️ Prólogo não realizado</p>}
                       </div>
-
-                      <button
-                        onClick={() => deleteEntry(entry.date)}
-                        style={{
-                          padding: '0.5rem',
-                          background: 'transparent',
-                          color: '#e74c3c',
-                          border: '2px solid #e74c3c',
-                          borderRadius: '8px',
-                          cursor: 'pointer'
-                        }}
-                      >
+                      <button onClick={() => deleteEntry(entry.date)} style={{ padding: '0.5rem', background: 'transparent', color: '#e74c3c', border: '2px solid #e74c3c', borderRadius: '8px', cursor: 'pointer' }}>
                         <X size={16} />
                       </button>
                     </div>
 
                     {entry.intention && (
                       <div style={{ marginBottom: '1rem' }}>
-                        <h4 style={{
-                          margin: '0 0 0.5rem 0',
-                          color: isDark ? '#f0e6d2' : '#2c1810',
-                          fontSize: '1rem'
-                        }}>
-                          Compromisso:
-                        </h4>
-                        <p style={{
-                          margin: 0,
-                          color: isDark ? '#c8b896' : '#6b5744',
-                          lineHeight: '1.6'
-                        }}>
-                          {entry.intention}
-                        </p>
+                        <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem' }}>Compromisso:</h4>
+                        <p style={{ margin: 0, color: isDark ? '#c8b896' : '#6b5744', lineHeight: '1.6' }}>{entry.intention}</p>
                       </div>
                     )}
 
-                    <div style={{ marginBottom: '1rem' }}>
-                      {/* NOVO: Exibição das Tarefas Concluídas no Histórico */}
                     {entry.tasksSnapshot && entry.tasksSnapshot.filter(t => t.completed).length > 0 && (
-                      <div style={{ 
-                        marginBottom: '1rem',
-                        padding: '1rem',
-                        background: isDark ? 'rgba(76, 175, 80, 0.05)' : '#f8fff8',
-                        borderRadius: '8px',
-                        borderLeft: `4px solid ${isDark ? '#4caf50' : '#81c784'}`
-                      }}>
-                        <h4 style={{
-                          margin: '0 0 0.5rem 0',
-                          color: isDark ? '#f0e6d2' : '#2c1810',
-                          fontSize: '0.95rem'
-                        }}>
-                          Práticas Realizadas:
-                        </h4>
-                        <ul style={{ 
-                          margin: 0, 
-                          paddingLeft: '1.2rem',
-                          color: isDark ? '#c8b896' : '#6b5744',
-                          fontSize: '0.95rem',
-                          lineHeight: '1.6'
-                        }}>
-                          {entry.tasksSnapshot.filter(t => t.completed).map((task, idx) => (
-                            <li key={idx}>{task.name}</li>
-                          ))}
+                      <div style={{ marginBottom: '1rem', padding: '1rem', background: isDark ? 'rgba(76, 175, 80, 0.05)' : '#f8fff8', borderRadius: '8px', borderLeft: `4px solid ${isDark ? '#4caf50' : '#81c784'}` }}>
+                        <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem' }}>Práticas Realizadas:</h4>
+                        <ul style={{ margin: 0, paddingLeft: '1.2rem', color: isDark ? '#c8b896' : '#6b5744', fontSize: '0.95rem', lineHeight: '1.6' }}>
+                          {entry.tasksSnapshot.filter(t => t.completed).map((task, idx) => <li key={idx}>{task.name}</li>)}
                         </ul>
                       </div>
                     )}
-                      <h4 style={{
-                        margin: '0 0 0.5rem 0',
-                        color: isDark ? '#f0e6d2' : '#2c1810',
-                        fontSize: '1rem'
-                      }}>
-                        
-                        Em que falhei:
-                      </h4>
-                      <p style={{
-                        margin: 0,
-                        color: isDark ? '#c8b896' : '#6b5744',
-                        lineHeight: '1.6'
-                      }}>
-                        {entry.whereIFailed}
-                      </p>
+
+                    <div style={{ marginBottom: '1rem' }}>
+                      <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem' }}>Em que falhei:</h4>
+                      <p style={{ margin: 0, color: isDark ? '#c8b896' : '#6b5744', lineHeight: '1.6' }}>{entry.whereIFailed}</p>
                     </div>
 
                     <div style={{ marginBottom: '1rem' }}>
-                      <h4 style={{
-                        margin: '0 0 0.5rem 0',
-                        color: isDark ? '#f0e6d2' : '#2c1810',
-                        fontSize: '1rem'
-                      }}>
-                        O que fiz bem:
-                      </h4>
-                      <p style={{
-                        margin: 0,
-                        color: isDark ? '#c8b896' : '#6b5744',
-                        lineHeight: '1.6'
-                      }}>
-                        {entry.whatIDidWell}
-                      </p>
+                      <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem' }}>O que fiz bem:</h4>
+                      <p style={{ margin: 0, color: isDark ? '#c8b896' : '#6b5744', lineHeight: '1.6' }}>{entry.whatIDidWell}</p>
                     </div>
 
                     <div>
-                      <h4 style={{
-                        margin: '0 0 0.5rem 0',
-                        color: isDark ? '#f0e6d2' : '#2c1810',
-                        fontSize: '1rem'
-                      }}>
-                        O que deixei de fazer:
-                      </h4>
-                      <p style={{
-                        margin: 0,
-                        color: isDark ? '#c8b896' : '#6b5744',
-                        lineHeight: '1.6'
-                      }}>
-                        {entry.whatILeftUndone}
-                      </p>
+                      <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem' }}>O que deixei de fazer:</h4>
+                      <p style={{ margin: 0, color: isDark ? '#c8b896' : '#6b5744', lineHeight: '1.6' }}>{entry.whatILeftUndone}</p>
                     </div>
                   </div>
                 ))}
@@ -2895,20 +1461,9 @@ const importFromCSV = async (content) => {
         )}
       </main>
 
-      {/* Footer */}
-      <footer style={{
-        padding: '2rem',
-        textAlign: 'center',
-        color: isDark ? '#b8a88a' : '#6b5744',
-        borderTop: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`,
-        marginTop: '2rem'
-      }}>
-        <p style={{ margin: 0, fontSize: '0.95rem', fontStyle: 'italic' }}>
-          "Que ninguém durma sem antes examinar as ações do dia"
-        </p>
-        <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.85rem', opacity: 0.8 }}>
-          Nova Acrópole · Filosofia à Maneira Clássica · Versos de Ouro de Pitágoras
-        </p>
+      <footer style={{ padding: '2rem', textAlign: 'center', color: isDark ? '#b8a88a' : '#6b5744', borderTop: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, marginTop: '2rem' }}>
+        <p style={{ margin: 0, fontSize: '0.95rem', fontStyle: 'italic' }}>"Que ninguém durma sem antes examinar as ações do dia"</p>
+        <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.85rem', opacity: 0.8 }}>Nova Acrópole · Filosofia à Maneira Clássica · Versos de Ouro de Pitágoras</p>
       </footer>
     </div>
   );
