@@ -42,13 +42,15 @@ function App() {
   const [theme, setTheme] = useState('light');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Estados do Prólogo
+ // Estados do Prólogo
   const [morningDone, setMorningDone] = useState(false);
   const [selectedVirtue, setSelectedVirtue] = useState('');
   const [customVirtue, setCustomVirtue] = useState('');
   const [showCustomVirtue, setShowCustomVirtue] = useState(false);
   const [dailyQuote, setDailyQuote] = useState(null);
   const [dailyIntention, setDailyIntention] = useState('');
+  const [morningChallenges, setMorningChallenges] = useState(''); // NOVO: Para o Premeditatio
+  const [morningVehicles, setMorningVehicles] = useState(''); // NOVO: Para o Premeditatio
   const [lastDrawDate, setLastDrawDate] = useState(null);
 
   // Estados do Epílogo
@@ -439,13 +441,36 @@ function App() {
     }
   };
 
-  // NOVO: Marcar/desmarcar tarefa do dia
-  const toggleTaskStatus = (taskId) => {
-    setTodayTasksStatus(prev => ({
-      ...prev,
-      [taskId]: !prev[taskId]
-    }));
-  };
+  // NOVO: Marcar/desmarcar tarefa do dia com Auto-Save
+  const toggleTaskStatus = async (taskId) => {
+    // 1. Atualiza a caixinha visualmente na mesma hora
+    const newStatus = {
+      ...todayTasksStatus,
+      [taskId]: !todayTasksStatus[taskId]
+    };
+    setTodayTasksStatus(newStatus);
+
+    // 2. Salva essa mudança instantaneamente no banco de dados de hoje
+    if (user) {
+      const todayKey = getTodayKey();
+      
+      // Tira uma nova fotografia das tarefas atualizadas
+      const updatedSnapshot = customTasks.map(task => ({
+        id: task.id,
+        name: task.name,
+        completed: !!newStatus[task.id]
+      }));
+
+      try {
+        await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), {
+          tasksStatus: newStatus,
+          tasksSnapshot: updatedSnapshot
+        }, { merge: true }); // O 'merge: true' garante que não vai apagar seu prólogo!
+      } catch (error) {
+        console.error('Erro ao salvar o status da tarefa:', error);
+      }
+    }
+  };  
 
  // Salvar Prólogo
   const saveMorning = async () => {
