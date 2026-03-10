@@ -447,7 +447,7 @@ function App() {
     }));
   };
 
-  // Salvar Prólogo
+ // Salvar Prólogo
   const saveMorning = async () => {
     const finalVirtue = showCustomVirtue ? customVirtue : selectedVirtue;
 
@@ -455,6 +455,13 @@ function App() {
       alert('Por favor, selecione ou digite uma virtude para o dia.');
       return;
     }
+
+    // Tira uma "foto" das tarefas de hoje com seus nomes atuais
+    const tasksSnapshot = customTasks.map(task => ({
+      id: task.id,
+      name: task.name,
+      completed: !!todayTasksStatus[task.id]
+    }));
 
     const todayKey = getTodayKey();
     const entry = {
@@ -465,7 +472,10 @@ function App() {
       customVirtue: showCustomVirtue ? customVirtue : '',
       quote: dailyQuote,
       intention: dailyIntention,
+      morningChallenges,
+      morningVehicles,
       tasksStatus: todayTasksStatus,
+      tasksSnapshot: tasksSnapshot, // NOVO: Salva os nomes para o histórico
       morningTimestamp: Timestamp.now()
     };
 
@@ -486,6 +496,13 @@ function App() {
     }
 
     const todayKey = getTodayKey();
+    
+    // Atualiza a "foto" das tarefas no fim do dia
+    const tasksSnapshot = customTasks.map(task => ({
+      id: task.id,
+      name: task.name,
+      completed: !!todayTasksStatus[task.id]
+    }));
 
     try {
       const entryRef = doc(db, 'entries', `${user.uid}_${todayKey}`);
@@ -499,7 +516,9 @@ function App() {
         whereIFailed,
         whatIDidWell,
         whatILeftUndone,
-        didMorning, // NOVO
+        didMorning,
+        tasksStatus: todayTasksStatus,
+        tasksSnapshot: tasksSnapshot, // NOVO: Atualiza nomes no fim do dia
         eveningTimestamp: Timestamp.now()
       };
 
@@ -2427,11 +2446,41 @@ const importFromCSV = async (content) => {
                     )}
 
                     <div style={{ marginBottom: '1rem' }}>
+                      {/* NOVO: Exibição das Tarefas Concluídas no Histórico */}
+                    {entry.tasksSnapshot && entry.tasksSnapshot.filter(t => t.completed).length > 0 && (
+                      <div style={{ 
+                        marginBottom: '1rem',
+                        padding: '1rem',
+                        background: isDark ? 'rgba(76, 175, 80, 0.05)' : '#f8fff8',
+                        borderRadius: '8px',
+                        borderLeft: `4px solid ${isDark ? '#4caf50' : '#81c784'}`
+                      }}>
+                        <h4 style={{
+                          margin: '0 0 0.5rem 0',
+                          color: isDark ? '#f0e6d2' : '#2c1810',
+                          fontSize: '0.95rem'
+                        }}>
+                          Práticas Realizadas:
+                        </h4>
+                        <ul style={{ 
+                          margin: 0, 
+                          paddingLeft: '1.2rem',
+                          color: isDark ? '#c8b896' : '#6b5744',
+                          fontSize: '0.95rem',
+                          lineHeight: '1.6'
+                        }}>
+                          {entry.tasksSnapshot.filter(t => t.completed).map((task, idx) => (
+                            <li key={idx}>{task.name}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                       <h4 style={{
                         margin: '0 0 0.5rem 0',
                         color: isDark ? '#f0e6d2' : '#2c1810',
                         fontSize: '1rem'
                       }}>
+                        
                         Em que falhei:
                       </h4>
                       <p style={{
