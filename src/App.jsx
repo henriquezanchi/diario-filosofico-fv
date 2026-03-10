@@ -99,6 +99,7 @@ function App() {
   const [fvNextCartaDate, setFvNextCartaDate] = useState(null);
   const [fvGdveDesafios, setFvGdveDesafios] = useState([]);
   const [fvGdveReuniao, setFvGdveReuniao] = useState('');
+  const [fvLockClickCount, setFvLockClickCount] = useState(0); // NOVO: Contador para bloquear
 
   const virtues = [
     { name: "Paciência", shortDesc: "Suportar dificuldades mantendo a serenidade", description: "A capacidade de suportar dificuldades sem se perturbar, mantendo a serenidade diante das adversidades e do tempo necessário para as coisas se realizarem.", practices: "• Respirar profundamente antes de reagir\n• Observar a irritação sem agir impulsivamente\n• Lembrar que tudo tem seu tempo", color: "#4A90E2" },
@@ -211,6 +212,29 @@ function App() {
       alert('🔓 Modo FV desbloqueado!');
     }
     setTimeout(() => setFvClickCount(0), 3000);
+  };
+
+  // NOVO: Função para BLOQUEAR o FV novamente (3 cliques rápidos)
+  const handleFvLockClick = () => {
+    setView('fv'); // No primeiro clique, ele continua funcionando normal e entra na tela
+
+    setFvLockClickCount(prev => prev + 1);
+    
+    // Se o contador chegar a 2 (ou seja, é o 3º clique seguido)
+    if (fvLockClickCount >= 2) {
+      setFvUnlocked(false); // Tranca a porta
+      setView('today'); // Expulsa a pessoa para a tela inicial
+      setFvLockClickCount(0); // Zera o contador
+      
+      if (user) {
+        // Salva no banco de dados que a porta está trancada de novo
+        updateDoc(doc(db, 'users', user.uid), { fvUnlocked: false });
+      }
+      alert('🔒 Modo FV ocultado com segurança!');
+    }
+    
+    // Zera o contador se os cliques não forem rápidos (menos de 2 segundos)
+    setTimeout(() => setFvLockClickCount(0), 2000); 
   };
 
   const selectRandomVirtue = async () => {
@@ -1031,7 +1055,12 @@ function App() {
             <button onClick={() => setView('biblioteca')} style={{ padding: '0.5rem 1rem', background: view === 'biblioteca' ? (isDark ? '#d4af37' : '#8b7355') : 'transparent', color: view === 'biblioteca' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#8b7355'), border: `2px solid ${isDark ? '#d4af37' : '#8b7355'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Virtudes</button>
 
             {fvUnlocked && (
-              <button onClick={() => setView('fv')} style={{ padding: '0.5rem 1rem', background: view === 'fv' ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'transparent', color: view === 'fv' ? '#000' : '#FFD700', border: '2px solid #FFD700', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, boxShadow: '0 0 10px rgba(255, 215, 0, 0.3)' }}>FV</button>
+              <button 
+                onClick={handleFvLockClick} 
+                style={{ padding: '0.5rem 1rem', background: view === 'fv' ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'transparent', color: view === 'fv' ? '#000' : '#FFD700', border: '2px solid #FFD700', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, boxShadow: '0 0 10px rgba(255, 215, 0, 0.3)' }}
+              >
+                FV
+              </button>
             )}
 
             <button onClick={toggleTheme} style={{ padding: '0.5rem', background: 'transparent', border: `2px solid ${isDark ? '#d4af37' : '#8b7355'}`, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1229,7 +1258,7 @@ function App() {
                   </div>
 
                   <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
-                    <input type="text" value={newTaskName} onChange={(e) => setNewTaskName(e.target.value)} placeholder="Nome da prática (ex: Tratak, GAF)" style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', fontSize: '1rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                    <input type="text" value={newTaskName} onChange={(e) => setNewTaskName(e.target.value)} placeholder="Nome da prática (ex: Tratak, Meditação...)" style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', fontSize: '1rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#8b7355'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
                   </div>
 
                   <div style={{ marginBottom: '1rem' }}>
