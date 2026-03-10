@@ -476,7 +476,7 @@ function App() {
   const saveMorning = async () => {
     const finalVirtue = showCustomVirtue ? customVirtue : selectedVirtue;
 
-    if (!finalVirtue.trim()) {
+    if (!finalVirtue || !finalVirtue.trim()) {
       alert('Por favor, selecione ou digite uma virtude para o dia.');
       return;
     }
@@ -495,12 +495,12 @@ function App() {
       morningDone: true,
       virtue: finalVirtue,
       customVirtue: showCustomVirtue ? customVirtue : '',
-      quote: dailyQuote,
-      intention: dailyIntention,
-      morningChallenges,
-      morningVehicles,
-      tasksStatus: todayTasksStatus,
-      tasksSnapshot: tasksSnapshot, // NOVO: Salva os nomes para o histórico
+      quote: dailyQuote || null,
+      intention: dailyIntention || '',
+      morningChallenges: morningChallenges || '', // Correção: Garante que não é undefined
+      morningVehicles: morningVehicles || '',     // Correção: Garante que não é undefined
+      tasksStatus: todayTasksStatus || {},
+      tasksSnapshot: tasksSnapshot || [],
       morningTimestamp: Timestamp.now()
     };
 
@@ -509,13 +509,16 @@ function App() {
       setMorningDone(true);
       alert('✅ Prólogo salvo com sucesso!');
     } catch (error) {
-      alert('Erro ao salvar prólogo. Tente novamente.');
+      console.error(error); // Mostra o erro no F12 caso aconteça de novo
+      alert('Erro ao salvar prólogo. Verifique sua conexão.');
     }
   };
 
   // Salvar Epílogo
   const saveEvening = async () => {
-    if (!whereIFailed.trim() || !whatIDidWell.trim() || !whatILeftUndone.trim()) {
+    if (!whereIFailed || !whereIFailed.trim() || 
+        !whatIDidWell || !whatIDidWell.trim() || 
+        !whatILeftUndone || !whatILeftUndone.trim()) {
       alert('Por favor, responda todas as três perguntas do exame noturno.');
       return;
     }
@@ -532,18 +535,19 @@ function App() {
     try {
       const entryRef = doc(db, 'entries', `${user.uid}_${todayKey}`);
       const existing = await getDoc(entryRef);
+      const existingData = existing.exists() ? existing.data() : {};
 
       const updatedEntry = {
-        ...(existing.exists() ? existing.data() : {}),
+        ...existingData, // Mantém tudo que já existia (Prólogo)
         userId: user.uid,
         date: todayKey,
         eveningDone: true,
-        whereIFailed,
-        whatIDidWell,
-        whatILeftUndone,
-        didMorning,
-        tasksStatus: todayTasksStatus,
-        tasksSnapshot: tasksSnapshot, // NOVO: Atualiza nomes no fim do dia
+        whereIFailed: whereIFailed || '',
+        whatIDidWell: whatIDidWell || '',
+        whatILeftUndone: whatILeftUndone || '',
+        didMorning: didMorning !== false, // Garante que seja booleano
+        tasksStatus: todayTasksStatus || {},
+        tasksSnapshot: tasksSnapshot || [],
         eveningTimestamp: Timestamp.now()
       };
 
@@ -552,6 +556,7 @@ function App() {
       await loadAllEntries(user.uid);
       alert('✅ Epílogo salvo com sucesso!');
     } catch (error) {
+      console.error(error); // Mostra o erro no F12
       alert('Erro ao salvar epílogo. Tente novamente.');
     }
   };
