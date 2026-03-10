@@ -1693,7 +1693,6 @@ function App() {
                       Alcance <strong>{getStreakInfo(streak).next.min} dias consecutivos</strong> para conquistá-lo.
                     </p>
                     <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 'bold', color: isDark ? '#d4af37' : '#8b7355' }}>
-                      🔥 Continue preenchendo todos os dias e suba de nível!
                     </p>
                   </div>
                 ) : (
