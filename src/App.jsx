@@ -861,16 +861,96 @@ function App() {
 
   const exportToCSV = () => {
     if (entries.length === 0) { alert('Não há entradas para exportar'); return; }
+    
+    // Cabeçalhos Base
     const headers = ['Data', 'Fez Prólogo', 'Virtude', 'Compromisso', 'Onde Errei', 'O Que Fiz Bem', 'O Que Deixei de Fazer'];
-    const rows = entries.map(entry => [
-      entry.date, entry.didMorning ? 'Sim' : 'Não', entry.virtue || '', entry.intention || '',
-      entry.whereIFailed || '', entry.whatIDidWell || '', entry.whatILeftUndone || ''
-    ]);
+    
+    // Se o modo FV estiver ativado, adicionamos as colunas de 1 a 7 e as práticas
+    if (fvUnlocked) {
+      headers.push('FV: 1-Varrer', 'FV: 2-Matéria', 'FV: 3e4-Trabalho', 'FV: 5-Tempo', 'FV: 6-Vícios', 'FV: 7-Virtudes', 'FV: Horas Guarda', 'FV: Horas Aula', 'FV: Práticas Realizadas');
+    }
+
+    const rows = entries.map(entry => {
+      const row = [
+        entry.date, entry.didMorning ? 'Sim' : 'Não', entry.virtue || '', entry.intention || '',
+        entry.whereIFailed || '', entry.whatIDidWell || '', entry.whatILeftUndone || ''
+      ];
+
+      // Puxando os dados FV daquele dia (se existirem)
+      if (fvUnlocked) {
+        const fv = entry.fvDaily || {};
+        let praticasText = '';
+        
+        if (fv.praticas) {
+          const fvLabels = { tratack: 'Tratak', recitarHonra: 'Código de Dignidade', recitar7Fases: '7 Fases', camara: 'Câmara', porta: 'Porta', patioAberto: 'Pátio Aberto', patioColunas: 'Pátio Colunas', santuario: 'Santuário' };
+          praticasText = Object.entries(fv.praticas).filter(([_, feito]) => feito).map(([key]) => fvLabels[key] || key).join(' + ');
+        }
+
+        row.push(
+          fv.item1 || '', fv.item2 || '', fv.item34 || '', fv.item5 || '', 
+          fv.item6 || '', fv.item7 || '', fv.horasGuarda || '', fv.horasAula || '', praticasText
+        );
+      }
+      return row;
+    });
+
     let csvContent = '\uFEFF' + headers.join(',') + '\n';
     rows.forEach(row => { csvContent += row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',') + '\n'; });
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a'); link.href = URL.createObjectURL(blob);
-    link.download = `diario-filosofico-${getTodayKey()}.csv`; link.click();
+    link.download = fvUnlocked ? `relatorio-forca-viva-${getTodayKey()}.csv` : `diario-filosofico-${getTodayKey()}.csv`; 
+    link.click();
+  };
+
+  // NOVO: Gerador de Dossiê TXT para confecção da Carta de Degrau
+  const exportFvReportTXT = () => {
+    if (entries.length === 0) { alert('Não há entradas para exportar'); return; }
+    
+    let txtContent = `====================================================\n`;
+    txtContent += `    RELATÓRIO DE PREPARAÇÃO - CARTA DE DEGRAU\n`;
+    txtContent += `    Gerado em: ${new Date().toLocaleDateString('pt-BR')}\n`;
+    txtContent += `====================================================\n\n`;
+    
+    // Inverte a ordem para o relatório ficar do dia mais antigo para o dia mais recente (ordem cronológica)
+    const reversedEntries = [...entries].reverse();
+    let hasData = false;
+
+    reversedEntries.forEach(entry => {
+      if (entry.fvDaily) {
+        const fv = entry.fvDaily;
+        // Checa se o usuário escreveu em pelo menos um dos itens 1 ao 7 neste dia
+        const hasTextData = fv.item1 || fv.item2 || fv.item34 || fv.item5 || fv.item6 || fv.item7;
+        
+        if (hasTextData) {
+          hasData = true;
+          txtContent += `----------------------------------------------------\n`;
+          txtContent += `DATA: ${new Date(entry.date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).toUpperCase()}\n`;
+          txtContent += `----------------------------------------------------\n`;
+          
+          if (fv.item1) txtContent += `[1] Varrer por Dentro:\n${fv.item1}\n\n`;
+          if (fv.item2) txtContent += `[2] Leis da Matéria:\n${fv.item2}\n\n`;
+          if (fv.item34) txtContent += `[3 e 4] Trabalho Ordenado e Eficaz:\n${fv.item34}\n\n`;
+          if (fv.item5) txtContent += `[5] Economia de Tempo e Energia:\n${fv.item5}\n\n`;
+          if (fv.item6) txtContent += `[6] Os Vícios:\n${fv.item6}\n\n`;
+          if (fv.item7) txtContent += `[7] Virtudes (Perseverança e Constância):\n${fv.item7}\n\n`;
+          
+          if (fv.horasGuarda || fv.horasAula) {
+            txtContent += `[Registro de Horas]\nHoras-Guarda: ${fv.horasGuarda || '--'} | Horas-Aula: ${fv.horasAula || '--'}\n\n`;
+          }
+          txtContent += `\n\n`;
+        }
+      }
+    });
+
+    if (!hasData) {
+      alert('Você ainda não tem textos preenchidos nos itens da Força Viva para gerar o relatório.');
+      return;
+    }
+
+    const blob = new Blob([txtContent], { type: 'text/plain;charset=utf-8;' });
+    const link = document.createElement('a'); link.href = URL.createObjectURL(blob);
+    link.download = `Borracha_Carta_Degrau_${getTodayKey()}.txt`; 
+    link.click();
   };
 
   const importDiary = (event) => {
@@ -1556,6 +1636,12 @@ function App() {
                 <button onClick={exportToCSV} disabled={entries.length === 0} style={{ padding: '0.75rem 1.5rem', background: entries.length > 0 ? (isDark ? '#d4af37' : '#6b4423') : '#ccc', color: 'white', border: 'none', borderRadius: '8px', cursor: entries.length > 0 ? 'pointer' : 'not-allowed', fontFamily: 'Georgia, serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Download size={18} /> Exportar CSV
                 </button>
+                {/* NOVO: BOTÃO DO RELATÓRIO TXT DA FORÇA VIVA */}
+                {fvUnlocked && (
+                  <button onClick={exportFvReportTXT} disabled={entries.length === 0} style={{ padding: '0.75rem 1.5rem', background: entries.length > 0 ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : '#ccc', color: '#000', border: 'none', borderRadius: '8px', cursor: entries.length > 0 ? 'pointer' : 'not-allowed', fontFamily: 'Georgia, serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: entries.length > 0 ? '0 4px 12px rgba(255,215,0,0.2)' : 'none' }}>
+                    <FileText size={18} /> Relatório CD (TXT)
+                  </button>
+                )}
                 <label style={{ padding: '0.75rem 1.5rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Upload size={18} /> Importar
                   <input type="file" accept=".csv,.json,.txt" onChange={importDiary} style={{ display: 'none' }} />
