@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react'; // 👈 ADICIONE O useRef AQUI
 // Adicione o ícone Bell na lista do lucide-react:
 import { 
   BookOpen, Sunrise, Sunset, Search, Calendar, Moon, Sun, 
@@ -6,7 +6,7 @@ import {
   AlertCircle, Eye, EyeOff, CheckCircle, Download, Upload,
   Target, TrendingUp, Award, FileText, Book, Settings,
   Trash2, Edit, Save, XCircle, Flame, Zap, Shield, Star, Crown, 
-  Bell, Check // 👈 ADICIONADO AQUI
+  Bell, Check, Music // 👈 ADICIONE Music NO FINAL DESSA LISTA
 } from 'lucide-react';
 // Na importação do Firebase, puxe o messaging e o getToken:
 import { auth, db, messaging } from './config/firebase-config'; // 👈 Adicione o messaging aqui
@@ -162,15 +162,17 @@ function App() {
   
   // NOVO: Controle do Menu de Ação das Práticas
   const [activeActionMenu, setActiveActionMenu] = useState(null);
+  const audioRef = useRef(null); // 👈 NOVO: Controle remoto da música
 
-// Função que decide o que abrir quando clica em "Realizar"
+  // Função que decide o que abrir quando clica em "Realizar"
   const handleRealizarPratica = (key) => {
-    setActiveActionMenu(null); // Fecha o menu primeiro
+    setActiveActionMenu(null); 
     
-    if (key === 'tratack') {
-      setActivePracticeId(key);  // 👈 Usa a ID universal
-      setPracticePhase('intro'); // 👈 Usa a Fase universal
-      setIsPracticeActive(true); // 👈 Levanta o Escudo universal
+    // NOVO: Agora aceita tratack E camara!
+    if (key === 'tratack' || key === 'camara') {
+      setActivePracticeId(key); 
+      setPracticePhase('intro'); 
+      setIsPracticeActive(true); 
     } else {
       alert('A imersão guiada para esta prática será adicionada no nosso próximo passo! 🚀 Por enquanto, você pode marcá-la como "Já Realizado".');
     }
@@ -1844,6 +1846,90 @@ function App() {
                         setIsPracticeActive(false); 
                         handleFvDailyPracticeChange('tratack', true); 
                         exitFullScreen(); // 👈 DESLIGA QUANDO TERMINAR
+                      }} 
+                      style={{ padding: '1rem 3rem', fontSize: '1.2rem', background: '#4caf50', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold' }}
+                    >
+                      Confirmar Prática
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+
+{/* O TOCA-DISCOS INVISÍVEL (Fica esperando o Play) */}
+            <audio 
+              ref={audioRef} 
+              src="/aria-bach.mp3" 
+              onEnded={() => setPracticePhase('done')} // Quando a música acaba, vai para a tela final!
+            />
+
+            {/* --- 2. PRÁTICA: CÂMARA DE PURIFICAÇÃO --- */}
+            {activePracticeId === 'camara' && (
+              <>
+                {/* FASE 1: INSTRUÇÃO */}
+                {practicePhase === 'intro' && (
+                  <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '2rem', maxWidth: '500px' }}>
+                    <Music size={48} color={isDark ? '#81c784' : '#2e7d32'} style={{ margin: '0 auto 1.5rem' }} />
+                    <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? '#81c784' : '#2e7d32', fontSize: '2rem', margin: '0 0 1rem 0' }}>Câmara de Purificação</h2>
+                    
+                    <div style={{ background: isDark ? 'rgba(76, 175, 80, 0.05)' : 'rgba(76, 175, 80, 0.1)', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(76, 175, 80, 0.2)' : 'rgba(76, 175, 80, 0.3)'}`, marginBottom: '1.5rem' }}>
+                      <p style={{ fontSize: '1.15rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.6', margin: 0 }}>Sente-se de forma confortável, feche os olhos e respire profundamente.</p>
+                      <p style={{ fontSize: '1.15rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.6', marginTop: '1rem', marginBottom: 0 }}>Ao iniciar, a Ária de Bach começará a tocar. Deixe a música lavar seus pensamentos.</p>
+                    </div>
+
+                    <p style={{ fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '0.5rem', fontStyle: 'italic' }}>A prática terminará automaticamente ao fim da melodia (~5 min).</p>
+                    
+                    <p style={{ fontSize: '0.85rem', color: '#e74c3c', marginBottom: '2rem', fontWeight: 'bold' }}>⚠️ Para interromper, toque 3 vezes na tela.</p>
+
+                    <button 
+                      onClick={() => { 
+                        setPracticePhase('practice'); 
+                        setCancelClickCount(0); 
+                        enterFullScreen();
+                        if(audioRef.current) audioRef.current.play(); // 👈 DÁ O PLAY NA MÚSICA AQUI!
+                      }} 
+                      style={{ padding: '1rem 2.5rem', fontSize: '1.2rem', background: 'linear-gradient(135deg, #81c784 0%, #4caf50 100%)', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(76, 175, 80, 0.3)' }}
+                    >
+                      Iniciar Purificação
+                    </button>
+                    <button onClick={() => setIsPracticeActive(false)} style={{ marginTop: '1rem', display: 'block', width: '100%', padding: '1rem', background: 'transparent', color: isDark ? '#888' : '#6b5744', border: 'none', cursor: 'pointer', fontFamily: 'Georgia, serif', textDecoration: 'underline' }}>Voltar ao Diário</button>
+                  </div>
+                )}
+
+                {/* FASE 2: A PRÁTICA (TELA ESCURA MINIMALISTA) */}
+                {practicePhase === 'practice' && (
+                  <div 
+                    className="animate-fadeIn" 
+                    onClick={() => {
+                      setCancelClickCount(prev => {
+                        const novosCliques = prev + 1;
+                        if (novosCliques >= 3) {
+                          if(audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; } // 👈 PARA A MÚSICA SE ABORTAR
+                          setIsPracticeActive(false); 
+                          exitFullScreen();
+                          return 0; 
+                        }
+                        return novosCliques;
+                      });
+                    }}
+                    style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%', cursor: 'pointer' }}
+                  >
+                    <Music size={56} color={isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'} style={{ opacity: 0.5 }} />
+                    <p style={{ marginTop: '2rem', color: isDark ? 'rgba(240, 230, 210, 0.3)' : 'rgba(44, 24, 16, 0.3)', fontStyle: 'italic', fontFamily: 'Georgia, serif', letterSpacing: '2px' }}>Respire e ouça...</p>
+                  </div>
+                )}
+
+                {/* FASE 3: CONCLUSÃO */}
+                {practicePhase === 'done' && (
+                  <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '2rem' }}>
+                    <CheckCircle size={80} color="#4caf50" style={{ margin: '0 auto 1.5rem' }} />
+                    <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '2.5rem', marginBottom: '1rem' }}>Purificação Concluída</h2>
+                    <p style={{ fontSize: '1.2rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2.5rem' }}>Sua mente agora está serena e limpa como um espelho d'água.</p>
+                    <button 
+                      onClick={() => { 
+                        setIsPracticeActive(false); 
+                        handleFvDailyPracticeChange('camara', true); 
+                        exitFullScreen();
                       }} 
                       style={{ padding: '1rem 3rem', fontSize: '1.2rem', background: '#4caf50', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold' }}
                     >
