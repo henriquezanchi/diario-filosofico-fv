@@ -154,9 +154,23 @@ function App() {
     }
   });
 
-  // Estados da Prática de Tratak
+// Estados da Prática de Tratak
   const [isTratakActive, setIsTratakActive] = useState(false);
   const [tratakPhase, setTratakPhase] = useState('intro'); // 'intro', 'practice', 'done'
+  
+  // NOVO: Controle do Menu de Ação das Práticas
+  const [activeActionMenu, setActiveActionMenu] = useState(null);
+
+// Função que decide o que abrir quando clica em "Realizar"
+  const handleRealizarPratica = (key) => {
+    setActiveActionMenu(null); // Fecha o menu primeiro
+    if (key === 'tratack') {
+      setTratakPhase('intro');
+      setIsTratakActive(true);
+    } else {
+      alert('A imersão guiada para esta prática será adicionada no nosso próximo passo! 🚀 Por enquanto, você pode marcá-la como "Já Realizado".');
+    }
+  };
 
   const virtues = [
     { name: "Paciência", shortDesc: "Suportar dificuldades mantendo a serenidade", description: "A capacidade de suportar dificuldades sem se perturbar, mantendo a serenidade diante das adversidades e do tempo necessário para as coisas se realizarem.", practices: "• Respirar profundamente antes de reagir\n• Observar a irritação sem agir impulsivamente\n• Lembrar que tudo tem seu tempo", color: "#4A90E2" },
@@ -330,20 +344,25 @@ function App() {
     return lastDrawDate !== today;
   };
 
-  // Motor de Inatividade
+  // Motor de Inatividade (Agora com "Pausa" durante as práticas!)
   useEffect(() => {
-    if (!user || showInactivityWarning) return;
+    // NOVO: Se isTratakActive for true, o motor para de contar e não desloga!
+    if (!user || showInactivityWarning || isTratakActive) return; 
+    
     let timeoutId;
     const resetTimer = () => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => setShowInactivityWarning(true), 60000);
     };
+    
     const handleActivity = () => resetTimer();
     window.addEventListener('mousemove', handleActivity);
     window.addEventListener('keydown', handleActivity);
     window.addEventListener('click', handleActivity);
     window.addEventListener('scroll', handleActivity);
+    
     resetTimer();
+    
     return () => {
       clearTimeout(timeoutId);
       window.removeEventListener('mousemove', handleActivity);
@@ -351,7 +370,7 @@ function App() {
       window.removeEventListener('click', handleActivity);
       window.removeEventListener('scroll', handleActivity);
     };
-  }, [user, showInactivityWarning]);
+  }, [user, showInactivityWarning, isTratakActive]); // 👈 isTratakActive adicionado na lista de vigias
 
 // O Convite Ativo de Notificações
   useEffect(() => {
@@ -1368,37 +1387,24 @@ function App() {
                   </div>
                 </div>
 
-                {/* PRÁTICAS CHECKBOXES - NOVA ESTRUTURA */}
+                {/* PRÁTICAS - BOTÕES INTELIGENTES */}
                 <div style={{ background: isDark ? 'rgba(255,215,0,0.05)' : 'rgba(255,215,0,0.1)', padding: '1.5rem', borderRadius: '12px', border: '1px solid rgba(255, 215, 0, 0.3)' }}>
                   <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#FFD700' : '#996515', fontSize: '1.1rem', fontFamily: "'Cinzel', serif" }}>Práticas do Dia</h3>
                   
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                    
                     {/* Práticas Gerais */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                       {[
-                        { key: 'tratack', label: 'Tratak' }, // A chave continua 'tratack' pro banco de dados não quebrar, mas visualmente é Tratak
+                        { key: 'tratack', label: 'Tratak' },
                         { key: 'recitarHonra', label: 'Recitar Código de Honra' },
                         { key: 'recitar7Fases', label: 'Recitar 7 fases da ED' },
                         { key: 'camara', label: 'Câmara de Purificação' }
                       ].map(prac => (
-                        <label key={prac.key} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
-                          <input 
-  type="checkbox" 
-  checked={fvDaily.praticas?.[prac.key] || false} 
-  onChange={(e) => {
-    // Se for o Tratak e estiver marcando, abre a imersão!
-    if (prac.key === 'tratack' && e.target.checked) {
-      setTratakPhase('intro');
-      setIsTratakActive(true);
-    } else {
-      // Comportamento normal para as outras caixinhas
-      handleFvDailyPracticeChange(prac.key, e.target.checked);
-    }
-  }} 
-  style={{ width: '20px', height: '20px', cursor: 'pointer', accentcolor: isDark ? '#FFD700' : '#996515' }} 
-/>
-                          <span style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem' }}>{prac.label}</span>
-                        </label>
+                        <div key={prac.key} onClick={() => setActiveActionMenu({ key: prac.key, label: prac.label })} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '0.75rem', background: fvDaily.praticas?.[prac.key] ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.6)'), border: `1px solid ${fvDaily.praticas?.[prac.key] ? '#4caf50' : (isDark ? 'rgba(212, 175, 55, 0.3)' : '#ccc')}`, borderRadius: '8px', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                          {fvDaily.praticas?.[prac.key] ? <CheckCircle size={18} color="#4caf50" /> : <div style={{ width: '18px', height: '18px', borderRadius: '50%', border: `2px solid ${isDark ? '#b8a88a' : '#999'}` }}></div>}
+                          <span style={{ color: fvDaily.praticas?.[prac.key] ? (isDark ? '#81c784' : '#2e7d32') : (isDark ? '#f0e6d2' : '#2c1810'), fontSize: '0.95rem', fontWeight: fvDaily.praticas?.[prac.key] ? 'bold' : 'normal' }}>{prac.label}</span>
+                        </div>
                       ))}
                     </div>
 
@@ -1412,13 +1418,14 @@ function App() {
                           { key: 'patioColunas', label: '3. Pátio de Colunas' },
                           { key: 'santuario', label: '4. Santuário' }
                         ].map(prac => (
-                          <label key={prac.key} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
-                            <input type="checkbox" checked={fvDaily.praticas?.[prac.key] || false} onChange={(e) => handleFvDailyPracticeChange(prac.key, e.target.checked)} style={{ width: '18px', height: '18px', cursor: 'pointer', accentcolor: isDark ? '#FFD700' : '#996515' }} />
-                            <span style={{ color: isDark ? '#c8b896' : '#6b5744', fontSize: '0.9rem' }}>{prac.label}</span>
-                          </label>
+                          <div key={prac.key} onClick={() => setActiveActionMenu({ key: prac.key, label: prac.label })} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '0.6rem', background: fvDaily.praticas?.[prac.key] ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : 'transparent', border: `1px solid ${fvDaily.praticas?.[prac.key] ? '#4caf50' : 'transparent'}`, borderRadius: '8px', transition: 'all 0.2s' }}>
+                            {fvDaily.praticas?.[prac.key] ? <CheckCircle size={16} color="#4caf50" /> : <div style={{ width: '16px', height: '16px', borderRadius: '50%', border: `2px solid ${isDark ? '#b8a88a' : '#999'}` }}></div>}
+                            <span style={{ color: fvDaily.praticas?.[prac.key] ? (isDark ? '#81c784' : '#2e7d32') : (isDark ? '#c8b896' : '#6b5744'), fontSize: '0.9rem', fontWeight: fvDaily.praticas?.[prac.key] ? 'bold' : 'normal' }}>{prac.label}</span>
+                          </div>
                         ))}
                       </div>
                     </div>
+                    
                   </div>
                 </div>
 
@@ -1686,6 +1693,34 @@ function App() {
           </div>
         </div>
 
+{/* MODAL DE AÇÃO DAS PRÁTICAS (REALIZAR OU JÁ REALIZADO) */}
+        {activeActionMenu && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(3px)' }} onClick={() => setActiveActionMenu(null)}>
+            <div className="animate-fadeIn" style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '2rem', borderRadius: '16px', maxWidth: '350px', width: '100%', border: `2px solid ${isDark ? '#FFD700' : '#996515'}`, textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.3)', position: 'relative' }} onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setActiveActionMenu(null)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}><X size={24} /></button>
+              
+              <h3 style={{ margin: '0 0 1.5rem 0', fontFamily: "'Cinzel', serif", color: isDark ? '#FFD700' : '#996515', fontSize: '1.3rem' }}>{activeActionMenu.label}</h3>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <button onClick={() => handleRealizarPratica(activeActionMenu.key)} style={{ width: '100%', padding: '1rem', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: '#000', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(255,215,0,0.2)' }}>
+                  <Zap size={20} /> Realizar no App
+                </button>
+                
+                <button onClick={() => { handleFvDailyPracticeChange(activeActionMenu.key, true); setActiveActionMenu(null); }} style={{ width: '100%', padding: '1rem', background: isDark ? 'rgba(76, 175, 80, 0.2)' : '#e8f5e9', color: isDark ? '#81c784' : '#2e7d32', border: `2px solid ${isDark ? '#4caf50' : '#4caf50'}`, borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+                  <CheckCircle size={20} /> Já Realizado
+                </button>
+
+                {/* Se já estiver marcado, dá a opção de desmarcar */}
+                {fvDaily.praticas?.[activeActionMenu.key] && (
+                  <button onClick={() => { handleFvDailyPracticeChange(activeActionMenu.key, false); setActiveActionMenu(null); }} style={{ width: '100%', padding: '0.75rem', background: 'transparent', color: isDark ? '#b8a88a' : '#6b5744', border: 'none', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', textDecoration: 'underline' }}>
+                    Desmarcar prática
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* MODAL IMERSIVO: TRATAK */}
         {isTratakActive && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: isDark ? '#0a0a14' : '#fdfbf7', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
@@ -1756,7 +1791,7 @@ function App() {
 
           </div>
         )}
-        
+
       </main>
 
       <footer style={{ padding: '2rem', textAlign: 'center', color: isDark ? '#b8a88a' : '#6b5744', borderTop: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, marginTop: '2rem' }}>
