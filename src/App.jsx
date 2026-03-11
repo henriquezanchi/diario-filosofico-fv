@@ -154,9 +154,11 @@ function App() {
     }
   });
 
-// Estados da Prática de Tratak
-  const [isTratakActive, setIsTratakActive] = useState(false);
-  const [tratakPhase, setTratakPhase] = useState('intro'); // 'intro', 'practice', 'done'
+// NOVO: Controle Universal das Práticas Guiadas
+  const [isPracticeActive, setIsPracticeActive] = useState(false); // O Escudo contra Logout!
+  const [activePracticeId, setActivePracticeId] = useState(null); // Diz se é tratak, camara, templo, etc.
+  const [practicePhase, setPracticePhase] = useState('intro'); // 'intro', 'practice', 'done'
+  
   
   // NOVO: Controle do Menu de Ação das Práticas
   const [activeActionMenu, setActiveActionMenu] = useState(null);
@@ -344,10 +346,10 @@ function App() {
     return lastDrawDate !== today;
   };
 
-  // Motor de Inatividade (Agora com "Pausa" durante as práticas!)
+  // Motor de Inatividade (Com Escudo Universal de Práticas)
   useEffect(() => {
-    // NOVO: Se isTratakActive for true, o motor para de contar e não desloga!
-    if (!user || showInactivityWarning || isTratakActive) return; 
+    // Se isPracticeActive for true, o app NÃO desloga em NENHUMA prática!
+    if (!user || showInactivityWarning || isPracticeActive) return; 
     
     let timeoutId;
     const resetTimer = () => {
@@ -370,7 +372,7 @@ function App() {
       window.removeEventListener('click', handleActivity);
       window.removeEventListener('scroll', handleActivity);
     };
-  }, [user, showInactivityWarning, isTratakActive]); // 👈 isTratakActive adicionado na lista de vigias
+  }, [user, showInactivityWarning, isPracticeActive]);
 
 // O Convite Ativo de Notificações
   useEffect(() => {
@@ -406,18 +408,17 @@ function App() {
     return () => unsubscribe(); // Limpa o ouvinte ao sair
   }, []);
 
-// Motor do Tratak: Cronômetro invisível de 3 minutos
+// Motor Universal das Práticas: Cronômetros
   useEffect(() => {
     let timer;
-    if (tratakPhase === 'practice') {
-      // 180000 milissegundos = 3 minutos. 
-      // DICA: Mude para 3000 se quiser testar rapidamente com 3 segundos!
-      timer = setTimeout(() => {
-        setTratakPhase('done');
-      }, 180000); 
+    // Se for o Tratak e estiver na fase de prática: 3 minutos (180000 ms)
+    if (activePracticeId === 'tratack' && practicePhase === 'practice') {
+      timer = setTimeout(() => setPracticePhase('done'), 180000); 
     }
-    return () => clearTimeout(timer); // Limpa o cronômetro se o usuário fechar antes
-  }, [tratakPhase]);
+    // Os cronômetros da Câmara e do Templo entrarão aqui depois!
+    
+    return () => clearTimeout(timer);
+  }, [practicePhase, activePracticeId]);
 
   useEffect(() => {
     let intervalId;
@@ -1721,71 +1722,58 @@ function App() {
           </div>
         )}
 
-        {/* MODAL IMERSIVO: TRATAK */}
-        {isTratakActive && (
+        {/* MODAL IMERSIVO UNIVERSAL: PRÁTICAS GUIADAS */}
+        {isPracticeActive && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: isDark ? '#0a0a14' : '#fdfbf7', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
             
-            {/* FASE 1: INSTRUÇÃO */}
-            {tratakPhase === 'intro' && (
-              <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '2rem', maxWidth: '500px' }}>
-                <Target size={48} color={isDark ? '#FFD700' : '#996515'} style={{ margin: '0 auto 1.5rem' }} />
-                <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? '#FFD700' : '#996515', fontSize: '2rem', margin: '0 0 1rem 0' }}>Prática de Tratak</h2>
-                
-                <div style={{ background: isDark ? 'rgba(255,215,0,0.05)' : 'rgba(153,101,21,0.05)', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255,215,0,0.2)' : 'rgba(153,101,21,0.2)'}`, marginBottom: '2rem' }}>
-                  <p style={{ fontSize: '1.15rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.6', margin: 0 }}>
-                    Posicione o seu dispositivo a cerca de 1 metro de distância, alinhado à altura dos olhos.
-                  </p>
-                  <p style={{ fontSize: '1.15rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.6', marginTop: '1rem', marginBottom: 0 }}>
-                    Sente-se adequadamente, com a coluna ereta. Respire fundo e clique em iniciar.
-                  </p>
-                </div>
+            {/* --- 1. PRÁTICA: TRATAK --- */}
+            {activePracticeId === 'tratack' && (
+              <>
+                {/* FASE 1: INSTRUÇÃO */}
+                {practicePhase === 'intro' && (
+                  <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '2rem', maxWidth: '500px' }}>
+                    <Target size={48} color={isDark ? '#FFD700' : '#996515'} style={{ margin: '0 auto 1.5rem' }} />
+                    <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? '#FFD700' : '#996515', fontSize: '2rem', margin: '0 0 1rem 0' }}>Prática de Tratak</h2>
+                    
+                    <div style={{ background: isDark ? 'rgba(255,215,0,0.05)' : 'rgba(153,101,21,0.05)', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255,215,0,0.2)' : 'rgba(153,101,21,0.2)'}`, marginBottom: '2rem' }}>
+                      <p style={{ fontSize: '1.15rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.6', margin: 0 }}>Posicione o seu dispositivo a cerca de 1 metro de distância, alinhado à altura dos olhos.</p>
+                      <p style={{ fontSize: '1.15rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.6', marginTop: '1rem', marginBottom: 0 }}>Sente-se adequadamente, com a coluna ereta. Respire fundo e clique em iniciar.</p>
+                    </div>
 
-                <p style={{ fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2rem', fontStyle: 'italic' }}>
-                  A prática durará 3 minutos. Mantenha o olhar fixo no ponto central sem piscar (se possível).
-                </p>
+                    <p style={{ fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2rem', fontStyle: 'italic' }}>A prática durará 3 minutos. Mantenha o olhar fixo no ponto central.</p>
 
-                <button onClick={() => setTratakPhase('practice')} style={{ padding: '1rem 2.5rem', fontSize: '1.2rem', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: '#000', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(255, 215, 0, 0.3)' }}>
-                  Iniciar Tratak
-                </button>
-                <button onClick={() => setIsTratakActive(false)} style={{ marginTop: '1rem', display: 'block', width: '100%', padding: '1rem', background: 'transparent', color: isDark ? '#888' : '#6b5744', border: 'none', cursor: 'pointer', fontFamily: 'Georgia, serif', textDecoration: 'underline' }}>
-                  Voltar ao Diário
-                </button>
-              </div>
+                    <button onClick={() => setPracticePhase('practice')} style={{ padding: '1rem 2.5rem', fontSize: '1.2rem', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: '#000', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold' }}>Iniciar Tratak</button>
+                    <button onClick={() => setIsPracticeActive(false)} style={{ marginTop: '1rem', display: 'block', width: '100%', padding: '1rem', background: 'transparent', color: isDark ? '#888' : '#6b5744', border: 'none', cursor: 'pointer', fontFamily: 'Georgia, serif', textDecoration: 'underline' }}>Voltar ao Diário</button>
+                  </div>
+                )}
+
+                {/* FASE 2: O CÍRCULO */}
+                {practicePhase === 'practice' && (
+                  <div className="animate-fadeIn" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%' }}>
+                    <div style={{ width: 'min(60vw, 300px)', aspectRatio: '1/1', borderRadius: '50%', border: `6px solid ${isDark ? '#fff' : '#000'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ width: 'min(4vw, 24px)', aspectRatio: '1/1', borderRadius: '50%', background: isDark ? '#fff' : '#000' }}></div>
+                    </div>
+                  </div>
+                )}
+
+                {/* FASE 3: CONCLUSÃO */}
+                {practicePhase === 'done' && (
+                  <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '2rem' }}>
+                    <CheckCircle size={80} color="#4caf50" style={{ margin: '0 auto 1.5rem' }} />
+                    <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '2.5rem', marginBottom: '1rem' }}>Tratak Realizado</h2>
+                    <p style={{ fontSize: '1.2rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2.5rem' }}>O foco e a disciplina foram forjados mais um pouco hoje.</p>
+                    <button onClick={() => { setIsPracticeActive(false); handleFvDailyPracticeChange('tratack', true); }} style={{ padding: '1rem 3rem', fontSize: '1.2rem', background: '#4caf50', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold' }}>Confirmar Prática</button>
+                  </div>
+                )}
+              </>
             )}
 
-            {/* FASE 2: O CÍRCULO (A PRÁTICA) */}
-            {tratakPhase === 'practice' && (
-              <div className="animate-fadeIn" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%' }}>
-                {/* O Desenho Minimalista do Tratak */}
-                <div style={{
-                  width: 'min(60vw, 300px)', 
-                  aspectRatio: '1/1',
-                  borderRadius: '50%',
-                  border: `6px solid ${isDark ? '#fff' : '#000'}`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center'
-                }}>
-                  <div style={{
-                    width: 'min(4vw, 24px)', 
-                    aspectRatio: '1/1',
-                    borderRadius: '50%',
-                    background: isDark ? '#fff' : '#000'
-                  }}></div>
-                </div>
-              </div>
-            )}
-
-            {/* FASE 3: CONCLUSÃO */}
-            {tratakPhase === 'done' && (
+            {/* AVISO DE CONSTRUÇÃO PARA AS OUTRAS PRÁTICAS */}
+            {activePracticeId !== 'tratack' && (
               <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '2rem' }}>
-                <CheckCircle size={80} color="#4caf50" style={{ margin: '0 auto 1.5rem' }} />
-                <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '2.5rem', marginBottom: '1rem' }}>Tratak Realizado</h2>
-                <p style={{ fontSize: '1.2rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2.5rem' }}>O foco e a disciplina foram forjados mais um pouco hoje.</p>
-                <button onClick={() => {
-                  setIsTratakActive(false);
-                  handleFvDailyPracticeChange('tratack', true); // Marca a caixinha automaticamente!
-                }} style={{ padding: '1rem 3rem', fontSize: '1.2rem', background: '#4caf50', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(76, 175, 80, 0.4)' }}>
-                  Confirmar Prática
-                </button>
+                <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? '#FFD700' : '#996515', fontSize: '2rem', marginBottom: '1rem' }}>Santuário em Preparação</h2>
+                <p style={{ fontSize: '1.2rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2.5rem' }}>A imersão para esta prática será adicionada em breve!</p>
+                <button onClick={() => setIsPracticeActive(false)} style={{ padding: '1rem 2rem', background: 'transparent', color: isDark ? '#FFD700' : '#996515', border: '2px solid #FFD700', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold' }}>Voltar</button>
               </div>
             )}
 
