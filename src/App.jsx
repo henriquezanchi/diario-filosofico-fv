@@ -6,7 +6,7 @@ import {
   AlertCircle, Eye, EyeOff, CheckCircle, Download, Upload,
   Target, TrendingUp, Award, FileText, Book, Settings,
   Trash2, Edit, Save, XCircle, Flame, Zap, Shield, Star, Crown, 
-  Bell // 👈 ÍCONE DO SINO ADICIONADO AQUI
+  Bell, Check // 👈 ADICIONADO AQUI
 } from 'lucide-react';
 // Na importação do Firebase, puxe o messaging e o getToken:
 import { auth, db, messaging } from './config/firebase-config'; // 👈 Adicione o messaging aqui
@@ -35,8 +35,10 @@ function App() {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  // Estado das Notificações
+
+  // Estados das Notificações
   const [notificationsActive, setNotificationsActive] = useState(false);
+  const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
 
   const enableNotifications = async () => {
     if (notificationsActive) {
@@ -323,6 +325,21 @@ function App() {
       window.removeEventListener('scroll', handleActivity);
     };
   }, [user, showInactivityWarning]);
+
+// O Convite Ativo de Notificações
+  useEffect(() => {
+    if (user && 'Notification' in window) {
+      if (Notification.permission === 'granted') {
+        setNotificationsActive(true);
+      } else if (Notification.permission === 'default') {
+        // Se ainda não escolheu, espera 3 segundos e mostra o convite
+        const timer = setTimeout(() => {
+          setShowNotificationPrompt(true);
+        }, 3000);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [user]);
 
   useEffect(() => {
     let intervalId;
@@ -895,11 +912,12 @@ function App() {
               <button onClick={handleFvLockClick} style={{ padding: '0.5rem 1rem', background: view === 'fv' ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'transparent', color: view === 'fv' ? '#000' : '#FFD700', border: '2px solid #FFD700', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, boxShadow: '0 0 10px rgba(255, 215, 0, 0.3)' }}>FV</button>
             )}
             
-            {/* BOTÃO DE NOTIFICAÇÃO INTELIGENTE */}
+            {/* BOTÃO DE NOTIFICAÇÃO INTELIGENTE (COM CHECKZINHO) */}
             <button 
               onClick={enableNotifications} 
               title={notificationsActive ? "Lembretes Ativados" : "Ativar Lembretes"} 
               style={{ 
+                position: 'relative', // Necessário para o Check ficar por cima
                 padding: '0.5rem', 
                 background: notificationsActive ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : 'transparent', 
                 border: `2px solid ${notificationsActive ? '#4caf50' : (isDark ? '#d4af37' : '#6b4423')}`, 
@@ -912,6 +930,13 @@ function App() {
               }}
             >
               <Bell size={20} color={notificationsActive ? '#4caf50' : (isDark ? '#d4af37' : '#6b4423')} />
+              
+              {/* O SELO DO CHECK APARECE AQUI */}
+              {notificationsActive && (
+                <div style={{ position: 'absolute', top: '-6px', right: '-6px', background: '#4caf50', borderRadius: '50%', padding: '2px', border: `2px solid ${isDark ? '#1a1a2e' : '#f0e6d2'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Check size={12} color="white" strokeWidth={4} />
+                </div>
+              )}
             </button>
 
             <button onClick={toggleTheme} style={{ padding: '0.5rem', background: 'transparent', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1552,7 +1577,30 @@ function App() {
             </div>
           </div>
         )}
-
+        
+{/* MODAL: CONVITE ATIVO DE NOTIFICAÇÃO */}
+        {showNotificationPrompt && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(5px)' }}>
+            <div className="animate-fadeIn" style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '2.5rem', borderRadius: '16px', maxWidth: '400px', width: '100%', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.3)', position: 'relative' }}>
+              <button onClick={() => setShowNotificationPrompt(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}><X size={24} /></button>
+              
+              <Bell size={56} color={isDark ? '#d4af37' : '#6b4423'} style={{ margin: '0 auto 1rem' }} />
+              <h2 style={{ margin: '0 0 1rem 0', fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.5rem' }}>Mantenha a Chama Acesa!</h2>
+              <p style={{ margin: '0 0 1.5rem 0', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '1.05rem', lineHeight: '1.6' }}>
+                Ative os lembretes para não esquecer de fazer o seu Diário Filosófico e o Exame Noturno.
+              </p>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <button onClick={() => { enableNotifications(); setShowNotificationPrompt(false); }} style={{ width: '100%', padding: '1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                  <CheckCircle size={20} /> Ativar Lembretes
+                </button>
+                <button onClick={() => setShowNotificationPrompt(false)} style={{ width: '100%', padding: '1rem', background: 'transparent', color: isDark ? '#b8a88a' : '#6b4423', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(107, 68, 35, 0.3)'}`, borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
+                  Agora não
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       <footer style={{ padding: '2rem', textAlign: 'center', color: isDark ? '#b8a88a' : '#6b5744', borderTop: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, marginTop: '2rem' }}>
