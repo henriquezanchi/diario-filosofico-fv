@@ -1876,7 +1876,7 @@ function App() {
             {/* O TOCA-DISCOS INTELIGENTE (Troca a música sozinho) */}
             <audio 
               ref={audioRef} 
-              src={activePracticeId === 'templo' ? "/jesus-bach.mp3" : "/aria-bach.mp3"} 
+              src={activePracticeId === 'templo' ? "/beethoven.mp3" : "/aria-bach.mp3"} 
               onEnded={() => setPracticePhase('done')}
             />
 
@@ -1968,7 +1968,7 @@ function App() {
                     
                     <div style={{ background: isDark ? 'rgba(255,215,0,0.05)' : 'rgba(153,101,21,0.05)', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255,215,0,0.2)' : 'rgba(153,101,21,0.2)'}`, marginBottom: '1.5rem' }}>
                       <p style={{ fontSize: '1.15rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.6', margin: 0 }}>Feche os olhos e inicie sua jornada para dentro de si.</p>
-                      <p style={{ fontSize: '1.15rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.6', marginTop: '1rem', marginBottom: 0 }}>Ao som de Bach, avance o quanto puder pelas etapas do Templo.</p>
+                      <p style={{ fontSize: '1.15rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.6', marginTop: '1rem', marginBottom: 0 }}>Ao som de Beethoven, avance o quanto puder pelas etapas do Templo.</p>
                     </div>
 
                     <p style={{ fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '0.5rem', fontStyle: 'italic' }}>Ao final da música, você registrará seu progresso.</p>
