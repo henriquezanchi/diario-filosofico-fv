@@ -1941,7 +1941,7 @@ function App() {
             )}
 
             {/* AVISO DE CONSTRUÇÃO PARA AS OUTRAS PRÁTICAS */}
-            {activePracticeId !== 'tratack' && (
+            {activePracticeId !== 'tratack' && activePracticeId !== 'camara' && (
               <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '2rem' }}>
                 <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? '#FFD700' : '#996515', fontSize: '2rem', marginBottom: '1rem' }}>Santuário em Preparação</h2>
                 <p style={{ fontSize: '1.2rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2.5rem' }}>A imersão para esta prática será adicionada em breve!</p>
