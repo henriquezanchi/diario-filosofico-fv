@@ -1646,10 +1646,13 @@ function App() {
             </div>
           </div>
         )}
-        {/* ESPAÇO GLOBAL PARA ANÚNCIO DO GOOGLE (APARECE EM TODAS AS ABAS) */}
-        <div style={{ padding: '20px', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(107, 68, 35, 0.05)', borderRadius: '12px', marginTop: '2rem', border: `1px dashed ${isDark ? '#d4af37' : '#6b4423'}` }}>
-          <p style={{ textAlign: 'center', fontSize: '0.8rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '10px', fontFamily: 'Georgia, serif' }}>Publicidade</p>
-          <AdBanner slotId="9558175523" />
+        {/* ESPAÇO GLOBAL PARA ANÚNCIO DO GOOGLE (COMPACTO) */}
+        <div style={{ padding: '8px', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(107, 68, 35, 0.05)', borderRadius: '8px', marginTop: '2rem', border: `1px dashed ${isDark ? '#d4af37' : '#6b4423'}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80px' }}>
+          <span style={{ fontSize: '0.65rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Publicidade</span>
+          
+          <div style={{ width: '100%', maxWidth: '728px' }}>
+            <AdBanner slotId="9558175523" />
+          </div>
         </div>
       </main>
 
