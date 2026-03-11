@@ -176,6 +176,20 @@ function App() {
     }
   };
 
+  // NOVO: Funções de Tela Cheia (Imersão)
+  const enterFullScreen = () => {
+    const elem = document.documentElement;
+    if (elem.requestFullscreen) { elem.requestFullscreen().catch(e => console.log(e)); }
+    else if (elem.webkitRequestFullscreen) { elem.webkitRequestFullscreen(); } // Safari
+  };
+
+  const exitFullScreen = () => {
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      if (document.exitFullscreen) { document.exitFullscreen().catch(e => console.log(e)); }
+      else if (document.webkitExitFullscreen) { document.webkitExitFullscreen(); } // Safari
+    }
+  };
+
   const virtues = [
     { name: "Paciência", shortDesc: "Suportar dificuldades mantendo a serenidade", description: "A capacidade de suportar dificuldades sem se perturbar, mantendo a serenidade diante das adversidades e do tempo necessário para as coisas se realizarem.", practices: "• Respirar profundamente antes de reagir\n• Observar a irritação sem agir impulsivamente\n• Lembrar que tudo tem seu tempo", color: "#4A90E2" },
     { name: "Ordem", shortDesc: "Harmonia no mundo exterior e interior", description: "Disposição harmoniosa das coisas em seu devido lugar, tanto no mundo exterior quanto no interior.", practices: "• Organizar espaço físico diariamente\n• Criar rotinas conscientes\n• Planejar o dia com antecedência", color: "#7B68EE" },
@@ -1751,6 +1765,7 @@ function App() {
                       onClick={() => { 
                         setPracticePhase('practice'); 
                         setCancelClickCount(0); // Zera os cliques ao começar!
+                        enterFullScreen(); // 👈 LIGA A TELA CHEIA AQUI
                       }} 
                       style={{ padding: '1rem 2.5rem', fontSize: '1.2rem', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: '#000', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold' }}
                     >
@@ -1769,6 +1784,7 @@ function App() {
                         const novosCliques = prev + 1;
                         if (novosCliques >= 3) {
                           setIsPracticeActive(false); // Fecha a imersão na hora
+                          exitFullScreen(); // 👈 DESLIGA SE ABORTAR
                           return 0; // Reseta por segurança
                         }
                         return novosCliques;
@@ -1789,7 +1805,16 @@ function App() {
                     <CheckCircle size={80} color="#4caf50" style={{ margin: '0 auto 1.5rem' }} />
                     <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '2.5rem', marginBottom: '1rem' }}>Tratak Realizado</h2>
                     <p style={{ fontSize: '1.2rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2.5rem' }}>O foco e a disciplina foram forjados mais um pouco hoje.</p>
-                    <button onClick={() => { setIsPracticeActive(false); handleFvDailyPracticeChange('tratack', true); }} style={{ padding: '1rem 3rem', fontSize: '1.2rem', background: '#4caf50', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold' }}>Confirmar Prática</button>
+                    <button 
+                      onClick={() => { 
+                        setIsPracticeActive(false); 
+                        handleFvDailyPracticeChange('tratack', true); 
+                        exitFullScreen(); // 👈 DESLIGA QUANDO TERMINAR
+                      }} 
+                      style={{ padding: '1rem 3rem', fontSize: '1.2rem', background: '#4caf50', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold' }}
+                    >
+                      Confirmar Prática
+                    </button>
                   </div>
                 )}
               </>
