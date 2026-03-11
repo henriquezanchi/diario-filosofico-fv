@@ -1075,11 +1075,6 @@ function App() {
               )}
             </button>
 
-{/* BOTÃO DE SUGESTÕES */}
-            <button onClick={() => setShowSuggestionModal(true)} style={{ padding: '0.5rem', background: 'transparent', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Enviar Sugestão">
-              <MessageSquare size={20} color={isDark ? '#d4af37' : '#6b4423'} />
-            </button>
-
             {/* Este é o botão do Sol/Lua que já existe aí 👇 */}
             {/* BOTÃO DE SUGESTÕES (NOVO) */}
             <button onClick={() => setShowSuggestionModal(true)} style={{ padding: '0.5rem', background: 'transparent', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s ease' }} title="Enviar Sugestão">
