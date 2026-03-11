@@ -1136,13 +1136,7 @@ function App() {
           </div>
         )}
 
-          {/* ESPAÇO PARA ANÚNCIO DO GOOGLE (FINAL DA TELA HOJE) */}
-            <div style={{ padding: '20px', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(107, 68, 35, 0.05)', borderRadius: '12px', marginTop: '2rem', border: `1px dashed ${isDark ? '#d4af37' : '#6b4423'}` }}>
-              <p style={{ textAlign: 'center', fontSize: '0.8rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '10px', fontFamily: 'Georgia, serif' }}>Publicidade</p>
-              
-              <AdBanner slotId="9558175523" />
-              
-            </div>      
+          
 
         {/* VIEW: TASKS */}
         
@@ -1652,6 +1646,11 @@ function App() {
             </div>
           </div>
         )}
+        {/* ESPAÇO GLOBAL PARA ANÚNCIO DO GOOGLE (APARECE EM TODAS AS ABAS) */}
+        <div style={{ padding: '20px', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(107, 68, 35, 0.05)', borderRadius: '12px', marginTop: '2rem', border: `1px dashed ${isDark ? '#d4af37' : '#6b4423'}` }}>
+          <p style={{ textAlign: 'center', fontSize: '0.8rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '10px', fontFamily: 'Georgia, serif' }}>Publicidade</p>
+          <AdBanner slotId="9558175523" />
+        </div>
       </main>
 
       <footer style={{ padding: '2rem', textAlign: 'center', color: isDark ? '#b8a88a' : '#6b5744', borderTop: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, marginTop: '2rem' }}>
