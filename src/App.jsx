@@ -1588,6 +1588,40 @@ function App() {
                       </div>
                     )}
 
+{/* NOVO: EXIBIR PRÁTICAS DA FORÇA VIVA NO HISTÓRICO */}
+                    {entry.fvDaily && entry.fvDaily.praticas && fvUnlocked && (
+                      <div style={{ padding: '1rem', background: isDark ? 'rgba(255, 215, 0, 0.05)' : '#fffbf0', borderRadius: '8px', borderLeft: `4px solid ${isDark ? '#FFD700' : '#996515'}`, marginBottom: '1rem' }}>
+                        <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#FFD700' : '#996515', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <Award size={16} /> Práticas FV Realizadas:
+                        </h4>
+                        <ul style={{ margin: 0, paddingLeft: '1.2rem', color: isDark ? '#c8b896' : '#6b5744', fontSize: '0.95rem', lineHeight: '1.6' }}>
+                          {Object.entries(entry.fvDaily.praticas)
+                            .filter(([key, value]) => value === true) // Pega só as que foram feitas!
+                            .map(([key]) => {
+                              // Traduz o nome técnico do código para o nome bonito na tela
+                              const fvLabels = {
+                                tratack: 'Tratak',
+                                recitarHonra: 'Recitar Código de Honra',
+                                recitar7Fases: 'Recitar 7 Fases da ED',
+                                camara: 'Câmara de Purificação',
+                                porta: 'Templo: Porta',
+                                patioAberto: 'Templo: Pátio Aberto',
+                                patioColunas: 'Templo: Pátio de Colunas',
+                                santuario: 'Templo: Santuário'
+                              };
+                              return <li key={key}><strong>{fvLabels[key] || key}</strong></li>;
+                            })
+                          }
+                          {Object.values(entry.fvDaily.praticas).every(val => !val) && (
+                            <li style={{ fontStyle: 'italic', opacity: 0.7, listStyle: 'none', marginLeft: '-1.2rem' }}>Apenas os registros escritos foram salvos.</li>
+                          )}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* ESSA É A LINHA QUE VOCÊ PESQUISOU 👇 */}
+
+
                     {entry.eveningDone && (
                       <>
                         <div style={{ marginBottom: '1rem' }}>
