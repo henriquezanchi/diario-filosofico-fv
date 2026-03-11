@@ -166,9 +166,11 @@ function App() {
 // Função que decide o que abrir quando clica em "Realizar"
   const handleRealizarPratica = (key) => {
     setActiveActionMenu(null); // Fecha o menu primeiro
+    
     if (key === 'tratack') {
-      setTratakPhase('intro');
-      setIsTratakActive(true);
+      setActivePracticeId(key);  // 👈 Usa a ID universal
+      setPracticePhase('intro'); // 👈 Usa a Fase universal
+      setIsPracticeActive(true); // 👈 Levanta o Escudo universal
     } else {
       alert('A imersão guiada para esta prática será adicionada no nosso próximo passo! 🚀 Por enquanto, você pode marcá-la como "Já Realizado".');
     }
