@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 // Na importação do Firebase, puxe o messaging e o getToken:
 import { auth, db, messaging } from './config/firebase-config'; // 👈 Adicione o messaging aqui
-import { getToken } from 'firebase/messaging'; // 👈 Importação nova
+import { getToken, deleteToken } from 'firebase/messaging'; // 👈 ADICIONE O deleteToken
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
@@ -21,7 +21,7 @@ import {
 } from 'firebase/auth';
 import { 
   doc, setDoc, getDoc, collection, query, where,
-  getDocs, updateDoc, deleteDoc, Timestamp 
+  getDocs, updateDoc, deleteDoc, Timestamp, deleteField // 👈 ADICIONE AQUI 
 } from 'firebase/firestore';
 import './App.css';
 
@@ -40,12 +40,34 @@ function App() {
   const [notificationsActive, setNotificationsActive] = useState(false);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
 
-  const enableNotifications = async () => {
+  // Função Inteligente: Liga e Desliga Notificações
+  const toggleNotifications = async () => {
+    // SE JÁ ESTIVER ATIVADO: Vamos desativar
     if (notificationsActive) {
-      alert('🔔 Seus lembretes já estão ativados neste dispositivo!');
-      return;
+      const confirmDisable = window.confirm('Deseja desativar os lembretes do Diário Filosófico?');
+      if (confirmDisable) {
+        try {
+          // 1. Deleta o token do serviço do Firebase no navegador
+          await deleteToken(messaging);
+          
+          // 2. Apaga o Token do Banco de Dados para o sistema "esquecer" o usuário
+          if (user) {
+            await updateDoc(doc(db, 'users', user.uid), { 
+              fcmToken: deleteField() 
+            });
+          }
+          
+          setNotificationsActive(false);
+          alert('🔕 Lembretes desativados com sucesso.\n\nNota: Seu celular/navegador ainda mantém a permissão aberta. Para bloquear totalmente, clique no ícone de "Cadeado" na barra de endereços e altere as configurações do site.');
+        } catch (error) {
+          console.error('Erro ao desativar notificações:', error);
+          alert('Erro ao tentar desativar. Tente novamente.');
+        }
+      }
+      return; // Para a execução aqui
     }
 
+    // SE ESTIVER DESATIVADO: Vamos ativar (Código que você já tinha)
     try {
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
@@ -55,7 +77,7 @@ function App() {
         
         if (token && user) {
            await updateDoc(doc(db, 'users', user.uid), { fcmToken: token });
-           setNotificationsActive(true); // <--- Muda para ativado!
+           setNotificationsActive(true);
            alert('🔔 Notificações ativadas com sucesso! Agora você receberá lembretes.');
         }
       } else {
@@ -914,7 +936,7 @@ function App() {
             
             {/* BOTÃO DE NOTIFICAÇÃO INTELIGENTE (COM CHECKZINHO) */}
             <button 
-              onClick={enableNotifications} 
+              onClick={toggleNotifications} 
               title={notificationsActive ? "Lembretes Ativados" : "Ativar Lembretes"} 
               style={{ 
                 position: 'relative', // Necessário para o Check ficar por cima
@@ -1577,7 +1599,7 @@ function App() {
             </div>
           </div>
         )}
-        
+
 {/* MODAL: CONVITE ATIVO DE NOTIFICAÇÃO */}
         {showNotificationPrompt && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(5px)' }}>
@@ -1591,7 +1613,7 @@ function App() {
               </p>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                <button onClick={() => { enableNotifications(); setShowNotificationPrompt(false); }} style={{ width: '100%', padding: '1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                <button onClick={() => { toggleNotifications(); setShowNotificationPrompt(false); }} style={{ width: '100%', padding: '1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
                   <CheckCircle size={20} /> Ativar Lembretes
                 </button>
                 <button onClick={() => setShowNotificationPrompt(false)} style={{ width: '100%', padding: '1rem', background: 'transparent', color: isDark ? '#b8a88a' : '#6b4423', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(107, 68, 35, 0.3)'}`, borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
