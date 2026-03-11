@@ -108,7 +108,7 @@ function App() {
 
   const handleSendEmail = () => {
     if (!suggestionText.trim()) return alert('Por favor, digite sua sugestão primeiro!');
-    const subject = encodeURIComponent('Ideia/Melhoria - Diário da Força Viva');
+    const subject = encodeURIComponent('Ideia/Melhoria - Diário Filosófico');
     const body = encodeURIComponent(`Olá!\n\nAqui está minha sugestão para o aplicativo:\n\n${suggestionText}`);
     // ATENÇÃO: Troque "seuemail@gmail.com" pelo seu e-mail real
     window.open(`mailto:henrique.zanchi@gmail.com?subject=${subject}&body=${body}`); 
@@ -118,7 +118,7 @@ function App() {
 
   const handleSendWhatsApp = () => {
     if (!suggestionText.trim()) return alert('Por favor, digite sua sugestão primeiro!');
-    const text = encodeURIComponent(`*Ideia/Melhoria - Diário da Força Viva* 💡\n\n${suggestionText}`);
+    const text = encodeURIComponent(`*Ideia/Melhoria - Diário Filosófico* 💡\n\n${suggestionText}`);
     // ATENÇÃO: Troque "5511999999999" pelo seu número de WhatsApp real (Código do País + DDD + Número)
     window.open(`https://wa.me/5562991729783?text=${text}`, '_blank');
     setShowSuggestionModal(false);
@@ -1081,12 +1081,17 @@ function App() {
             </button>
 
             {/* Este é o botão do Sol/Lua que já existe aí 👇 */}
-            <button onClick={toggleTheme} style={{ padding: '0.5rem', background: 'transparent', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}></button>
+            {/* BOTÃO DE SUGESTÕES (NOVO) */}
+            <button onClick={() => setShowSuggestionModal(true)} style={{ padding: '0.5rem', background: 'transparent', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s ease' }} title="Enviar Sugestão">
+              <MessageSquare size={20} color={isDark ? '#d4af37' : '#6b4423'} />
+            </button>
 
+            {/* BOTÃO DE TEMA (SOL/LUA) */}
             <button onClick={toggleTheme} style={{ padding: '0.5rem', background: 'transparent', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {isDark ? <Sun size={20} color="#d4af37" /> : <Moon size={20} color="#8b7355" />}
             </button>
             
+            {/* BOTÃO DE SAIR */}
             <button onClick={handleLogout} style={{ padding: '0.5rem 1rem', background: 'transparent', color: isDark ? '#d4af37' : '#6b4423', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <LogOut size={16} /> <span style={{ display: window.innerWidth > 768 ? 'inline' : 'none' }}>Sair</span>
             </button>
