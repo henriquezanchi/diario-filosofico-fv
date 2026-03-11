@@ -16,12 +16,13 @@ export default function AdBanner({ slotId }) {
   }, []);
 
   return (
-    <div style={{ margin: '20px 0', textAlign: 'center', overflow: 'hidden', width: '100%' }}>
+    // Tiramos a margem daqui para não somar com a caixa de fora
+    <div style={{ width: '100%', textAlign: 'center', overflow: 'hidden' }}>
       <ins className="adsbygoogle"
            style={{ display: 'block' }}
            data-ad-client="ca-pub-4345985055033438" 
            data-ad-slot={slotId}
-           data-ad-format="auto"
+           data-ad-format="horizontal" /* Mudamos de 'auto' para 'horizontal' para forçar ele a ficar baixinho */
            data-full-width-responsive="true"></ins>
     </div>
   );
