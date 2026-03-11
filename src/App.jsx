@@ -1613,26 +1613,53 @@ function App() {
                           <Award size={16} /> Práticas FV Realizadas:
                         </h4>
                         <ul style={{ margin: 0, paddingLeft: '1.2rem', color: isDark ? '#c8b896' : '#6b5744', fontSize: '0.95rem', lineHeight: '1.6' }}>
-                          {Object.entries(entry.fvDaily.praticas)
-                            .filter(([key, value]) => value === true) // Pega só as que foram feitas!
-                            .map(([key]) => {
-                              // Traduz o nome técnico do código para o nome bonito na tela
-                              const fvLabels = {
-                                tratack: 'Tratak',
-                                recitarHonra: 'Recitar Código de Dignidade',
-                                recitar7Fases: 'Recitar 7 Fases da ED',
-                                camara: 'Câmara de Purificação',
-                                porta: 'Templo: Porta',
-                                patioAberto: 'Templo: Pátio Aberto',
-                                patioColunas: 'Templo: Pátio de Colunas',
-                                santuario: 'Templo: Santuário'
-                              };
-                              return <li key={key}><strong>{fvLabels[key] || key}</strong></li>;
-                            })
-                          }
-                          {Object.values(entry.fvDaily.praticas).every(val => !val) && (
-                            <li style={{ fontStyle: 'italic', opacity: 0.7, listStyle: 'none', marginLeft: '-1.2rem' }}>Apenas os registros escritos foram salvos.</li>
-                          )}
+                          {(() => {
+                            // 1. Pega apenas o que foi marcado como feito no dia
+                            const praticasFeitas = Object.entries(entry.fvDaily.praticas)
+                              .filter(([_, feito]) => feito)
+                              .map(([key]) => key);
+
+                            // 2. Se não fez nada, mostra a mensagem padrão
+                            if (praticasFeitas.length === 0) {
+                              return <li style={{ fontStyle: 'italic', opacity: 0.7, listStyle: 'none', marginLeft: '-1.2rem' }}>Apenas os registros escritos foram salvos.</li>;
+                            }
+
+                            // 3. Dicionários de nomes
+                            const dicionarioGeral = {
+                              tratack: 'Tratak',
+                              recitarHonra: 'Recitar Código de Dignidade',
+                              recitar7Fases: 'Recitar 7 Fases da ED',
+                              camara: 'Câmara de Purificação'
+                            };
+
+                            const dicionarioTemplo = {
+                              porta: 'Porta',
+                              patioAberto: 'Pátio Aberto',
+                              patioColunas: 'Pátio de Colunas',
+                              santuario: 'Santuário'
+                            };
+
+                            // 4. Separação
+                            const listaGeral = praticasFeitas.filter(key => dicionarioGeral[key]);
+                            // Mantém a ordem oficial do Templo: Porta -> Pátio Aberto -> Pátio de Colunas -> Santuário
+                            const listaTemplo = ['porta', 'patioAberto', 'patioColunas', 'santuario'].filter(key => praticasFeitas.includes(key));
+
+                            return (
+                              <>
+                                {/* Imprime as práticas gerais individualmente */}
+                                {listaGeral.map(key => (
+                                  <li key={key}><strong>{dicionarioGeral[key]}</strong></li>
+                                ))}
+                                
+                                {/* Agrupa as do templo em uma única linha, separadas por vírgula */}
+                                {listaTemplo.length > 0 && (
+                                  <li key="templo-grupo">
+                                    <strong>Templo: {listaTemplo.map(k => dicionarioTemplo[k]).join(', ')}</strong>
+                                  </li>
+                                )}
+                              </>
+                            );
+                          })()}
                         </ul>
                       </div>
                     )}
