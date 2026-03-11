@@ -6,7 +6,7 @@ import {
   AlertCircle, Eye, EyeOff, CheckCircle, Download, Upload,
   Target, TrendingUp, Award, FileText, Book, Settings,
   Trash2, Edit, Save, XCircle, Flame, Zap, Shield, Star, Crown, 
-  Bell, Check, Music // 👈 ADICIONE Music NO FINAL DESSA LISTA
+  Bell, Check, Music, MessageSquare // 👈 ADICIONE O MessageSquare AQUI NO FINAL
 } from 'lucide-react';
 // Na importação do Firebase, puxe o messaging e o getToken:
 import { auth, db, messaging } from './config/firebase-config'; // 👈 Adicione o messaging aqui
@@ -101,6 +101,29 @@ function App() {
   // Inatividade
   const [showInactivityWarning, setShowInactivityWarning] = useState(false);
   const [logoutCountdown, setLogoutCountdown] = useState(15);
+
+// Sugestões e Melhorias
+  const [showSuggestionModal, setShowSuggestionModal] = useState(false);
+  const [suggestionText, setSuggestionText] = useState('');
+
+  const handleSendEmail = () => {
+    if (!suggestionText.trim()) return alert('Por favor, digite sua sugestão primeiro!');
+    const subject = encodeURIComponent('Ideia/Melhoria - Diário da Força Viva');
+    const body = encodeURIComponent(`Olá!\n\nAqui está minha sugestão para o aplicativo:\n\n${suggestionText}`);
+    // ATENÇÃO: Troque "seuemail@gmail.com" pelo seu e-mail real
+    window.open(`mailto:henrique.zanchi@gmail.com?subject=${subject}&body=${body}`); 
+    setShowSuggestionModal(false);
+    setSuggestionText('');
+  };
+
+  const handleSendWhatsApp = () => {
+    if (!suggestionText.trim()) return alert('Por favor, digite sua sugestão primeiro!');
+    const text = encodeURIComponent(`*Ideia/Melhoria - Diário da Força Viva* 💡\n\n${suggestionText}`);
+    // ATENÇÃO: Troque "5511999999999" pelo seu número de WhatsApp real (Código do País + DDD + Número)
+    window.open(`https://wa.me/5562991729783?text=${text}`, '_blank');
+    setShowSuggestionModal(false);
+    setSuggestionText('');
+  };
 
   // Estados do Prólogo e Epílogo
   const [morningDone, setMorningDone] = useState(false);
@@ -1561,7 +1584,8 @@ function App() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                       <div>
                         <h3 style={{ margin: 0, color: isDark ? '#d4af37' : '#6b4423', fontSize: '1.2rem', marginBottom: '0.5rem' }}>
-                          {new Date(entry.date).toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                          {/* A MÁGICA AQUI: + 'T12:00:00' impede que o fuso horário do Brasil jogue a data para o dia anterior */}
+                          {new Date(entry.date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                         </h3>
                         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                           {entry.virtue && <span style={{ padding: '0.2rem 0.6rem', background: isDark ? 'rgba(212,175,55,0.2)' : '#fdf5e6', borderRadius: '4px', fontSize: '0.85rem', color: isDark ? '#d4af37' : '#6b4423', border: `1px solid ${isDark ? 'rgba(212,175,55,0.4)' : '#e8dcc4'}` }}>Virtude: <strong>{entry.virtue}</strong></span>}
