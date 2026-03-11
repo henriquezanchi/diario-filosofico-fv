@@ -158,7 +158,7 @@ function App() {
   const [isPracticeActive, setIsPracticeActive] = useState(false); // O Escudo contra Logout!
   const [activePracticeId, setActivePracticeId] = useState(null); // Diz se é tratak, camara, templo, etc.
   const [practicePhase, setPracticePhase] = useState('intro'); // 'intro', 'practice', 'done'
-  
+  const [cancelClickCount, setCancelClickCount] = useState(0); // 👈 ADICIONE ESTA LINHA
   
   // NOVO: Controle do Menu de Ação das Práticas
   const [activeActionMenu, setActiveActionMenu] = useState(null);
@@ -1735,23 +1735,48 @@ function App() {
                     <Target size={48} color={isDark ? '#FFD700' : '#996515'} style={{ margin: '0 auto 1.5rem' }} />
                     <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? '#FFD700' : '#996515', fontSize: '2rem', margin: '0 0 1rem 0' }}>Prática de Tratak</h2>
                     
-                    <div style={{ background: isDark ? 'rgba(255,215,0,0.05)' : 'rgba(153,101,21,0.05)', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255,215,0,0.2)' : 'rgba(153,101,21,0.2)'}`, marginBottom: '2rem' }}>
+                    <div style={{ background: isDark ? 'rgba(255,215,0,0.05)' : 'rgba(153,101,21,0.05)', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255,215,0,0.2)' : 'rgba(153,101,21,0.2)'}`, marginBottom: '1.5rem' }}>
                       <p style={{ fontSize: '1.15rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.6', margin: 0 }}>Posicione o seu dispositivo a cerca de 1 metro de distância, alinhado à altura dos olhos.</p>
                       <p style={{ fontSize: '1.15rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.6', marginTop: '1rem', marginBottom: 0 }}>Sente-se adequadamente, com a coluna ereta. Respire fundo e clique em iniciar.</p>
                     </div>
 
-                    <p style={{ fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2rem', fontStyle: 'italic' }}>A prática durará 3 minutos. Mantenha o olhar fixo no ponto central.</p>
+                    <p style={{ fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '0.5rem', fontStyle: 'italic' }}>A prática durará 3 minutos. Mantenha o olhar fixo no ponto central.</p>
+                    
+                    {/* NOVO: Aviso de Encerramento */}
+                    <p style={{ fontSize: '0.85rem', color: '#e74c3c', marginBottom: '2rem', fontWeight: 'bold' }}>⚠️ Para encerrar antecipadamente, toque 3 vezes na tela.</p>
 
-                    <button onClick={() => setPracticePhase('practice')} style={{ padding: '1rem 2.5rem', fontSize: '1.2rem', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: '#000', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold' }}>Iniciar Tratak</button>
+                    <button 
+                      onClick={() => { 
+                        setPracticePhase('practice'); 
+                        setCancelClickCount(0); // Zera os cliques ao começar!
+                      }} 
+                      style={{ padding: '1rem 2.5rem', fontSize: '1.2rem', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: '#000', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold' }}
+                    >
+                      Iniciar Tratak
+                    </button>
                     <button onClick={() => setIsPracticeActive(false)} style={{ marginTop: '1rem', display: 'block', width: '100%', padding: '1rem', background: 'transparent', color: isDark ? '#888' : '#6b5744', border: 'none', cursor: 'pointer', fontFamily: 'Georgia, serif', textDecoration: 'underline' }}>Voltar ao Diário</button>
                   </div>
                 )}
 
-                {/* FASE 2: O CÍRCULO */}
+                {/* FASE 2: O CÍRCULO (COM ABORTO DE 3 CLIQUES) */}
                 {practicePhase === 'practice' && (
-                  <div className="animate-fadeIn" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%' }}>
-                    <div style={{ width: 'min(60vw, 300px)', aspectRatio: '1/1', borderRadius: '50%', border: `6px solid ${isDark ? '#fff' : '#000'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <div style={{ width: 'min(4vw, 24px)', aspectRatio: '1/1', borderRadius: '50%', background: isDark ? '#fff' : '#000' }}></div>
+                  <div 
+                    className="animate-fadeIn" 
+                    onClick={() => {
+                      setCancelClickCount(prev => {
+                        const novosCliques = prev + 1;
+                        if (novosCliques >= 3) {
+                          setIsPracticeActive(false); // Fecha a imersão na hora
+                          return 0; // Reseta por segurança
+                        }
+                        return novosCliques;
+                      });
+                    }}
+                    style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%', cursor: 'pointer' }}
+                  >
+                    {/* O desenho com o tamanho maior que ajustamos */}
+                    <div style={{ width: 'min(85vw, 500px)', aspectRatio: '1/1', borderRadius: '50%', border: `8px solid ${isDark ? '#fff' : '#000'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ width: 'min(6vw, 36px)', aspectRatio: '1/1', borderRadius: '50%', background: isDark ? '#fff' : '#000' }}></div>
                     </div>
                   </div>
                 )}
