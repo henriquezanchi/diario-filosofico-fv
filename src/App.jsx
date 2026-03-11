@@ -24,6 +24,7 @@ import {
   getDocs, updateDoc, deleteDoc, Timestamp, deleteField // 👈 ADICIONE AQUI 
 } from 'firebase/firestore';
 import './App.css';
+import AdBanner from './AdBanner'; // 👈 ADICIONE ESTA LINHA AQUI
 
 function App() {
   // Estados de Autenticação
@@ -1135,7 +1136,16 @@ function App() {
           </div>
         )}
 
+          {/* ESPAÇO PARA ANÚNCIO DO GOOGLE (FINAL DA TELA HOJE) */}
+            <div style={{ padding: '20px', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(107, 68, 35, 0.05)', borderRadius: '12px', marginTop: '2rem', border: `1px dashed ${isDark ? '#d4af37' : '#6b4423'}` }}>
+              <p style={{ textAlign: 'center', fontSize: '0.8rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '10px', fontFamily: 'Georgia, serif' }}>Publicidade</p>
+              
+              <AdBanner slotId="9558175523" />
+              
+            </div>      
+
         {/* VIEW: TASKS */}
+        
         {view === 'tasks' && (
           <div className="animate-fadeIn">
             <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
