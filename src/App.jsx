@@ -154,27 +154,43 @@ function App() {
     }
   });
 
-// NOVO: Controle Universal das Práticas Guiadas
-  const [isPracticeActive, setIsPracticeActive] = useState(false); // O Escudo contra Logout!
-  const [activePracticeId, setActivePracticeId] = useState(null); // Diz se é tratak, camara, templo, etc.
-  const [practicePhase, setPracticePhase] = useState('intro'); // 'intro', 'practice', 'done'
-  const [cancelClickCount, setCancelClickCount] = useState(0); // 👈 ADICIONE ESTA LINHA
+  // NOVO: Controle Universal das Práticas Guiadas
+  const [isPracticeActive, setIsPracticeActive] = useState(false); 
+  const [activePracticeId, setActivePracticeId] = useState(null); 
+  const [practicePhase, setPracticePhase] = useState('intro'); 
+  const [cancelClickCount, setCancelClickCount] = useState(0); 
   
-  // NOVO: Controle do Menu de Ação das Práticas
+  // ESTADO DO TEMPLO: Guarda as etapas que ele passou durante a música
+  const [temploSelections, setTemploSelections] = useState({ porta: false, patioAberto: false, patioColunas: false, santuario: false });
+
   const [activeActionMenu, setActiveActionMenu] = useState(null);
-  const audioRef = useRef(null); // 👈 NOVO: Controle remoto da música
+  const audioRef = useRef(null); 
 
   // Função que decide o que abrir quando clica em "Realizar"
   const handleRealizarPratica = (key) => {
     setActiveActionMenu(null); 
     
-    // NOVO: Agora aceita tratack E camara!
     if (key === 'tratack' || key === 'camara') {
       setActivePracticeId(key); 
       setPracticePhase('intro'); 
       setIsPracticeActive(true); 
-    } else {
-      alert('A imersão guiada para esta prática será adicionada no nosso próximo passo! 🚀 Por enquanto, você pode marcá-la como "Já Realizado".');
+    } 
+    // Se clicar em QUALQUER etapa do Templo, abre a Imersão do Templo!
+    else if (['porta', 'patioAberto', 'patioColunas', 'santuario'].includes(key)) {
+      setActivePracticeId('templo');
+      // Puxa o que já estava marcado antes de começar
+      setTemploSelections({
+        porta: fvDaily.praticas?.porta || false,
+        patioAberto: fvDaily.praticas?.patioAberto || false,
+        patioColunas: fvDaily.praticas?.patioColunas || false,
+        santuario: fvDaily.praticas?.santuario || false
+      });
+      setPracticePhase('intro'); 
+      setIsPracticeActive(true); 
+    } 
+    // Bloqueio das recitações sigilosas
+    else {
+      alert('Esta é uma prática de foro íntimo e sagrado. Por favor, faça a sua recitação privadamente e marque a opção "Já Realizado".');
     }
   };
 
@@ -1416,7 +1432,7 @@ function App() {
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                       {[
                         { key: 'tratack', label: 'Tratak' },
-                        { key: 'recitarHonra', label: 'Recitar Código de Honra' },
+                        { key: 'recitarHonra', label: 'Recitar Código de Dignidade' },,
                         { key: 'recitar7Fases', label: 'Recitar 7 fases da ED' },
                         { key: 'camara', label: 'Câmara de Purificação' }
                       ].map(prac => (
@@ -1603,7 +1619,7 @@ function App() {
                               // Traduz o nome técnico do código para o nome bonito na tela
                               const fvLabels = {
                                 tratack: 'Tratak',
-                                recitarHonra: 'Recitar Código de Honra',
+                                recitarHonra: 'Recitar Código de Dignidade',
                                 recitar7Fases: 'Recitar 7 Fases da ED',
                                 camara: 'Câmara de Purificação',
                                 porta: 'Templo: Porta',
@@ -1856,11 +1872,12 @@ function App() {
               </>
             )}
 
-{/* O TOCA-DISCOS INVISÍVEL (Fica esperando o Play) */}
+
+            {/* O TOCA-DISCOS INTELIGENTE (Troca a música sozinho) */}
             <audio 
               ref={audioRef} 
-              src="/aria-bach.mp3" 
-              onEnded={() => setPracticePhase('done')} // Quando a música acaba, vai para a tela final!
+              src={activePracticeId === 'templo' ? "/jesus-bach.mp3" : "/aria-bach.mp3"} 
+              onEnded={() => setPracticePhase('done')}
             />
 
             {/* --- 2. PRÁTICA: CÂMARA DE PURIFICAÇÃO --- */}
@@ -1940,13 +1957,104 @@ function App() {
               </>
             )}
 
-            {/* AVISO DE CONSTRUÇÃO PARA AS OUTRAS PRÁTICAS */}
-            {activePracticeId !== 'tratack' && activePracticeId !== 'camara' && (
-              <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '2rem' }}>
-                <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? '#FFD700' : '#996515', fontSize: '2rem', marginBottom: '1rem' }}>Santuário em Preparação</h2>
-                <p style={{ fontSize: '1.2rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2.5rem' }}>A imersão para esta prática será adicionada em breve!</p>
-                <button onClick={() => setIsPracticeActive(false)} style={{ padding: '1rem 2rem', background: 'transparent', color: isDark ? '#FFD700' : '#996515', border: '2px solid #FFD700', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold' }}>Voltar</button>
-              </div>
+            {/* --- 3. PRÁTICA: TEMPLO INTERIOR --- */}
+            {activePracticeId === 'templo' && (
+              <>
+                {/* FASE 1: INSTRUÇÃO */}
+                {practicePhase === 'intro' && (
+                  <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '2rem', maxWidth: '500px' }}>
+                    <Sparkles size={48} color={isDark ? '#FFD700' : '#996515'} style={{ margin: '0 auto 1.5rem' }} />
+                    <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? '#FFD700' : '#996515', fontSize: '2rem', margin: '0 0 1rem 0' }}>Templo Interior</h2>
+                    
+                    <div style={{ background: isDark ? 'rgba(255,215,0,0.05)' : 'rgba(153,101,21,0.05)', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255,215,0,0.2)' : 'rgba(153,101,21,0.2)'}`, marginBottom: '1.5rem' }}>
+                      <p style={{ fontSize: '1.15rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.6', margin: 0 }}>Feche os olhos e inicie sua jornada para dentro de si.</p>
+                      <p style={{ fontSize: '1.15rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.6', marginTop: '1rem', marginBottom: 0 }}>Ao som de Bach, avance o quanto puder pelas etapas do Templo.</p>
+                    </div>
+
+                    <p style={{ fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '0.5rem', fontStyle: 'italic' }}>Ao final da música, você registrará seu progresso.</p>
+                    <p style={{ fontSize: '0.85rem', color: '#e74c3c', marginBottom: '2rem', fontWeight: 'bold' }}>⚠️ Para interromper, toque 3 vezes na tela.</p>
+
+                    <button 
+                      onClick={() => { 
+                        setPracticePhase('practice'); 
+                        setCancelClickCount(0); 
+                        enterFullScreen();
+                        if(audioRef.current) { audioRef.current.load(); audioRef.current.play(); } 
+                      }} 
+                      style={{ padding: '1rem 2.5rem', fontSize: '1.2rem', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: '#000', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(255, 215, 0, 0.3)' }}
+                    >
+                      Adentrar o Templo
+                    </button>
+                    <button onClick={() => setIsPracticeActive(false)} style={{ marginTop: '1rem', display: 'block', width: '100%', padding: '1rem', background: 'transparent', color: isDark ? '#888' : '#6b5744', border: 'none', cursor: 'pointer', fontFamily: 'Georgia, serif', textDecoration: 'underline' }}>Voltar ao Diário</button>
+                  </div>
+                )}
+
+                {/* FASE 2: A JORNADA (TELA ESCURA MINIMALISTA) */}
+                {practicePhase === 'practice' && (
+                  <div 
+                    className="animate-fadeIn" 
+                    onClick={() => {
+                      setCancelClickCount(prev => {
+                        const novosCliques = prev + 1;
+                        if (novosCliques >= 3) {
+                          if(audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; }
+                          setIsPracticeActive(false); 
+                          exitFullScreen();
+                          return 0; 
+                        }
+                        return novosCliques;
+                      });
+                    }}
+                    style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%', cursor: 'pointer' }}
+                  >
+                    <Sparkles size={56} color={isDark ? 'rgba(255, 215, 0, 0.2)' : 'rgba(153, 101, 21, 0.2)'} style={{ opacity: 0.7 }} />
+                    <p style={{ marginTop: '2rem', color: isDark ? 'rgba(255, 215, 0, 0.4)' : 'rgba(153, 101, 21, 0.4)', fontStyle: 'italic', fontFamily: 'Georgia, serif', letterSpacing: '2px' }}>Caminhando pelo Templo...</p>
+                  </div>
+                )}
+
+                {/* FASE 3: MARCAÇÃO DOS DEGRAUS (CONCLUSÃO) */}
+                {practicePhase === 'done' && (
+                  <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '2rem', maxWidth: '400px', width: '100%' }}>
+                    <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? '#FFD700' : '#996515', fontSize: '2rem', marginBottom: '0.5rem' }}>Jornada Concluída</h2>
+                    <p style={{ fontSize: '1.1rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2rem' }}>Até qual etapa você conseguiu se manter consciente hoje?</p>
+                    
+                    {/* AS CAIXINHAS DE SELEÇÃO DO TEMPLO */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem', textAlign: 'left', background: isDark ? 'rgba(255,215,0,0.05)' : 'rgba(153,101,21,0.05)', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255,215,0,0.2)' : 'rgba(153,101,21,0.2)'}` }}>
+                      {[
+                        { key: 'porta', label: '1. Porta' },
+                        { key: 'patioAberto', label: '2. Pátio Aberto' },
+                        { key: 'patioColunas', label: '3. Pátio de Colunas' },
+                        { key: 'santuario', label: '4. Santuário' }
+                      ].map(prac => (
+                        <label key={prac.key} style={{ display: 'flex', alignItems: 'center', gap: '1rem', cursor: 'pointer', padding: '0.5rem' }}>
+                          <input 
+                            type="checkbox" 
+                            checked={temploSelections[prac.key]} 
+                            onChange={(e) => setTemploSelections(prev => ({ ...prev, [prac.key]: e.target.checked }))} 
+                            style={{ width: '24px', height: '24px', cursor: 'pointer', accentcolor: isDark ? '#FFD700' : '#996515' }} 
+                          />
+                          <span style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.1rem' }}>{prac.label}</span>
+                        </label>
+                      ))}
+                    </div>
+
+                    <button 
+                      onClick={() => { 
+                        setIsPracticeActive(false); 
+                        // Salva todas as caixinhas marcadas de uma vez só!
+                        setFvDaily(prev => ({
+                          ...prev,
+                          praticas: { ...prev.praticas, ...temploSelections }
+                        }));
+                        exitFullScreen();
+                      }} 
+                      style={{ width: '100%', padding: '1rem', fontSize: '1.2rem', background: '#4caf50', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold' }}
+                    >
+                      Confirmar Progresso
+                    </button>
+                  </div>
+                )}
+              </>
             )}
 
           </div>
