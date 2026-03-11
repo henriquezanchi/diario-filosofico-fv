@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 // Na importação do Firebase, puxe o messaging e o getToken:
 import { auth, db, messaging } from './config/firebase-config'; // 👈 Adicione o messaging aqui
-import { getToken, deleteToken } from 'firebase/messaging'; // 👈 ADICIONE O deleteToken
+import { getToken, deleteToken, onMessage } from 'firebase/messaging'; // 👈 ADICIONE O deleteToken
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
@@ -362,6 +362,25 @@ function App() {
       }
     }
   }, [user]);
+
+// Ouve as mensagens quando o app ESTIVER ABERTO (Foreground)
+  useEffect(() => {
+    if (!messaging) return;
+
+    const unsubscribe = onMessage(messaging, (payload) => {
+      console.log('Mensagem recebida com o app aberto: ', payload);
+      
+      // Força a notificação nativa do navegador mesmo com a aba aberta
+      if (Notification.permission === 'granted') {
+        new Notification(payload.notification.title, {
+          body: payload.notification.body,
+          icon: '/favicon.svg' // Usa aquele nosso ícone bonito!
+        });
+      }
+    });
+
+    return () => unsubscribe(); // Limpa o ouvinte ao sair
+  }, []);
 
   useEffect(() => {
     let intervalId;
