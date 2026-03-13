@@ -41,36 +41,34 @@ function App() {
   const [notificationsActive, setNotificationsActive] = useState(false);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
 
-  // Função Inteligente: Liga e Desliga Notificações
+  // Função Inteligente: Liga e Desliga Notificações (UX Melhorada)
   const toggleNotifications = async () => {
-    // SE JÁ ESTIVER ATIVADO: Vamos desativar
+    // SE JÁ ESTIVER ATIVADO: Vamos desativar (Sem mandar o usuário para o navegador)
     if (notificationsActive) {
-      const confirmDisable = window.confirm('Deseja desativar os lembretes do Diário Filosófico?');
+      const confirmDisable = window.confirm('Deseja silenciar os lembretes do Diário Filosófico?');
       if (confirmDisable) {
         try {
-          // 1. Deleta o token do serviço do Firebase no navegador
+          // Deleta o token da memória e do banco de dados. O servidor não consegue mais enviar.
           await deleteToken(messaging);
-          
-          // 2. Apaga o Token do Banco de Dados para o sistema "esquecer" o usuário
           if (user) {
-            await updateDoc(doc(db, 'users', user.uid), { 
-              fcmToken: deleteField() 
-            });
+            await updateDoc(doc(db, 'users', user.uid), { fcmToken: deleteField() });
           }
-          
           setNotificationsActive(false);
-          alert('🔕 Lembretes desativados com sucesso.\n\nNota: Seu celular/navegador ainda mantém a permissão aberta. Para bloquear totalmente, clique no ícone de "Cadeado" na barra de endereços e altere as configurações do site.');
+          // Aviso amigável e direto. A mágica acontece nos bastidores.
+          alert('🔕 Lembretes silenciados. Você não receberá mais os avisos de Prólogo e Epílogo.');
         } catch (error) {
-          console.error('Erro ao desativar notificações:', error);
-          alert('Erro ao tentar desativar. Tente novamente.');
+          console.error('Erro ao silenciar:', error);
+          alert('Houve um pequeno erro. Tente novamente.');
         }
       }
-      return; // Para a execução aqui
+      return;
     }
 
-    // SE ESTIVER DESATIVADO: Vamos ativar (Código que você já tinha)
+    // SE ESTIVER DESATIVADO: Vamos ativar
     try {
+      // Pede permissão ao navegador (Se ele já deu permissão antes, o navegador pula essa etapa invisivelmente)
       const permission = await Notification.requestPermission();
+      
       if (permission === 'granted') {
         const token = await getToken(messaging, { 
           vapidKey: 'BCbaqmBk9-neW0G2xxxszZk7nlj89NDaLdeLqkiW9-wUb2GW1JxnneFaTmFcLaYjQUE49mG1lAMnZNCqLp4ZXL0' 
@@ -79,14 +77,15 @@ function App() {
         if (token && user) {
            await updateDoc(doc(db, 'users', user.uid), { fcmToken: token });
            setNotificationsActive(true);
-           alert('🔔 Notificações ativadas com sucesso! Agora você receberá lembretes.');
+           alert('🔔 Lembretes ativados! Nós avisaremos você nos horários adequados.');
         }
       } else {
-        alert('Você negou a permissão. Mude nas configurações do seu navegador se quiser receber lembretes.');
+        // Aqui é o ÚNICO cenário onde o usuário precisa ir no navegador: se ele mesmo bloqueou!
+        alert('As notificações estão bloqueadas no seu navegador. Para receber lembretes, clique no ícone de "Cadeado" ao lado do endereço do site e mude para "Permitir".');
       }
     } catch (error) {
       console.error('Erro ao ativar notificações:', error);
-      alert('Erro ao ativar notificações. Verifique se seu navegador tem suporte.');
+      alert('Seu dispositivo parece não suportar esse tipo de aviso no momento.');
     }
   };
 
