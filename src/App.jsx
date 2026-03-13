@@ -305,8 +305,7 @@ function App() {
     return { current, next };
   };
 
-  const getUserFirstName = () => {
-    if (!user) {
+  if (!user) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'linear-gradient(135deg, #f0e6d2 0%, #e8dcc4 100%)', fontFamily: 'Georgia, serif' }}>
         
@@ -392,7 +391,6 @@ function App() {
       </div>
     );
   }
-  };
 
   const clearAllData = () => {
     setEntries([]);
