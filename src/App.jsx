@@ -1118,8 +1118,8 @@ function App() {
           {/* LOGO */}
           <div onClick={handleLogoClick} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
             <BookOpen size={32} color={isDark ? '#d4af37' : '#6b4423'} />
-            <h1 style={{ margin: 0, fontFamily: 'Georgia, serif', fontSize: 'clamp(1.1rem, 4vw, 1.5rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 700 }}>
-              Diário Filosófico <span style={{ fontWeight: 'normal', fontStyle: 'italic', fontSize: '0.85em', opacity: 0.9, display: isMobile ? 'none' : 'inline' }}>de {getUserFirstName()}</span>
+            <h1 style={{ margin: 0, fontFamily: 'Georgia, serif', fontSize: 'clamp(1rem, 3.5vw, 1.5rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 700 }}>
+              Diário Filosófico <span style={{ fontWeight: 'normal', fontStyle: 'italic', fontSize: '0.85em', opacity: 0.9 }}>de {getUserFirstName()}</span>
             </h1>
           </div>
 
@@ -1537,9 +1537,11 @@ function App() {
           <div className="animate-fadeIn">
             <div style={{ background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 165, 0, 0.1) 100%)', padding: '2rem', borderRadius: '16px', border: '2px solid #FFD700', boxShadow: '0 0 20px rgba(255, 215, 0, 0.3)' }}>
               
-              {/* TÍTULO */}
+              {/* TÍTULO E BOTÃO SECRETO DE BLOQUEIO */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-                <Award size={32} color="#FFD700" />
+                <div onClick={handleFvLockClick} style={{ cursor: 'pointer', display: 'flex' }} title="Toque 3 vezes para ocultar o modo FV">
+                  <Award size={32} color="#FFD700" />
+                </div>
                 <div>
                   <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif" }}>Registro Diário da Força Viva | CD </h2>
                   <p style={{ margin: '0.25rem 0 0 0', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.9rem' }}>Dia: {new Date().toLocaleDateString('pt-BR')}</p>
