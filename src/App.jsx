@@ -869,6 +869,47 @@ function App() {
     setFvDaily(prev => ({ ...prev, praticas: { ...prev.praticas, [key]: value } }));
   };
 
+  // NOVO: Salva as práticas imersivas automaticamente no banco de dados ao finalizá-las
+  const confirmImmersivePractice = async (key) => {
+    const newFvDaily = {
+      ...fvDaily,
+      praticas: { ...fvDaily.praticas, [key]: true }
+    };
+    setFvDaily(newFvDaily); // Atualiza na tela
+    setIsPracticeActive(false);
+    exitFullScreen();
+
+    if (user) {
+      const todayKey = getTodayKey();
+      try {
+        await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), {
+          fvDaily: newFvDaily
+        }, { merge: true });
+        await loadAllEntries(user.uid); // Atualiza o histórico na hora!
+      } catch (error) { console.error("Erro ao salvar prática:", error); }
+    }
+  };
+
+  const confirmTemploPractice = async () => {
+    const newFvDaily = {
+      ...fvDaily,
+      praticas: { ...fvDaily.praticas, ...temploSelections }
+    };
+    setFvDaily(newFvDaily);
+    setIsPracticeActive(false);
+    exitFullScreen();
+
+    if (user) {
+      const todayKey = getTodayKey();
+      try {
+        await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), {
+          fvDaily: newFvDaily
+        }, { merge: true });
+        await loadAllEntries(user.uid);
+      } catch (error) {}
+    }
+  };
+
   const deleteEntry = async (dateKey) => {
     if (!window.confirm('Deseja realmente excluir este dia?')) return;
     try {
@@ -1862,63 +1903,48 @@ function App() {
                       </div>
                     )}
 
-{/* NOVO: EXIBIR PRÁTICAS DA FORÇA VIVA NO HISTÓRICO */}
-                    {entry.fvDaily && entry.fvDaily.praticas && fvUnlocked && (
+                  {/* NOVO: EXIBIR PRÁTICAS DA FORÇA VIVA / GLOBAIS NO HISTÓRICO */}
+                    {entry.fvDaily && entry.fvDaily.praticas && (fvUnlocked || entry.fvDaily.praticas.tratack) && (
                       <div style={{ padding: '1rem', background: isDark ? 'rgba(255, 215, 0, 0.05)' : '#fffbf0', borderRadius: '8px', borderLeft: `4px solid ${isDark ? '#FFD700' : '#996515'}`, marginBottom: '1rem' }}>
                         <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#FFD700' : '#996515', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <Award size={16} /> Práticas FV Realizadas:
+                          <Award size={16} /> {fvUnlocked ? 'Práticas FV Realizadas:' : 'Práticas Extras Realizadas:'}
                         </h4>
                         <ul style={{ margin: 0, paddingLeft: '1.2rem', color: isDark ? '#c8b896' : '#6b5744', fontSize: '0.95rem', lineHeight: '1.6' }}>
                           {(() => {
-                            // 1. Pega apenas o que foi marcado como feito no dia
                             const praticasFeitas = Object.entries(entry.fvDaily.praticas)
                               .filter(([_, feito]) => feito)
                               .map(([key]) => key);
 
-                            // 2. Se não fez nada, mostra a mensagem padrão
-                            if (praticasFeitas.length === 0) {
-                              return <li style={{ fontStyle: 'italic', opacity: 0.7, listStyle: 'none', marginLeft: '-1.2rem' }}>Apenas os registros escritos foram salvos.</li>;
+                            // Se o usuário não for FV, filtramos para mostrar APENAS o Tratak (protege a confidencialidade das outras)
+                            const listaPermitida = fvUnlocked ? praticasFeitas : praticasFeitas.filter(k => k === 'tratack');
+
+                            if (listaPermitida.length === 0) {
+                              return fvUnlocked ? <li style={{ fontStyle: 'italic', opacity: 0.7, listStyle: 'none', marginLeft: '-1.2rem' }}>Apenas os registros escritos foram salvos.</li> : null;
                             }
 
-                            // 3. Dicionários de nomes
                             const dicionarioGeral = {
                               tratack: 'Tratak',
                               recitarHonra: 'Recitar Código de Dignidade',
                               recitar7Fases: 'Recitar 7 Fases da ED',
                               camara: 'Câmara de Purificação'
                             };
+                            const dicionarioTemplo = { porta: 'Porta', patioAberto: 'Pátio Aberto', patioColunas: 'Pátio de Colunas', santuario: 'Santuário' };
 
-                            const dicionarioTemplo = {
-                              porta: 'Porta',
-                              patioAberto: 'Pátio Aberto',
-                              patioColunas: 'Pátio de Colunas',
-                              santuario: 'Santuário'
-                            };
-
-                            // 4. Separação
-                            const listaGeral = praticasFeitas.filter(key => dicionarioGeral[key]);
-                            // Mantém a ordem oficial do Templo: Porta -> Pátio Aberto -> Pátio de Colunas -> Santuário
-                            const listaTemplo = ['porta', 'patioAberto', 'patioColunas', 'santuario'].filter(key => praticasFeitas.includes(key));
+                            const listaGeral = listaPermitida.filter(key => dicionarioGeral[key]);
+                            const listaTemplo = ['porta', 'patioAberto', 'patioColunas', 'santuario'].filter(key => listaPermitida.includes(key));
 
                             return (
                               <>
-                                {/* Imprime as práticas gerais individualmente */}
-                                {listaGeral.map(key => (
-                                  <li key={key}><strong>{dicionarioGeral[key]}</strong></li>
-                                ))}
-                                
-                                {/* Agrupa as do templo em uma única linha, separadas por vírgula */}
+                                {listaGeral.map(key => <li key={key}><strong>{dicionarioGeral[key]}</strong></li>)}
                                 {listaTemplo.length > 0 && (
-                                  <li key="templo-grupo">
-                                    <strong>Templo: {listaTemplo.map(k => dicionarioTemplo[k]).join(', ')}</strong>
-                                  </li>
+                                  <li key="templo-grupo"><strong>Templo: {listaTemplo.map(k => dicionarioTemplo[k]).join(', ')}</strong></li>
                                 )}
                               </>
                             );
                           })()}
                         </ul>
                       </div>
-                    )}
+                    )}    
 
                     {/* ESSA É A LINHA QUE VOCÊ PESQUISOU 👇 */}
 
@@ -2167,11 +2193,7 @@ function App() {
                     <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '2.5rem', marginBottom: '1rem' }}>Tratak Realizado</h2>
                     <p style={{ fontSize: '1.2rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2.5rem' }}>O foco e a disciplina foram forjados mais um pouco hoje.</p>
                     <button 
-                      onClick={() => { 
-                        setIsPracticeActive(false); 
-                        handleFvDailyPracticeChange('tratack', true); 
-                        exitFullScreen(); // 👈 DESLIGA QUANDO TERMINAR
-                      }} 
+                      onClick={() => confirmImmersivePractice('tratack')} 
                       style={{ padding: '1rem 3rem', fontSize: '1.2rem', background: '#4caf50', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold' }}
                     >
                       Confirmar Prática
@@ -2247,11 +2269,7 @@ function App() {
                     <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '2.5rem', marginBottom: '1rem' }}>Purificação Concluída</h2>
                     <p style={{ fontSize: '1.2rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2.5rem' }}>Sua mente agora está serena e limpa como um espelho d'água.</p>
                     <button 
-                      onClick={() => { 
-                        setIsPracticeActive(false); 
-                        handleFvDailyPracticeChange('camara', true); 
-                        exitFullScreen();
-                      }} 
+                      onClick={() => confirmImmersivePractice('camara')} 
                       style={{ padding: '1rem 3rem', fontSize: '1.2rem', background: '#4caf50', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold' }}
                     >
                       Confirmar Prática
@@ -2344,15 +2362,7 @@ function App() {
                     </div>
 
                     <button 
-                      onClick={() => { 
-                        setIsPracticeActive(false); 
-                        // Salva todas as caixinhas marcadas de uma vez só!
-                        setFvDaily(prev => ({
-                          ...prev,
-                          praticas: { ...prev.praticas, ...temploSelections }
-                        }));
-                        exitFullScreen();
-                      }} 
+                      onClick={confirmTemploPractice} 
                       style={{ width: '100%', padding: '1rem', fontSize: '1.2rem', background: '#4caf50', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold' }}
                     >
                       Confirmar Progresso
