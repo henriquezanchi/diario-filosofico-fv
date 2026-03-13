@@ -46,10 +46,10 @@ export default async function handler(req, res) {
         title: isMorning ? '☀️ Prólogo Matinal' : '🌙 Epílogo Noturno',
         body: isMorning ? 'Inicie seu dia com propósito. Sorteie sua virtude hoje!' : 'Hora do autoexame. O que você fez bem hoje? Feche o seu dia.',
       },
-      // NOVO: Forçando o ícone de Livro Aberto clássico
+      // 👈 NOVO: Força o ícone de livro em todas as plataformas
       webpush: {
         notification: {
-          icon: 'https://cdn-icons-png.flaticon.com/512/3389/3389081.png' 
+          icon: 'https://cdn-icons-png.flaticon.com/512/3389/3389081.png'
         }
       },
       tokens: tokens,

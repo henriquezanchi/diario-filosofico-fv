@@ -448,9 +448,7 @@ function App() {
 // O Convite Ativo de Notificações
   useEffect(() => {
     if (user && 'Notification' in window) {
-      if (Notification.permission === 'granted') {
-        setNotificationsActive(true);
-      } else if (Notification.permission === 'default') {
+      if (Notification.permission === 'default') {
         // Se ainda não escolheu, espera 3 segundos e mostra o convite
         const timer = setTimeout(() => {
           setShowNotificationPrompt(true);
@@ -539,12 +537,8 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // Checa se o usuário já deu permissão de notificação neste dispositivo
-  useEffect(() => {
-    if ('Notification' in window) {
-      setNotificationsActive(Notification.permission === 'granted');
-    }
-  }, []);
+ 
+  
   const loadUserData = async (uid) => {
     try {
       const userDoc = await getDoc(doc(db, 'users', uid));
@@ -553,6 +547,13 @@ function App() {
         setTheme(data.theme || 'light');
         setLastDrawDate(data.lastDrawDate || null);
         setFvUnlocked(data.fvUnlocked || false);
+        
+        // NOVO: O sininho só fica verde se existir um token real salvo no banco de dados!
+        if ('Notification' in window && Notification.permission === 'granted') {
+          setNotificationsActive(!!data.fcmToken);
+        } else {
+          setNotificationsActive(false);
+        }
       } else {
         await setDoc(doc(db, 'users', uid), {
           createdAt: Timestamp.now(), theme: 'light', lastDrawDate: null, fvUnlocked: false

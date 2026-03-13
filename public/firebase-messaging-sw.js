@@ -24,7 +24,8 @@ messaging.onBackgroundMessage(function(payload) {
   const notificationTitle = payload.notification.title;
   const notificationOptions = {
     body: payload.notification.body,
-    // Você pode colocar um ícone aqui futuramente
+    // 👈 AQUI ESTÁ O ÍCONE DO LIVRO ABERTO
+    icon: 'https://cdn-icons-png.flaticon.com/512/3389/3389081.png'
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
