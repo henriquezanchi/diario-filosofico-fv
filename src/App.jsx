@@ -468,7 +468,7 @@ function App() {
       if (Notification.permission === 'granted') {
         new Notification(payload.notification.title, {
           body: payload.notification.body,
-          icon: '/favicon.svg' // Usa aquele nosso ícone bonito!
+          icon: 'https://img.icons8.com/ios-filled/512/8b7355/open-book.png'
         });
       }
     });
