@@ -192,6 +192,7 @@ function App() {
   const [activePracticeId, setActivePracticeId] = useState(null); 
   const [practicePhase, setPracticePhase] = useState('intro'); 
   const [cancelClickCount, setCancelClickCount] = useState(0); 
+  const [tratakMouseActive, setTratakMouseActive] = useState(false);
   
   // ESTADO DO TEMPLO: Guarda as etapas que ele passou durante a música
   const [temploSelections, setTemploSelections] = useState({ porta: false, patioAberto: false, patioColunas: false, santuario: false });
@@ -478,16 +479,20 @@ function App() {
     return () => unsubscribe(); // Limpa o ouvinte ao sair
   }, []);
 
-// Motor Universal das Práticas: Cronômetros
+// Motor Universal das Práticas: Cronômetros e Sensores
   useEffect(() => {
     let timer;
-    // Se for o Tratak e estiver na fase de prática: 3 minutos (180000 ms)
+    let mouseSafetyTimer;
+    
     if (activePracticeId === 'tratack' && practicePhase === 'practice') {
       timer = setTimeout(() => setPracticePhase('done'), 180000); 
+      // Libera o cancelamento por mouse após 2 segundos (tempo para soltar o mouse)
+      mouseSafetyTimer = setTimeout(() => setTratakMouseActive(true), 2000);
+    } else {
+      setTratakMouseActive(false); // Reseta a trava se não estiver no tratak
     }
-    // Os cronômetros da Câmara e do Templo entrarão aqui depois!
     
-    return () => clearTimeout(timer);
+    return () => { clearTimeout(timer); clearTimeout(mouseSafetyTimer); };
   }, [practicePhase, activePracticeId]);
 
   useEffect(() => {
@@ -1225,6 +1230,11 @@ function App() {
               <button onClick={() => setView('goals')} style={{ padding: '0.5rem 1rem', background: view === 'goals' ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: view === 'goals' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Metas</button>
               <button onClick={() => setView('biblioteca')} style={{ padding: '0.5rem 1rem', background: view === 'biblioteca' ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: view === 'biblioteca' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Virtudes</button>
 
+              {/* ATALHO RÁPIDO DO TRATAK (GLOBAL) */}
+              <button onClick={() => { setActivePracticeId('tratack'); setPracticePhase('intro'); setIsPracticeActive(true); }} style={{ padding: '0.5rem 1rem', background: isDark ? '#b8a88a' : '#8b7355', color: isDark ? '#1a1a2e' : '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem', marginLeft: '0.5rem' }}>
+                <Target size={16} /> Tratak
+              </button>
+
               {fvUnlocked && (
                 <button onClick={handleFvTabClick} style={{ padding: '0.5rem 1rem', background: view === 'fv' ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'transparent', color: view === 'fv' ? '#000' : '#FFD700', border: '2px solid #FFD700', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, boxShadow: '0 0 10px rgba(255, 215, 0, 0.3)' }}>FV</button>
               )}
@@ -1271,6 +1281,11 @@ function App() {
                 </button>
               );
             })}
+
+            {/* TRATAK NO MENU MOBILE */}
+            <button onClick={() => { setIsMobileMenuOpen(false); setActivePracticeId('tratack'); setPracticePhase('intro'); setIsPracticeActive(true); }} style={{ width: '100%', padding: '1.2rem', textAlign: 'left', background: 'transparent', color: isDark ? '#f0e6d2' : '#2c1810', border: '1px solid transparent', borderRadius: '12px', fontSize: '1.3rem', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <Target size={24} color={isDark ? '#f0e6d2' : '#2c1810'} /> Tratak
+            </button>
             
             {fvUnlocked && (
               <button onClick={() => { setView('fv'); setIsMobileMenuOpen(false); }} style={{ width: '100%', padding: '1.2rem', textAlign: 'left', background: view === 'fv' ? 'linear-gradient(135deg, rgba(255,215,0,0.2) 0%, rgba(255,165,0,0.2) 100%)' : 'transparent', color: view === 'fv' ? '#FFD700' : (isDark ? '#f0e6d2' : '#2c1810'), border: `1px solid ${view === 'fv' ? '#FFD700' : 'transparent'}`, borderRadius: '12px', fontSize: '1.3rem', fontFamily: 'Georgia, serif', fontWeight: view === 'fv' ? 'bold' : 'normal', display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -2126,24 +2141,19 @@ function App() {
                   </div>
                 )}
 
-                {/* FASE 2: O CÍRCULO (COM ABORTO DE 3 CLIQUES) */}
+                {/* FASE 2: O CÍRCULO (CANCELA AO MOVER O MOUSE) */}
                 {practicePhase === 'practice' && (
                   <div 
                     className="animate-fadeIn" 
-                    onClick={() => {
-                      setCancelClickCount(prev => {
-                        const novosCliques = prev + 1;
-                        if (novosCliques >= 3) {
-                          setIsPracticeActive(false); // Fecha a imersão na hora
-                          exitFullScreen(); // 👈 DESLIGA SE ABORTAR
-                          return 0; // Reseta por segurança
-                        }
-                        return novosCliques;
-                      });
+                    onMouseMove={() => {
+                      if (tratakMouseActive) {
+                        setIsPracticeActive(false); 
+                        exitFullScreen(); 
+                        setTratakMouseActive(false);
+                      }
                     }}
-                    style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%', cursor: 'pointer' }}
+                    style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%', cursor: 'none' }}
                   >
-                    {/* O desenho com o tamanho maior que ajustamos */}
                     <div style={{ width: 'min(85vw, 500px)', aspectRatio: '1/1', borderRadius: '50%', border: `8px solid ${isDark ? '#fff' : '#000'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <div style={{ width: 'min(6vw, 36px)', aspectRatio: '1/1', borderRadius: '50%', background: isDark ? '#fff' : '#000' }}></div>
                     </div>
@@ -2214,24 +2224,19 @@ function App() {
 
                 {/* FASE 2: A PRÁTICA (TELA ESCURA MINIMALISTA) */}
                 {practicePhase === 'practice' && (
-                  <div 
-                    className="animate-fadeIn" 
-                    onClick={() => {
-                      setCancelClickCount(prev => {
-                        const novosCliques = prev + 1;
-                        if (novosCliques >= 3) {
-                          if(audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; } // 👈 PARA A MÚSICA SE ABORTAR
-                          setIsPracticeActive(false); 
-                          exitFullScreen();
-                          return 0; 
-                        }
-                        return novosCliques;
-                      });
-                    }}
-                    style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%', cursor: 'pointer' }}
-                  >
+                  <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%', position: 'relative' }}>
                     <Music size={56} color={isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'} style={{ opacity: 0.5 }} />
                     <p style={{ marginTop: '2rem', color: isDark ? 'rgba(240, 230, 210, 0.3)' : 'rgba(44, 24, 16, 0.3)', fontStyle: 'italic', fontFamily: 'Georgia, serif', letterSpacing: '2px' }}>Respire e ouça...</p>
+                    
+                    {/* BOTÃO DE ENCERRAR */}
+                    <button onClick={(e) => {
+                      e.stopPropagation();
+                      if(audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; }
+                      setIsPracticeActive(false); 
+                      exitFullScreen();
+                    }} style={{ position: 'absolute', bottom: '10%', padding: '1rem 2rem', background: 'transparent', color: '#e74c3c', border: '2px solid #e74c3c', borderRadius: '8px', fontSize: '1.1rem', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <XCircle size={20} /> Encerrar Prática
+                    </button>
                   </div>
                 )}
 
@@ -2296,24 +2301,19 @@ function App() {
 
                 {/* FASE 2: A JORNADA (TELA ESCURA MINIMALISTA) */}
                 {practicePhase === 'practice' && (
-                  <div 
-                    className="animate-fadeIn" 
-                    onClick={() => {
-                      setCancelClickCount(prev => {
-                        const novosCliques = prev + 1;
-                        if (novosCliques >= 3) {
-                          if(audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; }
-                          setIsPracticeActive(false); 
-                          exitFullScreen();
-                          return 0; 
-                        }
-                        return novosCliques;
-                      });
-                    }}
-                    style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%', cursor: 'pointer' }}
-                  >
+                  <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%', position: 'relative' }}>
                     <Sparkles size={56} color={isDark ? 'rgba(255, 215, 0, 0.2)' : 'rgba(153, 101, 21, 0.2)'} style={{ opacity: 0.7 }} />
                     <p style={{ marginTop: '2rem', color: isDark ? 'rgba(255, 215, 0, 0.4)' : 'rgba(153, 101, 21, 0.4)', fontStyle: 'italic', fontFamily: 'Georgia, serif', letterSpacing: '2px' }}>Caminhando pelo Templo...</p>
+
+                    {/* BOTÃO DE ENCERRAR */}
+                    <button onClick={(e) => {
+                      e.stopPropagation();
+                      if(audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; }
+                      setIsPracticeActive(false); 
+                      exitFullScreen();
+                    }} style={{ position: 'absolute', bottom: '10%', padding: '1rem 2rem', background: 'transparent', color: '#e74c3c', border: '2px solid #e74c3c', borderRadius: '8px', fontSize: '1.1rem', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <XCircle size={20} /> Encerrar Prática
+                    </button>
                   </div>
                 )}
 
