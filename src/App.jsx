@@ -6,7 +6,7 @@ import {
   AlertCircle, Eye, EyeOff, CheckCircle, Download, Upload,
   Target, TrendingUp, Award, FileText, Book, Settings,
   Trash2, Edit, Save, XCircle, Flame, Zap, Shield, Star, Crown, 
-  Bell, Check, Music, MessageSquare // 👈 ADICIONE O MessageSquare AQUI NO FINAL
+  Bell, Check, Music, MessageSquare, Menu // 👈 ADICIONE "Menu" AQUI NO FINAL
 } from 'lucide-react';
 // Na importação do Firebase, puxe o messaging e o getToken:
 import { auth, db, messaging } from './config/firebase-config'; // 👈 Adicione o messaging aqui
@@ -97,6 +97,16 @@ function App() {
   const [streak, setStreak] = useState(0); 
   const [longestStreak, setLongestStreak] = useState(0); 
   const [showStreakModal, setShowStreakModal] = useState(false); 
+
+  // NOVO: Controles do Menu Mobile
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 850);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 850);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Inatividade
   const [showInactivityWarning, setShowInactivityWarning] = useState(false);
@@ -1103,76 +1113,115 @@ function App() {
   return (
     <div style={{ minHeight: '100vh', background: isDark ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)' : 'linear-gradient(135deg, #f0e6d2 0%, #e8dcc4 100%)', fontFamily: 'Georgia, serif', transition: 'background 0.3s ease' }}>
       <header style={{ padding: '1rem 2rem', borderBottom: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, background: isDark ? 'rgba(26, 26, 46, 0.95)' : 'rgba(240, 230, 210, 0.95)', backdropFilter: 'blur(10px)', position: 'sticky', top: 0, zIndex: 100 }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          
+          {/* LOGO */}
           <div onClick={handleLogoClick} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
             <BookOpen size={32} color={isDark ? '#d4af37' : '#6b4423'} />
-            <h1 style={{ margin: 0, fontFamily: 'Georgia, serif', fontSize: 'clamp(1.2rem, 4vw, 1.5rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 700 }}>
-              Diário Filosófico <span style={{ fontWeight: 'normal', fontStyle: 'italic', fontSize: '0.85em', opacity: 0.9 }}>de {getUserFirstName()}</span>
+            <h1 style={{ margin: 0, fontFamily: 'Georgia, serif', fontSize: 'clamp(1.1rem, 4vw, 1.5rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 700 }}>
+              Diário Filosófico <span style={{ fontWeight: 'normal', fontStyle: 'italic', fontSize: '0.85em', opacity: 0.9, display: isMobile ? 'none' : 'inline' }}>de {getUserFirstName()}</span>
             </h1>
           </div>
 
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            {streak > 0 && (
-              <div onClick={() => setShowStreakModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: isDark ? 'rgba(255, 100, 0, 0.15)' : '#fff3e0', border: `1px solid ${isDark ? '#ff9800' : '#ffb74d'}`, borderRadius: '20px', color: isDark ? '#ffb74d' : '#e65100', fontWeight: 'bold', fontFamily: 'Georgia, serif', fontSize: '0.9rem', marginRight: '0.5rem', cursor: 'pointer', boxShadow: isDark ? '0 0 10px rgba(255, 152, 0, 0.2)' : 'none' }}>
-                <StreakIcon size={18} fill={isDark ? '#ff9800' : '#e65100'} color={isDark ? '#ff9800' : '#e65100'} />
-                <span>{streak} {streak === 1 ? 'dia' : 'dias'}</span>
-              </div>
-            )}
-            <button onClick={() => setView('today')} style={{ padding: '0.5rem 1rem', background: view === 'today' ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: view === 'today' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Hoje</button>
-            <button onClick={() => setView('history')} style={{ padding: '0.5rem 1rem', background: view === 'history' ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: view === 'history' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Histórico</button>
-            <button onClick={() => setView('tasks')} style={{ padding: '0.5rem 1rem', background: view === 'tasks' ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: view === 'tasks' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Tarefas</button>
-            <button onClick={() => setView('goals')} style={{ padding: '0.5rem 1rem', background: view === 'goals' ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: view === 'goals' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Metas</button>
-            <button onClick={() => setView('biblioteca')} style={{ padding: '0.5rem 1rem', background: view === 'biblioteca' ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: view === 'biblioteca' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Virtudes</button>
-
-            {fvUnlocked && (
-              <button onClick={handleFvLockClick} style={{ padding: '0.5rem 1rem', background: view === 'fv' ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'transparent', color: view === 'fv' ? '#000' : '#FFD700', border: '2px solid #FFD700', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, boxShadow: '0 0 10px rgba(255, 215, 0, 0.3)' }}>FV</button>
-            )}
-            
-            {/* BOTÃO DE NOTIFICAÇÃO INTELIGENTE (COM CHECKZINHO) */}
-            <button 
-              onClick={toggleNotifications} 
-              title={notificationsActive ? "Lembretes Ativados" : "Ativar Lembretes"} 
-              style={{ 
-                position: 'relative', // Necessário para o Check ficar por cima
-                padding: '0.5rem', 
-                background: notificationsActive ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : 'transparent', 
-                border: `2px solid ${notificationsActive ? '#4caf50' : (isDark ? '#d4af37' : '#6b4423')}`, 
-                borderRadius: '50%', 
-                cursor: 'pointer', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                transition: 'all 0.3s ease'
-              }}
-            >
-              <Bell size={20} color={notificationsActive ? '#4caf50' : (isDark ? '#d4af37' : '#6b4423')} />
-              
-              {/* O SELO DO CHECK APARECE AQUI */}
-              {notificationsActive && (
-                <div style={{ position: 'absolute', top: '-6px', right: '-6px', background: '#4caf50', borderRadius: '50%', padding: '2px', border: `2px solid ${isDark ? '#1a1a2e' : '#f0e6d2'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Check size={12} color="white" strokeWidth={4} />
+          {/* CONTROLES CONDICIONAIS (PC vs CELULAR) */}
+          {isMobile ? (
+            // VERSÃO CELULAR (Limpa e Minimalista)
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              {streak > 0 && (
+                <div onClick={() => setShowStreakModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.4rem 0.6rem', background: isDark ? 'rgba(255, 100, 0, 0.15)' : '#fff3e0', border: `1px solid ${isDark ? '#ff9800' : '#ffb74d'}`, borderRadius: '12px', color: isDark ? '#ffb74d' : '#e65100', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                  <StreakIcon size={16} fill={isDark ? '#ff9800' : '#e65100'} color={isDark ? '#ff9800' : '#e65100'} /> {streak}
                 </div>
               )}
-            </button>
+              <button onClick={toggleNotifications} style={{ position: 'relative', padding: '0.4rem', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+                <Bell size={24} color={notificationsActive ? '#4caf50' : (isDark ? '#d4af37' : '#6b4423')} />
+                {notificationsActive && <div style={{ position: 'absolute', top: '0', right: '0', background: '#4caf50', borderRadius: '50%', padding: '2px' }}><Check size={10} color="white" strokeWidth={4} /></div>}
+              </button>
+              <button onClick={toggleTheme} style={{ padding: '0.4rem', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+                {isDark ? <Sun size={24} color="#d4af37" /> : <Moon size={24} color="#8b7355" />}
+              </button>
+              <button onClick={() => setIsMobileMenuOpen(true)} style={{ padding: '0.4rem', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+                <Menu size={32} color={isDark ? '#d4af37' : '#6b4423'} />
+              </button>
+            </div>
+          ) : (
+            // VERSÃO COMPUTADOR (Completa)
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              {streak > 0 && (
+                <div onClick={() => setShowStreakModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: isDark ? 'rgba(255, 100, 0, 0.15)' : '#fff3e0', border: `1px solid ${isDark ? '#ff9800' : '#ffb74d'}`, borderRadius: '20px', color: isDark ? '#ffb74d' : '#e65100', fontWeight: 'bold', fontFamily: 'Georgia, serif', fontSize: '0.9rem', marginRight: '0.5rem', cursor: 'pointer', boxShadow: isDark ? '0 0 10px rgba(255, 152, 0, 0.2)' : 'none' }}>
+                  <StreakIcon size={18} fill={isDark ? '#ff9800' : '#e65100'} color={isDark ? '#ff9800' : '#e65100'} />
+                  <span>{streak} {streak === 1 ? 'dia' : 'dias'}</span>
+                </div>
+              )}
+              <button onClick={() => setView('today')} style={{ padding: '0.5rem 1rem', background: view === 'today' ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: view === 'today' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Hoje</button>
+              <button onClick={() => setView('history')} style={{ padding: '0.5rem 1rem', background: view === 'history' ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: view === 'history' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Histórico</button>
+              <button onClick={() => setView('tasks')} style={{ padding: '0.5rem 1rem', background: view === 'tasks' ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: view === 'tasks' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Tarefas</button>
+              <button onClick={() => setView('goals')} style={{ padding: '0.5rem 1rem', background: view === 'goals' ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: view === 'goals' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Metas</button>
+              <button onClick={() => setView('biblioteca')} style={{ padding: '0.5rem 1rem', background: view === 'biblioteca' ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: view === 'biblioteca' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Virtudes</button>
 
-            {/* Este é o botão do Sol/Lua que já existe aí 👇 */}
-            {/* BOTÃO DE SUGESTÕES (NOVO) */}
-            <button onClick={() => setShowSuggestionModal(true)} style={{ padding: '0.5rem', background: 'transparent', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s ease' }} title="Enviar Sugestão">
-              <MessageSquare size={20} color={isDark ? '#d4af37' : '#6b4423'} />
-            </button>
+              {fvUnlocked && (
+                <button onClick={handleFvLockClick} style={{ padding: '0.5rem 1rem', background: view === 'fv' ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'transparent', color: view === 'fv' ? '#000' : '#FFD700', border: '2px solid #FFD700', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, boxShadow: '0 0 10px rgba(255, 215, 0, 0.3)' }}>FV</button>
+              )}
+              
+              <button onClick={toggleNotifications} title={notificationsActive ? "Lembretes Ativados" : "Ativar Lembretes"} style={{ position: 'relative', padding: '0.5rem', background: notificationsActive ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : 'transparent', border: `2px solid ${notificationsActive ? '#4caf50' : (isDark ? '#d4af37' : '#6b4423')}`, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Bell size={20} color={notificationsActive ? '#4caf50' : (isDark ? '#d4af37' : '#6b4423')} />
+                {notificationsActive && <div style={{ position: 'absolute', top: '-6px', right: '-6px', background: '#4caf50', borderRadius: '50%', padding: '2px', border: `2px solid ${isDark ? '#1a1a2e' : '#f0e6d2'}` }}><Check size={12} color="white" strokeWidth={4} /></div>}
+              </button>
 
-            {/* BOTÃO DE TEMA (SOL/LUA) */}
-            <button onClick={toggleTheme} style={{ padding: '0.5rem', background: 'transparent', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {isDark ? <Sun size={20} color="#d4af37" /> : <Moon size={20} color="#8b7355" />}
-            </button>
+              <button onClick={() => setShowSuggestionModal(true)} style={{ padding: '0.5rem', background: 'transparent', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Enviar Sugestão">
+                <MessageSquare size={20} color={isDark ? '#d4af37' : '#6b4423'} />
+              </button>
+
+              <button onClick={toggleTheme} style={{ padding: '0.5rem', background: 'transparent', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {isDark ? <Sun size={20} color="#d4af37" /> : <Moon size={20} color="#8b7355" />}
+              </button>
+              
+              <button onClick={handleLogout} style={{ padding: '0.5rem 1rem', background: 'transparent', color: isDark ? '#d4af37' : '#6b4423', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <LogOut size={16} /> <span>Sair</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </header>
+
+{/* MENU SUSPENSO MOBILE */}
+      {isMobileMenuOpen && (
+        <div className="animate-fadeIn" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: isDark ? 'rgba(26, 26, 46, 0.98)' : 'rgba(240, 230, 210, 0.98)', zIndex: 10001, padding: '1rem', display: 'flex', flexDirection: 'column', backdropFilter: 'blur(10px)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 0 2rem 0', borderBottom: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, marginBottom: '2rem' }}>
+            <h2 style={{ margin: 0, fontFamily: 'Georgia, serif', color: isDark ? '#d4af37' : '#6b4423', fontSize: '1.5rem' }}>Menu</h2>
+            <button onClick={() => setIsMobileMenuOpen(false)} style={{ background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}><X size={32} /></button>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {['today', 'history', 'tasks', 'goals', 'biblioteca'].map((item) => {
+              const labels = { today: '☀️ Hoje', history: '📚 Histórico', tasks: '📋 Tarefas', goals: '🎯 Metas', biblioteca: '🏛️ Virtudes' };
+              return (
+                <button 
+                  key={item}
+                  onClick={() => { setView(item); setIsMobileMenuOpen(false); }} 
+                  style={{ width: '100%', padding: '1.2rem', textAlign: 'left', background: view === item ? (isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)') : 'transparent', color: view === item ? (isDark ? '#FFD700' : '#6b4423') : (isDark ? '#f0e6d2' : '#2c1810'), border: `1px solid ${view === item ? (isDark ? '#d4af37' : '#6b4423') : 'transparent'}`, borderRadius: '12px', fontSize: '1.3rem', fontFamily: 'Georgia, serif', fontWeight: view === item ? 'bold' : 'normal', display: 'flex', alignItems: 'center', gap: '1rem' }}
+                >
+                  {labels[item]}
+                </button>
+              );
+            })}
             
-            {/* BOTÃO DE SAIR */}
-            <button onClick={handleLogout} style={{ padding: '0.5rem 1rem', background: 'transparent', color: isDark ? '#d4af37' : '#6b4423', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <LogOut size={16} /> <span style={{ display: window.innerWidth > 768 ? 'inline' : 'none' }}>Sair</span>
+            {fvUnlocked && (
+              <button onClick={() => { setView('fv'); setIsMobileMenuOpen(false); }} style={{ width: '100%', padding: '1.2rem', textAlign: 'left', background: view === 'fv' ? 'linear-gradient(135deg, rgba(255,215,0,0.2) 0%, rgba(255,165,0,0.2) 100%)' : 'transparent', color: view === 'fv' ? '#FFD700' : (isDark ? '#f0e6d2' : '#2c1810'), border: `1px solid ${view === 'fv' ? '#FFD700' : 'transparent'}`, borderRadius: '12px', fontSize: '1.3rem', fontFamily: 'Georgia, serif', fontWeight: view === 'fv' ? 'bold' : 'normal', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <Award size={24} color="#FFD700" /> Força Viva
+              </button>
+            )}
+          </div>
+
+          <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem', paddingTop: '2rem', borderTop: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}` }}>
+            <button onClick={() => { setShowSuggestionModal(true); setIsMobileMenuOpen(false); }} style={{ width: '100%', padding: '1rem', background: 'transparent', color: isDark ? '#d4af37' : '#6b4423', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '12px', fontSize: '1.1rem', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+              <MessageSquare size={20} /> Enviar Sugestão
+            </button>
+            <button onClick={handleLogout} style={{ width: '100%', padding: '1rem', background: 'transparent', color: '#e74c3c', border: '2px solid #e74c3c', borderRadius: '12px', fontSize: '1.1rem', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+              <LogOut size={20} /> Sair do Diário
             </button>
           </div>
         </div>
-      </header>
+      )}
 
       <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem 1rem' }}>
         {/* VIEW: TODAY */}
