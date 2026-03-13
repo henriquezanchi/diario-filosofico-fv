@@ -6,7 +6,7 @@ import {
   AlertCircle, Eye, EyeOff, CheckCircle, Download, Upload,
   Target, TrendingUp, Award, FileText, Book, Settings,
   Trash2, Edit, Save, XCircle, Flame, Zap, Shield, Star, Crown, 
-  Bell, Check, Music, MessageSquare, Menu // 👈 ADICIONE "Menu" AQUI NO FINAL
+  Bell, Check, Music, MessageSquare, Menu, Lock // 👈 ADICIONE O Lock AQUI
 } from 'lucide-react';
 // Na importação do Firebase, puxe o messaging e o getToken:
 import { auth, db, messaging } from './config/firebase-config'; // 👈 Adicione o messaging aqui
@@ -377,17 +377,20 @@ function App() {
     setTimeout(() => setFvClickCount(0), 3000);
   };
 
-  const handleFvLockClick = () => {
+  // Função para apenas navegar para a aba FV (sem contar cliques)
+  const handleFvTabClick = () => {
     setView('fv'); 
-    setFvLockClickCount(prev => prev + 1);
-    if (fvLockClickCount >= 2) {
-      setFvUnlocked(false); 
-      setView('today'); 
-      setFvLockClickCount(0); 
-      if (user) { updateDoc(doc(db, 'users', user.uid), { fvUnlocked: false }); }
-      alert('🔒 Modo Força Viva ocultado com segurança!');
+  };
+
+  // NOVO: Função do botão VISÍVEL que tranca tudo com 1 clique
+  const handleInstantFvLock = async () => {
+    setFvUnlocked(false); 
+    setView('today'); 
+    if (user) { 
+      try { await updateDoc(doc(db, 'users', user.uid), { fvUnlocked: false }); } 
+      catch(e) {} 
     }
-    setTimeout(() => setFvLockClickCount(0), 2000); 
+    alert('🔒 Modo Força Viva ocultado com segurança!');
   };
 
   const selectRandomVirtue = async () => {
@@ -1049,7 +1052,15 @@ function App() {
     }
   };
 
-  const handleLogout = async () => { await signOut(auth); setView('today'); };
+  const handleLogout = async () => { 
+    // Tranca o Modo FV automaticamente no banco de dados antes de sair!
+    if (user && fvUnlocked) {
+      try { await updateDoc(doc(db, 'users', user.uid), { fvUnlocked: false }); } catch(err) {}
+    }
+    setFvUnlocked(false); // Tranca na tela
+    await signOut(auth); 
+    setView('today'); 
+  };
 
   const toggleTheme = async () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
@@ -1159,7 +1170,7 @@ function App() {
               <button onClick={() => setView('biblioteca')} style={{ padding: '0.5rem 1rem', background: view === 'biblioteca' ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: view === 'biblioteca' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Virtudes</button>
 
               {fvUnlocked && (
-                <button onClick={handleFvLockClick} style={{ padding: '0.5rem 1rem', background: view === 'fv' ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'transparent', color: view === 'fv' ? '#000' : '#FFD700', border: '2px solid #FFD700', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, boxShadow: '0 0 10px rgba(255, 215, 0, 0.3)' }}>FV</button>
+                <button onClick={handleFvTabClick} style={{ padding: '0.5rem 1rem', background: view === 'fv' ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'transparent', color: view === 'fv' ? '#000' : '#FFD700', border: '2px solid #FFD700', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, boxShadow: '0 0 10px rgba(255, 215, 0, 0.3)' }}>FV</button>
               )}
               
               <button onClick={toggleNotifications} title={notificationsActive ? "Lembretes Ativados" : "Ativar Lembretes"} style={{ position: 'relative', padding: '0.5rem', background: notificationsActive ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : 'transparent', border: `2px solid ${notificationsActive ? '#4caf50' : (isDark ? '#d4af37' : '#6b4423')}`, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1537,15 +1548,20 @@ function App() {
           <div className="animate-fadeIn">
             <div style={{ background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 165, 0, 0.1) 100%)', padding: '2rem', borderRadius: '16px', border: '2px solid #FFD700', boxShadow: '0 0 20px rgba(255, 215, 0, 0.3)' }}>
               
-              {/* TÍTULO E BOTÃO SECRETO DE BLOQUEIO */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-                <div onClick={handleFvLockClick} style={{ cursor: 'pointer', display: 'flex' }} title="Toque 3 vezes para ocultar o modo FV">
+              {/* TÍTULO E BOTÃO DE BLOQUEIO VISÍVEL */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '2rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                   <Award size={32} color="#FFD700" />
+                  <div>
+                    <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif" }}>Registro Diário da Força Viva | CD </h2>
+                    <p style={{ margin: '0.25rem 0 0 0', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.9rem' }}>Dia: {new Date().toLocaleDateString('pt-BR')}</p>
+                  </div>
                 </div>
-                <div>
-                  <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif" }}>Registro Diário da Força Viva | CD </h2>
-                  <p style={{ margin: '0.25rem 0 0 0', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.9rem' }}>Dia: {new Date().toLocaleDateString('pt-BR')}</p>
-                </div>
+                
+                {/* O BOTÃO QUE TRANCA NA HORA */}
+                <button onClick={handleInstantFvLock} style={{ padding: '0.6rem 1.2rem', background: 'transparent', color: '#e74c3c', border: '2px solid #e74c3c', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem', transition: 'all 0.2s' }}>
+                  <Lock size={18} /> Ocultar Modo FV
+                </button>
               </div>
 
               {/* FORMULÁRIO DIÁRIO FV */}
