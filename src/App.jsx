@@ -464,16 +464,23 @@ function App() {
     const unsubscribe = onMessage(messaging, (payload) => {
       console.log('Mensagem recebida com o app aberto: ', payload);
       
-      // Força a notificação nativa do navegador mesmo com a aba aberta
       if (Notification.permission === 'granted') {
+        // Verifica se é de manhã ou de noite pelo título da mensagem
+        const isMorning = payload.notification.title.includes('Matinal');
+        const correctIcon = isMorning 
+          ? 'https://img.icons8.com/ios-filled/512/8b7355/open-book.png' 
+          : 'https://img.icons8.com/ios-filled/512/8b7355/owl.png';
+
+        // Usa uma "tag" para evitar que o navegador duplique notificações iguais
         new Notification(payload.notification.title, {
           body: payload.notification.body,
-          icon: 'https://img.icons8.com/ios-filled/512/8b7355/open-book.png'
+          icon: correctIcon,
+          tag: 'diario-notification' 
         });
       }
     });
 
-    return () => unsubscribe(); // Limpa o ouvinte ao sair
+    return () => unsubscribe();
   }, []);
 
 // Motor Universal das Práticas: Cronômetros e Sensores

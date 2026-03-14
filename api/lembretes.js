@@ -45,7 +45,7 @@ export default async function handler(req, res) {
       const userMorningTime = data.morningTime || '08:00';
       const userEveningTime = data.eveningTime || '20:00';
 
-// 4. Monta a mensagem certa SÓ SE a hora atual bater com a hora do usuário
+    // 4. Monta a mensagem certa SÓ SE a hora atual bater com a hora do usuário
       if (userMorningTime === currentHourStr) {
         messages.push({
           token: data.fcmToken,
@@ -65,7 +65,7 @@ export default async function handler(req, res) {
           }
         });
       }
-    });
+      });
 
     if (messages.length === 0) {
       return res.status(200).json({ message: `Nenhum lembrete agendado para as ${currentHourStr}.` });
