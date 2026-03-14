@@ -23,46 +23,61 @@ if (!admin.apps.length) {
 
 export default async function handler(req, res) {
   try {
+    // 2. Descobre que horas são agora no Brasil (Fuso UTC-3)
+    const currentUtcHour = new Date().getUTCHours();
+    const hourBRT = (currentUtcHour - 3 + 24) % 24; 
+    // Transforma em texto (ex: 8 vira "08:00")
+    const currentHourStr = String(hourBRT).padStart(2, '0') + ':00';
+
     const db = admin.firestore();
     const usersSnapshot = await db.collection('users').get();
-    const tokens = [];
+    
+    const messages = [];
 
+    // 3. Olha usuário por usuário no banco de dados
     usersSnapshot.forEach(doc => {
       const data = doc.data();
-      if (data.fcmToken) {
-        tokens.push(data.fcmToken);
+      
+      // Se não tem token ativado, ignora
+      if (!data.fcmToken) return;
+
+      // Pega os horários escolhidos pelo usuário (ou usa o padrão)
+      const userMorningTime = data.morningTime || '08:00';
+      const userEveningTime = data.eveningTime || '20:00';
+
+// 4. Monta a mensagem certa SÓ SE a hora atual bater com a hora do usuário
+      if (userMorningTime === currentHourStr) {
+        messages.push({
+          token: data.fcmToken,
+          notification: { title: '☀️ Prólogo Matinal', body: 'Inicie seu dia com propósito. Sorteie sua virtude hoje!' },
+          webpush: { 
+            headers: { TTL: '7200' }, 
+            notification: { icon: 'https://img.icons8.com/ios-filled/512/8b7355/open-book.png' } // Ícone: Livro Aberto
+          }
+        });
+      } else if (userEveningTime === currentHourStr) {
+        messages.push({
+          token: data.fcmToken,
+          notification: { title: '🌙 Epílogo Noturno', body: 'Hora do autoexame. O que você fez bem hoje? Feche o seu dia.' },
+          webpush: { 
+            headers: { TTL: '7200' }, 
+            notification: { icon: 'https://img.icons8.com/ios-filled/512/8b7355/owl.png' } // Ícone: Coruja Filosófica
+          }
+        });
       }
     });
 
-    if (tokens.length === 0) {
-      return res.status(200).json({ message: 'Nenhum usuário com notificação ativa no momento.' });
+    if (messages.length === 0) {
+      return res.status(200).json({ message: `Nenhum lembrete agendado para as ${currentHourStr}.` });
     }
 
-    const hourBRT = new Date().getUTCHours() - 3;
-    const isMorning = hourBRT < 14;
+    // 5. Envia todas as mensagens que foram agendadas para a hora atual
+    const sendPromises = messages.map(msg => admin.messaging().send(msg));
+    await Promise.allSettled(sendPromises);
 
-    const message = {
-      notification: {
-        title: isMorning ? '☀️ Prólogo Matinal' : '🌙 Epílogo Noturno',
-        body: isMorning ? 'Inicie seu dia com propósito. Sorteie sua virtude hoje!' : 'Hora do autoexame. O que você fez bem hoje? Feche o seu dia.',
-      },
-      // Configuração universal para forçar a imagem do livro
-      webpush: {
-        notification: {
-          icon: 'https://img.icons8.com/ios-filled/512/8b7355/open-book.png'
-        }
-      },
-      tokens: tokens,
-    };
-
-    const response = await admin.messaging().sendEachForMulticast(message);
-    return res.status(200).json({ success: true, enviados: response.successCount, falhas: response.failureCount });
+    return res.status(200).json({ success: true, enviados: messages.length, hora_analisada: currentHourStr });
     
   } catch (error) {
-    // Se der erro, joga o erro VAZADO na tela branca para nós lermos!
-    return res.status(500).json({ 
-      erro_fatal: error.message, 
-      dica: "Verifique os logs da Vercel para mais detalhes." 
-    });
+    return res.status(500).json({ erro_fatal: error.message });
   }
 }
