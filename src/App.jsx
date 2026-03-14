@@ -1324,6 +1324,11 @@ function App() {
                 <MessageSquare size={20} color={isDark ? '#d4af37' : '#6b4423'} />
               </button>
 
+              {/* BOTÃO DA ENGRENAGEM (CONFIGURAÇÕES) */}
+              <button onClick={() => setShowSettingsModal(true)} style={{ padding: '0.5rem', background: 'transparent', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s ease' }} title="Configurações">
+                <Settings size={20} color={isDark ? '#d4af37' : '#6b4423'} />
+              </button>
+
               <button onClick={toggleTheme} style={{ padding: '0.5rem', background: 'transparent', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {isDark ? <Sun size={20} color="#d4af37" /> : <Moon size={20} color="#8b7355" />}
               </button>
