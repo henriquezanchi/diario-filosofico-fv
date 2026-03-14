@@ -1240,11 +1240,12 @@ function App() {
           {isMobile ? (
             // VERSÃO CELULAR (Limpa e Minimalista)
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              {streak > 0 && (
-                <div onClick={() => setShowStreakModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.4rem 0.6rem', background: isDark ? 'rgba(255, 100, 0, 0.15)' : '#fff3e0', border: `1px solid ${isDark ? '#ff9800' : '#ffb74d'}`, borderRadius: '12px', color: isDark ? '#ffb74d' : '#e65100', fontWeight: 'bold', fontSize: '0.9rem' }}>
-                  <StreakIcon size={16} fill={isDark ? '#ff9800' : '#e65100'} color={isDark ? '#ff9800' : '#e65100'} /> {streak}
-                </div>
-              )}
+              
+              {/* BADGE DE FOGO (SEMPRE VISÍVEL NO CELULAR) */}
+              <div onClick={() => setShowStreakModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.4rem 0.6rem', background: streak > 0 ? (isDark ? 'rgba(255, 100, 0, 0.15)' : '#fff3e0') : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f0f0f0'), border: `1px solid ${streak > 0 ? (isDark ? '#ff9800' : '#ffb74d') : (isDark ? '#555' : '#ccc')}`, borderRadius: '12px', color: streak > 0 ? (isDark ? '#ffb74d' : '#e65100') : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontSize: '0.9rem' }}>
+                <StreakIcon size={16} fill={streak > 0 ? (isDark ? '#ff9800' : '#e65100') : 'none'} color={streak > 0 ? (isDark ? '#ff9800' : '#e65100') : (isDark ? '#aaa' : '#777')} /> {streak}
+              </div>
+
               <button onClick={toggleNotifications} style={{ position: 'relative', padding: '0.4rem', background: 'transparent', border: 'none', cursor: 'pointer' }}>
                 <Bell size={24} color={notificationsActive ? '#4caf50' : (isDark ? '#d4af37' : '#6b4423')} />
                 {notificationsActive && <div style={{ position: 'absolute', top: '0', right: '0', background: '#4caf50', borderRadius: '50%', padding: '2px' }}><Check size={10} color="white" strokeWidth={4} /></div>}
@@ -1259,12 +1260,13 @@ function App() {
           ) : (
             // VERSÃO COMPUTADOR (Completa)
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              {streak > 0 && (
-                <div onClick={() => setShowStreakModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: isDark ? 'rgba(255, 100, 0, 0.15)' : '#fff3e0', border: `1px solid ${isDark ? '#ff9800' : '#ffb74d'}`, borderRadius: '20px', color: isDark ? '#ffb74d' : '#e65100', fontWeight: 'bold', fontFamily: 'Georgia, serif', fontSize: '0.9rem', marginRight: '0.5rem', cursor: 'pointer', boxShadow: isDark ? '0 0 10px rgba(255, 152, 0, 0.2)' : 'none' }}>
-                  <StreakIcon size={18} fill={isDark ? '#ff9800' : '#e65100'} color={isDark ? '#ff9800' : '#e65100'} />
-                  <span>{streak} {streak === 1 ? 'dia' : 'dias'}</span>
-                </div>
-              )}
+              
+              {/* BADGE DE FOGO (SEMPRE VISÍVEL NO PC) */}
+              <div onClick={() => setShowStreakModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: streak > 0 ? (isDark ? 'rgba(255, 100, 0, 0.15)' : '#fff3e0') : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f0f0f0'), border: `1px solid ${streak > 0 ? (isDark ? '#ff9800' : '#ffb74d') : (isDark ? '#555' : '#ccc')}`, borderRadius: '20px', color: streak > 0 ? (isDark ? '#ffb74d' : '#e65100') : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontFamily: 'Georgia, serif', fontSize: '0.9rem', marginRight: '0.5rem', cursor: 'pointer', boxShadow: streak > 0 && isDark ? '0 0 10px rgba(255, 152, 0, 0.2)' : 'none' }}>
+                <StreakIcon size={18} fill={streak > 0 ? (isDark ? '#ff9800' : '#e65100') : 'none'} color={streak > 0 ? (isDark ? '#ff9800' : '#e65100') : (isDark ? '#aaa' : '#777')} />
+                <span>{streak} {streak === 1 ? 'dia' : 'dias'}</span>
+              </div>
+
               <button onClick={() => setView('today')} style={{ padding: '0.5rem 1rem', background: view === 'today' ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: view === 'today' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Hoje</button>
               <button onClick={() => setView('history')} style={{ padding: '0.5rem 1rem', background: view === 'history' ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: view === 'history' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Histórico</button>
               <button onClick={() => setView('tasks')} style={{ padding: '0.5rem 1rem', background: view === 'tasks' ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: view === 'tasks' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Tarefas</button>
