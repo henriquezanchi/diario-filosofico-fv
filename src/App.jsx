@@ -6,7 +6,8 @@ import {
   AlertCircle, Eye, EyeOff, CheckCircle, Download, Upload,
   Target, TrendingUp, Award, FileText, Book, Settings,
   Trash2, Edit, Save, XCircle, Flame, Zap, Shield, Star, Crown, 
-  Bell, Check, Music, MessageSquare, Menu, Lock // 👈 ADICIONE O Lock AQUI
+  Bell, Check, Music, MessageSquare, Menu, Lock,
+  Sun, Moon, MessageSquare, LogOut, Settings, Save, X
 } from 'lucide-react';
 // Na importação do Firebase, puxe o messaging e o getToken:
 import { auth, db, messaging } from './config/firebase-config'; // 👈 Adicione o messaging aqui
@@ -40,6 +41,11 @@ function App() {
   // Estados das Notificações
   const [notificationsActive, setNotificationsActive] = useState(false);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
+  
+  // Horários Personalizados de Notificação
+  const [morningTime, setMorningTime] = useState('08:00');
+  const [eveningTime, setEveningTime] = useState('20:00');
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   // Função Inteligente: Liga e Desliga Notificações (UX Melhorada)
   const toggleNotifications = async () => {
@@ -553,6 +559,10 @@ function App() {
         setTheme(data.theme || 'light');
         setLastDrawDate(data.lastDrawDate || null);
         setFvUnlocked(data.fvUnlocked || false);
+
+        // NOVO: Puxa os horários salvos ou usa o padrão
+        setMorningTime(data.morningTime || '08:00'); 
+        setEveningTime(data.eveningTime || '20:00');
         
         // NOVO: O sininho só fica verde se existir um token real salvo no banco de dados!
         if ('Notification' in window && Notification.permission === 'granted') {
@@ -1119,6 +1129,22 @@ function App() {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
     if (user) { await updateDoc(doc(db, 'users', user.uid), { theme: newTheme }); }
+  };
+
+  const saveNotificationTimes = async () => {
+    if (user) {
+      try {
+        await updateDoc(doc(db, 'users', user.uid), { 
+          morningTime, 
+          eveningTime 
+        });
+        alert('✅ Horários de lembrete atualizados com sucesso!');
+        setShowSettingsModal(false);
+      } catch (error) {
+        console.error("Erro ao salvar", error);
+        alert('Erro ao salvar horários.');
+      }
+    }
   };
 
   const filteredEntries = entries.filter(entry =>
@@ -2097,6 +2123,10 @@ function App() {
                 <button onClick={handleSendEmail} style={{ flex: 1, padding: '0.8rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.05rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
                   E-mail
                 </button>
+                {/* BOTÃO DE CONFIGURAÇÕES (ENGRENAGEM) */}
+              <button onClick={() => setShowSettingsModal(true)} style={{ padding: '0.5rem', background: 'transparent', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s ease' }} title="Configurações">
+                <Settings size={20} color={isDark ? '#d4af37' : '#6b4423'} />
+              </button>
               </div>
             </div>
           </div>
@@ -2376,6 +2406,43 @@ function App() {
                     >
                       Confirmar Progresso
                     </button>
+                    {/* MODAL DE CONFIGURAÇÕES (HORÁRIOS) */}
+        {showSettingsModal && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(5px)' }}>
+            <div className="animate-fadeIn" style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '2rem', borderRadius: '16px', maxWidth: '400px', width: '100%', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.3)', position: 'relative' }}>
+              
+              {/* Botão de Fechar */}
+              <button onClick={() => setShowSettingsModal(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}>
+                <X size={24} />
+              </button>
+              
+              <Settings size={48} color={isDark ? '#d4af37' : '#6b4423'} style={{ margin: '0 auto 1rem' }} />
+              <h2 style={{ margin: '0 0 1.5rem 0', fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.6rem' }}>Configurações</h2>
+              
+              {/* Escolha da Manhã */}
+              <div style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', color: isDark ? '#d4af37' : '#6b4423', fontWeight: 'bold' }}>☀️ Horário do Prólogo</label>
+                <select value={morningTime} onChange={(e) => setMorningTime(e.target.value)} style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: `1px solid ${isDark ? '#d4af37' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.1rem' }}>
+                  {['05:00', '06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '12:00'].map(h => <option key={h} value={h}>{h}</option>)}
+                </select>
+              </div>
+
+              {/* Escolha da Noite */}
+              <div style={{ textAlign: 'left', marginBottom: '2rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', color: isDark ? '#d4af37' : '#6b4423', fontWeight: 'bold' }}>🌙 Horário do Epílogo</label>
+                <select value={eveningTime} onChange={(e) => setEveningTime(e.target.value)} style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: `1px solid ${isDark ? '#d4af37' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.1rem' }}>
+                  {['18:00', '19:00', '20:00', '21:00', '22:00', '23:00'].map(h => <option key={h} value={h}>{h}</option>)}
+                </select>
+              </div>
+
+              {/* Botão de Salvar */}
+              <button onClick={saveNotificationTimes} style={{ width: '100%', padding: '1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+                <Save size={20} /> Salvar Horários
+              </button>
+              
+            </div>
+          </div>
+        )}
                   </div>
                 )}
               </>
