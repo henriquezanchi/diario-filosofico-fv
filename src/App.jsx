@@ -1324,7 +1324,7 @@ function App() {
                 <MessageSquare size={20} color={isDark ? '#d4af37' : '#6b4423'} />
               </button>
 
-              {/* BOTÃO DA ENGRENAGEM (CONFIGURAÇÕES) */}
+              {/* BOTÃO DA ENGRENAGEM AQUI NO TOPO */}
               <button onClick={() => setShowSettingsModal(true)} style={{ padding: '0.5rem', background: 'transparent', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s ease' }} title="Configurações">
                 <Settings size={20} color={isDark ? '#d4af37' : '#6b4423'} />
               </button>
@@ -1379,6 +1379,12 @@ function App() {
             <button onClick={() => { setShowSuggestionModal(true); setIsMobileMenuOpen(false); }} style={{ width: '100%', padding: '1rem', background: 'transparent', color: isDark ? '#d4af37' : '#6b4423', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '12px', fontSize: '1.1rem', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
               <MessageSquare size={20} /> Enviar Sugestão
             </button>
+            
+            {/* ENGRENAGEM NO MENU DE CELULAR */}
+            <button onClick={() => { setShowSettingsModal(true); setIsMobileMenuOpen(false); }} style={{ width: '100%', padding: '1rem', background: 'transparent', color: isDark ? '#d4af37' : '#6b4423', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '12px', fontSize: '1.1rem', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+              <Settings size={20} /> Configurações
+            </button>
+
             <button onClick={handleLogout} style={{ width: '100%', padding: '1rem', background: 'transparent', color: '#e74c3c', border: '2px solid #e74c3c', borderRadius: '12px', fontSize: '1.1rem', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
               <LogOut size={20} /> Sair do Diário
             </button>
