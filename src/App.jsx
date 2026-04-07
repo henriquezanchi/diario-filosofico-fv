@@ -411,6 +411,28 @@ function App() {
     return lastDrawDate !== selectedDate;
   };
 
+// --- INÍCIO DAS FUNÇÕES RECUPERADAS ---
+  const handleLogoClick = () => {
+    setFvClickCount(prev => prev + 1);
+    if (fvClickCount >= 6) {
+      setFvUnlocked(true);
+      setFvClickCount(0);
+      alert('🔓 Modo Força Viva desbloqueado na sessão!');
+    }
+    setTimeout(() => setFvClickCount(0), 3000);
+  };
+
+  const handleFvTabClick = () => {
+    setView('fv'); 
+  };
+
+  const handleInstantFvLock = async () => {
+    setFvUnlocked(false); 
+    setView('today'); 
+    alert('🔒 Modo Força Viva ocultado com segurança!');
+  };
+  // --- FIM DAS FUNÇÕES RECUPERADAS ---
+
   // Motor de Inatividade (Com Escudo Universal de Práticas)
   useEffect(() => {
     // Se isPracticeActive for true, o app NÃO desloga em NENHUMA prática!
