@@ -1996,7 +1996,7 @@ function App() {
                             {entry.tasksSnapshot.filter(t => t.completed).length > 0 && (
                               <div style={{ padding: '1rem', background: isDark ? 'rgba(76, 175, 80, 0.05)' : '#f8fff8', borderRadius: '8px', borderLeft: `4px solid ${isDark ? '#4caf50' : '#81c784'}` }}>
                                 <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#81c784' : '#2e7d32', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><CheckCircle size={16} /> Práticas Realizadas:</h4>
-                                <ul style={{ margin: 0, paddingLeft: '1.2rem', color: isDark ? '#c8b896' : '#4caf50', fontSize: '0.95rem', lineHeight: '1.6' }}>
+                                <ul style={{ margin: 0, paddingLeft: '1.2rem', color: isDark ? '#c8b896' : '#2e7d32', fontSize: '0.95rem', lineHeight: '1.6' }}>
                                   {entry.tasksSnapshot.filter(t => t.completed).map((task, idx) => <li key={idx}>{task.name}</li>)}
                                 </ul>
                               </div>
