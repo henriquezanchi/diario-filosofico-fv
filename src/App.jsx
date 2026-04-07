@@ -144,6 +144,7 @@ function App() {
   // Estados do Prólogo e Epílogo
   const [morningDone, setMorningDone] = useState(false);
   const [selectedVirtue, setSelectedVirtue] = useState('');
+  const [isTodayVirtueExpanded, setIsTodayVirtueExpanded] = useState(false);
   const [customVirtue, setCustomVirtue] = useState('');
   const [showCustomVirtue, setShowCustomVirtue] = useState(false);
   const [dailyQuote, setDailyQuote] = useState(null);
@@ -1467,9 +1468,32 @@ function App() {
                     )}
 
                     {selectedVirtue && !showCustomVirtue && (
-                      <div style={{ marginTop: '1rem', padding: '1rem', background: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(255, 245, 220, 0.5)', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}` }}>
-                        <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#d4af37' : '#6b4423' }}>{selectedVirtue}</h4>
-                        <p style={{ margin: '0.5rem 0', fontSize: '0.95rem', color: isDark ? '#c8b896' : '#6b5744' }}>{virtues.find(v => v.name === selectedVirtue)?.shortDesc}</p>
+                      <div 
+                        onClick={() => setIsTodayVirtueExpanded(!isTodayVirtueExpanded)}
+                        style={{ marginTop: '1rem', padding: '1rem', background: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(255, 245, 220, 0.5)', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`, cursor: 'pointer', transition: 'all 0.3s ease' }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <h4 style={{ margin: '0', color: isDark ? '#d4af37' : '#6b4423', fontSize: '1.1rem', fontFamily: "'Cinzel', serif" }}>{selectedVirtue}</h4>
+                          {isTodayVirtueExpanded ? <ChevronUp size={20} color={isDark ? '#d4af37' : '#6b4423'} /> : <ChevronDown size={20} color={isDark ? '#d4af37' : '#6b4423'} />}
+                        </div>
+                        <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.95rem', color: isDark ? '#c8b896' : '#6b5744', fontStyle: 'italic' }}>
+                          {virtues.find(v => v.name === selectedVirtue)?.shortDesc}
+                        </p>
+
+                        {/* CONTEÚDO EXPANDIDO (DESCRIÇÃO E PRÁTICAS) */}
+                        {isTodayVirtueExpanded && (
+                          <div className="animate-fadeIn" style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}` }}>
+                            <p style={{ fontSize: '0.95rem', color: isDark ? '#f0e6d2' : '#2c1810', marginBottom: '1rem', lineHeight: '1.6' }}>
+                              {virtues.find(v => v.name === selectedVirtue)?.description}
+                            </p>
+                            <div style={{ padding: '0.75rem', background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'rgba(255, 255, 255, 0.5)', borderRadius: '8px' }}>
+                              <h5 style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', color: isDark ? '#d4af37' : '#6b4423', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Práticas Sugeridas:</h5>
+                              <p style={{ fontSize: '0.9rem', color: isDark ? '#c8b896' : '#6b5744', margin: 0, lineHeight: '1.6', whiteSpace: 'pre-line' }}>
+                                {virtues.find(v => v.name === selectedVirtue)?.practices}
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
