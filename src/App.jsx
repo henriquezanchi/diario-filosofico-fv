@@ -2469,7 +2469,7 @@ function App() {
                             type="checkbox" 
                             checked={temploSelections[prac.key]} 
                             onChange={(e) => setTemploSelections(prev => ({ ...prev, [prac.key]: e.target.checked }))} 
-                            style={{ width: '24px', height: '24px', cursor: 'pointer', accentcolor: isDark ? '#FFD700' : '#996515' }} 
+                            style={{ width: '24px', height: '24px', cursor: 'pointer', accentColor: isDark ? '#FFD700' : '#996515' }} 
                           />
                           <span style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.1rem' }}>{prac.label}</span>
                         </label>
