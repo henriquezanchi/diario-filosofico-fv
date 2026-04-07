@@ -43,9 +43,13 @@ function App() {
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
   
   // Horários Personalizados de Notificação
-  const [morningTime, setMorningTime] = useState('08:00');
-  const [eveningTime, setEveningTime] = useState('20:00');
+  const [morningTime, setMorningTime] = useState('12:00');
+  const [eveningTime, setEveningTime] = useState('24:00');
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+
+  // NOVO: Controle de Instalação do PWA
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showInstallBanner, setShowInstallBanner] = useState(false);
 
   // Função Inteligente: Liga e Desliga Notificações (UX Melhorada)
   const toggleNotifications = async () => {
@@ -128,6 +132,28 @@ function App() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Sensor de Instalação (PWA)
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault(); // Impede o navegador de mostrar o aviso feio dele
+      setDeferredPrompt(e); // Salva o evento para usarmos depois
+      setShowInstallBanner(true); // Mostra o nosso banner bonito
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt(); // Mostra a tela oficial de instalação do Android
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setShowInstallBanner(false);
+      }
+      setDeferredPrompt(null);
+    }
+  };
 
   // Inatividade
   const [showInactivityWarning, setShowInactivityWarning] = useState(false);
@@ -1269,6 +1295,19 @@ function App() {
         <footer style={{ padding: '2rem', textAlign: 'center', color: '#8b7355', fontSize: '0.9rem', borderTop: '1px solid rgba(139, 115, 85, 0.2)' }}>
           <p style={{ margin: 0 }}>© {new Date().getFullYear()} Diário Filosófico. Desenvolvido para a clareza e autoconhecimento.</p>
         </footer>
+
+        {/* BANNER DE INSTALAÇÃO DO PWA */}
+      {showInstallBanner && (
+        <div className="animate-fadeIn" style={{ position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)', background: isDark ? 'rgba(212, 175, 55, 0.95)' : 'rgba(107, 68, 35, 0.95)', padding: '1rem 1.5rem', borderRadius: '50px', display: 'flex', alignItems: 'center', gap: '1rem', boxShadow: '0 10px 25px rgba(0,0,0,0.3)', zIndex: 10000, width: 'max-content', maxWidth: '90%', backdropFilter: 'blur(10px)' }}>
+          <Download size={24} color={isDark ? '#1a1a2e' : 'white'} />
+          <div style={{ color: isDark ? '#1a1a2e' : 'white', fontFamily: 'Georgia, serif', textAlign: 'left' }}>
+            <strong style={{ display: 'block', fontSize: '1rem', lineHeight: '1.2' }}>Instalar Aplicativo</strong>
+            <span style={{ fontSize: '0.8rem', opacity: 0.9 }}>Acesse mais rápido e receba notificações!</span>
+          </div>
+          <button onClick={handleInstallClick} style={{ padding: '0.5rem 1rem', background: isDark ? '#1a1a2e' : 'white', color: isDark ? '#d4af37' : '#6b4423', border: 'none', borderRadius: '20px', fontWeight: 'bold', cursor: 'pointer', marginLeft: '0.5rem' }}>Instalar</button>
+          <button onClick={() => setShowInstallBanner(false)} style={{ background: 'transparent', border: 'none', color: isDark ? 'rgba(26,26,46,0.6)' : 'rgba(255,255,255,0.6)', cursor: 'pointer', padding: '0.5rem' }}><X size={18} /></button>
+        </div>
+      )}
       </div>
     );
   }
