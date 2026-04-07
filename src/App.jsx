@@ -97,6 +97,21 @@ function App() {
 
   // Estados de Navegação e Fogo Interno
   const [view, setView] = useState('today');
+  // NOVO: Controle de Data Retroativa
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
+
+  const handleDateChange = async (newDate) => {
+    if (!newDate) return;
+    setSelectedDate(newDate);
+    if (user) {
+      // Limpa a tela antes de abrir a gaveta do dia antigo
+      setMorningDone(false); setEveningDone(false); setSelectedVirtue(''); setCustomVirtue(''); setDailyIntention(''); setWhereIFailed(''); setWhatIDidWell(''); setWhatILeftUndone(''); setFreeEpilogue('');
+      await loadTodayEntry(user.uid, newDate);
+    }
+  };
   const [theme, setTheme] = useState('light');
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedEntryId, setExpandedEntryId] = useState(null);
@@ -355,10 +370,10 @@ function App() {
   };
 
   const getTasksForToday = () => {
-    const todayDate = new Date();
-    const currentDayOfWeek = todayDate.getDay(); 
-    const currentDayOfMonth = todayDate.getDate();
-    const todayObj = new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate());
+    const targetDate = new Date(selectedDate + 'T12:00:00'); // Olha para o dia selecionado
+    const currentDayOfWeek = targetDate.getDay(); 
+    const currentDayOfMonth = targetDate.getDate();
+    const todayObj = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
 
     return customTasks.filter(task => {
       if (!task.recurrence || task.recurrence === 'daily') return true;
@@ -375,53 +390,25 @@ function App() {
     });
   };
 
-  const handleLogoClick = () => {
-    setFvClickCount(prev => prev + 1);
-    if (fvClickCount >= 6) {
-      setFvUnlocked(true);
-      setFvClickCount(0);
-      alert('🔓 Modo Força Viva desbloqueado!');
-    }
-    setTimeout(() => setFvClickCount(0), 3000);
-  };
-
-  // Função para apenas navegar para a aba FV (sem contar cliques)
-  const handleFvTabClick = () => {
-    setView('fv'); 
-  };
-
-  // NOVO: Função do botão VISÍVEL que tranca tudo com 1 clique
-  const handleInstantFvLock = async () => {
-    setFvUnlocked(false); 
-    setView('today'); 
-    if (user) { 
-      try { await updateDoc(doc(db, 'users', user.uid), { fvUnlocked: false }); } 
-      catch(e) {} 
-    }
-    alert('🔒 Modo Força Viva ocultado com segurança!');
-  };
-
   const selectRandomVirtue = async () => {
     if (!canDrawToday()) {
-      alert('Você já sorteou sua virtude hoje! Comprometa-se com ela até o fim do dia. 🎯');
+      alert('Você já sorteou sua virtude neste dia! Comprometa-se com ela até o fim do dia. 🎯');
       return;
     }
     const randomIndex = Math.floor(Math.random() * virtues.length);
     const selectedV = virtues[randomIndex].name;
     setSelectedVirtue(selectedV);
     setShowCustomVirtue(false);
-    const today = getTodayKey();
-    setLastDrawDate(today);
+    setLastDrawDate(selectedDate);
 
     if (user) {
-      try { await updateDoc(doc(db, 'users', user.uid), { lastDrawDate: today }); } 
+      try { await updateDoc(doc(db, 'users', user.uid), { lastDrawDate: selectedDate }); } 
       catch (error) { console.log('Erro ao salvar data do sorteio'); }
     }
   };
 
   const canDrawToday = () => {
-    const today = getTodayKey();
-    return lastDrawDate !== today;
+    return lastDrawDate !== selectedDate;
   };
 
   // Motor de Inatividade (Com Escudo Universal de Práticas)
@@ -580,10 +567,10 @@ function App() {
     } catch (error) { console.error('Erro ao carregar dados:', error); }
   };
 
-  const loadTodayEntry = async (uid) => {
+  const loadTodayEntry = async (uid, dateToLoad = null) => {
     try {
-      const today = getTodayKey();
-      const entryDoc = await getDoc(doc(db, 'entries', `${uid}_${today}`));
+      const targetDate = dateToLoad || selectedDate;
+      const entryDoc = await getDoc(doc(db, 'entries', `${uid}_${targetDate}`));
       if (entryDoc.exists()) {
         const data = entryDoc.data();
         setMorningDone(data.morningDone || false);
@@ -775,7 +762,7 @@ function App() {
     setTodayTasksStatus(newStatus);
 
     if (user) {
-      const todayKey = getTodayKey();
+      const todayKey = selectedDate;
       const updatedSnapshot = getTasksForToday().map(task => ({
         id: task.id, name: task.name, completed: !!newStatus[task.id]
       }));
@@ -797,7 +784,7 @@ function App() {
       id: task.id, name: task.name, completed: !!todayTasksStatus[task.id]
     }));
 
-    const todayKey = getTodayKey();
+    const todayKey = selectedDate;
     const entry = {
       userId: user.uid, date: todayKey, morningDone: true, virtue: finalVirtue,
       customVirtue: showCustomVirtue ? customVirtue : '', quote: dailyQuote || null,
@@ -819,7 +806,7 @@ function App() {
       alert('Por favor, responda as 3 perguntas estruturadas OU utilize o campo de Reflexão Livre.'); return;
     }
 
-    const todayKey = getTodayKey();
+    const todayKey = selectedDate;
     const tasksSnapshot = getTasksForToday().map(task => ({
       id: task.id, name: task.name, completed: !!todayTasksStatus[task.id]
     }));
@@ -871,7 +858,7 @@ function App() {
   // NOVO: Salvar Registro Diário da Carta de Degrau (FV)
   const saveFvDailyRecord = async () => {
     if (user) {
-      const todayKey = getTodayKey();
+      const todayKey = selectedDate;
       try {
         await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), {
           userId: user.uid,
@@ -904,7 +891,7 @@ function App() {
     exitFullScreen();
 
     if (user) {
-      const todayKey = getTodayKey();
+      const todayKey = selectedDate;
       try {
         await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), {
           fvDaily: newFvDaily
@@ -924,7 +911,7 @@ function App() {
     exitFullScreen();
 
     if (user) {
-      const todayKey = getTodayKey();
+      const todayKey = selectedDate;
       try {
         await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), {
           fvDaily: newFvDaily
@@ -1404,6 +1391,31 @@ function App() {
         {/* VIEW: TODAY */}
         {view === 'today' && (
           <div>
+            {/* SELETOR DE DATA RETROATIVA */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem', padding: '1rem', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.4)', borderRadius: '12px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Calendar size={24} color={isDark ? '#d4af37' : '#6b4423'} />
+                <span style={{ fontWeight: 'bold', color: isDark ? '#d4af37' : '#6b4423', fontFamily: "'Cinzel', serif", fontSize: '1.2rem' }}>
+                  {selectedDate === getTodayKey() ? "Hoje" : "Registro do dia"}
+                </span>
+              </div>
+              
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <input 
+                  type="date" 
+                  value={selectedDate} 
+                  onChange={(e) => handleDateChange(e.target.value)}
+                  max={getTodayKey()} // Impede prever o futuro
+                  style={{ padding: '0.6rem', borderRadius: '8px', border: `1px solid ${isDark ? '#d4af37' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem', fontFamily: 'Georgia, serif', cursor: 'pointer' }} 
+                />
+                
+                {selectedDate !== getTodayKey() && (
+                  <button onClick={() => handleDateChange(getTodayKey())} style={{ padding: '0.6rem 1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
+                    Voltar para Hoje
+                  </button>
+                )}
+              </div>
+            </div>
             {dailyQuote && (
               <div style={{ padding: '2rem', background: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(255, 245, 220, 0.6)', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`, marginBottom: '2rem' }}>
                 <p style={{ fontSize: 'clamp(1rem, 2vw, 1.2rem)', fontStyle: 'italic', color: isDark ? '#f0e6d2' : '#2c1810', marginBottom: '1rem', lineHeight: '1.8' }}>"{dailyQuote.text}"</p>
