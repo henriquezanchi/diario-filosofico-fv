@@ -155,6 +155,7 @@ function App() {
   const [whereIFailed, setWhereIFailed] = useState('');
   const [whatIDidWell, setWhatIDidWell] = useState('');
   const [whatILeftUndone, setWhatILeftUndone] = useState('');
+  const [freeEpilogue, setFreeEpilogue] = useState('');
 
   // Tarefas e Metas
   const [customTasks, setCustomTasks] = useState([]);
@@ -377,7 +378,6 @@ function App() {
     if (fvClickCount >= 6) {
       setFvUnlocked(true);
       setFvClickCount(0);
-      if (user) { updateDoc(doc(db, 'users', user.uid), { fvUnlocked: true }); }
       alert('🔓 Modo Força Viva desbloqueado!');
     }
     setTimeout(() => setFvClickCount(0), 3000);
@@ -558,7 +558,7 @@ function App() {
         const data = userDoc.data();
         setTheme(data.theme || 'light');
         setLastDrawDate(data.lastDrawDate || null);
-        setFvUnlocked(data.fvUnlocked || false);
+        setFvUnlocked(false); // Sempre trancado ao iniciar a sessão
 
         // NOVO: Puxa os horários salvos ou usa o padrão
         setMorningTime(data.morningTime || '08:00'); 
@@ -592,6 +592,7 @@ function App() {
         setWhereIFailed(data.whereIFailed || '');
         setWhatIDidWell(data.whatIDidWell || '');
         setWhatILeftUndone(data.whatILeftUndone || '');
+        setFreeEpilogue(data.freeEpilogue || '');
         setDidMorning(data.didMorning !== false);
         setDailyQuote(data.quote || null);
         setTodayTasksStatus(data.tasksStatus || {});
@@ -809,8 +810,11 @@ function App() {
   };
 
   const saveEvening = async () => {
-    if (!whereIFailed || !whereIFailed.trim() || !whatIDidWell || !whatIDidWell.trim() || !whatILeftUndone || !whatILeftUndone.trim()) {
-      alert('Por favor, responda todas as três perguntas do exame noturno.'); return;
+    const hasSpecifics = (whereIFailed && whereIFailed.trim()) && (whatIDidWell && whatIDidWell.trim()) && (whatILeftUndone && whatILeftUndone.trim());
+    const hasFreeText = freeEpilogue && freeEpilogue.trim();
+
+    if (!hasSpecifics && !hasFreeText) {
+      alert('Por favor, responda as 3 perguntas estruturadas OU utilize o campo de Reflexão Livre.'); return;
     }
 
     const todayKey = getTodayKey();
@@ -826,6 +830,7 @@ function App() {
       const updatedEntry = {
         ...existingData, userId: user.uid, date: todayKey, eveningDone: true,
         whereIFailed: whereIFailed || '', whatIDidWell: whatIDidWell || '', whatILeftUndone: whatILeftUndone || '',
+        freeEpilogue: freeEpilogue || '',
         didMorning: didMorning !== false, tasksStatus: todayTasksStatus || {},
         tasksSnapshot: tasksSnapshot || [], eveningTimestamp: Timestamp.now()
       };
@@ -1275,7 +1280,7 @@ function App() {
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               
               {/* BADGE DE FOGO (SEMPRE VISÍVEL NO CELULAR) */}
-              <div onClick={() => setShowStreakModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.4rem 0.6rem', background: streak > 0 ? (isDark ? 'rgba(255, 100, 0, 0.15)' : '#fff3e0') : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f0f0f0'), border: `1px solid ${streak > 0 ? (isDark ? '#ff9800' : '#ffb74d') : (isDark ? '#555' : '#ccc')}`, borderRadius: '12px', color: streak > 0 ? (isDark ? '#ffb74d' : '#e65100') : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontSize: '0.9rem' }}>
+              <div onClick={() => setShowStreakModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.4rem 0.6rem', background: streak > 0 ? (isDark ? 'rgba(255, 100, 0, 0.15)' : '#fff3e0') : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f0f0f0'), border: `1px solid ${streak > 0 ? (isDark ? '#ff9800' : '#ffb74d') : (isDark ? '#555' : '#ccc')}`, borderRadius: '12px', color: streak > 0 ? (isDark ? '#ffb74d' : '#e65100') : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontSize: '0.9rem', flexShrink: 0, minWidth: 'max-content' }}>
                 <StreakIcon size={16} fill={streak > 0 ? (isDark ? '#ff9800' : '#e65100') : 'none'} color={streak > 0 ? (isDark ? '#ff9800' : '#e65100') : (isDark ? '#aaa' : '#777')} /> {streak}
               </div>
 
@@ -1525,6 +1530,13 @@ function App() {
                   <div style={{ marginBottom: '1.5rem' }}>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#f0e6d2' : '#2c1810' }}>3. O que deixei de fazer?</label>
                     <textarea value={whatILeftUndone} onChange={(e) => setWhatILeftUndone(e.target.value)} placeholder="O que poderia ter feito melhor?" rows={4} style={{ width: '100%', padding: '0.75rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#6b4423'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical' }} />
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', margin: '2rem 0', color: isDark ? '#d4af37' : '#8b7355' }}><div style={{ flex: 1, height: '1px', background: isDark ? 'rgba(212, 175, 55, 0.3)' : '#e8dcc4' }}></div><span style={{ padding: '0 1rem', fontSize: '0.85rem', fontStyle: 'italic', fontWeight: 'bold' }}>OU</span><div style={{ flex: 1, height: '1px', background: isDark ? 'rgba(212, 175, 55, 0.3)' : '#e8dcc4' }}></div></div>
+
+                  <div style={{ marginBottom: '2rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#f0e6d2' : '#2c1810' }}>Reflexão Livre (Opcional):</label>
+                    <textarea value={freeEpilogue} onChange={(e) => setFreeEpilogue(e.target.value)} placeholder="Se preferir, escreva livremente sobre o seu dia aqui..." rows={5} style={{ width: '100%', padding: '0.75rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#6b4423'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical' }} />
                   </div>
 
                   <button onClick={saveEvening} style={{ width: '100%', padding: '1rem', background: isDark ? '#b19cd9' : '#9c27b0', color: 'white', border: 'none', borderRadius: '8px', fontSize: 'clamp(1rem, 2vw, 1.1rem)', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
@@ -2009,6 +2021,12 @@ function App() {
                           <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem' }}>O que deixei de fazer:</h4>
                           <p style={{ margin: 0, color: isDark ? '#c8b896' : '#6b5744', lineHeight: '1.6' }}>{entry.whatILeftUndone}</p>
                         </div>
+                        {entry.freeEpilogue && (
+                          <div style={{ marginTop: '0.5rem', paddingTop: '1rem', borderTop: `1px dashed ${isDark ? 'rgba(212,175,55,0.3)' : 'rgba(139, 115, 85, 0.3)'}` }}>
+                            <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem' }}>Reflexão Livre:</h4>
+                            <p style={{ margin: 0, color: isDark ? '#c8b896' : '#6b5744', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>{entry.freeEpilogue}</p>
+                          </div>
+                        )}
                       </>
                     )}
                   </div>
