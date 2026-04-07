@@ -6,7 +6,7 @@ import {
   AlertCircle, Eye, EyeOff, CheckCircle, Download, Upload,
   Target, TrendingUp, Award, FileText, Book, Settings,
   Trash2, Edit, Save, XCircle, Flame, Zap, Shield, Star, Crown, 
-  Bell, Check, Music, MessageSquare, Menu, Lock
+  Bell, Check, Music, MessageSquare, Menu, Lock, ChevronDown, ChevronUp
 } from 'lucide-react';
 
 // Na importação do Firebase, puxe o messaging e o getToken:
@@ -99,6 +99,7 @@ function App() {
   const [view, setView] = useState('today');
   const [theme, setTheme] = useState('light');
   const [searchTerm, setSearchTerm] = useState('');
+  const [expandedEntryId, setExpandedEntryId] = useState(null);
   const [streak, setStreak] = useState(0); 
   const [longestStreak, setLongestStreak] = useState(0); 
   const [showStreakModal, setShowStreakModal] = useState(false); 
@@ -1156,7 +1157,8 @@ function App() {
     (entry.whereIFailed && entry.whereIFailed.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (entry.whatIDidWell && entry.whatIDidWell.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (entry.whatILeftUndone && entry.whatILeftUndone.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (entry.virtue && entry.virtue.toLowerCase().includes(searchTerm.toLowerCase()))
+    (entry.virtue && entry.virtue.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (entry.freeEpilogue && entry.freeEpilogue.toLowerCase().includes(searchTerm.toLowerCase())) // 👈 A LUPA AGORA LÊ AQUI TAMBÉM
   );
 
   const isDark = theme === 'dark';
@@ -1910,127 +1912,136 @@ function App() {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {filteredEntries.map((entry) => (
-                  <div key={entry.id} style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '1.5rem', borderRadius: '12px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                {filteredEntries.map((entry) => {
+                  const isExpanded = expandedEntryId === entry.id; // Verifica se esta é a gaveta aberta
+
+                  return (
+                  <div key={entry.id} style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '1.5rem', borderRadius: '12px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', transition: 'all 0.3s ease' }}>
+                    
+                    {/* CABEÇALHO RESUMIDO E CLICÁVEL */}
+                    <div onClick={() => setExpandedEntryId(isExpanded ? null : entry.id)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}>
                       <div>
                         <h3 style={{ margin: 0, color: isDark ? '#d4af37' : '#6b4423', fontSize: '1.2rem', marginBottom: '0.5rem' }}>
-                          {/* A MÁGICA AQUI: + 'T12:00:00' impede que o fuso horário do Brasil jogue a data para o dia anterior */}
                           {new Date(entry.date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                         </h3>
                         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                           {entry.virtue && <span style={{ padding: '0.2rem 0.6rem', background: isDark ? 'rgba(212,175,55,0.2)' : '#fdf5e6', borderRadius: '4px', fontSize: '0.85rem', color: isDark ? '#d4af37' : '#6b4423', border: `1px solid ${isDark ? 'rgba(212,175,55,0.4)' : '#e8dcc4'}` }}>Virtude: <strong>{entry.virtue}</strong></span>}
                           {!entry.didMorning && <span style={{ padding: '0.2rem 0.6rem', background: 'rgba(255,152,0,0.1)', borderRadius: '4px', fontSize: '0.85rem', color: '#ff9800', border: '1px solid rgba(255,152,0,0.3)' }}>⚠️ Sem Prólogo</span>}
                           
-                          {/* SELO DE FORÇA VIVA NO HISTÓRICO */}
+                          {/* SELO COMPACTO DE FORÇA VIVA */}
                           {entry.fvDaily && fvUnlocked && (
                             <span style={{ padding: '0.2rem 0.6rem', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', borderRadius: '4px', fontSize: '0.85rem', color: '#000', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.3rem', boxShadow: '0 2px 4px rgba(255,215,0,0.2)' }}>
-                              <Award size={12} /> Registro FV Realizado
+                              <Award size={12} /> FV
                             </span>
                           )}
                         </div>
                       </div>
-                      <button onClick={() => deleteEntry(entry.date)} style={{ padding: '0.5rem', background: 'transparent', color: '#e74c3c', border: '2px solid #e74c3c', borderRadius: '8px', cursor: 'pointer' }}><X size={16} /></button>
+                      
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <button onClick={(e) => { e.stopPropagation(); deleteEntry(entry.date); }} style={{ padding: '0.5rem', background: 'transparent', color: '#e74c3c', border: '2px solid #e74c3c', borderRadius: '8px', cursor: 'pointer' }} title="Excluir"><X size={16} /></button>
+                        {/* A SETINHA QUE MUDA DE DIREÇÃO */}
+                        {isExpanded ? <ChevronUp size={24} color={isDark ? '#d4af37' : '#6b4423'} /> : <ChevronDown size={24} color={isDark ? '#d4af37' : '#6b4423'} />}
+                      </div>
                     </div>
 
-                    {entry.intention && (
-                      <div style={{ marginBottom: '1rem' }}>
-                        <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem' }}>Compromisso:</h4>
-                        <p style={{ margin: 0, color: isDark ? '#c8b896' : '#6b5744', lineHeight: '1.6' }}>{entry.intention}</p>
-                      </div>
-                    )}
+                    {/* CONTEÚDO EXPANDIDO (SÓ APARECE SE CLICAR) */}
+                    {isExpanded && (
+                      <div className="animate-fadeIn" style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}` }}>
+                        
+                        {entry.intention && (
+                          <div style={{ marginBottom: '1rem' }}>
+                            <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem' }}>Compromisso:</h4>
+                            <p style={{ margin: 0, color: isDark ? '#c8b896' : '#6b5744', lineHeight: '1.6' }}>{entry.intention}</p>
+                          </div>
+                        )}
 
-                    {entry.tasksSnapshot && entry.tasksSnapshot.length > 0 && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
-                        {entry.tasksSnapshot.filter(t => t.completed).length > 0 && (
-                          <div style={{ padding: '1rem', background: isDark ? 'rgba(76, 175, 80, 0.05)' : '#f8fff8', borderRadius: '8px', borderLeft: `4px solid ${isDark ? '#4caf50' : '#81c784'}` }}>
-                            <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#81c784' : '#2e7d32', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><CheckCircle size={16} /> Práticas Realizadas:</h4>
-                            <ul style={{ margin: 0, paddingLeft: '1.2rem', color: isDark ? '#c8b896' : '#4caf50', fontSize: '0.95rem', lineHeight: '1.6' }}>
-                              {entry.tasksSnapshot.filter(t => t.completed).map((task, idx) => <li key={idx}>{task.name}</li>)}
+                        {entry.tasksSnapshot && entry.tasksSnapshot.length > 0 && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+                            {entry.tasksSnapshot.filter(t => t.completed).length > 0 && (
+                              <div style={{ padding: '1rem', background: isDark ? 'rgba(76, 175, 80, 0.05)' : '#f8fff8', borderRadius: '8px', borderLeft: `4px solid ${isDark ? '#4caf50' : '#81c784'}` }}>
+                                <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#81c784' : '#2e7d32', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><CheckCircle size={16} /> Práticas Realizadas:</h4>
+                                <ul style={{ margin: 0, paddingLeft: '1.2rem', color: isDark ? '#c8b896' : '#4caf50', fontSize: '0.95rem', lineHeight: '1.6' }}>
+                                  {entry.tasksSnapshot.filter(t => t.completed).map((task, idx) => <li key={idx}>{task.name}</li>)}
+                                </ul>
+                              </div>
+                            )}
+                            {entry.tasksSnapshot.filter(t => !t.completed).length > 0 && (
+                              <div style={{ padding: '1rem', background: isDark ? 'rgba(244, 67, 54, 0.05)' : '#fff5f5', borderRadius: '8px', borderLeft: `4px solid ${isDark ? '#f44336' : '#e53935'}` }}>
+                                <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#e57373' : '#c62828', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><XCircle size={16} /> Práticas Não Realizadas:</h4>
+                                <ul style={{ margin: 0, paddingLeft: '1.2rem', color: isDark ? '#b8a88a' : '#c62828', fontSize: '0.95rem', lineHeight: '1.6', textDecoration: 'line-through', opacity: 0.8 }}>
+                                  {entry.tasksSnapshot.filter(t => !t.completed).map((task, idx) => <li key={idx}>{task.name}</li>)}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {entry.fvDaily && entry.fvDaily.praticas && (fvUnlocked || entry.fvDaily.praticas.tratack) && (
+                          <div style={{ padding: '1rem', background: isDark ? 'rgba(255, 215, 0, 0.05)' : '#fffbf0', borderRadius: '8px', borderLeft: `4px solid ${isDark ? '#FFD700' : '#996515'}`, marginBottom: '1rem' }}>
+                            <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#FFD700' : '#996515', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              <Award size={16} /> {fvUnlocked ? 'Práticas FV Realizadas:' : 'Práticas Extras Realizadas:'}
+                            </h4>
+                            <ul style={{ margin: 0, paddingLeft: '1.2rem', color: isDark ? '#c8b896' : '#6b5744', fontSize: '0.95rem', lineHeight: '1.6' }}>
+                              {(() => {
+                                const praticasFeitas = Object.entries(entry.fvDaily.praticas)
+                                  .filter(([_, feito]) => feito)
+                                  .map(([key]) => key);
+
+                                const listaPermitida = fvUnlocked ? praticasFeitas : praticasFeitas.filter(k => k === 'tratack');
+
+                                if (listaPermitida.length === 0) {
+                                  return fvUnlocked ? <li style={{ fontStyle: 'italic', opacity: 0.7, listStyle: 'none', marginLeft: '-1.2rem' }}>Apenas os registros escritos foram salvos.</li> : null;
+                                }
+
+                                const dicionarioGeral = { tratack: 'Tratak', recitarHonra: 'Recitar Código de Dignidade', recitar7Fases: 'Recitar 7 Fases da ED', camara: 'Câmara de Purificação' };
+                                const dicionarioTemplo = { porta: 'Porta', patioAberto: 'Pátio Aberto', patioColunas: 'Pátio de Colunas', santuario: 'Santuário' };
+                                const listaGeral = listaPermitida.filter(key => dicionarioGeral[key]);
+                                const listaTemplo = ['porta', 'patioAberto', 'patioColunas', 'santuario'].filter(key => listaPermitida.includes(key));
+
+                                return (
+                                  <>
+                                    {listaGeral.map(key => <li key={key}><strong>{dicionarioGeral[key]}</strong></li>)}
+                                    {listaTemplo.length > 0 && (<li key="templo-grupo"><strong>Templo: {listaTemplo.map(k => dicionarioTemplo[k]).join(', ')}</strong></li>)}
+                                  </>
+                                );
+                              })()}
                             </ul>
                           </div>
-                        )}
-                        {entry.tasksSnapshot.filter(t => !t.completed).length > 0 && (
-                          <div style={{ padding: '1rem', background: isDark ? 'rgba(244, 67, 54, 0.05)' : '#fff5f5', borderRadius: '8px', borderLeft: `4px solid ${isDark ? '#f44336' : '#e53935'}` }}>
-                            <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#e57373' : '#c62828', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><XCircle size={16} /> Práticas Não Realizadas:</h4>
-                            <ul style={{ margin: 0, paddingLeft: '1.2rem', color: isDark ? '#b8a88a' : '#c62828', fontSize: '0.95rem', lineHeight: '1.6', textDecoration: 'line-through', opacity: 0.8 }}>
-                              {entry.tasksSnapshot.filter(t => !t.completed).map((task, idx) => <li key={idx}>{task.name}</li>)}
-                            </ul>
-                          </div>
+                        )}    
+
+                        {entry.eveningDone && (
+                          <>
+                            {entry.whereIFailed && (
+                              <div style={{ marginBottom: '1rem' }}>
+                                <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem' }}>Em que falhei:</h4>
+                                <p style={{ margin: 0, color: isDark ? '#c8b896' : '#6b5744', lineHeight: '1.6' }}>{entry.whereIFailed}</p>
+                              </div>
+                            )}
+                            {entry.whatIDidWell && (
+                              <div style={{ marginBottom: '1rem' }}>
+                                <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem' }}>O que fiz bem:</h4>
+                                <p style={{ margin: 0, color: isDark ? '#c8b896' : '#6b5744', lineHeight: '1.6' }}>{entry.whatIDidWell}</p>
+                              </div>
+                            )}
+                            {entry.whatILeftUndone && (
+                              <div style={{ marginBottom: '1rem' }}>
+                                <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem' }}>O que deixei de fazer:</h4>
+                                <p style={{ margin: 0, color: isDark ? '#c8b896' : '#6b5744', lineHeight: '1.6' }}>{entry.whatILeftUndone}</p>
+                              </div>
+                            )}
+                            {entry.freeEpilogue && (
+                              <div style={{ marginTop: '0.5rem', paddingTop: '1rem', borderTop: `1px dashed ${isDark ? 'rgba(212,175,55,0.3)' : 'rgba(139, 115, 85, 0.3)'}` }}>
+                                <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem' }}>Reflexão Livre:</h4>
+                                <p style={{ margin: 0, color: isDark ? '#c8b896' : '#6b5744', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>{entry.freeEpilogue}</p>
+                              </div>
+                            )}
+                          </>
                         )}
                       </div>
-                    )}
-
-                  {/* NOVO: EXIBIR PRÁTICAS DA FORÇA VIVA / GLOBAIS NO HISTÓRICO */}
-                    {entry.fvDaily && entry.fvDaily.praticas && (fvUnlocked || entry.fvDaily.praticas.tratack) && (
-                      <div style={{ padding: '1rem', background: isDark ? 'rgba(255, 215, 0, 0.05)' : '#fffbf0', borderRadius: '8px', borderLeft: `4px solid ${isDark ? '#FFD700' : '#996515'}`, marginBottom: '1rem' }}>
-                        <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#FFD700' : '#996515', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <Award size={16} /> {fvUnlocked ? 'Práticas FV Realizadas:' : 'Práticas Extras Realizadas:'}
-                        </h4>
-                        <ul style={{ margin: 0, paddingLeft: '1.2rem', color: isDark ? '#c8b896' : '#6b5744', fontSize: '0.95rem', lineHeight: '1.6' }}>
-                          {(() => {
-                            const praticasFeitas = Object.entries(entry.fvDaily.praticas)
-                              .filter(([_, feito]) => feito)
-                              .map(([key]) => key);
-
-                            // Se o usuário não for FV, filtramos para mostrar APENAS o Tratak (protege a confidencialidade das outras)
-                            const listaPermitida = fvUnlocked ? praticasFeitas : praticasFeitas.filter(k => k === 'tratack');
-
-                            if (listaPermitida.length === 0) {
-                              return fvUnlocked ? <li style={{ fontStyle: 'italic', opacity: 0.7, listStyle: 'none', marginLeft: '-1.2rem' }}>Apenas os registros escritos foram salvos.</li> : null;
-                            }
-
-                            const dicionarioGeral = {
-                              tratack: 'Tratak',
-                              recitarHonra: 'Recitar Código de Dignidade',
-                              recitar7Fases: 'Recitar 7 Fases da ED',
-                              camara: 'Câmara de Purificação'
-                            };
-                            const dicionarioTemplo = { porta: 'Porta', patioAberto: 'Pátio Aberto', patioColunas: 'Pátio de Colunas', santuario: 'Santuário' };
-
-                            const listaGeral = listaPermitida.filter(key => dicionarioGeral[key]);
-                            const listaTemplo = ['porta', 'patioAberto', 'patioColunas', 'santuario'].filter(key => listaPermitida.includes(key));
-
-                            return (
-                              <>
-                                {listaGeral.map(key => <li key={key}><strong>{dicionarioGeral[key]}</strong></li>)}
-                                {listaTemplo.length > 0 && (
-                                  <li key="templo-grupo"><strong>Templo: {listaTemplo.map(k => dicionarioTemplo[k]).join(', ')}</strong></li>
-                                )}
-                              </>
-                            );
-                          })()}
-                        </ul>
-                      </div>
-                    )}    
-
-                    {/* ESSA É A LINHA QUE VOCÊ PESQUISOU 👇 */}
-
-
-                    {entry.eveningDone && (
-                      <>
-                        <div style={{ marginBottom: '1rem' }}>
-                          <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem' }}>Em que falhei:</h4>
-                          <p style={{ margin: 0, color: isDark ? '#c8b896' : '#6b5744', lineHeight: '1.6' }}>{entry.whereIFailed}</p>
-                        </div>
-                        <div style={{ marginBottom: '1rem' }}>
-                          <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem' }}>O que fiz bem:</h4>
-                          <p style={{ margin: 0, color: isDark ? '#c8b896' : '#6b5744', lineHeight: '1.6' }}>{entry.whatIDidWell}</p>
-                        </div>
-                        <div>
-                          <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem' }}>O que deixei de fazer:</h4>
-                          <p style={{ margin: 0, color: isDark ? '#c8b896' : '#6b5744', lineHeight: '1.6' }}>{entry.whatILeftUndone}</p>
-                        </div>
-                        {entry.freeEpilogue && (
-                          <div style={{ marginTop: '0.5rem', paddingTop: '1rem', borderTop: `1px dashed ${isDark ? 'rgba(212,175,55,0.3)' : 'rgba(139, 115, 85, 0.3)'}` }}>
-                            <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem' }}>Reflexão Livre:</h4>
-                            <p style={{ margin: 0, color: isDark ? '#c8b896' : '#6b5744', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>{entry.freeEpilogue}</p>
-                          </div>
-                        )}
-                      </>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
