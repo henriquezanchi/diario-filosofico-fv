@@ -111,17 +111,6 @@ function App() {
     if (!newDate) return;
     setSelectedDate(newDate);
     if (user) {
-      // Limpeza profunda: impede que os dados de "hoje" vazem para o dia antigo
-      setMorningDone(false); setEveningDone(false); setDidMorning(true);
-      setSelectedVirtue(''); setCustomVirtue(''); setDailyIntention(''); 
-      setWhereIFailed(''); setWhatIDidWell(''); setWhatILeftUndone(''); setFreeEpilogue('');
-      setTodayTasksStatus({});
-      setFvDaily({
-        item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
-        horasGuarda: '', horasAula: '',
-        praticas: { tratak: false, recitarHonra: false, recitar7Fases: false, camara: false, templo: false, porta: false, patioAberto: false, patioColunas: false, santuario: false }
-      });
-      
       await loadTodayEntry(user.uid, newDate);
     }
   };
@@ -462,6 +451,7 @@ function App() {
     setFvGdveReuniao('');
     setFvUnlocked(false);
     setLastDrawDate(null);
+    setSelectedDate(getTodayKey()); // 👈 ESTA É A LINHA NOVA! Traz de volta para o HOJE.
     setFvDaily({
       item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
       horasGuarda: '', horasAula: '',
@@ -698,28 +688,39 @@ function App() {
     try {
       const targetDate = dateToLoad || selectedDate;
       const entryDoc = await getDoc(doc(db, 'entries', `${uid}_${targetDate}`));
+      
       if (entryDoc.exists()) {
         const data = entryDoc.data();
         setMorningDone(data.morningDone || false);
+        setEveningDone(data.eveningDone || false);
+        setDidMorning(data.didMorning !== false);
         setSelectedVirtue(data.virtue || '');
         setCustomVirtue(data.customVirtue || '');
         setDailyIntention(data.intention || '');
-        setEveningDone(data.eveningDone || false);
         setWhereIFailed(data.whereIFailed || '');
         setWhatIDidWell(data.whatIDidWell || '');
         setWhatILeftUndone(data.whatILeftUndone || '');
         setFreeEpilogue(data.freeEpilogue || '');
-        setDidMorning(data.didMorning !== false);
-        setDailyQuote(data.quote || null);
         setTodayTasksStatus(data.tasksStatus || {});
-        // Carregar os dados diários do FV
         setFvDaily(data.fvDaily || {
           item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
           horasGuarda: '', horasAula: '',
           praticas: { tratak: false, recitarHonra: false, recitar7Fases: false, camara: false, templo: false, porta: false, patioAberto: false, patioColunas: false, santuario: false }
         });
       } else {
-         setFvDaily({
+        // O DIA NÃO EXISTE: Limpeza profunda absoluta da tela!
+        setMorningDone(false);
+        setEveningDone(false);
+        setDidMorning(true);
+        setSelectedVirtue('');
+        setCustomVirtue('');
+        setDailyIntention('');
+        setWhereIFailed('');
+        setWhatIDidWell('');
+        setWhatILeftUndone('');
+        setFreeEpilogue('');
+        setTodayTasksStatus({});
+        setFvDaily({
           item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
           horasGuarda: '', horasAula: '',
           praticas: { tratak: false, recitarHonra: false, recitar7Fases: false, camara: false, templo: false, porta: false, patioAberto: false, patioColunas: false, santuario: false }
@@ -732,8 +733,6 @@ function App() {
       }
     } catch (error) {
       console.error('Erro ao carregar entrada:', error);
-      const randomQuote = philosophicalQuotes[Math.floor(Math.random() * philosophicalQuotes.length)];
-      setDailyQuote(randomQuote);
     }
   };
 
