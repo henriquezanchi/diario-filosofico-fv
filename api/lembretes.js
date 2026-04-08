@@ -49,25 +49,17 @@ export default async function handler(req, res) {
       if (userMorningTime === currentHourStr) {
         messages.push({
           token: data.fcmToken,
-          notification: { title: '☀️ Prólogo Matinal', body: 'Inicie seu dia com propósito. Sorteie sua virtude hoje!' },
+          data: { title: '☀️ Prólogo Matinal', body: 'Inicie seu dia com propósito. Sorteie sua virtude hoje!' }, // <-- Agora é DATA
           webpush: { 
-            headers: { 
-              TTL: '7200',
-              Urgency: 'high' // <--- URGÊNCIA ADICIONADA AQUI
-            }, 
-            notification: { icon: 'https://img.icons8.com/ios-filled/512/8b7355/open-book.png' } // Ícone: Livro Aberto
+            headers: { TTL: '7200', Urgency: 'high' }
           }
         });
       } else if (userEveningTime === currentHourStr) {
         messages.push({
           token: data.fcmToken,
-          notification: { title: '🌙 Epílogo Noturno', body: 'Hora do autoexame. O que você fez bem hoje? Feche o seu dia.' },
+          data: { title: '🌙 Epílogo Noturno', body: 'Hora do autoexame. O que você fez bem hoje? Feche o seu dia.' }, // <-- Agora é DATA
           webpush: { 
-            headers: { 
-              TTL: '7200',
-              Urgency: 'high' // <--- URGÊNCIA ADICIONADA AQUI
-            }, 
-            notification: { icon: 'https://img.icons8.com/ios-filled/512/8b7355/owl.png' } // Ícone: Coruja Filosófica
+            headers: { TTL: '7200', Urgency: 'high' }
           }
         });
       }
