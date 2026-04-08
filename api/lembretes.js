@@ -49,17 +49,39 @@ export default async function handler(req, res) {
       if (userMorningTime === currentHourStr) {
         messages.push({
           token: data.fcmToken,
-          data: { title: '☀️ Prólogo Matinal', body: 'Inicie seu dia com propósito. Sorteie sua virtude hoje!' }, // <-- Agora é DATA
+          notification: { 
+            title: '☀️ Prólogo Matinal', 
+            body: 'Inicie seu dia com propósito. Sorteie sua virtude hoje!' 
+          },
           webpush: { 
-            headers: { TTL: '7200', Urgency: 'high' }
+            headers: { 
+              TTL: '7200', 
+              Urgency: 'high' 
+            }, 
+            notification: { 
+              icon: 'https://img.icons8.com/ios-filled/512/8b7355/open-book.png',
+              vibrate: [200, 100, 200, 100, 200, 100, 200], // Força a vibração do lado do servidor
+              requireInteraction: true // Faz a notificação ficar na tela até ser clicada
+            }
           }
         });
       } else if (userEveningTime === currentHourStr) {
         messages.push({
           token: data.fcmToken,
-          data: { title: '🌙 Epílogo Noturno', body: 'Hora do autoexame. O que você fez bem hoje? Feche o seu dia.' }, // <-- Agora é DATA
+          notification: { 
+            title: '🌙 Epílogo Noturno', 
+            body: 'Hora do autoexame. O que você fez bem hoje? Feche o seu dia.' 
+          },
           webpush: { 
-            headers: { TTL: '7200', Urgency: 'high' }
+            headers: { 
+              TTL: '7200', 
+              Urgency: 'high' 
+            }, 
+            notification: { 
+              icon: 'https://img.icons8.com/ios-filled/512/8b7355/owl.png',
+              vibrate: [200, 100, 200, 100, 200, 100, 200], // Força a vibração do lado do servidor
+              requireInteraction: true // Faz a notificação ficar na tela até ser clicada
+            }
           }
         });
       }

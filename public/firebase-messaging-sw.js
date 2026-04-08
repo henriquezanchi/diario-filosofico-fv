@@ -15,19 +15,4 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
-// O "GRITO" PARA O ANDROID ACORDAR E VIBRAR:
-messaging.onBackgroundMessage((payload) => {
-  console.log('Mensagem de dados recebida com o app fechado: ', payload);
-  
-  // Como o servidor enviou disfarçado como 'data', nós lemos de payload.data
-  const notificationTitle = payload.data.title || 'Diário Filosófico';
-  const notificationOptions = {
-    body: payload.data.body,
-    icon: '/logo192.png', // O ícone dourado do seu app
-    badge: '/logo192.png', // O ícone pequenininho da barra superior
-    vibrate: [200, 100, 200, 100, 200, 100, 200], // Um padrão longo de vibração 
-    requireInteraction: true // Impede que o Android limpe a notificação sozinho
-  };
-
-  return self.registration.showNotification(notificationTitle, notificationOptions);
-});
+// O Firebase cuidará de exibir a notificação nativamente e sem duplicatas.
