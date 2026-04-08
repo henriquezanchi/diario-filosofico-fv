@@ -111,11 +111,21 @@ function App() {
     if (!newDate) return;
     setSelectedDate(newDate);
     if (user) {
-      // Limpa a tela antes de abrir a gaveta do dia antigo
-      setMorningDone(false); setEveningDone(false); setSelectedVirtue(''); setCustomVirtue(''); setDailyIntention(''); setWhereIFailed(''); setWhatIDidWell(''); setWhatILeftUndone(''); setFreeEpilogue('');
+      // Limpeza profunda: impede que os dados de "hoje" vazem para o dia antigo
+      setMorningDone(false); setEveningDone(false); setDidMorning(true);
+      setSelectedVirtue(''); setCustomVirtue(''); setDailyIntention(''); 
+      setWhereIFailed(''); setWhatIDidWell(''); setWhatILeftUndone(''); setFreeEpilogue('');
+      setTodayTasksStatus({});
+      setFvDaily({
+        item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
+        horasGuarda: '', horasAula: '',
+        praticas: { tratak: false, recitarHonra: false, recitar7Fases: false, camara: false, templo: false, porta: false, patioAberto: false, patioColunas: false, santuario: false }
+      });
+      
       await loadTodayEntry(user.uid, newDate);
     }
   };
+
   const [theme, setTheme] = useState('light');
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedEntryId, setExpandedEntryId] = useState(null);
@@ -270,34 +280,35 @@ function App() {
     const data = autoSaveDataRef.current;
     if (!data.user) return;
 
+    // Cria um pacote EXATO do que está na tela (Espelho perfeito)
     const updatePayload = {
+      userId: data.user.uid,
+      date: data.selectedDate,
+      morningDone: data.morningDone || false,
+      eveningDone: data.eveningDone || false,
+      didMorning: data.didMorning !== false,
+      virtue: data.showCustomVirtue ? (data.customVirtue || '') : (data.selectedVirtue || ''),
+      customVirtue: data.showCustomVirtue ? (data.customVirtue || '') : '',
+      intention: data.dailyIntention || '',
+      whereIFailed: data.whereIFailed || '',
+      whatIDidWell: data.whatIDidWell || '',
+      whatILeftUndone: data.whatILeftUndone || '',
+      freeEpilogue: data.freeEpilogue || '',
       tasksStatus: data.todayTasksStatus || {},
       tasksSnapshot: data.tasksSnapshot || [],
-      fvDaily: data.fvDaily,
-      // Salva o estado real das abas (se estão abertas ou fechadas)
-      morningDone: data.morningDone, 
-      eveningDone: data.eveningDone 
+      fvDaily: data.fvDaily || {
+        item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
+        horasGuarda: '', horasAula: '',
+        praticas: { tratak: false, recitarHonra: false, recitar7Fases: false, camara: false, templo: false, porta: false, patioAberto: false, patioColunas: false, santuario: false }
+      }
     };
 
-    if (data.selectedVirtue || data.customVirtue || data.dailyIntention) {
-      updatePayload.virtue = data.showCustomVirtue ? data.customVirtue : data.selectedVirtue;
-      updatePayload.customVirtue = data.showCustomVirtue ? data.customVirtue : '';
-      updatePayload.intention = data.dailyIntention;
-    }
-
-    if (data.whereIFailed || data.whatIDidWell || data.whatILeftUndone || data.freeEpilogue) {
-      updatePayload.whereIFailed = data.whereIFailed;
-      updatePayload.whatIDidWell = data.whatIDidWell;
-      updatePayload.whatILeftUndone = data.whatILeftUndone;
-      updatePayload.freeEpilogue = data.freeEpilogue;
-      updatePayload.didMorning = data.didMorning !== false;
-    }
-
     try {
+      // Salva o espelho exato no banco de dados
       await setDoc(doc(db, 'entries', `${data.user.uid}_${data.selectedDate}`), updatePayload, { merge: true });
-      console.log('Autosave inteligente concluído!');
+      console.log('Autosave espelhado concluído!');
     } catch (e) {
-      console.log('Erro no autosave:', e);
+      console.log('Erro no autosave silencioso:', e);
     }
   };
 
