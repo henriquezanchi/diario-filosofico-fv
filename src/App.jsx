@@ -2119,7 +2119,26 @@ function App() {
                       </div>
                       
                       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <button onClick={(e) => { e.stopPropagation(); deleteEntry(entry.date); }} style={{ padding: '0.5rem', background: 'transparent', color: '#e74c3c', border: '2px solid #e74c3c', borderRadius: '8px', cursor: 'pointer' }} title="Excluir"><X size={16} /></button>
+                        
+                        {/* NOVO: BOTÃO DE EDITAR/PREENCHER O DIA */}
+                        <button 
+                          onClick={(e) => { 
+                            e.stopPropagation(); // Impede de abrir/fechar a gaveta
+                            handleDateChange(entry.date); // Carrega os dados daquele dia no motor
+                            setView('today'); // Muda a aba para "Hoje"
+                            window.scrollTo({ top: 0, behavior: 'smooth' }); // Rola a tela suavemente pro topo
+                          }} 
+                          style={{ padding: '0.5rem', background: 'transparent', color: isDark ? '#d4af37' : '#6b4423', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer' }} 
+                          title="Preencher ou Editar este dia"
+                        >
+                          <Edit size={16} />
+                        </button>
+
+                        {/* BOTÃO DE EXCLUIR ORIGINAL */}
+                        <button onClick={(e) => { e.stopPropagation(); deleteEntry(entry.date); }} style={{ padding: '0.5rem', background: 'transparent', color: '#e74c3c', border: '2px solid #e74c3c', borderRadius: '8px', cursor: 'pointer' }} title="Excluir">
+                          <X size={16} />
+                        </button>
+                        
                         {/* A SETINHA QUE MUDA DE DIREÇÃO */}
                         {isExpanded ? <ChevronUp size={24} color={isDark ? '#d4af37' : '#6b4423'} /> : <ChevronDown size={24} color={isDark ? '#d4af37' : '#6b4423'} />}
                       </div>
