@@ -252,11 +252,12 @@ function App() {
 // --- SISTEMA DE AUTOSAVE DE EMERGÊNCIA ---
   const autoSaveDataRef = useRef({});
 
-  // 1. Tira uma foto constante de tudo o que está sendo digitado (sem travar a tela)
+  // 1. Tira uma foto constante de tudo, INCLUINDO se as abas estão abertas ou fechadas
   useEffect(() => {
     autoSaveDataRef.current = {
       user, selectedDate, selectedVirtue, customVirtue, showCustomVirtue, dailyIntention,
       whereIFailed, whatIDidWell, whatILeftUndone, freeEpilogue, didMorning,
+      morningDone, eveningDone, // 👈 ADICIONAMOS ESSES DOIS AQUI
       todayTasksStatus, fvDaily,
       tasksSnapshot: getTasksForToday().map(task => ({
         id: task.id, name: task.name, completed: !!todayTasksStatus[task.id]
@@ -269,21 +270,21 @@ function App() {
     const data = autoSaveDataRef.current;
     if (!data.user) return;
 
-    // Prepara o pacote com as marcações de tarefas e FV
     const updatePayload = {
       tasksStatus: data.todayTasksStatus || {},
       tasksSnapshot: data.tasksSnapshot || [],
-      fvDaily: data.fvDaily
+      fvDaily: data.fvDaily,
+      // Salva o estado real das abas (se estão abertas ou fechadas)
+      morningDone: data.morningDone, 
+      eveningDone: data.eveningDone 
     };
 
-    // Salva textos do Prólogo (se houver algum)
     if (data.selectedVirtue || data.customVirtue || data.dailyIntention) {
       updatePayload.virtue = data.showCustomVirtue ? data.customVirtue : data.selectedVirtue;
       updatePayload.customVirtue = data.showCustomVirtue ? data.customVirtue : '';
       updatePayload.intention = data.dailyIntention;
     }
 
-    // Salva textos do Epílogo (se houver algum)
     if (data.whereIFailed || data.whatIDidWell || data.whatILeftUndone || data.freeEpilogue) {
       updatePayload.whereIFailed = data.whereIFailed;
       updatePayload.whatIDidWell = data.whatIDidWell;
@@ -293,11 +294,10 @@ function App() {
     }
 
     try {
-      // Faz o merge silencioso no Firebase (Cria a gaveta se ela não existir)
       await setDoc(doc(db, 'entries', `${data.user.uid}_${data.selectedDate}`), updatePayload, { merge: true });
-      console.log('Autosave de segurança concluído!');
+      console.log('Autosave inteligente concluído!');
     } catch (e) {
-      console.log('Erro no autosave silencioso:', e);
+      console.log('Erro no autosave:', e);
     }
   };
 
