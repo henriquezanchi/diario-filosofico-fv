@@ -743,7 +743,7 @@ function App() {
       const loadedEntries = [];
       querySnapshot.forEach((doc) => {
         const data = doc.data();
-        if (data.eveningDone || data.fvDaily) { // Carrega se tiver epílogo ou registro FV
+        if (data.morningDone || data.eveningDone || data.fvDaily) { // Carrega se houver qualquer preenchimento
           loadedEntries.push({ id: doc.id, ...data });
         }
       });
@@ -2091,19 +2091,23 @@ function App() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {filteredEntries.map((entry) => {
                   const isExpanded = expandedEntryId === entry.id; // Verifica se esta é a gaveta aberta
+                  const isPartial = entry.morningDone && !entry.eveningDone; // 👈 NOVA LÓGICA AQUI: É parcial se fez o prólogo, mas não o epílogo
 
                   return (
-                  <div key={entry.id} style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '1.5rem', borderRadius: '12px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', transition: 'all 0.3s ease' }}>
+                  <div key={entry.id} style={{ background: isPartial ? (isDark ? 'rgba(40, 25, 10, 0.6)' : '#fffdf5') : (isDark ? 'rgba(26, 26, 46, 0.6)' : 'white'), padding: '1.5rem', borderRadius: '12px', border: `2px solid ${isPartial ? (isDark ? '#ff9800' : '#ffb74d') : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)')}`, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', transition: 'all 0.3s ease' }}>
                     
                     {/* CABEÇALHO RESUMIDO E CLICÁVEL */}
                     <div onClick={() => setExpandedEntryId(isExpanded ? null : entry.id)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}>
                       <div>
-                        <h3 style={{ margin: 0, color: isDark ? '#d4af37' : '#6b4423', fontSize: '1.2rem', marginBottom: '0.5rem' }}>
+                        <h3 style={{ margin: 0, color: isPartial ? (isDark ? '#ffb74d' : '#e65100') : (isDark ? '#d4af37' : '#6b4423'), fontSize: '1.2rem', marginBottom: '0.5rem' }}>
                           {new Date(entry.date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                         </h3>
                         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                           {entry.virtue && <span style={{ padding: '0.2rem 0.6rem', background: isDark ? 'rgba(212,175,55,0.2)' : '#fdf5e6', borderRadius: '4px', fontSize: '0.85rem', color: isDark ? '#d4af37' : '#6b4423', border: `1px solid ${isDark ? 'rgba(212,175,55,0.4)' : '#e8dcc4'}` }}>Virtude: <strong>{entry.virtue}</strong></span>}
+                          
+                          {/* SINALIZADORES DE STATUS */}
                           {!entry.didMorning && <span style={{ padding: '0.2rem 0.6rem', background: 'rgba(255,152,0,0.1)', borderRadius: '4px', fontSize: '0.85rem', color: '#ff9800', border: '1px solid rgba(255,152,0,0.3)' }}>⚠️ Sem Prólogo</span>}
+                          {isPartial && <span style={{ padding: '0.2rem 0.6rem', background: 'rgba(255,152,0,0.1)', borderRadius: '4px', fontSize: '0.85rem', color: '#ff9800', border: '1px solid rgba(255,152,0,0.3)' }}>⏳ Epílogo Pendente</span>}
                           
                           {/* SELO COMPACTO DE FORÇA VIVA */}
                           {entry.fvDaily && fvUnlocked && (
