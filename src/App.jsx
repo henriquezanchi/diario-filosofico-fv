@@ -249,6 +249,59 @@ function App() {
   const [activeActionMenu, setActiveActionMenu] = useState(null);
   const audioRef = useRef(null); 
 
+// --- SISTEMA DE AUTOSAVE DE EMERGÊNCIA ---
+  const autoSaveDataRef = useRef({});
+
+  // 1. Tira uma foto constante de tudo o que está sendo digitado (sem travar a tela)
+  useEffect(() => {
+    autoSaveDataRef.current = {
+      user, selectedDate, selectedVirtue, customVirtue, showCustomVirtue, dailyIntention,
+      whereIFailed, whatIDidWell, whatILeftUndone, freeEpilogue, didMorning,
+      todayTasksStatus, fvDaily,
+      tasksSnapshot: getTasksForToday().map(task => ({
+        id: task.id, name: task.name, completed: !!todayTasksStatus[task.id]
+      }))
+    };
+  });
+
+  // 2. A função silenciosa que empurra a foto para o Firebase
+  const performSilentAutoSave = async () => {
+    const data = autoSaveDataRef.current;
+    if (!data.user) return;
+
+    // Prepara o pacote com as marcações de tarefas e FV
+    const updatePayload = {
+      tasksStatus: data.todayTasksStatus || {},
+      tasksSnapshot: data.tasksSnapshot || [],
+      fvDaily: data.fvDaily
+    };
+
+    // Salva textos do Prólogo (se houver algum)
+    if (data.selectedVirtue || data.customVirtue || data.dailyIntention) {
+      updatePayload.virtue = data.showCustomVirtue ? data.customVirtue : data.selectedVirtue;
+      updatePayload.customVirtue = data.showCustomVirtue ? data.customVirtue : '';
+      updatePayload.intention = data.dailyIntention;
+    }
+
+    // Salva textos do Epílogo (se houver algum)
+    if (data.whereIFailed || data.whatIDidWell || data.whatILeftUndone || data.freeEpilogue) {
+      updatePayload.whereIFailed = data.whereIFailed;
+      updatePayload.whatIDidWell = data.whatIDidWell;
+      updatePayload.whatILeftUndone = data.whatILeftUndone;
+      updatePayload.freeEpilogue = data.freeEpilogue;
+      updatePayload.didMorning = data.didMorning !== false;
+    }
+
+    try {
+      // Faz o merge silencioso no Firebase (Cria a gaveta se ela não existir)
+      await setDoc(doc(db, 'entries', `${data.user.uid}_${data.selectedDate}`), updatePayload, { merge: true });
+      console.log('Autosave de segurança concluído!');
+    } catch (e) {
+      console.log('Erro no autosave silencioso:', e);
+    }
+  };
+  // --- FIM DO SISTEMA DE AUTOSAVE ---
+
   // Função que decide o que abrir quando clica em "Realizar"
   const handleRealizarPratica = (key) => {
     setActiveActionMenu(null); 
@@ -549,8 +602,13 @@ function App() {
         setLogoutCountdown((prev) => {
           if (prev <= 1) {
             clearInterval(intervalId);
-            signOut(auth);
-            setShowInactivityWarning(false);
+            
+            // EXECUTA O AUTOSAVE E DEPOIS DESLOGA O USUÁRIO
+            performSilentAutoSave().then(() => {
+              signOut(auth);
+              setShowInactivityWarning(false);
+            });
+            
             return 15;
           }
           return prev - 1;
