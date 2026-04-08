@@ -1310,35 +1310,6 @@ function App() {
         <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem' }}>
           <div style={{ maxWidth: '1200px', width: '100%', display: 'flex', flexWrap: 'wrap', gap: '4rem', alignItems: 'center', justifyContent: 'space-between' }}>
             
-            {/* LADO ESQUERDO: CONTEÚDO PARA O GOOGLE ADSENSE E NOVOS USUÁRIOS */}
-            <div style={{ flex: '1 1 500px', color: '#2c1810' }}>
-              <h2 style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontFamily: "'Cinzel', serif", marginBottom: '1.5rem', lineHeight: '1.2', color: '#4a3320' }}>
-                Conhece-te a ti mesmo.
-              </h2>
-              <p style={{ fontSize: '1.15rem', lineHeight: '1.8', color: '#5c4632', marginBottom: '1.5rem' }}>
-                O <strong>Diário Filosófico</strong> é um ambiente digital minimalista inspirado nas práticas de autoexame das escolas de sabedoria clássica. Desenvolvido para auxiliar no forjamento do caráter, ele permite que você registre suas reflexões, avalie seus erros e cultive a clareza mental diariamente.
-              </p>
-              
-              <blockquote style={{ borderLeft: '4px solid #8b7355', paddingLeft: '1.5rem', margin: '2rem 0', fontStyle: 'italic', fontSize: '1.2rem', color: '#6b5744' }}>
-                "Que ninguém hesite em se dedicar à filosofia enquanto jovem, nem se canse de fazê-lo depois de velho." — Epicuro
-              </blockquote>
-
-              <h3 style={{ fontSize: '1.3rem', color: '#4a3320', marginBottom: '1rem', fontFamily: "'Cinzel', serif" }}>Cultive as Virtudes Clássicas:</h3>
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                {[
-                  { nome: 'Sabedoria', desc: 'Compreensão profunda e discernimento.' },
-                  { nome: 'Justiça', desc: 'Equidade, retidão e dever cumprido.' },
-                  { nome: 'Coragem', desc: 'Força interior para enfrentar o medo.' },
-                  { nome: 'Temperança', desc: 'Moderação, disciplina e autodomínio.' }
-                ].map(v => (
-                  <li key={v.nome} style={{ background: 'rgba(255, 255, 255, 0.6)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(139, 115, 85, 0.2)' }}>
-                    <strong style={{ display: 'block', color: '#8b7355', marginBottom: '0.25rem' }}>{v.nome}</strong>
-                    <span style={{ fontSize: '0.9rem', color: '#6b5744' }}>{v.desc}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
             {/* LADO DIREITO: O FORMULÁRIO DE LOGIN (INTACTO) */}
             <div style={{ flex: '1 1 400px', maxWidth: '450px', margin: '0 auto' }}>
               <div style={{ background: 'white', padding: '2.5rem 2rem', borderRadius: '16px', boxShadow: '0 12px 40px rgba(0,0,0,0.08)', border: '1px solid rgba(139, 115, 85, 0.1)' }}>
@@ -1369,6 +1340,37 @@ function App() {
                 </form>
               </div>
             </div>
+
+            {/* LADO ESQUERDO: CONTEÚDO PARA O GOOGLE ADSENSE E NOVOS USUÁRIOS */}
+            <div style={{ flex: '1 1 500px', color: '#2c1810' }}>
+              <h2 style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontFamily: "'Cinzel', serif", marginBottom: '1.5rem', lineHeight: '1.2', color: '#4a3320' }}>
+                Conhece-te a ti mesmo.
+              </h2>
+              <p style={{ fontSize: '1.15rem', lineHeight: '1.8', color: '#5c4632', marginBottom: '1.5rem' }}>
+                O <strong>Diário Filosófico</strong> é um ambiente digital minimalista inspirado nas práticas de autoexame das escolas de sabedoria clássica. Desenvolvido para auxiliar no forjamento do caráter, ele permite que você registre suas reflexões, avalie seus erros e cultive a clareza mental diariamente.
+              </p>
+              
+              <blockquote style={{ borderLeft: '4px solid #8b7355', paddingLeft: '1.5rem', margin: '2rem 0', fontStyle: 'italic', fontSize: '1.2rem', color: '#6b5744' }}>
+                "Que ninguém hesite em se dedicar à filosofia enquanto jovem, nem se canse de fazê-lo depois de velho." — Epicuro
+              </blockquote>
+
+              <h3 style={{ fontSize: '1.3rem', color: '#4a3320', marginBottom: '1rem', fontFamily: "'Cinzel', serif" }}>Cultive as Virtudes Clássicas:</h3>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                {[
+                  { nome: 'Sabedoria', desc: 'Compreensão profunda e discernimento.' },
+                  { nome: 'Justiça', desc: 'Equidade, retidão e dever cumprido.' },
+                  { nome: 'Coragem', desc: 'Força interior para enfrentar o medo.' },
+                  { nome: 'Temperança', desc: 'Moderação, disciplina e autodomínio.' }
+                ].map(v => (
+                  <li key={v.nome} style={{ background: 'rgba(255, 255, 255, 0.6)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(139, 115, 85, 0.2)' }}>
+                    <strong style={{ display: 'block', color: '#8b7355', marginBottom: '0.25rem' }}>{v.nome}</strong>
+                    <span style={{ fontSize: '0.9rem', color: '#6b5744' }}>{v.desc}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            
 
           </div>
         </main>
