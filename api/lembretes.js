@@ -45,13 +45,16 @@ export default async function handler(req, res) {
       const userMorningTime = data.morningTime || '08:00';
       const userEveningTime = data.eveningTime || '20:00';
 
-    // 4. Monta a mensagem certa SÓ SE a hora atual bater com a hora do usuário
+      // 4. Monta a mensagem certa SÓ SE a hora atual bater com a hora do usuário
       if (userMorningTime === currentHourStr) {
         messages.push({
           token: data.fcmToken,
           notification: { title: '☀️ Prólogo Matinal', body: 'Inicie seu dia com propósito. Sorteie sua virtude hoje!' },
           webpush: { 
-            headers: { TTL: '7200' }, 
+            headers: { 
+              TTL: '7200',
+              Urgency: 'high' // <--- URGÊNCIA ADICIONADA AQUI
+            }, 
             notification: { icon: 'https://img.icons8.com/ios-filled/512/8b7355/open-book.png' } // Ícone: Livro Aberto
           }
         });
@@ -60,12 +63,15 @@ export default async function handler(req, res) {
           token: data.fcmToken,
           notification: { title: '🌙 Epílogo Noturno', body: 'Hora do autoexame. O que você fez bem hoje? Feche o seu dia.' },
           webpush: { 
-            headers: { TTL: '7200' }, 
+            headers: { 
+              TTL: '7200',
+              Urgency: 'high' // <--- URGÊNCIA ADICIONADA AQUI
+            }, 
             notification: { icon: 'https://img.icons8.com/ios-filled/512/8b7355/owl.png' } // Ícone: Coruja Filosófica
           }
         });
       }
-      });
+    });
 
     if (messages.length === 0) {
       return res.status(200).json({ message: `Nenhum lembrete agendado para as ${currentHourStr}.` });

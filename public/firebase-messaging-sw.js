@@ -15,5 +15,19 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
-// FIM! O Firebase já possui um sistema interno invisível que escuta as mensagens 
-// em background e aplica os ícones perfeitamente. Não precisamos forçar manualmente.
+// O "GRITO" PARA O ANDROID ACORDAR E VIBRAR:
+// Sobrescrevemos o sistema invisível educado por este comando autoritário.
+messaging.onBackgroundMessage((payload) => {
+  console.log('Mensagem recebida com o app fechado: ', payload);
+  
+  const notificationTitle = payload.notification.title || 'Diário Filosófico';
+  const notificationOptions = {
+    body: payload.notification.body,
+    icon: '/logo192.png', // O ícone dourado do seu app
+    badge: '/logo192.png', // O ícone pequenininho da barra superior
+    vibrate: [200, 100, 200, 100, 200, 100, 200], // Um padrão longo de vibração 
+    requireInteraction: true // Impede que o Android limpe a notificação sozinho
+  };
+
+  return self.registration.showNotification(notificationTitle, notificationOptions);
+});
