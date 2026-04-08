@@ -43,8 +43,8 @@ function App() {
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
   
   // Horários Personalizados de Notificação
-  const [morningTime, setMorningTime] = useState('12:00');
-  const [eveningTime, setEveningTime] = useState('24:00');
+  const [morningTime, setMorningTime] = useState('08:00');
+  const [eveningTime, setEveningTime] = useState('20:00');
   const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   // NOVO: Controle de Instalação do PWA
@@ -860,22 +860,24 @@ function App() {
     }));
 
     try {
-      const entryRef = doc(db, 'entries', `${user.uid}_${todayKey}`);
-      const existing = await getDoc(entryRef);
-      const existingData = existing.exists() ? existing.data() : {};
-
       const updatedEntry = {
-        ...existingData, userId: user.uid, date: todayKey, eveningDone: true,
+        userId: user.uid, date: todayKey, eveningDone: true,
         whereIFailed: whereIFailed || '', whatIDidWell: whatIDidWell || '', whatILeftUndone: whatILeftUndone || '',
         freeEpilogue: freeEpilogue || '',
         didMorning: didMorning !== false, tasksStatus: todayTasksStatus || {},
         tasksSnapshot: tasksSnapshot || [], eveningTimestamp: Timestamp.now()
       };
 
-      await setDoc(entryRef, updatedEntry, { merge: true });
-      setEveningDone(true); await loadAllEntries(user.uid);
+      // O setDoc com { merge: true } já cria o documento sozinho se ele não existir, sem precisar ler antes!
+      await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), updatedEntry, { merge: true });
+      
+      setEveningDone(true); 
+      await loadAllEntries(user.uid);
       alert('✅ Epílogo salvo com sucesso!');
-    } catch (error) { alert('Erro ao salvar epílogo. Tente novamente.'); }
+    } catch (error) { 
+      console.error(error);
+      alert('Erro ao salvar epílogo. Tente novamente.'); 
+    }
   };
 
   const saveLongTermGoals = async () => {
