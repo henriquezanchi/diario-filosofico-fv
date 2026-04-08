@@ -16,13 +16,13 @@ firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
 // O "GRITO" PARA O ANDROID ACORDAR E VIBRAR:
-// Sobrescrevemos o sistema invisível educado por este comando autoritário.
 messaging.onBackgroundMessage((payload) => {
-  console.log('Mensagem recebida com o app fechado: ', payload);
+  console.log('Mensagem de dados recebida com o app fechado: ', payload);
   
-  const notificationTitle = payload.notification.title || 'Diário Filosófico';
+  // Como o servidor enviou disfarçado como 'data', nós lemos de payload.data
+  const notificationTitle = payload.data.title || 'Diário Filosófico';
   const notificationOptions = {
-    body: payload.notification.body,
+    body: payload.data.body,
     icon: '/logo192.png', // O ícone dourado do seu app
     badge: '/logo192.png', // O ícone pequenininho da barra superior
     vibrate: [200, 100, 200, 100, 200, 100, 200], // Um padrão longo de vibração 
