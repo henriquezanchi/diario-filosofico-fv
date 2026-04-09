@@ -1392,18 +1392,7 @@ function App() {
           <p style={{ margin: 0 }}>© {new Date().getFullYear()} Diário Filosófico. Desenvolvido para a clareza e autoconhecimento.</p>
         </footer>
 
-        {/* BANNER DE INSTALAÇÃO DO PWA */}
-      {showInstallBanner && (
-        <div className="animate-fadeIn" style={{ position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)', background: isDark ? 'rgba(212, 175, 55, 0.95)' : 'rgba(107, 68, 35, 0.95)', padding: '1rem 1.5rem', borderRadius: '50px', display: 'flex', alignItems: 'center', gap: '1rem', boxShadow: '0 10px 25px rgba(0,0,0,0.3)', zIndex: 10000, width: 'max-content', maxWidth: '90%', backdropFilter: 'blur(10px)' }}>
-          <Download size={24} color={isDark ? '#1a1a2e' : 'white'} />
-          <div style={{ color: isDark ? '#1a1a2e' : 'white', fontFamily: 'Georgia, serif', textAlign: 'left' }}>
-            <strong style={{ display: 'block', fontSize: '1rem', lineHeight: '1.2' }}>Instalar Aplicativo</strong>
-            <span style={{ fontSize: '0.8rem', opacity: 0.9 }}>Acesse mais rápido e receba notificações!</span>
-          </div>
-          <button onClick={handleInstallClick} style={{ padding: '0.5rem 1rem', background: isDark ? '#1a1a2e' : 'white', color: isDark ? '#d4af37' : '#6b4423', border: 'none', borderRadius: '20px', fontWeight: 'bold', cursor: 'pointer', marginLeft: '0.5rem' }}>Instalar</button>
-          <button onClick={() => setShowInstallBanner(false)} style={{ background: 'transparent', border: 'none', color: isDark ? 'rgba(26,26,46,0.6)' : 'rgba(255,255,255,0.6)', cursor: 'pointer', padding: '0.5rem' }}><X size={18} /></button>
-        </div>
-      )}
+        
       </div>
     );
   }
@@ -2778,6 +2767,18 @@ function App() {
         <p style={{ margin: 0, fontSize: '0.95rem', fontStyle: 'italic' }}>"Que ninguém durma sem antes examinar as ações do dia"</p>
         <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.85rem', opacity: 0.8 }}>Versos de Ouro de Pitágoras</p>
       </footer>
+      {/* BANNER DE INSTALAÇÃO DO PWA */}
+      {showInstallBanner && (
+        <div className="animate-fadeIn" style={{ position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)', background: isDark ? 'rgba(212, 175, 55, 0.95)' : 'rgba(107, 68, 35, 0.95)', padding: '1rem 1.5rem', borderRadius: '50px', display: 'flex', alignItems: 'center', gap: '1rem', boxShadow: '0 10px 25px rgba(0,0,0,0.3)', zIndex: 10000, width: 'max-content', maxWidth: '90%', backdropFilter: 'blur(10px)' }}>
+          <Download size={24} color={isDark ? '#1a1a2e' : 'white'} />
+          <div style={{ color: isDark ? '#1a1a2e' : 'white', fontFamily: 'Georgia, serif', textAlign: 'left' }}>
+            <strong style={{ display: 'block', fontSize: '1rem', lineHeight: '1.2' }}>Instalar Aplicativo</strong>
+            <span style={{ fontSize: '0.8rem', opacity: 0.9 }}>Acesse mais rápido e receba notificações!</span>
+          </div>
+          <button onClick={handleInstallClick} style={{ padding: '0.5rem 1rem', background: isDark ? '#1a1a2e' : 'white', color: isDark ? '#d4af37' : '#6b4423', border: 'none', borderRadius: '20px', fontWeight: 'bold', cursor: 'pointer', marginLeft: '0.5rem' }}>Instalar</button>
+          <button onClick={() => setShowInstallBanner(false)} style={{ background: 'transparent', border: 'none', color: isDark ? 'rgba(26,26,46,0.6)' : 'rgba(255,255,255,0.6)', cursor: 'pointer', padding: '0.5rem' }}><X size={18} /></button>
+        </div>
+      )}
     </div>
   );
 }
