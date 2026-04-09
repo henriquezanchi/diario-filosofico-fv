@@ -26,91 +26,72 @@ export default async function handler(req, res) {
     // 2. Descobre que horas são agora no Brasil (Fuso UTC-3)
     const currentUtcHour = new Date().getUTCHours();
     const hourBRT = (currentUtcHour - 3 + 24) % 24; 
-    // Transforma em texto (ex: 8 vira "08:00")
     const currentHourStr = String(hourBRT).padStart(2, '0') + ':00';
+
+    // Descobre a DATA de hoje no Brasil (YYYY-MM-DD) para achar o diário certo
+    const d = new Date();
+    d.setUTCHours(d.getUTCHours() - 3); 
+    const todayKey = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
 
     const db = admin.firestore();
     const usersSnapshot = await db.collection('users').get();
     
     const messages = [];
 
-    // 3. Olha usuário por usuário no banco de dados
-    usersSnapshot.forEach(doc => {
-      const data = doc.data();
+    // 3. Usa um loop "for...of" para podermos fazer buscas lá dentro
+    for (const userDoc of usersSnapshot.docs) {
+      const userData = userDoc.data();
+      const userId = userDoc.id;
       
       // Se não tem token ativado, ignora
-      if (!data.fcmToken) return;
+      if (!userData.fcmToken) continue;
 
-      // Pega os horários escolhidos pelo usuário (ou usa o padrão)
-      const userMorningTime = data.morningTime || '08:00';
-      const userEveningTime = data.eveningTime || '20:00';
+      const userMorningTime = userData.morningTime || '08:00';
+      const userEveningTime = userData.eveningTime || '20:00';
 
-// 3.5 Lembrete Aleatório de Virtude (Só se o Prólogo estiver pronto)
-      const userRandomHour = data.randomReminderHour;
-      
-      // Se a hora sorteada for IGUAL à hora atual do servidor
-      if (userRandomHour && userRandomHour === currentHourStr) {
-        messages.push({
-          token: data.fcmToken,
-          notification: { 
-            title: `✨ Prática da ${data.virtue || 'Virtude'}`, 
-            body: `Lembre-se da sua intenção: "${data.intention || 'Viver com consciência'}"` 
-          },
-          webpush: { 
-            headers: { TTL: '7200', Urgency: 'high' },
-            notification: { icon: 'https://img.icons8.com/ios-filled/512/8b7355/sparkling-diamond.png' }
-          }
-        });
-      }
-
-
-      // 4. Monta a mensagem certa SÓ SE a hora atual bater com a hora do usuário
+      // 4. Lembretes Fixos (Prólogo e Epílogo)
       if (userMorningTime === currentHourStr) {
         messages.push({
-          token: data.fcmToken,
-          notification: { 
-            title: '☀️ Prólogo Matinal', 
-            body: 'Inicie seu dia com propósito. Sorteie sua virtude hoje!' 
-          },
-          webpush: { 
-            headers: { 
-              TTL: '7200', 
-              Urgency: 'high' 
-            }, 
-            notification: { 
-              icon: 'https://img.icons8.com/ios-filled/512/8b7355/open-book.png',
-              vibrate: [200, 100, 200, 100, 200, 100, 200], // Força a vibração do lado do servidor
-              requireInteraction: true // Faz a notificação ficar na tela até ser clicada
-            }
-          }
+          token: userData.fcmToken,
+          notification: { title: '☀️ Prólogo Matinal', body: 'Inicie seu dia com propósito. Sorteie sua virtude hoje!' },
+          webpush: { headers: { TTL: '7200', Urgency: 'high' }, notification: { icon: 'https://img.icons8.com/ios-filled/512/8b7355/open-book.png' } }
         });
       } else if (userEveningTime === currentHourStr) {
         messages.push({
-          token: data.fcmToken,
-          notification: { 
-            title: '🌙 Epílogo Noturno', 
-            body: 'Hora do autoexame. O que você fez bem hoje? Feche o seu dia.' 
-          },
-          webpush: { 
-            headers: { 
-              TTL: '7200', 
-              Urgency: 'high' 
-            }, 
-            notification: { 
-              icon: 'https://img.icons8.com/ios-filled/512/8b7355/owl.png',
-              vibrate: [200, 100, 200, 100, 200, 100, 200], // Força a vibração do lado do servidor
-              requireInteraction: true // Faz a notificação ficar na tela até ser clicada
-            }
-          }
+          token: userData.fcmToken,
+          notification: { title: '🌙 Epílogo Noturno', body: 'Hora do autoexame. O que você fez bem hoje? Feche o seu dia.' },
+          webpush: { headers: { TTL: '7200', Urgency: 'high' }, notification: { icon: 'https://img.icons8.com/ios-filled/512/8b7355/owl.png' } }
         });
       }
-    });
+
+      // 5. Lembrete Aleatório MÁGICO (Lendo o Diário de Hoje do Usuário!)
+      const entryDoc = await db.collection('entries').doc(`${userId}_${todayKey}`).get();
+      
+      if (entryDoc.exists) {
+        const entryData = entryDoc.data();
+        const userRandomHour = entryData.randomReminderHour;
+
+        if (userRandomHour === currentHourStr) {
+          messages.push({
+            token: userData.fcmToken,
+            notification: { 
+              title: `✨ Prática da ${entryData.virtue || 'Virtude'}`, 
+              body: `Lembre-se: "${entryData.intention || 'Viver com consciência'}"` 
+            },
+            webpush: { 
+              headers: { TTL: '7200', Urgency: 'high' },
+              notification: { icon: 'https://img.icons8.com/ios-filled/512/8b7355/sparkling-diamond.png' }
+            }
+          });
+        }
+      }
+    }
 
     if (messages.length === 0) {
       return res.status(200).json({ message: `Nenhum lembrete agendado para as ${currentHourStr}.` });
     }
 
-    // 5. Envia todas as mensagens que foram agendadas para a hora atual
+    // 6. Envia todas as mensagens que foram agendadas para a hora atual
     const sendPromises = messages.map(msg => admin.messaging().send(msg));
     await Promise.allSettled(sendPromises);
 
