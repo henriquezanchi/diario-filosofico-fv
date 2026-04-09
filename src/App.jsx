@@ -285,12 +285,21 @@ function App() {
     const data = autoSaveDataRef.current;
     if (!data.user) return;
 
+// NOVO: Se o Prólogo acabou de ser feito e ainda não temos uma hora de lembrete sorteada
+    let randomHour = data.randomReminderHour;
+    if (data.morningDone && !randomHour) {
+      // Sorteia uma hora entre 10h e 18h
+      randomHour = Math.floor(Math.random() * (18 - 10 + 1)) + 10;
+      randomHour = String(randomHour).padStart(2, '0') + ':00';
+    }
+
     // Cria um pacote EXATO do que está na tela (Espelho perfeito)
     const updatePayload = {
       userId: data.user.uid,
       date: data.selectedDate,
       morningDone: data.morningDone || false,
       eveningDone: data.eveningDone || false,
+      randomReminderHour: randomHour || null, // Salva a hora sorteada,
       didMorning: data.didMorning !== false,
       virtue: data.showCustomVirtue ? (data.customVirtue || '') : (data.selectedVirtue || ''),
       customVirtue: data.showCustomVirtue ? (data.customVirtue || '') : '',

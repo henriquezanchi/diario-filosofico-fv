@@ -45,6 +45,25 @@ export default async function handler(req, res) {
       const userMorningTime = data.morningTime || '08:00';
       const userEveningTime = data.eveningTime || '20:00';
 
+// 3.5 Lembrete Aleatório de Virtude (Só se o Prólogo estiver pronto)
+      const userRandomHour = data.randomReminderHour;
+      
+      // Se a hora sorteada for IGUAL à hora atual do servidor
+      if (userRandomHour && userRandomHour === currentHourStr) {
+        messages.push({
+          token: data.fcmToken,
+          notification: { 
+            title: `✨ Prática da ${data.virtue || 'Virtude'}`, 
+            body: `Lembre-se da sua intenção: "${data.intention || 'Viver com consciência'}"` 
+          },
+          webpush: { 
+            headers: { TTL: '7200', Urgency: 'high' },
+            notification: { icon: 'https://img.icons8.com/ios-filled/512/8b7355/sparkling-diamond.png' }
+          }
+        });
+      }
+
+
       // 4. Monta a mensagem certa SÓ SE a hora atual bater com a hora do usuário
       if (userMorningTime === currentHourStr) {
         messages.push({
