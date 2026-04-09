@@ -54,13 +54,21 @@ export default async function handler(req, res) {
         messages.push({
           token: userData.fcmToken,
           notification: { title: '☀️ Prólogo Matinal', body: 'Inicie seu dia com propósito. Sorteie sua virtude hoje!' },
-          webpush: { headers: { TTL: '7200', Urgency: 'high' }, notification: { icon: 'https://img.icons8.com/ios-filled/512/8b7355/open-book.png' } }
+          webpush: { 
+            headers: { TTL: '7200', Urgency: 'high' }, 
+            notification: { icon: 'https://img.icons8.com/ios-filled/512/8b7355/open-book.png' },
+            fcmOptions: { link: 'https://diario-filosofico-azure.vercel.app/' } // 👈 Comanda o Android a abrir o app
+          }
         });
       } else if (userEveningTime === currentHourStr) {
         messages.push({
           token: userData.fcmToken,
           notification: { title: '🌙 Epílogo Noturno', body: 'Hora do autoexame. O que você fez bem hoje? Feche o seu dia.' },
-          webpush: { headers: { TTL: '7200', Urgency: 'high' }, notification: { icon: 'https://img.icons8.com/ios-filled/512/8b7355/owl.png' } }
+          webpush: { 
+            headers: { TTL: '7200', Urgency: 'high' }, 
+            notification: { icon: 'https://img.icons8.com/ios-filled/512/8b7355/owl.png' },
+            fcmOptions: { link: 'https://diario-filosofico-azure.vercel.app/' } // 👈 Comanda o Android a abrir o app
+          }
         });
       }
 
@@ -80,7 +88,8 @@ export default async function handler(req, res) {
             },
             webpush: { 
               headers: { TTL: '7200', Urgency: 'high' },
-              notification: { icon: 'https://img.icons8.com/ios-filled/512/8b7355/sparkling-diamond.png' }
+              notification: { icon: 'https://img.icons8.com/ios-filled/512/8b7355/sparkling-diamond.png' },
+              fcmOptions: { link: 'https://diario-filosofico-azure.vercel.app/' } // 👈 Comanda o Android a abrir o app
             }
           });
         }
