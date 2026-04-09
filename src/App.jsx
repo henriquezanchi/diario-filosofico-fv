@@ -37,18 +37,7 @@ function App() {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-// 💀 EXORCISMO DE SERVICE WORKERS ANTIGOS (CAÇADOR DE ZUMBIS)
-  useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then((registrations) => {
-        for (let registration of registrations) {
-          registration.unregister().then(isUnregistered => {
-            if (isUnregistered) console.log('Service Worker zumbi eliminado com sucesso!');
-          });
-        }
-      });
-    }
-  }, []);
+
   
   // Estados das Notificações
   const [notificationsActive, setNotificationsActive] = useState(false);
