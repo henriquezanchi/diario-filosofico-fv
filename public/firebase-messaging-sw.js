@@ -1,13 +1,25 @@
 importScripts('https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging-compat.js');
 
-// 1. O EXTERMINADOR DE CACHE: Força o celular a apagar o código velho imediatamente
+// 1. O EXTERMINADOR DE CACHE (Versão V2)
+const CACHE_VERSION = 'v2';
+
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheName !== CACHE_VERSION) {
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
+  );
 });
 
 // 2. A Configuração Oficial
@@ -25,4 +37,4 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
-// O Firebase agora cuidará de tudo sozinho, sem duplicatas, e o código velho foi destruído.
+// O Firebase agora cuidará de tudo sozinho, sem duplicatas.
