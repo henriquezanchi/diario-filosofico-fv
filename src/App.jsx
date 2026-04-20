@@ -632,7 +632,7 @@ function App() {
     const loadSecretContent = async () => {
       if (fvUnlocked && !fvSecretContent && user) {
         try {
-          const docRef = doc(db, 'appConfig', 'forcaViva');
+          const docRef = doc(db, 'appConfig', 'moduloAvancado');
           const docSnap = await getDoc(docRef);
           
           if (docSnap.exists()) {
@@ -1295,7 +1295,7 @@ function App() {
     rows.forEach(row => { csvContent += row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',') + '\n'; });
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a'); link.href = URL.createObjectURL(blob);
-    link.download = fvUnlocked ? `relatorio-forca-viva-${getTodayKey()}.csv` : `diario-filosofico-${getTodayKey()}.csv`; 
+    link.download = fvUnlocked ? `relatorio-avancado-${getTodayKey()}.csv` : `diario-filosofico-${getTodayKey()}.csv`; 
     link.click();
   };
 
