@@ -6,7 +6,7 @@ import {
   AlertCircle, Eye, EyeOff, CheckCircle, Download, Upload,
   Target, TrendingUp, Award, FileText, Book, Settings,
   Trash2, Edit, Save, XCircle, Flame, Zap, Shield, Star, Crown, 
-  Bell, Check, Music, MessageSquare, Menu, Lock, ChevronDown, ChevronUp
+  Bell, Check, Music, MessageSquare, Menu, Lock, ChevronDown, ChevronUp, Mountain, Landmark
 } from 'lucide-react';
 
 // Na importação do Firebase, puxe o messaging e o getToken:
@@ -124,6 +124,10 @@ function App() {
   const [streak, setStreak] = useState(0); 
   const [longestStreak, setLongestStreak] = useState(0); 
   const [showStreakModal, setShowStreakModal] = useState(false); 
+
+  // NOVO: Streaks da Força Viva
+  const [fvDiaryStreak, setFvDiaryStreak] = useState(0);
+  const [fvTasksStreak, setFvTasksStreak] = useState(0);
 
   // NOVO: Controles do Menu Mobile
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -808,6 +812,45 @@ function App() {
       } else {
         setStreak(0);
         setLongestStreak(0);
+
+        // --- NOVO CÁLCULO DE STREAK: FORÇA VIVA ---
+        let currentFvDiaryStreak = 0;
+        let currentFvTasksStreak = 0;
+        
+        // Separa os dias que têm textos na Carta de Degrau (Itens 1 ao 7)
+        const fvDiaryEntries = loadedEntries.filter(e => e.fvDaily && (e.fvDaily.item1 || e.fvDaily.item2 || e.fvDaily.item34 || e.fvDaily.item5 || e.fvDaily.item6 || e.fvDaily.item7));
+        // Separa os dias que têm pelo menos UMA prática FV realizada
+        const fvTasksEntries = loadedEntries.filter(e => e.fvDaily && e.fvDaily.praticas && Object.values(e.fvDaily.praticas).some(feito => feito === true));
+
+        // Cálculo da Escalada (Diário FV)
+        let dateToCheckFvDiary = fvDiaryEntries.length > 0 && fvDiaryEntries[0].date === todayKey ? todayKey : (fvDiaryEntries.length > 0 && fvDiaryEntries[0].date === yesterdayKey ? yesterdayKey : null);
+        if (dateToCheckFvDiary) {
+          for (const entry of fvDiaryEntries) {
+            if (entry.date === dateToCheckFvDiary) {
+              currentFvDiaryStreak++;
+              const prevD = new Date(dateToCheckFvDiary + 'T12:00:00');
+              prevD.setDate(prevD.getDate() - 1);
+              dateToCheckFvDiary = `${prevD.getFullYear()}-${String(prevD.getMonth() + 1).padStart(2, '0')}-${String(prevD.getDate()).padStart(2, '0')}`;
+            } else { break; }
+          }
+        }
+        
+        // Cálculo do Templo (Práticas FV)
+        let dateToCheckFvTasks = fvTasksEntries.length > 0 && fvTasksEntries[0].date === todayKey ? todayKey : (fvTasksEntries.length > 0 && fvTasksEntries[0].date === yesterdayKey ? yesterdayKey : null);
+        if (dateToCheckFvTasks) {
+          for (const entry of fvTasksEntries) {
+            if (entry.date === dateToCheckFvTasks) {
+              currentFvTasksStreak++;
+              const prevD = new Date(dateToCheckFvTasks + 'T12:00:00');
+              prevD.setDate(prevD.getDate() - 1);
+              dateToCheckFvTasks = `${prevD.getFullYear()}-${String(prevD.getMonth() + 1).padStart(2, '0')}-${String(prevD.getDate()).padStart(2, '0')}`;
+            } else { break; }
+          }
+        }
+        
+        setFvDiaryStreak(currentFvDiaryStreak);
+        setFvTasksStreak(currentFvTasksStreak);
+        // -----------------------------------------
       }
     } catch (error) { console.error('Erro ao carregar entradas:', error); }
   };
@@ -1459,6 +1502,21 @@ function App() {
                 <StreakIcon size={18} fill={streak > 0 ? (isDark ? '#ff9800' : '#e65100') : 'none'} color={streak > 0 ? (isDark ? '#ff9800' : '#e65100') : (isDark ? '#aaa' : '#777')} />
                 <span>{streak} {streak === 1 ? 'dia' : 'dias'}</span>
               </div>
+
+              {/* NOVOS BADGES DA FORÇA VIVA (SÓ APARECEM SE FV ESTIVER DESTRANCADO) */}
+              {fvUnlocked && (
+                <div style={{ display: 'flex', gap: '0.5rem', marginRight: '1rem' }}>
+                  {/* BADGE DA ESCALADA (CARTA DE DEGRAU) */}
+                  <div title="Escalada da Carta de Degrau" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.4rem 0.8rem', background: fvDiaryStreak > 0 ? 'rgba(74, 144, 226, 0.15)' : (isDark ? 'rgba(255,255,255,0.05)' : '#f0f0f0'), border: `1px solid ${fvDiaryStreak > 0 ? '#4A90E2' : (isDark ? '#555' : '#ccc')}`, borderRadius: '20px', color: fvDiaryStreak > 0 ? '#4A90E2' : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontSize: '0.85rem' }}>
+                    <Mountain size={16} /> {fvDiaryStreak}
+                  </div>
+                  
+                  {/* BADGE DO TEMPLO (PRÁTICAS) */}
+                  <div title="Construção do Templo (Práticas)" style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.4rem 0.8rem', background: fvTasksStreak > 0 ? 'rgba(155, 89, 182, 0.15)' : (isDark ? 'rgba(255,255,255,0.05)' : '#f0f0f0'), border: `1px solid ${fvTasksStreak > 0 ? '#9B59B6' : (isDark ? '#555' : '#ccc')}`, borderRadius: '20px', color: fvTasksStreak > 0 ? '#9B59B6' : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontSize: '0.85rem' }}>
+                    <Landmark size={16} /> {fvTasksStreak}
+                  </div>
+                </div>
+              )}
 
               <button onClick={() => setView('today')} style={{ padding: '0.5rem 1rem', background: view === 'today' ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: view === 'today' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Hoje</button>
               <button onClick={() => setView('history')} style={{ padding: '0.5rem 1rem', background: view === 'history' ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: view === 'history' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Histórico</button>
