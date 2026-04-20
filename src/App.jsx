@@ -885,15 +885,14 @@ function App() {
     if (!user || fvConfig) return;
     setIsDownloadingConfig(true);
     try {
-      // MUDANÇA AQUI: Usando a pasta fvData e o seu usuário, onde o Firebase já nos dá permissão total!
+      // Vamos salvar o motor dinâmico dentro de fvData, que não tem bloqueio de permissão!
       const docRef = doc(db, 'fvData', user.uid);
       const docSnap = await getDoc(docRef);
       
-      // Verifica se o documento existe E se a configuração já foi criada dentro dele
       if (docSnap.exists() && docSnap.data().config) {
-        setFvConfig(docSnap.data().config); // Lê a configuração salva
+        setFvConfig(docSnap.data().config);
       } else {
-        // A MÁGICA: Se não existir, cria a estrutura completa
+        // Se o motor não existir, o aplicativo se auto-alimenta!
         const initialConfig = {
           tituloAba: "Registro de Ciclo",
           secaoReflexao: "A Escalada (Reflexões)",
@@ -906,10 +905,10 @@ function App() {
             { id: 'item7', label: '7 – VIRTUDES', desc: 'Perseverança e constância...' }
           ],
           praticas: [
-            { key: 'prac1', label: 'Foco (T)', type: 'guided' },
-            { key: 'prac2', label: 'Código (C)', type: 'manual' },
-            { key: 'prac3', label: 'Fases (F)', type: 'manual' },
-            { key: 'prac4', label: 'Purificação (CP)', type: 'guided' }
+            { key: 'tratack', label: 'Foco (T)' },
+            { key: 'recitarHonra', label: 'Código (C)' },
+            { key: 'recitar7Fases', label: 'Fases (F)' },
+            { key: 'camara', label: 'Purificação (CP)' }
           ],
           modulo2: {
             titulo: "Módulo Especial",
@@ -922,8 +921,6 @@ function App() {
             ]
           }
         };
-        
-        // Usamos { merge: true } para adicionar o motor sem apagar os seus prazos de entrega que já estão lá!
         await setDoc(docRef, { config: initialConfig }, { merge: true }); 
         setFvConfig(initialConfig); 
       }
