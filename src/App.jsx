@@ -759,49 +759,55 @@ function App() {
       const q = query(collection(db, 'entries'), where('userId', '==', uid));
       const querySnapshot = await getDocs(q);
       const loadedEntries = [];
+      
       querySnapshot.forEach((doc) => {
         const data = doc.data();
-        
-        // Verifica se há preenchimento na FV (Textos ou Práticas)
+        // A MAGIA 1: Garante que os dias que têm APENAS Força Viva sejam carregados na conta
         const hasFvData = data.fvDaily && (
           data.fvDaily.item1 || data.fvDaily.item2 || data.fvDaily.item34 || data.fvDaily.item5 || data.fvDaily.item6 || data.fvDaily.item7 || 
           (data.fvDaily.praticas && Object.values(data.fvDaily.praticas).some(v => v === true))
         );
-
+        
         if (data.morningDone || data.eveningDone || hasFvData) { 
           loadedEntries.push({ id: doc.id, ...data });
         }
       });
+      
+      // Ordena do dia mais novo para o mais antigo
       loadedEntries.sort((a, b) => new Date(b.date) - new Date(a.date));
       setEntries(loadedEntries);
 
       if (loadedEntries.length > 0) {
         let maxStreak = 1;
         let tempCalc = 1;
-        // Calcula a ofensiva apenas para dias que tiveram o Epílogo concluído
         const streakEntries = loadedEntries.filter(e => e.eveningDone);
         
-        for (let i = 0; i < streakEntries.length - 1; i++) {
-          const date1 = new Date(streakEntries[i].date + 'T12:00:00');
-          const date2 = new Date(streakEntries[i+1].date + 'T12:00:00');
-          const diffDays = Math.round((date1 - date2) / (1000 * 60 * 60 * 24));
-          
-          if (diffDays === 1) {
-            tempCalc++;
-            if (tempCalc > maxStreak) maxStreak = tempCalc;
-          } else if (diffDays > 1) {
-            tempCalc = 1;
+        if (streakEntries.length > 0) {
+          for (let i = 0; i < streakEntries.length - 1; i++) {
+            const date1 = new Date(streakEntries[i].date + 'T12:00:00');
+            const date2 = new Date(streakEntries[i+1].date + 'T12:00:00');
+            const diffDays = Math.round((date1 - date2) / (1000 * 60 * 60 * 24));
+            
+            if (diffDays === 1) {
+              tempCalc++;
+              if (tempCalc > maxStreak) maxStreak = tempCalc;
+            } else if (diffDays > 1) {
+              tempCalc = 1;
+            }
           }
+        } else {
+          maxStreak = 0;
         }
         setLongestStreak(maxStreak);
 
-        const todayKey = getTodayKey();
+        const todayKeyStr = getTodayKey();
         const d = new Date();
         d.setDate(d.getDate() - 1);
         const yesterdayKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         
         let currentStreak = 0;
-        let dateToCheck = streakEntries.length > 0 && streakEntries[0].date === todayKey ? todayKey : (streakEntries.length > 0 && streakEntries[0].date === yesterdayKey ? yesterdayKey : null);
+        // A MAGIA 2: Inicia a contagem independente de datas futuras
+        let dateToCheck = streakEntries.some(e => e.date === todayKeyStr) ? todayKeyStr : (streakEntries.some(e => e.date === yesterdayKey) ? yesterdayKey : null);
         
         if (dateToCheck) {
           for (const entry of streakEntries) {
@@ -810,27 +816,21 @@ function App() {
               const prevD = new Date(dateToCheck + 'T12:00:00');
               prevD.setDate(prevD.getDate() - 1);
               dateToCheck = `${prevD.getFullYear()}-${String(prevD.getMonth() + 1).padStart(2, '0')}-${String(prevD.getDate()).padStart(2, '0')}`;
-            } else {
-              break;
+            } else if (entry.date < dateToCheck) {
+              break; // A sequência foi quebrada
             }
           }
         }
         setStreak(currentStreak);
-      } else {
-        setStreak(0);
-        setLongestStreak(0);
 
-        // --- NOVO CÁLCULO DE STREAK: FORÇA VIVA ---
+        // --- CÁLCULO DE STREAK: FORÇA VIVA (BLINDADO) ---
         let currentFvDiaryStreak = 0;
         let currentFvTasksStreak = 0;
         
-        // Separa os dias que têm textos na Carta de Degrau (Itens 1 ao 7)
         const fvDiaryEntries = loadedEntries.filter(e => e.fvDaily && (e.fvDaily.item1 || e.fvDaily.item2 || e.fvDaily.item34 || e.fvDaily.item5 || e.fvDaily.item6 || e.fvDaily.item7));
-        // Separa os dias que têm pelo menos UMA prática FV realizada
         const fvTasksEntries = loadedEntries.filter(e => e.fvDaily && e.fvDaily.praticas && Object.values(e.fvDaily.praticas).some(feito => feito === true));
 
-        // Cálculo da Escalada (Diário FV)
-        let dateToCheckFvDiary = fvDiaryEntries.length > 0 && fvDiaryEntries[0].date === todayKey ? todayKey : (fvDiaryEntries.length > 0 && fvDiaryEntries[0].date === yesterdayKey ? yesterdayKey : null);
+        let dateToCheckFvDiary = fvDiaryEntries.some(e => e.date === todayKeyStr) ? todayKeyStr : (fvDiaryEntries.some(e => e.date === yesterdayKey) ? yesterdayKey : null);
         if (dateToCheckFvDiary) {
           for (const entry of fvDiaryEntries) {
             if (entry.date === dateToCheckFvDiary) {
@@ -838,12 +838,11 @@ function App() {
               const prevD = new Date(dateToCheckFvDiary + 'T12:00:00');
               prevD.setDate(prevD.getDate() - 1);
               dateToCheckFvDiary = `${prevD.getFullYear()}-${String(prevD.getMonth() + 1).padStart(2, '0')}-${String(prevD.getDate()).padStart(2, '0')}`;
-            } else { break; }
+            } else if (entry.date < dateToCheckFvDiary) { break; }
           }
         }
         
-        // Cálculo do Templo (Práticas FV)
-        let dateToCheckFvTasks = fvTasksEntries.length > 0 && fvTasksEntries[0].date === todayKey ? todayKey : (fvTasksEntries.length > 0 && fvTasksEntries[0].date === yesterdayKey ? yesterdayKey : null);
+        let dateToCheckFvTasks = fvTasksEntries.some(e => e.date === todayKeyStr) ? todayKeyStr : (fvTasksEntries.some(e => e.date === yesterdayKey) ? yesterdayKey : null);
         if (dateToCheckFvTasks) {
           for (const entry of fvTasksEntries) {
             if (entry.date === dateToCheckFvTasks) {
@@ -851,13 +850,18 @@ function App() {
               const prevD = new Date(dateToCheckFvTasks + 'T12:00:00');
               prevD.setDate(prevD.getDate() - 1);
               dateToCheckFvTasks = `${prevD.getFullYear()}-${String(prevD.getMonth() + 1).padStart(2, '0')}-${String(prevD.getDate()).padStart(2, '0')}`;
-            } else { break; }
+            } else if (entry.date < dateToCheckFvTasks) { break; }
           }
         }
         
         setFvDiaryStreak(currentFvDiaryStreak);
         setFvTasksStreak(currentFvTasksStreak);
-        // -----------------------------------------
+        // ------------------------------------------------
+      } else {
+        setStreak(0);
+        setLongestStreak(0);
+        setFvDiaryStreak(0);
+        setFvTasksStreak(0);
       }
     } catch (error) { console.error('Erro ao carregar entradas:', error); }
   };
@@ -2043,7 +2047,7 @@ function App() {
                   </div>
                 </div>
                 
-                {/* BADGES DA FORÇA VIVA (AGORA MORAM AQUI DENTRO!) */}
+                {/* BADGES DA FORÇA VIVA */}
                 <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                   <div title="Escalada da Carta de Degrau (Dias preenchendo os textos)" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: fvDiaryStreak > 0 ? 'rgba(74, 144, 226, 0.15)' : (isDark ? 'rgba(255,255,255,0.05)' : '#fff'), border: `1px solid ${fvDiaryStreak > 0 ? '#4A90E2' : (isDark ? '#555' : '#ccc')}`, borderRadius: '20px', color: fvDiaryStreak > 0 ? '#4A90E2' : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontSize: '0.95rem' }}>
                     <Mountain size={18} /> {fvDiaryStreak}
@@ -2144,6 +2148,48 @@ function App() {
                   </button>
 
                 </div>
+              </div>
+
+              {/* LINHA DIVISÓRIA E DATAS (RECUPERADAS!) */}
+              <div style={{ height: '2px', background: 'rgba(255,215,0,0.3)', margin: '3rem 0 2rem' }}></div>
+
+              {/* PLANEJAMENTO DATAS FV */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                <h3 style={{ margin: 0, color: isDark ? '#FFD700' : '#996515', fontSize: '1.4rem', fontFamily: "'Cinzel', serif" }}>Planejamento de Datas</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Última Entrega da CD </label>
+                    <input 
+                      type="date" 
+                      value={fvLastCartaDate || ''} 
+                      onChange={(e) => {
+                        const novaData = e.target.value;
+                        setFvLastCartaDate(novaData);
+                        if (novaData) {
+                          const [ano, mes, dia] = novaData.split('-');
+                          const dataCalculada = new Date(parseInt(ano, 10), parseInt(mes, 10) - 1 + 3, parseInt(dia, 10));
+                          const proxAno = dataCalculada.getFullYear();
+                          const proxMes = String(dataCalculada.getMonth() + 1).padStart(2, '0');
+                          const proxDia = String(dataCalculada.getDate()).padStart(2, '0');
+                          setFvNextCartaDate(`${proxAno}-${proxMes}-${proxDia}`);
+                        } else { setFvNextCartaDate(''); }
+                      }} 
+                      style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} 
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Próxima Entrega Prevista da CD</label>
+                    <input type="date" value={fvNextCartaDate || ''} onChange={(e) => setFvNextCartaDate(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                  </div>
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: 600, fontSize: '1.1rem', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif" }}>Próxima Reunião GDVE</label>
+                  <input type="datetime-local" value={fvGdveReuniao || ''} onChange={(e) => setFvGdveReuniao(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                </div>
+                
+                <button onClick={saveFvPlanning} style={{ padding: '0.75rem 1.5rem', background: 'transparent', color: isDark ? '#FFD700' : '#996515', border: '2px solid #FFD700', borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', alignSelf: 'flex-start' }}>
+                  <Save size={18} /> Salvar Datas de Planejamento
+                </button>
               </div>
             </div>
           </div>
