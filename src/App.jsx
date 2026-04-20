@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'; // 👈 ADICIONE O useRef AQUI
-// Adicione o ícone Bell na lista do lucide-react:
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   BookOpen, Sunrise, Sunset, Search, Calendar, Moon, Sun, 
   Sparkles, ChevronRight, LogOut, Shuffle, Plus, X, 
@@ -9,9 +8,8 @@ import {
   Bell, Check, Music, MessageSquare, Menu, Lock, ChevronDown, ChevronUp, Mountain, Landmark
 } from 'lucide-react';
 
-// Na importação do Firebase, puxe o messaging e o getToken:
-import { auth, db, messaging } from './config/firebase-config'; // 👈 Adicione o messaging aqui
-import { getToken, deleteToken, onMessage } from 'firebase/messaging'; // 👈 ADICIONE O deleteToken
+import { auth, db, messaging } from './config/firebase-config'; 
+import { getToken, deleteToken, onMessage } from 'firebase/messaging'; 
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword,
@@ -22,10 +20,18 @@ import {
 } from 'firebase/auth';
 import { 
   doc, setDoc, getDoc, collection, query, where,
-  getDocs, updateDoc, deleteDoc, Timestamp, deleteField // 👈 ADICIONE AQUI 
+  getDocs, updateDoc, deleteDoc, Timestamp, deleteField 
 } from 'firebase/firestore';
 import './App.css';
-import AdBanner from './AdBanner'; // 👈 ADICIONE ESTA LINHA AQUI
+import AdBanner from './AdBanner'; 
+
+// BANCO DE MEMÓRIA DOS BASTIÕES GDVE
+const BASTIOES_DB = [
+  { name: "Bastiões 1976 - 001 a 006", link: "https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=23101&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es" },
+  { name: "Bastiões 1977 - 007 a 017", link: "https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=23102&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es" },
+  { name: "Bastiões 1978 - 018 a 029", link: "https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=23103&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es" },
+  { name: "Bastiões 1979 - 029 a 039", link: "https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=23104&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es" }
+];
 
 function App() {
   // Estados de Autenticação
@@ -37,35 +43,27 @@ function App() {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-
-  
   // Estados das Notificações
   const [notificationsActive, setNotificationsActive] = useState(false);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
-  
-  // Horários Personalizados de Notificação
   const [morningTime, setMorningTime] = useState('06:00');
   const [eveningTime, setEveningTime] = useState('22:00');
   const [showSettingsModal, setShowSettingsModal] = useState(false);
 
-  // NOVO: Controle de Instalação do PWA
+  // Controle de Instalação do PWA
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
 
-  // Função Inteligente: Liga e Desliga Notificações (UX Melhorada)
   const toggleNotifications = async () => {
-    // SE JÁ ESTIVER ATIVADO: Vamos desativar (Sem mandar o usuário para o navegador)
     if (notificationsActive) {
       const confirmDisable = window.confirm('Deseja silenciar os lembretes do Diário Filosófico?');
       if (confirmDisable) {
         try {
-          // Deleta o token da memória e do banco de dados. O servidor não consegue mais enviar.
           await deleteToken(messaging);
           if (user) {
             await updateDoc(doc(db, 'users', user.uid), { fcmToken: deleteField() });
           }
           setNotificationsActive(false);
-          // Aviso amigável e direto. A mágica acontece nos bastidores.
           alert('🔕 Lembretes silenciados. Você não receberá mais os avisos de Prólogo e Epílogo.');
         } catch (error) {
           console.error('Erro ao silenciar:', error);
@@ -75,23 +73,18 @@ function App() {
       return;
     }
 
-    // SE ESTIVER DESATIVADO: Vamos ativar
     try {
-      // Pede permissão ao navegador (Se ele já deu permissão antes, o navegador pula essa etapa invisivelmente)
       const permission = await Notification.requestPermission();
-      
       if (permission === 'granted') {
         const token = await getToken(messaging, { 
           vapidKey: 'BCbaqmBk9-neW0G2xxxszZk7nlj89NDaLdeLqkiW9-wUb2GW1JxnneFaTmFcLaYjQUE49mG1lAMnZNCqLp4ZXL0' 
         });
-        
         if (token && user) {
            await updateDoc(doc(db, 'users', user.uid), { fcmToken: token });
            setNotificationsActive(true);
            alert('🔔 Lembretes ativados! Nós avisaremos você nos horários adequados.');
         }
       } else {
-        // Aqui é o ÚNICO cenário onde o usuário precisa ir no navegador: se ele mesmo bloqueou!
         alert('As notificações estão bloqueadas no seu navegador. Para receber lembretes, clique no ícone de "Cadeado" ao lado do endereço do site e mude para "Permitir".');
       }
     } catch (error) {
@@ -102,7 +95,6 @@ function App() {
 
   // Estados de Navegação e Fogo Interno
   const [view, setView] = useState('today');
-  // NOVO: Controle de Data Retroativa
   const [selectedDate, setSelectedDate] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -125,11 +117,11 @@ function App() {
   const [longestStreak, setLongestStreak] = useState(0); 
   const [showStreakModal, setShowStreakModal] = useState(false); 
 
-  // NOVO: Streaks da Força Viva
+  // Streaks da Força Viva
   const [fvDiaryStreak, setFvDiaryStreak] = useState(0);
   const [fvTasksStreak, setFvTasksStreak] = useState(0);
 
-  // NOVO: Controles do Menu Mobile
+  // Controles do Menu Mobile
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 850);
 
@@ -139,14 +131,12 @@ function App() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  
-
   // Sensor de Instalação (PWA)
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
-      e.preventDefault(); // Impede o navegador de mostrar o aviso feio dele
-      setDeferredPrompt(e); // Salva o evento para usarmos depois
-      setShowInstallBanner(true); // Mostra o nosso banner bonito
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallBanner(true);
     };
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -154,7 +144,7 @@ function App() {
 
   const handleInstallClick = async () => {
     if (deferredPrompt) {
-      deferredPrompt.prompt(); // Mostra a tela oficial de instalação do Android
+      deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
       if (outcome === 'accepted') {
         setShowInstallBanner(false);
@@ -167,7 +157,7 @@ function App() {
   const [showInactivityWarning, setShowInactivityWarning] = useState(false);
   const [logoutCountdown, setLogoutCountdown] = useState(15);
 
-// Sugestões e Melhorias
+  // Sugestões e Melhorias
   const [showSuggestionModal, setShowSuggestionModal] = useState(false);
   const [suggestionText, setSuggestionText] = useState('');
 
@@ -175,7 +165,6 @@ function App() {
     if (!suggestionText.trim()) return alert('Por favor, digite sua sugestão primeiro!');
     const subject = encodeURIComponent('Ideia/Melhoria - Diário Filosófico');
     const body = encodeURIComponent(`Olá!\n\nAqui está minha sugestão para o aplicativo:\n\n${suggestionText}`);
-    // ATENÇÃO: Troque "seuemail@gmail.com" pelo seu e-mail real
     window.open(`mailto:henrique.zanchi@gmail.com?subject=${subject}&body=${body}`); 
     setShowSuggestionModal(false);
     setSuggestionText('');
@@ -184,7 +173,6 @@ function App() {
   const handleSendWhatsApp = () => {
     if (!suggestionText.trim()) return alert('Por favor, digite sua sugestão primeiro!');
     const text = encodeURIComponent(`*Ideia/Melhoria - Diário Filosófico* 💡\n\n${suggestionText}`);
-    // ATENÇÃO: Troque "5511999999999" pelo seu número de WhatsApp real (Código do País + DDD + Número)
     window.open(`https://wa.me/5562991729783?text=${text}`, '_blank');
     setShowSuggestionModal(false);
     setSuggestionText('');
@@ -232,8 +220,9 @@ function App() {
   const [fvNextCartaDate, setFvNextCartaDate] = useState('');
   const [fvGdveDesafios, setFvGdveDesafios] = useState([]);
   const [fvGdveReuniao, setFvGdveReuniao] = useState('');
-  const [fvGdveBastiao, setFvGdveBastiao] = useState(''); // Guarda o número do Bastião
-  const [showQuickFv, setShowQuickFv] = useState(false); // Controla o Widget Flutuante
+  const [fvGdveBastiaoName, setFvGdveBastiaoName] = useState(''); 
+  const [fvGdveBastiaoLink, setFvGdveBastiaoLink] = useState(''); 
+  const [showQuickFv, setShowQuickFv] = useState(false); 
   const [fvGdveTasks, setFvGdveTasks] = useState([]);
   const [newGdveTaskName, setNewGdveTaskName] = useState('');
   const [editingGdveTaskId, setEditingGdveTaskId] = useState(null);
@@ -241,7 +230,7 @@ function App() {
   const [newGdveTaskIsCycle, setNewGdveTaskIsCycle] = useState(false);
   const [fvGdveCycleStatus, setFvGdveCycleStatus] = useState({});
   
-  // NOVO: Estado Diário da Carta de Degrau FV
+  // Estado Diário da Carta de Degrau FV
   const [fvDaily, setFvDaily] = useState({
     item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
     horasGuarda: '', horasAula: '',
@@ -253,28 +242,27 @@ function App() {
     }
   });
 
-  // NOVO: Controle Universal das Práticas Guiadas
+  // Controle Universal das Práticas Guiadas
   const [isPracticeActive, setIsPracticeActive] = useState(false); 
   const [activePracticeId, setActivePracticeId] = useState(null); 
   const [practicePhase, setPracticePhase] = useState('intro'); 
   const [cancelClickCount, setCancelClickCount] = useState(0); 
   const [tratakMouseActive, setTratakMouseActive] = useState(false);
   
-  // ESTADO DO TEMPLO: Guarda as etapas que ele passou durante a música
+  // ESTADO DO TEMPLO
   const [temploSelections, setTemploSelections] = useState({ porta: false, patioAberto: false, patioColunas: false, santuario: false });
 
   const [activeActionMenu, setActiveActionMenu] = useState(null);
   const audioRef = useRef(null); 
 
-// --- SISTEMA DE AUTOSAVE DE EMERGÊNCIA ---
+  // --- SISTEMA DE AUTOSAVE DE EMERGÊNCIA ---
   const autoSaveDataRef = useRef({});
 
-  // 1. Tira uma foto constante de tudo, INCLUINDO se as abas estão abertas ou fechadas
   useEffect(() => {
     autoSaveDataRef.current = {
       user, selectedDate, selectedVirtue, customVirtue, showCustomVirtue, dailyIntention,
       whereIFailed, whatIDidWell, whatILeftUndone, freeEpilogue, didMorning,
-      morningDone, eveningDone, // 👈 ADICIONAMOS ESSES DOIS AQUI
+      morningDone, eveningDone,
       todayTasksStatus, fvDaily,
       tasksSnapshot: getTasksForToday().map(task => ({
         id: task.id, name: task.name, completed: !!todayTasksStatus[task.id]
@@ -282,26 +270,22 @@ function App() {
     };
   });
 
-  // 2. A função silenciosa que empurra a foto para o Firebase
   const performSilentAutoSave = async () => {
     const data = autoSaveDataRef.current;
     if (!data.user) return;
 
-// NOVO: Se o Prólogo acabou de ser feito e ainda não temos uma hora de lembrete sorteada
     let randomHour = data.randomReminderHour;
     if (data.morningDone && !randomHour) {
-      // Sorteia uma hora entre 10h e 18h
       randomHour = Math.floor(Math.random() * (18 - 10 + 1)) + 10;
       randomHour = String(randomHour).padStart(2, '0') + ':00';
     }
 
-    // Cria um pacote EXATO do que está na tela (Espelho perfeito)
     const updatePayload = {
       userId: data.user.uid,
       date: data.selectedDate,
       morningDone: data.morningDone || false,
       eveningDone: data.eveningDone || false,
-      randomReminderHour: randomHour || null, // Salva a hora sorteada,
+      randomReminderHour: randomHour || null, 
       didMorning: data.didMorning !== false,
       virtue: data.showCustomVirtue ? (data.customVirtue || '') : (data.selectedVirtue || ''),
       customVirtue: data.showCustomVirtue ? (data.customVirtue || '') : '',
@@ -314,32 +298,26 @@ function App() {
       tasksSnapshot: data.tasksSnapshot || [],
       fvDaily: data.fvDaily || {
         item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
-        horasGuarda: '', horasAula: '',
+        horasGuarda: '', horasAula: '', gdveTasksStatus: {}, gdveAttendance: false,
         praticas: { tratak: false, recitarHonra: false, recitar7Fases: false, camara: false, templo: false, porta: false, patioAberto: false, patioColunas: false, santuario: false }
       }
     };
 
     try {
-      // Salva o espelho exato no banco de dados
       await setDoc(doc(db, 'entries', `${data.user.uid}_${data.selectedDate}`), updatePayload, { merge: true });
-      console.log('Autosave espelhado concluído!');
     } catch (e) {
       console.log('Erro no autosave silencioso:', e);
     }
   };
 
-  // 3. O Cronômetro de Segurança (Salva a cada 1 minuto enquanto o app estiver aberto)
   useEffect(() => {
     const intervalId = setInterval(() => {
       performSilentAutoSave();
-    }, 60000); // 60000 ms = 1 minuto exato
+    }, 60000); 
     
     return () => clearInterval(intervalId);
   }, []);
 
-  // --- FIM DO SISTEMA DE AUTOSAVE ---
-
-  // Função que decide o que abrir quando clica em "Realizar"
   const handleRealizarPratica = (key) => {
     setActiveActionMenu(null); 
     
@@ -348,10 +326,8 @@ function App() {
       setPracticePhase('intro'); 
       setIsPracticeActive(true); 
     } 
-    // Se clicar em QUALQUER etapa do Templo, abre a Imersão do Templo!
     else if (['porta', 'patioAberto', 'patioColunas', 'santuario'].includes(key)) {
       setActivePracticeId('templo');
-      // Puxa o que já estava marcado antes de começar
       setTemploSelections({
         porta: fvDaily.praticas?.porta || false,
         patioAberto: fvDaily.praticas?.patioAberto || false,
@@ -361,23 +337,21 @@ function App() {
       setPracticePhase('intro'); 
       setIsPracticeActive(true); 
     } 
-    // Bloqueio das recitações sigilosas
     else {
       alert('Esta é uma prática de foro íntimo e sagrado. Por favor, faça a sua recitação privadamente e marque a opção "Já Realizado".');
     }
   };
 
-  // NOVO: Funções de Tela Cheia (Imersão)
   const enterFullScreen = () => {
     const elem = document.documentElement;
     if (elem.requestFullscreen) { elem.requestFullscreen().catch(e => console.log(e)); }
-    else if (elem.webkitRequestFullscreen) { elem.webkitRequestFullscreen(); } // Safari
+    else if (elem.webkitRequestFullscreen) { elem.webkitRequestFullscreen(); }
   };
 
   const exitFullScreen = () => {
     if (document.fullscreenElement || document.webkitFullscreenElement) {
       if (document.exitFullscreen) { document.exitFullscreen().catch(e => console.log(e)); }
-      else if (document.webkitExitFullscreen) { document.webkitExitFullscreen(); } // Safari
+      else if (document.webkitExitFullscreen) { document.webkitExitFullscreen(); }
     }
   };
 
@@ -414,15 +388,6 @@ function App() {
     { text: "A vida não examinada não vale a pena ser vivida", author: "Sócrates" }
   ];
 
-  // BANCO DE MEMÓRIA DOS BASTIÕES GDVE
-  const BASTIOES_DB = [
-    { name: "Bastiões 1976 - 001 a 006", link: "https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=23101&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es" },
-    { name: "Bastiões 1977 - 007 a 017", link: "https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=23102&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es" },
-    { name: "Bastiões 1978 - 018 a 029", link: "https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=23103&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es" },
-    { name: "Bastiões 1979 - 029 a 039", link: "https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=23104&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es" },
-    // 👈 Você pode adicionar quantas linhas quiser aqui seguindo esse mesmo padrão!
-  ];
-
   const getTodayKey = () => {
     const today = new Date();
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -431,16 +396,15 @@ function App() {
 
 // MÁQUINA DE CORES: Vermelho -> Laranja -> Amarelo -> Verde
   const getTaskColor = (current, target, isDark) => {
-    if (current === 0) return isDark ? '#c62828' : '#e53935'; // Vermelho (Zero)
-    if (current >= target) return isDark ? '#2e7d32' : '#4caf50'; // Verde (Completo)
+    if (current === 0) return isDark ? '#c62828' : '#e53935'; 
+    if (current >= target) return isDark ? '#2e7d32' : '#4caf50'; 
     
     const ratio = current / target;
-    if (ratio <= 0.34) return isDark ? '#e65100' : '#ff9800'; // Laranja
-    if (ratio <= 0.67) return isDark ? '#f57f17' : '#ffb300'; // Amarelo Queimado
-    return isDark ? '#afb42b' : '#c0ca33'; // Verde Limão
+    if (ratio <= 0.34) return isDark ? '#e65100' : '#ff9800'; 
+    if (ratio <= 0.67) return isDark ? '#f57f17' : '#ffb300'; 
+    return isDark ? '#afb42b' : '#c0ca33'; 
   };
 
-  // NOVO: Sistema de Gamificação Inteligente (Com Ícones)
   const getStreakInfo = (days) => {
     const levels = [
       { min: 0, title: "Cinzas Frias", desc: "O fogo aguarda para ser aceso.", icon: Moon },
@@ -497,18 +461,20 @@ function App() {
     setFvLastCartaDate('');
     setFvNextCartaDate('');
     setFvGdveReuniao('');
+    setFvGdveBastiaoName('');
+    setFvGdveBastiaoLink('');
     setFvUnlocked(false);
     setLastDrawDate(null);
-    setSelectedDate(getTodayKey()); // 👈 ESTA É A LINHA NOVA! Traz de volta para o HOJE.
+    setSelectedDate(getTodayKey()); 
     setFvDaily({
       item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
-      horasGuarda: '', horasAula: '',
+      horasGuarda: '', horasAula: '', gdveTasksStatus: {}, gdveAttendance: false,
       praticas: { tratak: false, recitarHonra: false, recitar7Fases: false, camara: false, templo: false, porta: false, patioAberto: false, patioColunas: false, santuario: false }
     });
   };
 
   const getTasksForToday = () => {
-    const targetDate = new Date(selectedDate + 'T12:00:00'); // Olha para o dia selecionado
+    const targetDate = new Date(selectedDate + 'T12:00:00'); 
     const currentDayOfWeek = targetDate.getDay(); 
     const currentDayOfMonth = targetDate.getDate();
     const todayObj = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
@@ -549,7 +515,6 @@ function App() {
     return lastDrawDate !== selectedDate;
   };
 
-// --- INÍCIO DAS FUNÇÕES RECUPERADAS ---
   const handleLogoClick = () => {
     setFvClickCount(prev => prev + 1);
     if (fvClickCount >= 6) {
@@ -569,11 +534,8 @@ function App() {
     setView('today'); 
     alert('🔒 Modo Força Viva ocultado com segurança!');
   };
-  // --- FIM DAS FUNÇÕES RECUPERADAS ---
 
-  // Motor de Inatividade (Com Escudo Universal de Práticas)
   useEffect(() => {
-    // Se isPracticeActive for true, o app NÃO desloga em NENHUMA prática!
     if (!user || showInactivityWarning || isPracticeActive) return; 
     
     let timeoutId;
@@ -599,11 +561,9 @@ function App() {
     };
   }, [user, showInactivityWarning, isPracticeActive]);
 
-// O Convite Ativo de Notificações
   useEffect(() => {
     if (user && 'Notification' in window) {
       if (Notification.permission === 'default') {
-        // Se ainda não escolheu, espera 3 segundos e mostra o convite
         const timer = setTimeout(() => {
           setShowNotificationPrompt(true);
         }, 3000);
@@ -612,7 +572,6 @@ function App() {
     }
   }, [user]);
 
-// Ouve as mensagens quando o app ESTIVER ABERTO (Foreground)
   useEffect(() => {
     if (!messaging) return;
 
@@ -620,13 +579,11 @@ function App() {
       console.log('Mensagem recebida com o app aberto: ', payload);
       
       if (Notification.permission === 'granted') {
-        // Verifica se é de manhã ou de noite pelo título da mensagem
         const isMorning = payload.notification.title.includes('Matinal');
         const correctIcon = isMorning 
           ? 'https://img.icons8.com/ios-filled/512/8b7355/open-book.png' 
           : 'https://img.icons8.com/ios-filled/512/8b7355/owl.png';
 
-        // Usa uma "tag" para evitar que o navegador duplique notificações iguais
         new Notification(payload.notification.title, {
           body: payload.notification.body,
           icon: correctIcon,
@@ -638,17 +595,15 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-// Motor Universal das Práticas: Cronômetros e Sensores
   useEffect(() => {
     let timer;
     let mouseSafetyTimer;
     
     if (activePracticeId === 'tratack' && practicePhase === 'practice') {
       timer = setTimeout(() => setPracticePhase('done'), 180000); 
-      // Libera o cancelamento por mouse após 2 segundos (tempo para soltar o mouse)
       mouseSafetyTimer = setTimeout(() => setTratakMouseActive(true), 2000);
     } else {
-      setTratakMouseActive(false); // Reseta a trava se não estiver no tratak
+      setTratakMouseActive(false); 
     }
     
     return () => { clearTimeout(timer); clearTimeout(mouseSafetyTimer); };
@@ -662,7 +617,6 @@ function App() {
           if (prev <= 1) {
             clearInterval(intervalId);
             
-            // EXECUTA O AUTOSAVE E DEPOIS DESLOGA O USUÁRIO
             performSilentAutoSave().then(() => {
               signOut(auth);
               setShowInactivityWarning(false);
@@ -703,7 +657,7 @@ function App() {
     return () => unsubscribe();
   }, []);
 
- 
+  
   
   const loadUserData = async (uid) => {
     try {
@@ -712,13 +666,11 @@ function App() {
         const data = userDoc.data();
         setTheme(data.theme || 'light');
         setLastDrawDate(data.lastDrawDate || null);
-        setFvUnlocked(false); // Sempre trancado ao iniciar a sessão
+        setFvUnlocked(false); 
 
-        // NOVO: Puxa os horários salvos ou usa o padrão
         setMorningTime(data.morningTime || '06:00'); 
         setEveningTime(data.eveningTime || '22:00');
         
-        // NOVO: O sininho só fica verde se existir um token real salvo no banco de dados!
         if ('Notification' in window && Notification.permission === 'granted') {
           setNotificationsActive(!!data.fcmToken);
         } else {
@@ -752,11 +704,10 @@ function App() {
         setTodayTasksStatus(data.tasksStatus || {});
         setFvDaily(data.fvDaily || {
           item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
-          horasGuarda: '', horasAula: '',
+          horasGuarda: '', horasAula: '', gdveTasksStatus: {}, gdveAttendance: false,
           praticas: { tratak: false, recitarHonra: false, recitar7Fases: false, camara: false, templo: false, porta: false, patioAberto: false, patioColunas: false, santuario: false }
         });
       } else {
-        // O DIA NÃO EXISTE: Limpeza profunda absoluta da tela!
         setMorningDone(false);
         setEveningDone(false);
         setDidMorning(true);
@@ -770,7 +721,7 @@ function App() {
         setTodayTasksStatus({});
         setFvDaily({
           item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
-          horasGuarda: '', horasAula: '',
+          horasGuarda: '', horasAula: '', gdveTasksStatus: {}, gdveAttendance: false,
           praticas: { tratak: false, recitarHonra: false, recitar7Fases: false, camara: false, templo: false, porta: false, patioAberto: false, patioColunas: false, santuario: false }
         });
       }
@@ -792,7 +743,6 @@ function App() {
       
       querySnapshot.forEach((doc) => {
         const data = doc.data();
-        // A MAGIA 1: Garante que os dias que têm APENAS Força Viva sejam carregados na conta
         const hasFvData = data.fvDaily && (
           data.fvDaily.item1 || data.fvDaily.item2 || data.fvDaily.item34 || data.fvDaily.item5 || data.fvDaily.item6 || data.fvDaily.item7 || 
           (data.fvDaily.praticas && Object.values(data.fvDaily.praticas).some(v => v === true))
@@ -803,7 +753,6 @@ function App() {
         }
       });
       
-      // Ordena do dia mais novo para o mais antigo
       loadedEntries.sort((a, b) => new Date(b.date) - new Date(a.date));
       setEntries(loadedEntries);
 
@@ -836,7 +785,6 @@ function App() {
         const yesterdayKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         
         let currentStreak = 0;
-        // A MAGIA 2: Inicia a contagem independente de datas futuras
         let dateToCheck = streakEntries.some(e => e.date === todayKeyStr) ? todayKeyStr : (streakEntries.some(e => e.date === yesterdayKey) ? yesterdayKey : null);
         
         if (dateToCheck) {
@@ -847,13 +795,12 @@ function App() {
               prevD.setDate(prevD.getDate() - 1);
               dateToCheck = `${prevD.getFullYear()}-${String(prevD.getMonth() + 1).padStart(2, '0')}-${String(prevD.getDate()).padStart(2, '0')}`;
             } else if (entry.date < dateToCheck) {
-              break; // A sequência foi quebrada
+              break; 
             }
           }
         }
         setStreak(currentStreak);
 
-        // --- CÁLCULO DE STREAK: FORÇA VIVA (BLINDADO) ---
         let currentFvDiaryStreak = 0;
         let currentFvTasksStreak = 0;
         
@@ -886,7 +833,6 @@ function App() {
         
         setFvDiaryStreak(currentFvDiaryStreak);
         setFvTasksStreak(currentFvTasksStreak);
-        // ------------------------------------------------
       } else {
         setStreak(0);
         setLongestStreak(0);
@@ -925,6 +871,8 @@ function App() {
         setFvGdveReuniao(data.gdveReuniao || '');
         setFvGdveTasks(data.gdveTasks || []);
         setFvGdveCycleStatus(data.gdveCycleStatus || {});
+        setFvGdveBastiaoName(data.gdveBastiaoName || '');
+        setFvGdveBastiaoLink(data.gdveBastiaoLink || '');
       }
     } catch (error) { console.error('Erro ao carregar dados FV:', error); }
   };
@@ -1012,10 +960,8 @@ function App() {
 
     const todayKey = selectedDate;
 
-    // 🎲 A MÁGICA ACONTECE AQUI: O Sorteio Automático
-    // Sorteia uma hora aleatória entre 10 e 18 (horário comercial/ativo)
     const randomHour = Math.floor(Math.random() * (18 - 10 + 1)) + 10;
-    const randomHourStr = String(randomHour).padStart(2, '0') + ':00'; // Transforma em "14:00", "16:00", etc.
+    const randomHourStr = String(randomHour).padStart(2, '0') + ':00'; 
 
     const entry = {
       userId: user.uid, 
@@ -1028,7 +974,7 @@ function App() {
       tasksStatus: todayTasksStatus || {},
       tasksSnapshot: tasksSnapshot || [], 
       morningTimestamp: Timestamp.now(),
-      randomReminderHour: randomHourStr // 👈 O app salva a hora sorteada secretamente no banco!
+      randomReminderHour: randomHourStr 
     };
 
     try {
@@ -1062,7 +1008,6 @@ function App() {
         tasksSnapshot: tasksSnapshot || [], eveningTimestamp: Timestamp.now()
       };
 
-      // O setDoc com { merge: true } já cria o documento sozinho se ele não existir, sem precisar ler antes!
       await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), updatedEntry, { merge: true });
       
       setEveningDone(true); 
@@ -1083,7 +1028,7 @@ function App() {
     }
   };
 
-// --- MÓDULO GDVE ---
+  // --- MÓDULO GDVE ---
   const saveGdveTasksToDB = async (tasks) => {
     if (user) {
       try { await setDoc(doc(db, 'fvData', user.uid), { gdveTasks: tasks }, { merge: true }); } 
@@ -1195,28 +1140,26 @@ function App() {
   };
   // --------------------
 
-  // Salvar Dados Estáticos do Planejamento FV (Datas)
   const saveFvPlanning = async () => {
     if (user) {
       try {
         await setDoc(doc(db, 'fvData', user.uid), {
           lastCartaDate: fvLastCartaDate || '',
           nextCartaDate: fvNextCartaDate || '',
-          gdveDesafios: fvGdveDesafios || [],
           gdveReuniao: fvGdveReuniao || '',
+          gdveBastiaoName: fvGdveBastiaoName || '',
+          gdveBastiaoLink: fvGdveBastiaoLink || '',
           updatedAt: Timestamp.now()
         }, { merge: true }); 
-        alert('✅ Datas do Planejamento da Força Viva salvas!');
+        alert('✅ Planejamento da Força Viva salvo com sucesso!');
       } catch (error) { console.error(error); alert('Erro ao salvar dados.'); }
     }
   };
 
-  // NOVO: Salvar APENAS os Textos da Carta de Degrau (Itens 1 ao 7)
   const saveFvTexts = async () => {
     if (user) {
       const todayKey = selectedDate;
       try {
-        // Pega o estado completo atual (já inclui textos E práticas que estão na tela)
         const payload = {
           userId: user.uid,
           date: todayKey,
@@ -1224,10 +1167,8 @@ function App() {
           fvTextsTimestamp: Timestamp.now()
         };
 
-        // Salva forçando a atualização exata do que está na tela
         await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), payload, { merge: true }); 
         
-        // Refaz a conta dos streaks
         await loadAllEntries(user.uid); 
         
         alert('✅ Reflexões da Carta de Degrau salvas com sucesso!');
@@ -1235,12 +1176,10 @@ function App() {
     }
   };
 
-  // NOVO: Salvar APENAS as Práticas Internas
   const saveFvPractices = async () => {
     if (user) {
       const todayKey = selectedDate;
       try {
-        // Pega o estado completo atual (já inclui textos E práticas que estão na tela)
         const payload = {
           userId: user.uid,
           date: todayKey,
@@ -1248,10 +1187,8 @@ function App() {
           fvPracticesTimestamp: Timestamp.now()
         };
 
-        // Salva forçando a atualização exata do que está na tela
         await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), payload, { merge: true }); 
         
-        // Refaz a conta dos streaks
         await loadAllEntries(user.uid); 
         
         alert('✅ Práticas Internas salvas com sucesso!');
@@ -1267,13 +1204,12 @@ function App() {
     setFvDaily(prev => ({ ...prev, praticas: { ...prev.praticas, [key]: value } }));
   };
 
-  // NOVO: Salva as práticas imersivas automaticamente no banco de dados ao finalizá-las
   const confirmImmersivePractice = async (key) => {
     const newFvDaily = {
       ...fvDaily,
       praticas: { ...fvDaily.praticas, [key]: true }
     };
-    setFvDaily(newFvDaily); // Atualiza na tela
+    setFvDaily(newFvDaily); 
     setIsPracticeActive(false);
     exitFullScreen();
 
@@ -1283,7 +1219,7 @@ function App() {
         await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), {
           fvDaily: newFvDaily
         }, { merge: true });
-        await loadAllEntries(user.uid); // Atualiza o histórico na hora!
+        await loadAllEntries(user.uid); 
       } catch (error) { console.error("Erro ao salvar prática:", error); }
     }
   };
@@ -1359,7 +1295,6 @@ function App() {
     link.click();
   };
 
-  // NOVO: Gerador de Dossiê TXT para confecção da Carta de Degrau
   const exportFvReportTXT = () => {
     if (entries.length === 0) { alert('Não há entradas para exportar'); return; }
     
@@ -1368,14 +1303,12 @@ function App() {
     txtContent += `    Gerado em: ${new Date().toLocaleDateString('pt-BR')}\n`;
     txtContent += `====================================================\n\n`;
     
-    // Inverte a ordem para o relatório ficar do dia mais antigo para o dia mais recente (ordem cronológica)
     const reversedEntries = [...entries].reverse();
     let hasData = false;
 
     reversedEntries.forEach(entry => {
       if (entry.fvDaily) {
         const fv = entry.fvDaily;
-        // Checa se o usuário escreveu em pelo menos um dos itens 1 ao 7 neste dia
         const hasTextData = fv.item1 || fv.item2 || fv.item34 || fv.item5 || fv.item6 || fv.item7;
         
         if (hasTextData) {
@@ -1497,11 +1430,10 @@ function App() {
   };
 
   const handleLogout = async () => { 
-    // Tranca o Modo FV automaticamente no banco de dados antes de sair!
     if (user && fvUnlocked) {
       try { await updateDoc(doc(db, 'users', user.uid), { fvUnlocked: false }); } catch(err) {}
     }
-    setFvUnlocked(false); // Tranca na tela
+    setFvUnlocked(false); 
     await signOut(auth); 
     setView('today'); 
   };
@@ -1533,12 +1465,12 @@ function App() {
     (entry.whatIDidWell && entry.whatIDidWell.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (entry.whatILeftUndone && entry.whatILeftUndone.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (entry.virtue && entry.virtue.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (entry.freeEpilogue && entry.freeEpilogue.toLowerCase().includes(searchTerm.toLowerCase())) // 👈 A LUPA AGORA LÊ AQUI TAMBÉM
+    (entry.freeEpilogue && entry.freeEpilogue.toLowerCase().includes(searchTerm.toLowerCase())) 
   );
 
   const isDark = theme === 'dark';
-  const streakInfo = getStreakInfo(streak); // Pega os dados do seu nível atual
-  const StreakIcon = streakInfo.current.icon; // Extrai a imagem do seu "brasão"
+  const streakInfo = getStreakInfo(streak);
+  const StreakIcon = streakInfo.current.icon; 
 
   if (loading) {
     return (
@@ -1801,7 +1733,7 @@ function App() {
                   type="date" 
                   value={selectedDate} 
                   onChange={(e) => handleDateChange(e.target.value)}
-                  max={getTodayKey()} // Impede prever o futuro
+                  max={getTodayKey()} 
                   style={{ padding: '0.6rem', borderRadius: '8px', border: `1px solid ${isDark ? '#d4af37' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem', fontFamily: 'Georgia, serif', cursor: 'pointer' }} 
                 />
                 
