@@ -761,7 +761,14 @@ function App() {
       const loadedEntries = [];
       querySnapshot.forEach((doc) => {
         const data = doc.data();
-        if (data.morningDone || data.eveningDone || data.fvDaily) { // Carrega se houver qualquer preenchimento
+        
+        // Verifica se há preenchimento na FV (Textos ou Práticas)
+        const hasFvData = data.fvDaily && (
+          data.fvDaily.item1 || data.fvDaily.item2 || data.fvDaily.item34 || data.fvDaily.item5 || data.fvDaily.item6 || data.fvDaily.item7 || 
+          (data.fvDaily.praticas && Object.values(data.fvDaily.praticas).some(v => v === true))
+        );
+
+        if (data.morningDone || data.eveningDone || hasFvData) { 
           loadedEntries.push({ id: doc.id, ...data });
         }
       });
@@ -1061,15 +1068,20 @@ function App() {
     if (user) {
       const todayKey = selectedDate;
       try {
-        // Enviamos o estado completo para não apagar as práticas que já foram feitas
-        await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), {
+        // Pega o estado completo atual (já inclui textos E práticas que estão na tela)
+        const payload = {
           userId: user.uid,
           date: todayKey,
           fvDaily: fvDaily, 
           fvTextsTimestamp: Timestamp.now()
-        }, { merge: true }); 
+        };
+
+        // Salva forçando a atualização exata do que está na tela
+        await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), payload, { merge: true }); 
         
-        await loadAllEntries(user.uid); // Força a leitura do banco para atualizar os badges NA HORA!
+        // Refaz a conta dos streaks
+        await loadAllEntries(user.uid); 
+        
         alert('✅ Reflexões da Carta de Degrau salvas com sucesso!');
       } catch (error) { console.error(error); alert('Erro ao salvar os textos.'); }
     }
@@ -1080,15 +1092,20 @@ function App() {
     if (user) {
       const todayKey = selectedDate;
       try {
-        // Enviamos o estado completo para não apagar os textos que já foram escritos
-        await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), {
+        // Pega o estado completo atual (já inclui textos E práticas que estão na tela)
+        const payload = {
           userId: user.uid,
           date: todayKey,
           fvDaily: fvDaily, 
           fvPracticesTimestamp: Timestamp.now()
-        }, { merge: true }); 
+        };
+
+        // Salva forçando a atualização exata do que está na tela
+        await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), payload, { merge: true }); 
         
-        await loadAllEntries(user.uid); // Força a leitura do banco para atualizar os badges NA HORA!
+        // Refaz a conta dos streaks
+        await loadAllEntries(user.uid); 
+        
         alert('✅ Práticas Internas salvas com sucesso!');
       } catch (error) { console.error(error); alert('Erro ao salvar as práticas.'); }
     }
