@@ -232,11 +232,14 @@ function App() {
   const [fvNextCartaDate, setFvNextCartaDate] = useState('');
   const [fvGdveDesafios, setFvGdveDesafios] = useState([]);
   const [fvGdveReuniao, setFvGdveReuniao] = useState('');
+  const [fvGdveTasks, setFvGdveTasks] = useState([]);
+  const [newGdveTaskName, setNewGdveTaskName] = useState('');
   
   // NOVO: Estado Diário da Carta de Degrau FV
   const [fvDaily, setFvDaily] = useState({
     item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
     horasGuarda: '', horasAula: '',
+    gdveTasksStatus: {}, gdveAttendance: false,
     praticas: {
       tratak: false, recitarHonra: false, recitar7Fases: false,
       camara: false, templo: false, porta: false, patioAberto: false,
@@ -893,6 +896,7 @@ function App() {
         setFvNextCartaDate(data.nextCartaDate || '');
         setFvGdveDesafios(data.gdveDesafios || []);
         setFvGdveReuniao(data.gdveReuniao || '');
+        setFvGdveTasks(data.gdveTasks || []);
       }
     } catch (error) { console.error('Erro ao carregar dados FV:', error); }
   };
@@ -1050,6 +1054,70 @@ function App() {
       } catch (error) { alert('Erro ao salvar metas.'); }
     }
   };
+
+// --- MÓDULO GDVE ---
+  const saveGdveTasksToDB = async (tasks) => {
+    if (user) {
+      try { await setDoc(doc(db, 'fvData', user.uid), { gdveTasks: tasks }, { merge: true }); } 
+      catch(e) { console.error("Erro ao salvar tarefas GDVE", e); }
+    }
+  };
+
+  const addGdveTask = () => {
+    if (!newGdveTaskName.trim()) return;
+    const newTasks = [...fvGdveTasks, { id: `gdve_${Date.now()}`, name: newGdveTaskName.trim() }];
+    setFvGdveTasks(newTasks);
+    setNewGdveTaskName('');
+    saveGdveTasksToDB(newTasks);
+  };
+
+  const removeGdveTask = (id) => {
+    const newTasks = fvGdveTasks.filter(t => t.id !== id);
+    setFvGdveTasks(newTasks);
+    saveGdveTasksToDB(newTasks);
+  };
+
+  const toggleGdveTask = async (id) => {
+    const newStatus = { ...fvDaily.gdveTasksStatus, [id]: !fvDaily.gdveTasksStatus?.[id] };
+    const newFvDaily = { ...fvDaily, gdveTasksStatus: newStatus };
+    setFvDaily(newFvDaily);
+    if (user) {
+      await setDoc(doc(db, 'entries', `${user.uid}_${selectedDate}`), { fvDaily: newFvDaily }, { merge: true });
+      await loadAllEntries(user.uid);
+    }
+  };
+
+  const registerGdveAttendance = async () => {
+    const isAttending = !fvDaily.gdveAttendance;
+    const newFvDaily = { ...fvDaily, gdveAttendance: isAttending };
+    setFvDaily(newFvDaily);
+    
+    // A Mágica dos 15 dias
+    if (isAttending && fvGdveReuniao) {
+      const confirmRecalc = window.confirm("Deseja marcar o próximo GDVE automaticamente para daqui a 15 dias a partir da data agendada?");
+      if (confirmRecalc) {
+         const currentDate = new Date(fvGdveReuniao);
+         currentDate.setDate(currentDate.getDate() + 15);
+         
+         const nextYear = currentDate.getFullYear();
+         const nextMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
+         const nextDay = String(currentDate.getDate()).padStart(2, '0');
+         const nextHour = String(currentDate.getHours()).padStart(2, '0');
+         const nextMinute = String(currentDate.getMinutes()).padStart(2, '0');
+         
+         const nextDateStr = `${nextYear}-${nextMonth}-${nextDay}T${nextHour}:${nextMinute}`;
+         setFvGdveReuniao(nextDateStr);
+         
+         if(user){ await setDoc(doc(db, 'fvData', user.uid), { gdveReuniao: nextDateStr }, { merge: true }); }
+      }
+    }
+
+    if (user) {
+      await setDoc(doc(db, 'entries', `${user.uid}_${selectedDate}`), { fvDaily: newFvDaily }, { merge: true });
+      await loadAllEntries(user.uid);
+    }
+  };
+  // --------------------
 
   // Salvar Dados Estáticos do Planejamento FV (Datas)
   const saveFvPlanning = async () => {
@@ -2150,6 +2218,48 @@ function App() {
                 </div>
               </div>
 
+{/* ÁREA GDVE (GRUPO DE DESENVOLVIMENTO DE VIDA ESPIRITUAL) */}
+                <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.5)', padding: '1.5rem', borderRadius: '12px', border: '1px solid rgba(255, 215, 0, 0.2)' }}>
+                  <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#FFD700' : '#996515', fontSize: '1.2rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Star size={24} /> Módulo GDVE
+                  </h3>
+                  
+                  {/* Botão de Check-in da Reunião */}
+                  <div style={{ padding: '1rem', background: fvDaily.gdveAttendance ? (isDark ? 'rgba(76, 175, 80, 0.2)' : '#e8f5e9') : (isDark ? 'rgba(255, 152, 0, 0.1)' : '#fff3e0'), borderRadius: '8px', border: `1px solid ${fvDaily.gdveAttendance ? '#4caf50' : (isDark ? 'rgba(255, 152, 0, 0.3)' : '#ffb74d')}`, marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div>
+                      <h4 style={{ margin: '0 0 0.25rem 0', color: fvDaily.gdveAttendance ? '#4caf50' : (isDark ? '#ffb74d' : '#e65100'), fontSize: '1.05rem' }}>Reunião GDVE</h4>
+                      <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744' }}>Registrar participação e calcular próximo encontro.</p>
+                    </div>
+                    <button onClick={registerGdveAttendance} style={{ padding: '0.75rem 1.5rem', background: fvDaily.gdveAttendance ? '#4caf50' : 'transparent', color: fvDaily.gdveAttendance ? '#fff' : (isDark ? '#ffb74d' : '#e65100'), border: `2px solid ${fvDaily.gdveAttendance ? '#4caf50' : (isDark ? '#ffb74d' : '#e65100')}`, borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      {fvDaily.gdveAttendance ? <><CheckCircle size={18} /> Participação Confirmada</> : 'Marcar Participação Hoje'}
+                    </button>
+                  </div>
+
+                  {/* Tarefas GDVE */}
+                  <h4 style={{ margin: '0 0 0.75rem 0', color: isDark ? '#d4af37' : '#6b4423', fontSize: '1rem' }}>Práticas Específicas do Grupo</h4>
+                  
+                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+                    <input type="text" value={newGdveTaskName} onChange={(e) => setNewGdveTaskName(e.target.value)} placeholder="Nova tarefa GDVE (ex: Dizer 'eu sou discípulo')..." style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                    <button onClick={addGdveTask} style={{ padding: '0.75rem 1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}><Plus size={20} /></button>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {fvGdveTasks.length === 0 ? (
+                      <p style={{ margin: 0, fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic' }}>Nenhuma tarefa GDVE cadastrada.</p>
+                    ) : (
+                      fvGdveTasks.map(task => (
+                        <div key={task.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.7)', borderRadius: '8px', border: `1px solid ${fvDaily.gdveTasksStatus?.[task.id] ? '#4caf50' : (isDark ? 'rgba(212, 175, 55, 0.2)' : '#eee')}` }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', flex: 1 }}>
+                            <input type="checkbox" checked={fvDaily.gdveTasksStatus?.[task.id] || false} onChange={() => toggleGdveTask(task.id)} style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#4caf50' }} />
+                            <span style={{ color: fvDaily.gdveTasksStatus?.[task.id] ? (isDark ? '#81c784' : '#2e7d32') : (isDark ? '#f0e6d2' : '#2c1810'), textDecoration: fvDaily.gdveTasksStatus?.[task.id] ? 'line-through' : 'none' }}>{task.name}</span>
+                          </label>
+                          <button onClick={() => { if(window.confirm('Excluir esta tarefa do GDVE?')) removeGdveTask(task.id); }} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer', display: 'flex' }}><Trash2 size={16} /></button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
               {/* LINHA DIVISÓRIA E DATAS (RECUPERADAS!) */}
               <div style={{ height: '2px', background: 'rgba(255,215,0,0.3)', margin: '3rem 0 2rem' }}></div>
 
@@ -2334,16 +2444,28 @@ function App() {
                                                 <h3 style={{ margin: 0, color: isPartial ? (isDark ? '#ffb74d' : '#e65100') : (isDark ? '#d4af37' : '#6b4423'), fontSize: '1.2rem', marginBottom: '0.5rem' }}>
                                                   {new Date(entry.date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                                                 </h3>
+                                                
                                                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                                                   {entry.virtue && <span style={{ padding: '0.2rem 0.6rem', background: isDark ? 'rgba(212,175,55,0.2)' : '#fdf5e6', borderRadius: '4px', fontSize: '0.85rem', color: isDark ? '#d4af37' : '#6b4423', border: `1px solid ${isDark ? 'rgba(212,175,55,0.4)' : '#e8dcc4'}` }}>Virtude: <strong>{entry.virtue}</strong></span>}
+
                                                   {!entry.didMorning && <span style={{ padding: '0.2rem 0.6rem', background: 'rgba(255,152,0,0.1)', borderRadius: '4px', fontSize: '0.85rem', color: '#ff9800', border: '1px solid rgba(255,152,0,0.3)' }}>⚠️ Sem Prólogo</span>}
+  
                                                   {isPartial && <span style={{ padding: '0.2rem 0.6rem', background: 'rgba(255,152,0,0.1)', borderRadius: '4px', fontSize: '0.85rem', color: '#ff9800', border: '1px solid rgba(255,152,0,0.3)' }}>⏳ Epílogo Pendente</span>}
+  
                                                   {entry.fvDaily && fvUnlocked && (
                                                     <span style={{ padding: '0.2rem 0.6rem', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', borderRadius: '4px', fontSize: '0.85rem', color: '#000', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.3rem', boxShadow: '0 2px 4px rgba(255,215,0,0.2)' }}>
                                                       <Award size={12} /> FV
                                                     </span>
                                                   )}
+
+                                                  {/* NOVO SELO GDVE NO HISTÓRICO */}
+                                                  {entry.fvDaily && entry.fvDaily.gdveAttendance && fvUnlocked && (
+                                                    <span style={{ padding: '0.2rem 0.6rem', background: 'linear-gradient(135deg, #9B59B6 0%, #8E44AD 100%)', borderRadius: '4px', fontSize: '0.85rem', color: '#fff', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.3rem', boxShadow: '0 2px 4px rgba(155,89,182,0.3)' }}>
+                                                      <Star size={12} /> GDVE
+                                                    </span>
+                                                  )}
                                                 </div>
+
                                               </div>
                                               
                                               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
