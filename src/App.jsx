@@ -1500,8 +1500,6 @@ function App() {
                 <StreakIcon size={14} fill={streak > 0 ? (isDark ? '#ff9800' : '#e65100') : 'none'} color={streak > 0 ? (isDark ? '#ff9800' : '#e65100') : (isDark ? '#aaa' : '#777')} /> {streak}
               </div>
 
-              
-
               <button onClick={toggleNotifications} style={{ position: 'relative', padding: '0.3rem', background: 'transparent', border: 'none', cursor: 'pointer' }}>
                 <Bell size={22} color={notificationsActive ? '#4caf50' : (isDark ? '#d4af37' : '#6b4423')} />
                 {notificationsActive && <div style={{ position: 'absolute', top: '0', right: '0', background: '#4caf50', borderRadius: '50%', padding: '1px' }}><Check size={8} color="white" strokeWidth={4} /></div>}
