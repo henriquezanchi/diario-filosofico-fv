@@ -234,6 +234,10 @@ function App() {
   const [fvGdveReuniao, setFvGdveReuniao] = useState('');
   const [fvGdveTasks, setFvGdveTasks] = useState([]);
   const [newGdveTaskName, setNewGdveTaskName] = useState('');
+  const [editingGdveTaskId, setEditingGdveTaskId] = useState(null);
+  const [newGdveTaskTarget, setNewGdveTaskTarget] = useState(1);
+  const [newGdveTaskIsCycle, setNewGdveTaskIsCycle] = useState(false);
+  const [fvGdveCycleStatus, setFvGdveCycleStatus] = useState({});
   
   // NOVO: Estado Diário da Carta de Degrau FV
   const [fvDaily, setFvDaily] = useState({
@@ -897,6 +901,7 @@ function App() {
         setFvGdveDesafios(data.gdveDesafios || []);
         setFvGdveReuniao(data.gdveReuniao || '');
         setFvGdveTasks(data.gdveTasks || []);
+        setFvGdveCycleStatus(data.gdveCycleStatus || {});
       }
     } catch (error) { console.error('Erro ao carregar dados FV:', error); }
   };
@@ -1065,10 +1070,30 @@ function App() {
 
   const addGdveTask = () => {
     if (!newGdveTaskName.trim()) return;
-    const newTasks = [...fvGdveTasks, { id: `gdve_${Date.now()}`, name: newGdveTaskName.trim() }];
+    const taskData = {
+      id: editingGdveTaskId || `gdve_${Date.now()}`,
+      name: newGdveTaskName.trim(),
+      target: parseInt(newGdveTaskTarget) || 1,
+      isCycle: newGdveTaskIsCycle
+    };
+    
+    const newTasks = editingGdveTaskId 
+      ? fvGdveTasks.map(t => t.id === editingGdveTaskId ? taskData : t)
+      : [...fvGdveTasks, taskData];
+      
     setFvGdveTasks(newTasks);
     setNewGdveTaskName('');
+    setNewGdveTaskTarget(1);
+    setNewGdveTaskIsCycle(false);
+    setEditingGdveTaskId(null);
     saveGdveTasksToDB(newTasks);
+  };
+
+  const startEditingGdveTask = (task) => {
+    setEditingGdveTaskId(task.id);
+    setNewGdveTaskName(task.name);
+    setNewGdveTaskTarget(task.target || 1);
+    setNewGdveTaskIsCycle(task.isCycle || false);
   };
 
   const removeGdveTask = (id) => {
@@ -1077,13 +1102,31 @@ function App() {
     saveGdveTasksToDB(newTasks);
   };
 
-  const toggleGdveTask = async (id) => {
-    const newStatus = { ...fvDaily.gdveTasksStatus, [id]: !fvDaily.gdveTasksStatus?.[id] };
-    const newFvDaily = { ...fvDaily, gdveTasksStatus: newStatus };
-    setFvDaily(newFvDaily);
-    if (user) {
-      await setDoc(doc(db, 'entries', `${user.uid}_${selectedDate}`), { fvDaily: newFvDaily }, { merge: true });
-      await loadAllEntries(user.uid);
+  const toggleGdveTask = async (task) => {
+    if (task.isCycle) {
+      // Tarefas de Ciclo: Ficam salvas globalmente e não zeram todo dia
+      const newStatus = { ...fvGdveCycleStatus, [task.id]: !fvGdveCycleStatus[task.id] };
+      setFvGdveCycleStatus(newStatus);
+      if (user) { await setDoc(doc(db, 'fvData', user.uid), { gdveCycleStatus: newStatus }, { merge: true }); }
+    } else {
+      // Tarefas Diárias (Contador Numérico ou Checkbox)
+      let currentVal = fvDaily.gdveTasksStatus?.[task.id] || 0;
+      if (typeof currentVal === 'boolean') currentVal = currentVal ? 1 : 0; // Prevenção para dados antigos
+      
+      let newVal;
+      if (task.target > 1) {
+         newVal = currentVal + 1;
+         if (newVal > task.target) newVal = 0; // Ao chegar no limite, o clique seguinte zera
+      } else {
+         newVal = currentVal ? 0 : 1; // 0 ou 1 normal
+      }
+      
+      const newFvDaily = { ...fvDaily, gdveTasksStatus: { ...fvDaily.gdveTasksStatus, [task.id]: newVal } };
+      setFvDaily(newFvDaily);
+      if (user) {
+        await setDoc(doc(db, 'entries', `${user.uid}_${selectedDate}`), { fvDaily: newFvDaily }, { merge: true });
+        await loadAllEntries(user.uid);
+      }
     }
   };
 
@@ -1092,23 +1135,33 @@ function App() {
     const newFvDaily = { ...fvDaily, gdveAttendance: isAttending };
     setFvDaily(newFvDaily);
     
-    // A Mágica dos 15 dias
-    if (isAttending && fvGdveReuniao) {
-      const confirmRecalc = window.confirm("Deseja marcar o próximo GDVE automaticamente para daqui a 15 dias a partir da data agendada?");
+    // A Mágica dos 15 dias e da Limpeza do Ciclo
+    if (isAttending) {
+      const confirmRecalc = window.confirm("Deseja marcar a próxima reunião para 15 dias APÓS ESTA DATA? (Isso também vai zerar as suas tarefas de 'Ciclo' pendentes).");
       if (confirmRecalc) {
-         const currentDate = new Date(fvGdveReuniao);
+         // 1. Calcula os 15 dias a partir da data que o usuário selecionou na tela!
+         const currentDate = new Date(selectedDate + 'T12:00:00');
          currentDate.setDate(currentDate.getDate() + 15);
+         
+         // 2. Preserva a hora da reunião anterior (ou usa 20:00 como padrão)
+         let nextHour = '20'; let nextMinute = '00';
+         if (fvGdveReuniao) {
+            const prevDate = new Date(fvGdveReuniao);
+            if (!isNaN(prevDate.getTime())) {
+              nextHour = String(prevDate.getHours()).padStart(2, '0');
+              nextMinute = String(prevDate.getMinutes()).padStart(2, '0');
+            }
+         }
          
          const nextYear = currentDate.getFullYear();
          const nextMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
          const nextDay = String(currentDate.getDate()).padStart(2, '0');
-         const nextHour = String(currentDate.getHours()).padStart(2, '0');
-         const nextMinute = String(currentDate.getMinutes()).padStart(2, '0');
          
          const nextDateStr = `${nextYear}-${nextMonth}-${nextDay}T${nextHour}:${nextMinute}`;
          setFvGdveReuniao(nextDateStr);
+         setFvGdveCycleStatus({}); // Limpa as tarefas de ciclo!
          
-         if(user){ await setDoc(doc(db, 'fvData', user.uid), { gdveReuniao: nextDateStr }, { merge: true }); }
+         if(user){ await setDoc(doc(db, 'fvData', user.uid), { gdveReuniao: nextDateStr, gdveCycleStatus: {} }, { merge: true }); }
       }
     }
 
@@ -2218,7 +2271,7 @@ function App() {
                 </div>
               </div>
 
-{/* ÁREA GDVE (GRUPO DE DESENVOLVIMENTO DE VIDA ESPIRITUAL) */}
+              {/* ÁREA GDVE (GRUPO DE DESENVOLVIMENTO DE VIDA ESPIRITUAL) */}
                 <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.5)', padding: '1.5rem', borderRadius: '12px', border: '1px solid rgba(255, 215, 0, 0.2)' }}>
                   <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#FFD700' : '#996515', fontSize: '1.2rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <Star size={24} /> Módulo GDVE
@@ -2230,32 +2283,86 @@ function App() {
                       <h4 style={{ margin: '0 0 0.25rem 0', color: fvDaily.gdveAttendance ? '#4caf50' : (isDark ? '#ffb74d' : '#e65100'), fontSize: '1.05rem' }}>Reunião GDVE</h4>
                       <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744' }}>Registrar participação e calcular próximo encontro.</p>
                     </div>
-                    <button onClick={registerGdveAttendance} style={{ padding: '0.75rem 1.5rem', background: fvDaily.gdveAttendance ? '#4caf50' : 'transparent', color: fvDaily.gdveAttendance ? '#fff' : (isDark ? '#ffb74d' : '#e65100'), border: `2px solid ${fvDaily.gdveAttendance ? '#4caf50' : (isDark ? '#ffb74d' : '#e65100')}`, borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      {fvDaily.gdveAttendance ? <><CheckCircle size={18} /> Participação Confirmada</> : 'Marcar Participação Hoje'}
+                    <button onClick={registerGdveAttendance} style={{ padding: '0.75rem 1.5rem', background: fvDaily.gdveAttendance ? '#4caf50' : 'transparent', color: fvDaily.gdveAttendance ? '#fff' : (isDark ? '#ffb74d' : '#e65100'), border: `2px solid ${fvDaily.gdveAttendance ? '#4caf50' : (isDark ? '#ffb74d' : '#e65100')}`, borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s' }}>
+                      {fvDaily.gdveAttendance ? <><CheckCircle size={18} /> Participação Confirmada</> : 'Marcar Participação nesta data'}
                     </button>
                   </div>
 
                   {/* Tarefas GDVE */}
-                  <h4 style={{ margin: '0 0 0.75rem 0', color: isDark ? '#d4af37' : '#6b4423', fontSize: '1rem' }}>Práticas Específicas do Grupo</h4>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <h4 style={{ margin: 0, color: isDark ? '#d4af37' : '#6b4423', fontSize: '1rem' }}>Práticas Específicas do Grupo</h4>
+                  </div>
                   
-                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-                    <input type="text" value={newGdveTaskName} onChange={(e) => setNewGdveTaskName(e.target.value)} placeholder="Nova tarefa GDVE (ex: Dizer 'eu sou discípulo')..." style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
-                    <button onClick={addGdveTask} style={{ padding: '0.75rem 1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}><Plus size={20} /></button>
+                  {/* Formulário de Adição/Edição */}
+                  <div style={{ padding: '1rem', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.3)', borderRadius: '8px', border: `1px dashed ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`, marginBottom: '1.5rem' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                      <input type="text" value={newGdveTaskName} onChange={(e) => setNewGdveTaskName(e.target.value)} placeholder="Ex: Dizer 'eu sou discípulo'..." style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.9rem' }}>
+                        <input type="checkbox" checked={newGdveTaskIsCycle} onChange={(e) => { setNewGdveTaskIsCycle(e.target.checked); if(e.target.checked) setNewGdveTaskTarget(1); }} style={{ width: '18px', height: '18px', accentColor: '#d4af37' }} />
+                        <span>Missão de Ciclo (Não zera por dia)</span>
+                      </label>
+                      {!newGdveTaskIsCycle && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.9rem' }}>
+                          <span>Vezes por dia:</span>
+                          <input type="number" min="1" max="100" value={newGdveTaskTarget} onChange={(e) => setNewGdveTaskTarget(e.target.value)} style={{ width: '60px', padding: '0.4rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                        </div>
+                      )}
+                      <button onClick={addGdveTask} style={{ marginLeft: 'auto', padding: '0.6rem 1.2rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
+                        {editingGdveTaskId ? 'Salvar Edição' : 'Adicionar'}
+                      </button>
+                    </div>
                   </div>
 
+                  {/* Lista de Tarefas */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     {fvGdveTasks.length === 0 ? (
                       <p style={{ margin: 0, fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic' }}>Nenhuma tarefa GDVE cadastrada.</p>
                     ) : (
-                      fvGdveTasks.map(task => (
-                        <div key={task.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.7)', borderRadius: '8px', border: `1px solid ${fvDaily.gdveTasksStatus?.[task.id] ? '#4caf50' : (isDark ? 'rgba(212, 175, 55, 0.2)' : '#eee')}` }}>
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', flex: 1 }}>
-                            <input type="checkbox" checked={fvDaily.gdveTasksStatus?.[task.id] || false} onChange={() => toggleGdveTask(task.id)} style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#4caf50' }} />
-                            <span style={{ color: fvDaily.gdveTasksStatus?.[task.id] ? (isDark ? '#81c784' : '#2e7d32') : (isDark ? '#f0e6d2' : '#2c1810'), textDecoration: fvDaily.gdveTasksStatus?.[task.id] ? 'line-through' : 'none' }}>{task.name}</span>
-                          </label>
-                          <button onClick={() => { if(window.confirm('Excluir esta tarefa do GDVE?')) removeGdveTask(task.id); }} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer', display: 'flex' }}><Trash2 size={16} /></button>
-                        </div>
-                      ))
+                      fvGdveTasks.map(task => {
+                        const isCycle = task.isCycle;
+                        const isCounter = !isCycle && task.target > 1;
+                        let isCompleted = false;
+                        let displayValue = '';
+
+                        if (isCycle) {
+                           isCompleted = !!fvGdveCycleStatus[task.id];
+                           displayValue = isCompleted ? 'Feito' : 'Pendente';
+                        } else if (isCounter) {
+                           const val = fvDaily.gdveTasksStatus?.[task.id] || 0;
+                           isCompleted = val >= task.target;
+                           displayValue = `${val}/${task.target}`;
+                        } else {
+                           isCompleted = !!fvDaily.gdveTasksStatus?.[task.id];
+                        }
+
+                        return (
+                          <div key={task.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.7)', borderRadius: '8px', border: `1px solid ${isCompleted ? '#4caf50' : (isDark ? 'rgba(212, 175, 55, 0.2)' : '#eee')}`, transition: 'all 0.2s' }}>
+                            <div onClick={() => toggleGdveTask(task)} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
+                              
+                              {isCounter ? (
+                                <div style={{ padding: '0.3rem 0.6rem', background: isCompleted ? '#4caf50' : 'transparent', border: `2px solid ${isCompleted ? '#4caf50' : (isDark ? '#555' : '#ccc')}`, borderRadius: '12px', color: isCompleted ? '#fff' : (isDark ? '#ccc' : '#555'), fontWeight: 'bold', fontSize: '0.85rem', width: '45px', textAlign: 'center' }}>
+                                  {displayValue}
+                                </div>
+                              ) : (
+                                <input type="checkbox" checked={isCompleted} readOnly style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: '#4caf50' }} />
+                              )}
+                              
+                              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <span style={{ color: isCompleted ? (isDark ? '#81c784' : '#2e7d32') : (isDark ? '#f0e6d2' : '#2c1810'), textDecoration: isCompleted ? 'line-through' : 'none', fontWeight: isCompleted ? 'bold' : 'normal', fontSize: '1.05rem' }}>{task.name}</span>
+                                <span style={{ fontSize: '0.75rem', color: isDark ? '#b8a88a' : '#888', marginTop: '0.2rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                  {isCycle ? '⏳ Missão de Ciclo' : (isCounter ? '📅 Meta Diária' : '📅 Diário')}
+                                </span>
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                              <button onClick={() => startEditingGdveTask(task)} style={{ background: 'transparent', border: 'none', color: isDark ? '#d4af37' : '#6b4423', cursor: 'pointer', display: 'flex' }}><Edit size={18} /></button>
+                              <button onClick={() => { if(window.confirm(`Excluir a tarefa "${task.name}"?`)) removeGdveTask(task.id); }} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer', display: 'flex' }}><Trash2 size={18} /></button>
+                            </div>
+                          </div>
+                        );
+                      })
                     )}
                   </div>
                 </div>
