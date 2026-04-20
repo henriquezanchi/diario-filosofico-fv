@@ -232,6 +232,8 @@ function App() {
   const [fvNextCartaDate, setFvNextCartaDate] = useState('');
   const [fvGdveDesafios, setFvGdveDesafios] = useState([]);
   const [fvGdveReuniao, setFvGdveReuniao] = useState('');
+  const [fvGdveBastiao, setFvGdveBastiao] = useState(''); // Guarda o número do Bastião
+  const [showQuickFv, setShowQuickFv] = useState(false); // Controla o Widget Flutuante
   const [fvGdveTasks, setFvGdveTasks] = useState([]);
   const [newGdveTaskName, setNewGdveTaskName] = useState('');
   const [editingGdveTaskId, setEditingGdveTaskId] = useState(null);
@@ -415,6 +417,18 @@ function App() {
   const getTodayKey = () => {
     const today = new Date();
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  };
+
+
+// MÁQUINA DE CORES: Vermelho -> Laranja -> Amarelo -> Verde
+  const getTaskColor = (current, target, isDark) => {
+    if (current === 0) return isDark ? '#c62828' : '#e53935'; // Vermelho (Zero)
+    if (current >= target) return isDark ? '#2e7d32' : '#4caf50'; // Verde (Completo)
+    
+    const ratio = current / target;
+    if (ratio <= 0.34) return isDark ? '#e65100' : '#ff9800'; // Laranja
+    if (ratio <= 0.67) return isDark ? '#f57f17' : '#ffb300'; // Amarelo Queimado
+    return isDark ? '#afb42b' : '#c0ca33'; // Verde Limão
   };
 
   // NOVO: Sistema de Gamificação Inteligente (Com Ícones)
@@ -2277,6 +2291,28 @@ function App() {
                     <Star size={24} /> Módulo GDVE
                   </h3>
                   
+                  {/* O LINK MÁGICO DO BASTIÃO */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Bastião Atual (Número)</label>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <input 
+                          type="number" 
+                          value={fvGdveBastiao || ''} 
+                          onChange={(e) => setFvGdveBastiao(e.target.value)} 
+                          placeholder="Ex: 45" 
+                          style={{ width: '100px', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} 
+                        />
+                        {/* ATENÇÃO: Substitua o "URL_DA_ACROPOLE" pelo link real antes do número */}
+                        {fvGdveBastiao && (
+                          <a href={`https://biblioteca.acropolebrasil.com.br/${fvGdveBastiao}`} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0 1rem', background: isDark ? 'rgba(255,215,0,0.1)' : '#fff3e0', color: isDark ? '#FFD700' : '#e65100', textDecoration: 'none', borderRadius: '8px', border: `1px solid ${isDark ? '#FFD700' : '#ffb74d'}`, fontWeight: 'bold' }}>
+                            <BookOpen size={18} /> Ler Bastião {fvGdveBastiao}
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>      
+
                   {/* Botão de Check-in da Reunião */}
                   <div style={{ padding: '1rem', background: fvDaily.gdveAttendance ? (isDark ? 'rgba(76, 175, 80, 0.2)' : '#e8f5e9') : (isDark ? 'rgba(255, 152, 0, 0.1)' : '#fff3e0'), borderRadius: '8px', border: `1px solid ${fvDaily.gdveAttendance ? '#4caf50' : (isDark ? 'rgba(255, 152, 0, 0.3)' : '#ffb74d')}`, marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                     <div>
@@ -2338,11 +2374,11 @@ function App() {
                         }
 
                         return (
-                          <div key={task.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.7)', borderRadius: '8px', border: `1px solid ${isCompleted ? '#4caf50' : (isDark ? 'rgba(212, 175, 55, 0.2)' : '#eee')}`, transition: 'all 0.2s' }}>
+                          <div key={task.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.7)', borderRadius: '8px', border: `2px solid ${color}`, transition: 'all 0.3s ease' }}>
                             <div onClick={() => toggleGdveTask(task)} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
                               
                               {isCounter ? (
-                                <div style={{ padding: '0.3rem 0.6rem', background: isCompleted ? '#4caf50' : 'transparent', border: `2px solid ${isCompleted ? '#4caf50' : (isDark ? '#555' : '#ccc')}`, borderRadius: '12px', color: isCompleted ? '#fff' : (isDark ? '#ccc' : '#555'), fontWeight: 'bold', fontSize: '0.85rem', width: '45px', textAlign: 'center' }}>
+                                <div style={{ padding: '0.4rem 0.8rem', background: color, border: `1px solid ${color}`, borderRadius: '12px', color: '#fff', fontWeight: 'bold', fontSize: '0.9rem', minWidth: '50px', textAlign: 'center', transition: 'all 0.3s ease' }}>
                                   {displayValue}
                                 </div>
                               ) : (
@@ -3144,6 +3180,48 @@ function App() {
         <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.85rem', opacity: 0.8 }}>Versos de Ouro de Pitágoras</p>
       </footer>
       
+      {/* WIDGET FLUTUANTE DE TAREFAS GDVE (SÓ APARECE SE DESTRANCADO) */}
+      {fvUnlocked && view !== 'fv' && (
+        <div style={{ position: 'fixed', bottom: '20px', right: '20px', zIndex: 9998, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '1rem' }}>
+          
+          {/* Painel Aberto */}
+          {showQuickFv && (
+            <div className="animate-fadeIn" style={{ background: isDark ? 'rgba(26, 26, 46, 0.95)' : 'rgba(253, 251, 247, 0.95)', backdropFilter: 'blur(10px)', padding: '1.5rem', borderRadius: '16px', border: `2px solid ${isDark ? '#FFD700' : '#996515'}`, boxShadow: '0 10px 30px rgba(0,0,0,0.3)', width: 'max-content', maxWidth: '300px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: `1px solid ${isDark ? 'rgba(255,215,0,0.2)' : 'rgba(153,101,21,0.2)'}`, paddingBottom: '0.5rem' }}>
+                <h4 style={{ margin: 0, color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Star size={16} /> Práticas Diárias</h4>
+                <button onClick={() => setShowQuickFv(false)} style={{ background: 'transparent', border: 'none', color: isDark ? '#aaa' : '#777', cursor: 'pointer' }}><X size={18} /></button>
+              </div>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {fvGdveTasks.filter(t => !t.isCycle).length === 0 ? (
+                   <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#888', fontStyle: 'italic' }}>Nenhuma prática diária pendente.</p>
+                ) : (
+                  fvGdveTasks.filter(t => !t.isCycle).map(task => {
+                    const current = (typeof fvDaily.gdveTasksStatus?.[task.id] === 'boolean' ? (fvDaily.gdveTasksStatus[task.id] ? 1 : 0) : fvDaily.gdveTasksStatus?.[task.id]) || 0;
+                    const target = task.target || 1;
+                    const color = getTaskColor(current, target, isDark);
+                    
+                    return (
+                      <div key={task.id} onClick={() => toggleGdveTask(task)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 1rem', background: isDark ? 'rgba(0,0,0,0.3)' : '#fff', borderRadius: '8px', border: `1px solid ${color}`, cursor: 'pointer', transition: 'all 0.2s', gap: '1rem' }}>
+                        <span style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem', fontWeight: current >= target ? 'bold' : 'normal' }}>{task.name}</span>
+                        <div style={{ background: color, color: '#fff', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                          {current}/{target}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Botão Flutuante (A Estrela) */}
+          <button onClick={() => setShowQuickFv(!showQuickFv)} style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: '#000', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 15px rgba(255, 215, 0, 0.4)', transition: 'transform 0.2s' }} onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.9)'} onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}>
+            <Star size={28} fill="#000" />
+          </button>
+        </div>
+      )}
+      
       {/* BANNER DE INSTALAÇÃO DO PWA (ALTO CONTRASTE) */}
       {showInstallBanner && (
         <div className="animate-fadeIn" style={{ 
@@ -3162,6 +3240,8 @@ function App() {
           <button onClick={() => setShowInstallBanner(false)} style={{ background: 'transparent', border: 'none', color: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.5)', cursor: 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={20} /></button>
         </div>
       )}
+
+
     </div>
   );
 }
