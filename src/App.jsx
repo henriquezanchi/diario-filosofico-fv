@@ -878,56 +878,51 @@ function App() {
         setFvGdveBastiaoName(data.gdveBastiaoName || '');
         setFvGdveBastiaoLink(data.gdveBastiaoLink || '');
       }
-      
-      const loadMod2Config = async () => {
-        if (!user || fvConfig) return;
-        setIsDownloadingConfig(true);
-        try {
-          const docRef = doc(db, 'appConfig', 'moduloAvancado');
-          const docSnap = await getDoc(docRef);
-      
-          if (docSnap.exists()) {
-            setFvConfig(docSnap.data().config); // Se já existe, ele só lê.
-          } else {
-        
-            // A MÁGICA: Se o documento não existir, o aplicativo CRIA ele com a estrutura completa!
-            const initialConfig = {
-              tituloAba: "Registro de Ciclo",
-              secaoReflexao: "A Escalada (Reflexões)",
-              itensCarta: [
-                { id: 'item1', label: '1 – VARRER', desc: 'Exame da personalidade, descobrir os nós...' },
-                { id: 'item2', label: '2 – MATÉRIA', desc: 'Descobrir como atuam em nós os ciclos da matéria...' },
-                { id: 'item34', label: '3 e 4 – TRABALHO', desc: 'Colocar ordem na vida...' },
-                { id: 'item5', label: '5 – ENERGIA', desc: 'Requer atenção.' },
-                { id: 'item6', label: '6 – VÍCIOS', desc: 'Superar: preguiça, gula e luxúria...' },
-                { id: 'item7', label: '7 – VIRTUDES', desc: 'Perseverança e constância...' }
-              ],
-              praticas: [
-                { key: 'prac1', label: 'Foco (T)', type: 'guided' },
-                { key: 'prac2', label: 'Código (C)', type: 'manual' },
-                { key: 'prac3', label: 'Fases (F)', type: 'manual' },
-                { key: 'prac4', label: 'Purificação (CP)', type: 'guided' }
-              ],
-              modulo2: {
-                titulo: "Módulo Especial",
-                rotuloLeitura: "Leitura do Ciclo",
-                bancoTemas: [
-                  { name: "Tema 001-006", link: "https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=23101&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es" },
-                  { name: "Tema 007-017", link: "https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=23102&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es" },
-                  { name: "Tema 018-029", link: "https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=23103&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es" },
-                  { name: "Tema 029-039", link: "https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=23104&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es" }
-                ]
-              }
-            };
-        
-            await setDoc(docRef, { config: initialConfig }); // Salva a estrutura no Firestore
-            setFvConfig(initialConfig); // Carrega na tela
-          }
-        } catch (e) { console.error("Erro ao baixar motor:", e); }
-        setIsDownloadingConfig(false);
-      };
-
     } catch (error) { console.error('Erro ao carregar dados FV:', error); }
+  };
+
+  const loadMod2Config = async () => {
+    if (!user || fvConfig) return;
+    setIsDownloadingConfig(true);
+    try {
+      const docRef = doc(db, 'appConfig', 'moduloAvancado');
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        setFvConfig(docSnap.data().config);
+      } else {
+        const initialConfig = {
+          tituloAba: "Registro de Ciclo",
+          secaoReflexao: "A Escalada (Reflexões)",
+          itensCarta: [
+            { id: 'item1', label: '1 – VARRER', desc: 'Exame da personalidade, descobrir os nós...' },
+            { id: 'item2', label: '2 – MATÉRIA', desc: 'Descobrir como atuam em nós os ciclos da matéria...' },
+            { id: 'item34', label: '3 e 4 – TRABALHO', desc: 'Colocar ordem na vida...' },
+            { id: 'item5', label: '5 – ENERGIA', desc: 'Requer atenção.' },
+            { id: 'item6', label: '6 – VÍCIOS', desc: 'Superar: preguiça, gula e luxúria...' },
+            { id: 'item7', label: '7 – VIRTUDES', desc: 'Perseverança e constância...' }
+          ],
+          praticas: [
+            { key: 'prac1', label: 'Foco (T)', type: 'guided' },
+            { key: 'prac2', label: 'Código (C)', type: 'manual' },
+            { key: 'prac3', label: 'Fases (F)', type: 'manual' },
+            { key: 'prac4', label: 'Purificação (CP)', type: 'guided' }
+          ],
+          modulo2: {
+            titulo: "Módulo Especial",
+            rotuloLeitura: "Leitura do Ciclo",
+            bancoTemas: [
+              { name: "Tema 001-006", link: "https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=23101&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es" },
+              { name: "Tema 007-017", link: "https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=23102&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es" },
+              { name: "Tema 018-029", link: "https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=23103&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es" },
+              { name: "Tema 029-039", link: "https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=23104&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es" }
+            ]
+          }
+        };
+        await setDoc(docRef, { config: initialConfig }); 
+        setFvConfig(initialConfig); 
+      }
+    } catch (e) { console.error("Erro ao baixar motor:", e); }
+    setIsDownloadingConfig(false);
   };
 
   const saveCustomTask = async () => {
@@ -3034,9 +3029,9 @@ function App() {
                    <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#888', fontStyle: 'italic' }}>Nenhuma prática diária pendente.</p>
                 ) : (
                   fvGdveTasks.filter(t => !t.isCycle).map(task => {
-                    const current = (typeof fvDaily.gdveTasksStatus?.[task.id] === 'boolean' ? (fvDaily.gdveTasksStatus[task.id] ? 1 : 0) : fvDaily.gdveTasksStatus?.[task.id]) || 0;
-                    const target = task.target || 1;
-                    const color = getTaskColor(current, target, isDark);
+                    const currentCount = (typeof fvDaily.gdveTasksStatus?.[task.id] === 'boolean' ? (fvDaily.gdveTasksStatus[task.id] ? 1 : 0) : fvDaily.gdveTasksStatus?.[task.id]) || 0;
+                    const targetCount = task.target || 1;
+                    const taskColor = getTaskColor(currentCount, targetCount, isDark);
                     
                     return (
                       <div key={task.id} onClick={() => toggleGdveTask(task)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 1rem', background: isDark ? 'rgba(0,0,0,0.3)' : '#fff', borderRadius: '8px', border: `1px solid ${taskColor}`, cursor: 'pointer', transition: 'all 0.2s', gap: '1rem' }}>
