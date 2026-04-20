@@ -885,11 +885,15 @@ function App() {
     if (!user || fvConfig) return;
     setIsDownloadingConfig(true);
     try {
-      const docRef = doc(db, 'appConfig', 'moduloAvancado');
+      // MUDANÇA AQUI: Usando a pasta fvData e o seu usuário, onde o Firebase já nos dá permissão total!
+      const docRef = doc(db, 'fvData', user.uid);
       const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        setFvConfig(docSnap.data().config);
+      
+      // Verifica se o documento existe E se a configuração já foi criada dentro dele
+      if (docSnap.exists() && docSnap.data().config) {
+        setFvConfig(docSnap.data().config); // Lê a configuração salva
       } else {
+        // A MÁGICA: Se não existir, cria a estrutura completa
         const initialConfig = {
           tituloAba: "Registro de Ciclo",
           secaoReflexao: "A Escalada (Reflexões)",
@@ -918,7 +922,9 @@ function App() {
             ]
           }
         };
-        await setDoc(docRef, { config: initialConfig }); 
+        
+        // Usamos { merge: true } para adicionar o motor sem apagar os seus prazos de entrega que já estão lá!
+        await setDoc(docRef, { config: initialConfig }, { merge: true }); 
         setFvConfig(initialConfig); 
       }
     } catch (e) { console.error("Erro ao baixar motor:", e); }
