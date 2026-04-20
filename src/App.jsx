@@ -627,51 +627,7 @@ function App() {
     setLogoutCountdown(15);
   };
 
-  // NOVO: Busca os textos secretos do Firebase apenas quando o cofre é destrancado
-  useEffect(() => {
-    const loadSecretContent = async () => {
-      if (fvUnlocked && !fvSecretContent && user) {
-        try {
-          const docRef = doc(db, 'appConfig', 'moduloAvancado');
-          const docSnap = await getDoc(docRef);
-          
-          if (docSnap.exists()) {
-            setFvSecretContent(docSnap.data());
-          } else {
-            // SE O COFRE NÃO EXISTE NO FIREBASE, O APP CRIA ELE NA HORA COM OS DADOS SIGILOSOS!
-            // (Depois que ele criar a primeira vez, você pode até apagar essa parte do código no futuro se quiser)
-            const initialSecretData = {
-              cartaDegrau: [
-                { id: 'item1', title: '1 – VARRER POR DENTRO', desc: 'Exame da personalidade, descobrir os nós, buscar as causas que os geraram, encontrar a fórmula de limpeza (redenção) e aplicá-las.' },
-                { id: 'item2', title: '2 – AS LEIS DA MATÉRIA', desc: 'Descobrir como atuam em nós os ciclos da matéria (para não nos afetarem): instintos de conservação/procriação, idade, enfermidade, ânimo, humor, ideias, sentimentos, ambiente.' },
-                { id: 'item34', title: '3 e 4 – TRABALHO ORDENADO E EFICAZ', desc: 'Colocar ordem na vida. Necessária disciplina e perseverança: exercícios de ordem e limpeza.' },
-                { id: 'item5', title: '5 – ECONOMIA DE TEMPO E ENERGIA', desc: 'Requer atenção.' },
-                { id: 'item6', title: '6 – OS VÍCIOS', desc: 'Superar: preguiça, gula e luxúria e outros da mesma natureza (apatia, moleza, debilidade, negligência). Moderar: álcool e fumo. Proibido: drogas.' },
-                { id: 'item7', title: '7 – AS VIRTUDES: PERSEVERANÇA E CONSTÂNCIA', desc: 'Perseverança: repetir sem rotina com sentido de perfeição. Constância: estabilidade e consciência elevada. (Nota: Comentar sobre frequência no diário, carta, exercícios, ED, etc).' }
-              ],
-              praticasGerais: [
-                { key: 'tratack', label: 'Tratak' },
-                { key: 'recitarHonra', label: 'Recitar Código de Dignidade' },
-                { key: 'recitar7Fases', label: 'Recitar 7 fases da ED' },
-                { key: 'camara', label: 'Câmara de Purificação' }
-              ],
-              praticasTemplo: [
-                { key: 'porta', label: '1. Porta' },
-                { key: 'patioAberto', label: '2. Pátio Aberto' },
-                { key: 'patioColunas', label: '3. Pátio de Colunas' },
-                { key: 'santuario', label: '4. Santuário' }
-              ]
-            };
-            await setDoc(docRef, initialSecretData);
-            setFvSecretContent(initialSecretData);
-          }
-        } catch (error) {
-          console.error("Erro ao carregar os pergaminhos:", error);
-        }
-      }
-    };
-    loadSecretContent();
-  }, [fvUnlocked, fvSecretContent, user]);
+  
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
