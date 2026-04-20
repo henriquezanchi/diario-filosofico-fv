@@ -44,8 +44,8 @@ function App() {
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
   
   // Horários Personalizados de Notificação
-  const [morningTime, setMorningTime] = useState('08:00');
-  const [eveningTime, setEveningTime] = useState('20:00');
+  const [morningTime, setMorningTime] = useState('06:00');
+  const [eveningTime, setEveningTime] = useState('22:00');
   const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   // NOVO: Controle de Instalação do PWA
@@ -681,8 +681,8 @@ function App() {
         setFvUnlocked(false); // Sempre trancado ao iniciar a sessão
 
         // NOVO: Puxa os horários salvos ou usa o padrão
-        setMorningTime(data.morningTime || '08:00'); 
-        setEveningTime(data.eveningTime || '20:00');
+        setMorningTime(data.morningTime || '06:00'); 
+        setEveningTime(data.eveningTime || '22:00');
         
         // NOVO: O sininho só fica verde se existir um token real salvo no banco de dados!
         if ('Notification' in window && Notification.permission === 'granted') {
