@@ -2814,16 +2814,23 @@ function App() {
         <p style={{ margin: 0, fontSize: '0.95rem', fontStyle: 'italic' }}>"Que ninguém durma sem antes examinar as ações do dia"</p>
         <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.85rem', opacity: 0.8 }}>Versos de Ouro de Pitágoras</p>
       </footer>
-      {/* BANNER DE INSTALAÇÃO DO PWA */}
+      
+      {/* BANNER DE INSTALAÇÃO DO PWA (ALTO CONTRASTE) */}
       {showInstallBanner && (
-        <div className="animate-fadeIn" style={{ position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)', background: isDark ? 'rgba(212, 175, 55, 0.95)' : 'rgba(107, 68, 35, 0.95)', padding: '1rem 1.5rem', borderRadius: '50px', display: 'flex', alignItems: 'center', gap: '1rem', boxShadow: '0 10px 25px rgba(0,0,0,0.3)', zIndex: 10000, width: 'max-content', maxWidth: '90%', backdropFilter: 'blur(10px)' }}>
-          <Download size={24} color={isDark ? '#1a1a2e' : 'white'} />
-          <div style={{ color: isDark ? '#1a1a2e' : 'white', fontFamily: 'Georgia, serif', textAlign: 'left' }}>
-            <strong style={{ display: 'block', fontSize: '1rem', lineHeight: '1.2' }}>Instalar Aplicativo</strong>
-            <span style={{ fontSize: '0.8rem', opacity: 0.9 }}>Acesse mais rápido e receba notificações!</span>
+        <div className="animate-fadeIn" style={{ 
+          position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)', 
+          background: isDark ? 'linear-gradient(135deg, #FFD700 0%, #FF8C00 100%)' : 'linear-gradient(135deg, #1e272e 0%, #2c3e50 100%)', 
+          padding: '1rem 1.5rem', borderRadius: '50px', display: 'flex', alignItems: 'center', gap: '1rem', 
+          boxShadow: isDark ? '0 10px 30px rgba(255, 140, 0, 0.4)' : '0 15px 35px rgba(0,0,0,0.5)', 
+          zIndex: 10000, width: 'max-content', maxWidth: '95%' 
+        }}>
+          <Download size={28} color={isDark ? '#000' : '#FFD700'} style={{ flexShrink: 0 }} />
+          <div style={{ color: isDark ? '#000' : 'white', fontFamily: 'Georgia, serif', textAlign: 'left' }}>
+            <strong style={{ display: 'block', fontSize: '1.1rem', lineHeight: '1.2', textTransform: 'uppercase', letterSpacing: '1px' }}>Instalar o Diário</strong>
+            <span style={{ fontSize: '0.85rem', opacity: 0.9 }}>Tenha o aplicativo na sua tela inicial!</span>
           </div>
-          <button onClick={handleInstallClick} style={{ padding: '0.5rem 1rem', background: isDark ? '#1a1a2e' : 'white', color: isDark ? '#d4af37' : '#6b4423', border: 'none', borderRadius: '20px', fontWeight: 'bold', cursor: 'pointer', marginLeft: '0.5rem' }}>Instalar</button>
-          <button onClick={() => setShowInstallBanner(false)} style={{ background: 'transparent', border: 'none', color: isDark ? 'rgba(26,26,46,0.6)' : 'rgba(255,255,255,0.6)', cursor: 'pointer', padding: '0.5rem' }}><X size={18} /></button>
+          <button onClick={handleInstallClick} style={{ padding: '0.6rem 1.2rem', background: isDark ? '#000' : '#FFD700', color: isDark ? '#FFD700' : '#000', border: 'none', borderRadius: '25px', fontWeight: 'bold', cursor: 'pointer', marginLeft: '0.5rem', flexShrink: 0, textTransform: 'uppercase', fontSize: '0.85rem', letterSpacing: '1px', boxShadow: '0 4px 10px rgba(0,0,0,0.2)' }}>Instalar</button>
+          <button onClick={() => setShowInstallBanner(false)} style={{ background: 'transparent', border: 'none', color: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.5)', cursor: 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={20} /></button>
         </div>
       )}
     </div>
