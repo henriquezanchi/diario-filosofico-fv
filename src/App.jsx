@@ -1061,30 +1061,15 @@ function App() {
     if (user) {
       const todayKey = selectedDate;
       try {
-        // Criamos um pacote apenas com os textos e as horas
-        const updatedFvDaily = {
-          ...fvDaily,
-          item1: fvDaily.item1 || '',
-          item2: fvDaily.item2 || '',
-          item34: fvDaily.item34 || '',
-          item5: fvDaily.item5 || '',
-          item6: fvDaily.item6 || '',
-          item7: fvDaily.item7 || '',
-          horasGuarda: fvDaily.horasGuarda || '',
-          horasAula: fvDaily.horasAula || ''
-        };
-
+        // Enviamos o estado completo para não apagar as práticas que já foram feitas
         await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), {
           userId: user.uid,
           date: todayKey,
-          fvDaily: updatedFvDaily,
+          fvDaily: fvDaily, 
           fvTextsTimestamp: Timestamp.now()
         }, { merge: true }); 
         
-        // A MÁGICA ESTÁ AQUI: Isso força o app a puxar os dados atualizados do banco 
-        // e refazer os cálculos da Montanha e do Templo NA HORA.
-        await loadAllEntries(user.uid); 
-        
+        await loadAllEntries(user.uid); // Força a leitura do banco para atualizar os badges NA HORA!
         alert('✅ Reflexões da Carta de Degrau salvas com sucesso!');
       } catch (error) { console.error(error); alert('Erro ao salvar os textos.'); }
     }
@@ -1095,17 +1080,15 @@ function App() {
     if (user) {
       const todayKey = selectedDate;
       try {
+        // Enviamos o estado completo para não apagar os textos que já foram escritos
         await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), {
           userId: user.uid,
           date: todayKey,
-          fvDaily: { praticas: fvDaily.praticas || {} },
+          fvDaily: fvDaily, 
           fvPracticesTimestamp: Timestamp.now()
         }, { merge: true }); 
         
-        // A MÁGICA ESTÁ AQUI: Isso força o app a puxar os dados atualizados do banco 
-        // e refazer os cálculos da Montanha e do Templo NA HORA.
-        await loadAllEntries(user.uid); 
-        
+        await loadAllEntries(user.uid); // Força a leitura do banco para atualizar os badges NA HORA!
         alert('✅ Práticas Internas salvas com sucesso!');
       } catch (error) { console.error(error); alert('Erro ao salvar as práticas.'); }
     }
