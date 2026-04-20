@@ -25,13 +25,7 @@ import {
 import './App.css';
 import AdBanner from './AdBanner'; 
 
-// BANCO DE MEMÓRIA DOS BASTIÕES GDVE
-const BASTIOES_DB = [
-  { name: "Bastiões 1976 - 001 a 006", link: "https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=23101&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es" },
-  { name: "Bastiões 1977 - 007 a 017", link: "https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=23102&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es" },
-  { name: "Bastiões 1978 - 018 a 029", link: "https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=23103&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es" },
-  { name: "Bastiões 1979 - 029 a 039", link: "https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=23104&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es" }
-];
+
 
 function App() {
   // Estados de Autenticação
@@ -117,7 +111,7 @@ function App() {
   const [longestStreak, setLongestStreak] = useState(0); 
   const [showStreakModal, setShowStreakModal] = useState(false); 
 
-  // Streaks da Força Viva
+  // Streaks da FV
   const [fvDiaryStreak, setFvDiaryStreak] = useState(0);
   const [fvTasksStreak, setFvTasksStreak] = useState(0);
 
@@ -212,49 +206,43 @@ function App() {
   const [selectedVirtueDetail, setSelectedVirtueDetail] = useState(null);
   const [entries, setEntries] = useState([]);
 
-  // Estados FV (Força Viva)
+  // Estados FV
   const [fvUnlocked, setFvUnlocked] = useState(false);
   const [fvClickCount, setFvClickCount] = useState(0);
   const [fvLockClickCount, setFvLockClickCount] = useState(0);
   const [fvLastCartaDate, setFvLastCartaDate] = useState('');
   const [fvNextCartaDate, setFvNextCartaDate] = useState('');
-  const [fvGdveDesafios, setFvGdveDesafios] = useState([]);
-  const [fvGdveReuniao, setFvGdveReuniao] = useState('');
-  const [fvGdveBastiaoName, setFvGdveBastiaoName] = useState(''); 
-  const [fvGdveBastiaoLink, setFvGdveBastiaoLink] = useState(''); 
-  const [showQuickFv, setShowQuickFv] = useState(false); 
-  const [fvGdveTasks, setFvGdveTasks] = useState([]);
-  const [newGdveTaskName, setNewGdveTaskName] = useState('');
-  const [editingGdveTaskId, setEditingGdveTaskId] = useState(null);
-  const [newGdveTaskTarget, setNewGdveTaskTarget] = useState(1);
-  const [newGdveTaskIsCycle, setNewGdveTaskIsCycle] = useState(false);
-  const [fvGdveCycleStatus, setFvGdveCycleStatus] = useState({});
-  const [fvSecretContent, setFvSecretContent] = useState(null); // Guarda os pergaminhos baixados
   
-  // Estado Diário da Carta de Degrau FV
+  // Estados Módulo 2 (Totalmente Genéricos e Desacoplados)
+  const [fvMod2Meeting, setFvMod2Meeting] = useState('');
+  const [fvMod2TopicName, setFvMod2TopicName] = useState(''); 
+  const [fvMod2TopicLink, setFvMod2TopicLink] = useState(''); 
+  const [showQuickFv, setShowQuickFv] = useState(false); 
+  const [fvMod2Tasks, setFvMod2Tasks] = useState([]);
+  const [newMod2TaskName, setNewMod2TaskName] = useState('');
+  const [editingMod2TaskId, setEditingMod2TaskId] = useState(null);
+  const [newMod2TaskTarget, setNewMod2TaskTarget] = useState(1);
+  const [newMod2TaskIsCycle, setNewMod2TaskIsCycle] = useState(false);
+  const [fvMod2CycleStatus, setFvMod2CycleStatus] = useState({});
+  const [fvVault, setFvVault] = useState(null); // O Cofre
+  const [vaultInput, setVaultInput] = useState(''); // O campo de colar o cofre
+
   const [fvDaily, setFvDaily] = useState({
     item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
     horasGuarda: '', horasAula: '',
-    gdveTasksStatus: {}, gdveAttendance: false,
-    praticas: {
-      tratak: false, recitarHonra: false, recitar7Fases: false,
-      camara: false, templo: false, porta: false, patioAberto: false,
-      patioColunas: false, santuario: false
-    }
+    mod2TasksStatus: {}, mod2Attendance: false,
+    praticas: { tratak: false, recitarHonra: false, recitar7Fases: false, camara: false, templo: false, porta: false, patioAberto: false, patioColunas: false, santuario: false }
   });
 
-  // Controle Universal das Práticas Guiadas
   const [isPracticeActive, setIsPracticeActive] = useState(false); 
   const [activePracticeId, setActivePracticeId] = useState(null); 
   const [practicePhase, setPracticePhase] = useState('intro'); 
   const [cancelClickCount, setCancelClickCount] = useState(0); 
   const [tratakMouseActive, setTratakMouseActive] = useState(false);
-  
-  // ESTADO DO TEMPLO
   const [temploSelections, setTemploSelections] = useState({ porta: false, patioAberto: false, patioColunas: false, santuario: false });
-
   const [activeActionMenu, setActiveActionMenu] = useState(null);
-  const audioRef = useRef(null); 
+  const audioRef = useRef(null);
+
 
   // --- SISTEMA DE AUTOSAVE DE EMERGÊNCIA ---
   const autoSaveDataRef = useRef({});
@@ -521,7 +509,7 @@ function App() {
     if (fvClickCount >= 6) {
       setFvUnlocked(true);
       setFvClickCount(0);
-      alert('🔓 Modo Força Viva desbloqueado na sessão!');
+      alert('🔓 Modo FV desbloqueado na sessão!');
     }
     setTimeout(() => setFvClickCount(0), 3000);
   };
@@ -533,7 +521,7 @@ function App() {
   const handleInstantFvLock = async () => {
     setFvUnlocked(false); 
     setView('today'); 
-    alert('🔒 Modo Força Viva ocultado com segurança!');
+    alert('🔒 Modo FV ocultado com segurança!');
   };
 
   useEffect(() => {
@@ -914,12 +902,12 @@ function App() {
         const data = fvDoc.data();
         setFvLastCartaDate(data.lastCartaDate || '');
         setFvNextCartaDate(data.nextCartaDate || '');
-        setFvGdveDesafios(data.gdveDesafios || []);
-        setFvGdveReuniao(data.gdveReuniao || '');
-        setFvGdveTasks(data.gdveTasks || []);
-        setFvGdveCycleStatus(data.gdveCycleStatus || {});
-        setFvGdveBastiaoName(data.gdveBastiaoName || '');
-        setFvGdveBastiaoLink(data.gdveBastiaoLink || '');
+        setFvMod2Meeting(data.mod2Meeting || '');
+        setFvMod2TopicName(data.mod2TopicName || '');
+        setFvMod2TopicLink(data.mod2TopicLink || '');
+        setFvMod2Tasks(data.mod2Tasks || []);
+        setFvMod2CycleStatus(data.mod2CycleStatus || {});
+        setFvVault(data.secretVault || null);
       }
     } catch (error) { console.error('Erro ao carregar dados FV:', error); }
   };
@@ -1075,68 +1063,54 @@ function App() {
     }
   };
 
-  // --- MÓDULO GDVE ---
-  const saveGdveTasksToDB = async (tasks) => {
+  // --- MÓDULO 2 (AVANÇADO) ---
+  const saveVaultData = async () => {
+    try {
+      const parsed = JSON.parse(vaultInput);
+      await setDoc(doc(db, 'fvData', user.uid), { secretVault: parsed }, { merge: true });
+      setFvVault(parsed);
+      alert('Cofre selado com sucesso!');
+    } catch(e) { alert('JSON inválido. Copie exatamente o texto que lhe foi enviado.'); }
+  };
+
+  const saveMod2TasksToDB = async (tasks) => {
     if (user) {
-      try { await setDoc(doc(db, 'fvData', user.uid), { gdveTasks: tasks }, { merge: true }); } 
-      catch(e) { console.error("Erro ao salvar tarefas GDVE", e); }
+      try { await setDoc(doc(db, 'fvData', user.uid), { mod2Tasks: tasks }, { merge: true }); } 
+      catch(e) { console.error("Erro", e); }
     }
   };
 
-  const addGdveTask = () => {
-    if (!newGdveTaskName.trim()) return;
+  const addMod2Task = () => {
+    if (!newMod2TaskName.trim()) return;
     const taskData = {
-      id: editingGdveTaskId || `gdve_${Date.now()}`,
-      name: newGdveTaskName.trim(),
-      target: parseInt(newGdveTaskTarget) || 1,
-      isCycle: newGdveTaskIsCycle
+      id: editingMod2TaskId || `mod2_${Date.now()}`, name: newMod2TaskName.trim(),
+      target: parseInt(newMod2TaskTarget) || 1, isCycle: newMod2TaskIsCycle
     };
-    
-    const newTasks = editingGdveTaskId 
-      ? fvGdveTasks.map(t => t.id === editingGdveTaskId ? taskData : t)
-      : [...fvGdveTasks, taskData];
-      
-    setFvGdveTasks(newTasks);
-    setNewGdveTaskName('');
-    setNewGdveTaskTarget(1);
-    setNewGdveTaskIsCycle(false);
-    setEditingGdveTaskId(null);
-    saveGdveTasksToDB(newTasks);
+    const newTasks = editingMod2TaskId ? fvMod2Tasks.map(t => t.id === editingMod2TaskId ? taskData : t) : [...fvMod2Tasks, taskData];
+    setFvMod2Tasks(newTasks); setNewMod2TaskName(''); setNewMod2TaskTarget(1); setNewMod2TaskIsCycle(false); setEditingMod2TaskId(null);
+    saveMod2TasksToDB(newTasks);
   };
 
-  const startEditingGdveTask = (task) => {
-    setEditingGdveTaskId(task.id);
-    setNewGdveTaskName(task.name);
-    setNewGdveTaskTarget(task.target || 1);
-    setNewGdveTaskIsCycle(task.isCycle || false);
+  const startEditingMod2Task = (task) => {
+    setEditingMod2TaskId(task.id); setNewMod2TaskName(task.name);
+    setNewMod2TaskTarget(task.target || 1); setNewMod2TaskIsCycle(task.isCycle || false);
   };
 
-  const removeGdveTask = (id) => {
-    const newTasks = fvGdveTasks.filter(t => t.id !== id);
-    setFvGdveTasks(newTasks);
-    saveGdveTasksToDB(newTasks);
+  const removeMod2Task = (id) => {
+    const newTasks = fvMod2Tasks.filter(t => t.id !== id);
+    setFvMod2Tasks(newTasks); saveMod2TasksToDB(newTasks);
   };
 
-  const toggleGdveTask = async (task) => {
+  const toggleMod2Task = async (task) => {
     if (task.isCycle) {
-      // Tarefas de Ciclo: Ficam salvas globalmente e não zeram todo dia
-      const newStatus = { ...fvGdveCycleStatus, [task.id]: !fvGdveCycleStatus[task.id] };
-      setFvGdveCycleStatus(newStatus);
-      if (user) { await setDoc(doc(db, 'fvData', user.uid), { gdveCycleStatus: newStatus }, { merge: true }); }
+      const newStatus = { ...fvMod2CycleStatus, [task.id]: !fvMod2CycleStatus[task.id] };
+      setFvMod2CycleStatus(newStatus);
+      if (user) await setDoc(doc(db, 'fvData', user.uid), { mod2CycleStatus: newStatus }, { merge: true });
     } else {
-      // Tarefas Diárias (Contador Numérico ou Checkbox)
-      let currentVal = fvDaily.gdveTasksStatus?.[task.id] || 0;
-      if (typeof currentVal === 'boolean') currentVal = currentVal ? 1 : 0; // Prevenção para dados antigos
-      
-      let newVal;
-      if (task.target > 1) {
-         newVal = currentVal + 1;
-         if (newVal > task.target) newVal = 0; // Ao chegar no limite, o clique seguinte zera
-      } else {
-         newVal = currentVal ? 0 : 1; // 0 ou 1 normal
-      }
-      
-      const newFvDaily = { ...fvDaily, gdveTasksStatus: { ...fvDaily.gdveTasksStatus, [task.id]: newVal } };
+      let currentVal = fvDaily.mod2TasksStatus?.[task.id] || 0;
+      if (typeof currentVal === 'boolean') currentVal = currentVal ? 1 : 0;
+      let newVal = task.target > 1 ? (currentVal + 1 > task.target ? 0 : currentVal + 1) : (currentVal ? 0 : 1);
+      const newFvDaily = { ...fvDaily, mod2TasksStatus: { ...fvDaily.mod2TasksStatus, [task.id]: newVal } };
       setFvDaily(newFvDaily);
       if (user) {
         await setDoc(doc(db, 'entries', `${user.uid}_${selectedDate}`), { fvDaily: newFvDaily }, { merge: true });
@@ -1145,47 +1119,30 @@ function App() {
     }
   };
 
-  const registerGdveAttendance = async () => {
-    const isAttending = !fvDaily.gdveAttendance;
-    const newFvDaily = { ...fvDaily, gdveAttendance: isAttending };
+  const registerMod2Attendance = async () => {
+    const isAttending = !fvDaily.mod2Attendance;
+    const newFvDaily = { ...fvDaily, mod2Attendance: isAttending };
     setFvDaily(newFvDaily);
     
-    // A Mágica dos 15 dias e da Limpeza do Ciclo
     if (isAttending) {
-      const confirmRecalc = window.confirm("Deseja marcar a próxima reunião para 15 dias APÓS ESTA DATA? (Isso também vai zerar as suas tarefas de 'Ciclo' pendentes).");
-      if (confirmRecalc) {
-         // 1. Calcula os 15 dias a partir da data que o usuário selecionou na tela!
+      if (window.confirm("Deseja agendar o próximo encontro para 15 dias após esta data e reiniciar o ciclo?")) {
          const currentDate = new Date(selectedDate + 'T12:00:00');
          currentDate.setDate(currentDate.getDate() + 15);
-         
-         // 2. Preserva a hora da reunião anterior (ou usa 20:00 como padrão)
          let nextHour = '20'; let nextMinute = '00';
-         if (fvGdveReuniao) {
-            const prevDate = new Date(fvGdveReuniao);
-            if (!isNaN(prevDate.getTime())) {
-              nextHour = String(prevDate.getHours()).padStart(2, '0');
-              nextMinute = String(prevDate.getMinutes()).padStart(2, '0');
-            }
+         if (fvMod2Meeting && !isNaN(new Date(fvMod2Meeting).getTime())) {
+            const prevDate = new Date(fvMod2Meeting);
+            nextHour = String(prevDate.getHours()).padStart(2, '0'); nextMinute = String(prevDate.getMinutes()).padStart(2, '0');
          }
-         
-         const nextYear = currentDate.getFullYear();
-         const nextMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
-         const nextDay = String(currentDate.getDate()).padStart(2, '0');
-         
-         const nextDateStr = `${nextYear}-${nextMonth}-${nextDay}T${nextHour}:${nextMinute}`;
-         setFvGdveReuniao(nextDateStr);
-         setFvGdveCycleStatus({}); // Limpa as tarefas de ciclo!
-         
-         if(user){ await setDoc(doc(db, 'fvData', user.uid), { gdveReuniao: nextDateStr, gdveCycleStatus: {} }, { merge: true }); }
+         const nextDateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}T${nextHour}:${nextMinute}`;
+         setFvMod2Meeting(nextDateStr); setFvMod2CycleStatus({}); 
+         if(user) await setDoc(doc(db, 'fvData', user.uid), { mod2Meeting: nextDateStr, mod2CycleStatus: {} }, { merge: true });
       }
     }
-
     if (user) {
       await setDoc(doc(db, 'entries', `${user.uid}_${selectedDate}`), { fvDaily: newFvDaily }, { merge: true });
       await loadAllEntries(user.uid);
     }
   };
-  // --------------------
 
   const saveFvPlanning = async () => {
     if (user) {
@@ -1193,12 +1150,12 @@ function App() {
         await setDoc(doc(db, 'fvData', user.uid), {
           lastCartaDate: fvLastCartaDate || '',
           nextCartaDate: fvNextCartaDate || '',
-          gdveReuniao: fvGdveReuniao || '',
-          gdveBastiaoName: fvGdveBastiaoName || '',
-          gdveBastiaoLink: fvGdveBastiaoLink || '',
+          mod2Meeting: fvMod2Meeting || '',
+          mod2TopicName: fvMod2TopicName || '',
+          mod2TopicLink: fvMod2TopicLink || '',
           updatedAt: Timestamp.now()
         }, { merge: true }); 
-        alert('✅ Planejamento da Força Viva salvo com sucesso!');
+        alert('✅ Datas do Planejamento salvas!');
       } catch (error) { console.error(error); alert('Erro ao salvar dados.'); }
     }
   };
@@ -1380,7 +1337,7 @@ function App() {
     });
 
     if (!hasData) {
-      alert('Você ainda não tem textos preenchidos nos itens da Força Viva para gerar o relatório.');
+      alert('Você ainda não tem textos preenchidos nos itens da FV para gerar o relatório.');
       return;
     }
 
@@ -1740,7 +1697,7 @@ function App() {
               
               {fvUnlocked && (
                 <button onClick={() => { setView('fv'); setIsMobileMenuOpen(false); }} style={{ width: '100%', padding: '1.2rem', textAlign: 'left', background: view === 'fv' ? 'linear-gradient(135deg, rgba(255,215,0,0.2) 0%, rgba(255,165,0,0.2) 100%)' : 'transparent', color: view === 'fv' ? '#FFD700' : (isDark ? '#f0e6d2' : '#2c1810'), border: `1px solid ${view === 'fv' ? '#FFD700' : 'transparent'}`, borderRadius: '12px', fontSize: '1.3rem', fontFamily: 'Georgia, serif', fontWeight: view === 'fv' ? 'bold' : 'normal', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <Award size={24} color="#FFD700" /> Força Viva
+                  <Award size={24} color="#FFD700" /> FV
                 </button>
               )}
             </div>
@@ -2129,113 +2086,86 @@ function App() {
         {/* VIEW: FV */}
         {view === 'fv' && fvUnlocked && (
           <div className="animate-fadeIn">
-            
-            {/* SELETOR DE DATA RETROATIVA (Agora na FV também!) */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem', padding: '1rem', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.4)', borderRadius: '12px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Calendar size={24} color={isDark ? '#d4af37' : '#6b4423'} />
-                <span style={{ fontWeight: 'bold', color: isDark ? '#d4af37' : '#6b4423', fontFamily: "'Cinzel', serif", fontSize: '1.2rem' }}>
-                  {selectedDate === getTodayKey() ? "Hoje" : "Registro do dia"}
-                </span>
+            {!fvVault ? (
+              <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.9)' : 'white', padding: '3rem 2rem', borderRadius: '16px', border: `2px dashed ${isDark ? '#FFD700' : '#996515'}`, textAlign: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
+                <Lock size={48} color={isDark ? '#FFD700' : '#996515'} style={{ margin: '0 auto 1rem' }} />
+                <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', marginBottom: '1rem' }}>Cofre Selado</h2>
+                <p style={{ color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2rem' }}>A sua configuração de banco de dados não foi encontrada. Cole o JSON fornecido no campo abaixo para iniciar o cofre.</p>
+                <textarea value={vaultInput} onChange={(e) => setVaultInput(e.target.value)} rows={6} style={{ width: '100%', padding: '1rem', background: isDark ? '#000' : '#f0f0f0', border: '1px solid #ccc', borderRadius: '8px', color: isDark ? '#0f0' : '#333', fontFamily: 'monospace', marginBottom: '1.5rem' }} placeholder='{ "modTitle": "..." }'></textarea>
+                <button onClick={saveVaultData} style={{ padding: '1rem 2rem', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: '#000', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', fontSize: '1.1rem' }}>Inicializar Cofre</button>
               </div>
-              
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <input 
-                  type="date" 
-                  value={selectedDate} 
-                  onChange={(e) => handleDateChange(e.target.value)}
-                  max={getTodayKey()} 
-                  style={{ padding: '0.6rem', borderRadius: '8px', border: `1px solid ${isDark ? '#d4af37' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem', fontFamily: 'Georgia, serif', cursor: 'pointer' }} 
-                />
-                
-                {selectedDate !== getTodayKey() && (
-                  <button onClick={() => handleDateChange(getTodayKey())} style={{ padding: '0.6rem 1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', transition: 'all 0.2s', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
-                    Voltar para Hoje
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div style={{ background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 165, 0, 0.1) 100%)', padding: '2rem', borderRadius: '16px', border: '2px solid #FFD700', boxShadow: '0 0 20px rgba(255, 215, 0, 0.3)' }}>
-              
-              {/* CABEÇALHO FV COM OS BADGES INCLUÍDOS */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <Award size={32} color="#FFD700" />
-                  <div>
-                    <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      Registro Diário | CD
-                    </h2>
-                    <p style={{ margin: '0.25rem 0 0 0', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.9rem' }}>Dia: {new Date(selectedDate + 'T12:00:00').toLocaleDateString('pt-BR')}</p>
+            ) : (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem', padding: '1rem', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.4)', borderRadius: '12px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}` }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Calendar size={24} color={isDark ? '#d4af37' : '#6b4423'} />
+                    <span style={{ fontWeight: 'bold', color: isDark ? '#d4af37' : '#6b4423', fontFamily: "'Cinzel', serif", fontSize: '1.2rem' }}>
+                      {selectedDate === getTodayKey() ? "Hoje" : "Registro do dia"}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <input type="date" value={selectedDate} onChange={(e) => handleDateChange(e.target.value)} max={getTodayKey()} style={{ padding: '0.6rem', borderRadius: '8px', border: `1px solid ${isDark ? '#d4af37' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem', fontFamily: 'Georgia, serif', cursor: 'pointer' }} />
+                    {selectedDate !== getTodayKey() && (
+                      <button onClick={() => handleDateChange(getTodayKey())} style={{ padding: '0.6rem 1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Voltar</button>
+                    )}
                   </div>
                 </div>
-                
-                {/* BADGES DA FORÇA VIVA */}
-                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                  <div title="Escalada da Carta de Degrau (Dias preenchendo os textos)" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: fvDiaryStreak > 0 ? 'rgba(74, 144, 226, 0.15)' : (isDark ? 'rgba(255,255,255,0.05)' : '#fff'), border: `1px solid ${fvDiaryStreak > 0 ? '#4A90E2' : (isDark ? '#555' : '#ccc')}`, borderRadius: '20px', color: fvDiaryStreak > 0 ? '#4A90E2' : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontSize: '0.95rem' }}>
-                    <Mountain size={18} /> {fvDiaryStreak}
-                  </div>
-                  <div title="Construção do Templo (Dias realizando as práticas)" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: fvTasksStreak > 0 ? 'rgba(155, 89, 182, 0.15)' : (isDark ? 'rgba(255,255,255,0.05)' : '#fff'), border: `1px solid ${fvTasksStreak > 0 ? '#9B59B6' : (isDark ? '#555' : '#ccc')}`, borderRadius: '20px', color: fvTasksStreak > 0 ? '#9B59B6' : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontSize: '0.95rem' }}>
-                    <Landmark size={18} /> {fvTasksStreak}
-                  </div>
-                  <button onClick={handleInstantFvLock} style={{ padding: '0.5rem', background: 'transparent', color: '#e74c3c', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Trancar e Sair">
-                    <Lock size={22} />
-                  </button>
-                </div>
-              </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', marginBottom: '1rem' }}>
-                
-                {/* TEXTOS SIGILOSOS PUXADOS DO FIREBASE */}
-                {!fvSecretContent ? (
-                  <div style={{ textAlign: 'center', padding: '3rem', color: isDark ? '#FFD700' : '#996515', background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.5)', borderRadius: '12px', border: '1px solid rgba(255, 215, 0, 0.2)' }}>
-                    <Sparkles className="animate-spin" size={32} style={{ margin: '0 auto 1rem' }} />
-                    <p style={{ fontFamily: 'Georgia, serif', fontStyle: 'italic' }}>Descriptografando pergaminhos da Força Viva...</p>
+                <div style={{ background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 165, 0, 0.1) 100%)', padding: '2rem', borderRadius: '16px', border: '2px solid #FFD700', boxShadow: '0 0 20px rgba(255, 215, 0, 0.3)' }}>
+                  
+                  <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <Award size={32} color="#FFD700" />
+                      <div>
+                        <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif" }}>Registro Diário | CD</h2>
+                        <p style={{ margin: '0.25rem 0 0 0', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.9rem' }}>Dia: {new Date(selectedDate + 'T12:00:00').toLocaleDateString('pt-BR')}</p>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: fvDiaryStreak > 0 ? 'rgba(74, 144, 226, 0.15)' : (isDark ? 'rgba(255,255,255,0.05)' : '#fff'), border: `1px solid ${fvDiaryStreak > 0 ? '#4A90E2' : (isDark ? '#555' : '#ccc')}`, borderRadius: '20px', color: fvDiaryStreak > 0 ? '#4A90E2' : (isDark ? '#aaa' : '#777'), fontWeight: 'bold' }}>
+                        <Mountain size={18} /> {fvDiaryStreak}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: fvTasksStreak > 0 ? 'rgba(155, 89, 182, 0.15)' : (isDark ? 'rgba(255,255,255,0.05)' : '#fff'), border: `1px solid ${fvTasksStreak > 0 ? '#9B59B6' : (isDark ? '#555' : '#ccc')}`, borderRadius: '20px', color: fvTasksStreak > 0 ? '#9B59B6' : (isDark ? '#aaa' : '#777'), fontWeight: 'bold' }}>
+                        <Landmark size={18} /> {fvTasksStreak}
+                      </div>
+                      <button onClick={handleInstantFvLock} style={{ padding: '0.5rem', background: 'transparent', color: '#e74c3c', border: 'none', cursor: 'pointer' }}><Lock size={22} /></button>
+                    </div>
                   </div>
-                ) : (
-                  <>
-                    {/* ÁREA DOS TEXTOS (A CARTA) */}
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', marginBottom: '1rem' }}>
                     <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.5)', padding: '1.5rem', borderRadius: '12px', border: '1px solid rgba(255, 215, 0, 0.2)' }}>
                       <h3 style={{ margin: '0 0 1.5rem 0', color: isDark ? '#FFD700' : '#996515', fontSize: '1.2rem', fontFamily: "'Cinzel', serif" }}>A Escalada (Reflexões)</h3>
                       
-                      {fvSecretContent.cartaDegrau.map(item => (
+                      {fvVault?.carta?.map(item => (
                         <div key={item.id} style={{ marginBottom: '1.5rem' }}>
                           <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 600, fontSize: '1.1rem', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif" }}>{item.title}</label>
-                          <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '0.75rem', fontStyle: 'italic', lineHeight: '1.4' }}>{item.desc}</p>
-                          <textarea 
-                            value={fvDaily[item.id] || ''} 
-                            onChange={(e) => handleFvDailyTextChange(item.id, e.target.value)} 
-                            placeholder={`Reflexões do dia para o item ${item.title.split(' ')[0]}...`} 
-                            rows={3} 
-                            style={{ width: '100%', padding: '1rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical' }} 
-                          />
+                          <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '0.75rem', fontStyle: 'italic' }}>{item.desc}</p>
+                          <textarea value={fvDaily[item.id] || ''} onChange={(e) => handleFvDailyTextChange(item.id, e.target.value)} rows={3} style={{ width: '100%', padding: '1rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical' }} />
                         </div>
                       ))}
 
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
                         <div>
                           <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Horas-Guarda (HH:mm)</label>
-                          <input type="time" value={fvDaily.horasGuarda || ''} onChange={(e) => handleFvDailyTextChange('horasGuarda', e.target.value)} style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }} />
+                          <input type="time" value={fvDaily.horasGuarda || ''} onChange={(e) => handleFvDailyTextChange('horasGuarda', e.target.value)} style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
                         </div>
                         <div>
                           <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Horas-Aula (HH:mm)</label>
-                          <input type="time" value={fvDaily.horasAula || ''} onChange={(e) => handleFvDailyTextChange('horasAula', e.target.value)} style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }} />
+                          <input type="time" value={fvDaily.horasAula || ''} onChange={(e) => handleFvDailyTextChange('horasAula', e.target.value)} style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
                         </div>
                       </div>
 
-                      {/* BOTÃO 1: SALVAR APENAS OS TEXTOS */}
-                      <button onClick={saveFvTexts} style={{ width: '100%', padding: '1rem', background: 'rgba(74, 144, 226, 0.2)', color: isDark ? '#6cb2eb' : '#2980b9', border: '2px solid #4A90E2', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', transition: 'all 0.2s' }}>
+                      <button onClick={saveFvTexts} style={{ width: '100%', padding: '1rem', background: 'rgba(74, 144, 226, 0.2)', color: isDark ? '#6cb2eb' : '#2980b9', border: '2px solid #4A90E2', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                         <Mountain size={20} /> Salvar Reflexões
                       </button>
                     </div>
 
-                    {/* ÁREA DAS PRÁTICAS (O TEMPLO) */}
                     <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.5)', padding: '1.5rem', borderRadius: '12px', border: '1px solid rgba(255, 215, 0, 0.2)' }}>
                       <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#FFD700' : '#996515', fontSize: '1.2rem', fontFamily: "'Cinzel', serif" }}>O Templo (Práticas)</h3>
                       
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '1.5rem' }}>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                          {fvSecretContent.praticasGerais.map(prac => (
+                          {fvVault?.praticas?.map(prac => (
                             <div key={prac.key} onClick={() => setActiveActionMenu({ key: prac.key, label: prac.label })} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '0.75rem', background: fvDaily.praticas?.[prac.key] ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.6)'), border: `1px solid ${fvDaily.praticas?.[prac.key] ? '#4caf50' : (isDark ? 'rgba(212, 175, 55, 0.3)' : '#ccc')}`, borderRadius: '8px', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
                               {fvDaily.praticas?.[prac.key] ? <CheckCircle size={18} color="#4caf50" /> : <div style={{ width: '18px', height: '18px', borderRadius: '50%', border: `2px solid ${isDark ? '#b8a88a' : '#999'}` }}></div>}
                               <span style={{ color: fvDaily.praticas?.[prac.key] ? (isDark ? '#81c784' : '#2e7d32') : (isDark ? '#f0e6d2' : '#2c1810'), fontSize: '0.95rem', fontWeight: fvDaily.praticas?.[prac.key] ? 'bold' : 'normal' }}>{prac.label}</span>
@@ -2246,7 +2176,7 @@ function App() {
                         <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.4)', padding: '1rem', borderRadius: '8px', borderLeft: '3px solid #FFD700' }}>
                           <h4 style={{ margin: '0 0 0.75rem 0', color: isDark ? '#d4af37' : '#6b4423', fontSize: '1rem' }}>Templo Interior</h4>
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-                            {fvSecretContent.praticasTemplo.map(prac => (
+                            {fvVault?.templo?.map(prac => (
                               <div key={prac.key} onClick={() => setActiveActionMenu({ key: prac.key, label: prac.label })} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '0.6rem', background: fvDaily.praticas?.[prac.key] ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : 'transparent', border: `1px solid ${fvDaily.praticas?.[prac.key] ? '#4caf50' : 'transparent'}`, borderRadius: '8px', transition: 'all 0.2s' }}>
                                 {fvDaily.praticas?.[prac.key] ? <CheckCircle size={16} color="#4caf50" /> : <div style={{ width: '16px', height: '16px', borderRadius: '50%', border: `2px solid ${isDark ? '#b8a88a' : '#999'}` }}></div>}
                                 <span style={{ color: fvDaily.praticas?.[prac.key] ? (isDark ? '#81c784' : '#2e7d32') : (isDark ? '#c8b896' : '#6b5744'), fontSize: '0.9rem', fontWeight: fvDaily.praticas?.[prac.key] ? 'bold' : 'normal' }}>{prac.label}</span>
@@ -2256,207 +2186,158 @@ function App() {
                         </div>
                       </div>
 
-                      {/* BOTÃO 2: SALVAR APENAS AS PRÁTICAS */}
-                      <button onClick={saveFvPractices} style={{ width: '100%', padding: '1rem', background: 'rgba(155, 89, 182, 0.2)', color: isDark ? '#c39bd3' : '#8e44ad', border: '2px solid #9B59B6', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', transition: 'all 0.2s' }}>
+                      <button onClick={saveFvPractices} style={{ width: '100%', padding: '1rem', background: 'rgba(155, 89, 182, 0.2)', color: isDark ? '#c39bd3' : '#8e44ad', border: '2px solid #9B59B6', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                         <Landmark size={20} /> Salvar Práticas
                       </button>
-
                     </div>
-                  </>
-                )}
-              </div>
+                  </div>
 
-              {/* LINHA DIVISÓRIA */}
-              <div style={{ height: '2px', background: 'rgba(255,215,0,0.3)', margin: '3rem 0 2rem' }}></div>
+                  <div style={{ height: '2px', background: 'rgba(255,215,0,0.3)', margin: '3rem 0 2rem' }}></div>
 
-              {/* ÁREA GDVE (GRUPO DE DESENVOLVIMENTO DE VIDA ESPIRITUAL) */}
-              <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.5)', padding: '1.5rem', borderRadius: '12px', border: '1px solid rgba(255, 215, 0, 0.2)', marginBottom: '2rem' }}>
-                <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#FFD700' : '#996515', fontSize: '1.2rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Star size={24} /> Módulo GDVE
-                </h3>
-                
-                {/* O LINK MÁGICO DO BASTIÃO (AGORA COM BANCO DE MEMÓRIA) */}
-                <div style={{ background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.3)', padding: '1rem', borderRadius: '8px', border: `1px dashed ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`, marginBottom: '1.5rem' }}>
-                  <h4 style={{ margin: '0 0 1rem 0', color: isDark ? '#d4af37' : '#6b4423', fontSize: '1rem' }}>Leitura do Ciclo (Bastião)</h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                  {/* MÓDULO 2 (GENÉRICO) */}
+                  <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.5)', padding: '1.5rem', borderRadius: '12px', border: '1px solid rgba(255, 215, 0, 0.2)', marginBottom: '2rem' }}>
+                    <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#FFD700' : '#996515', fontSize: '1.2rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Star size={24} /> {fvVault?.modTitle}
+                    </h3>
                     
-                    <div>
-                      <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: 600, color: isDark ? '#b8a88a' : '#6b5744' }}>Selecione o Bastião/Grupo</label>
-                      <select 
-                        value={fvGdveBastiaoName} 
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setFvGdveBastiaoName(val);
-                          const found = BASTIOES_DB.find(b => b.name === val);
-                          if (found) setFvGdveBastiaoLink(found.link);
-                          else if (val !== 'Outro') setFvGdveBastiaoLink('');
-                        }} 
-                        style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', fontSize: '0.9rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }}
-                      >
-                        <option value="">Selecione na lista...</option>
-                        {BASTIOES_DB.map((b, idx) => (
-                          <option key={idx} value={b.name}>{b.name}</option>
-                        ))}
-                        <option value="Outro">Outro (Inserir Manualmente)</option>
-                      </select>
+                    <div style={{ background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.3)', padding: '1rem', borderRadius: '8px', border: `1px dashed ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`, marginBottom: '1.5rem' }}>
+                      <h4 style={{ margin: '0 0 1rem 0', color: isDark ? '#d4af37' : '#6b4423', fontSize: '1rem' }}>{fvVault?.readingTitle}</h4>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                        <div>
+                          <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: 600, color: isDark ? '#b8a88a' : '#6b5744' }}>{fvVault?.selectLabel}</label>
+                          <select value={fvMod2TopicName} onChange={(e) => { const val = e.target.value; setFvMod2TopicName(val); const found = fvVault.db.find(b => b.name === val); if (found) setFvMod2TopicLink(found.link); else if (val !== 'Outro') setFvMod2TopicLink(''); }} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', fontSize: '0.9rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }}>
+                            <option value="">Selecione na lista...</option>
+                            {fvVault?.db?.map((b, idx) => (<option key={idx} value={b.name}>{b.name}</option>))}
+                            <option value="Outro">Outro (Inserir Manualmente)</option>
+                          </select>
+                        </div>
+                        {fvMod2TopicName === 'Outro' && (
+                          <div>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: 600, color: isDark ? '#b8a88a' : '#6b5744' }}>Link do PDF (Manual)</label>
+                            <input type="url" value={fvMod2TopicLink} onChange={(e) => setFvMod2TopicLink(e.target.value)} placeholder="Cole o link aqui..." style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', fontSize: '0.9rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                          </div>
+                        )}
+                      </div>
+                      {fvMod2TopicLink && (
+                        <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                          <a href={fvMod2TopicLink} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : '#fff', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.9rem', boxShadow: '0 2px 8px rgba(0,0,0,0.2)', transition: 'all 0.2s' }}>
+                            <BookOpen size={18} /> Acessar Leitura
+                          </a>
+                        </div>
+                      )}
                     </div>
 
-                    {fvGdveBastiaoName === 'Outro' && (
+                    <div style={{ padding: '1rem', background: fvDaily.mod2Attendance ? (isDark ? 'rgba(76, 175, 80, 0.2)' : '#e8f5e9') : (isDark ? 'rgba(255, 152, 0, 0.1)' : '#fff3e0'), borderRadius: '8px', border: `1px solid ${fvDaily.mod2Attendance ? '#4caf50' : (isDark ? 'rgba(255, 152, 0, 0.3)' : '#ffb74d')}`, marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                       <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: 600, color: isDark ? '#b8a88a' : '#6b5744' }}>Link do PDF (Manual)</label>
-                        <input 
-                          type="url" 
-                          value={fvGdveBastiaoLink} 
-                          onChange={(e) => setFvGdveBastiaoLink(e.target.value)} 
-                          placeholder="Cole o link aqui..." 
-                          style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', fontSize: '0.9rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} 
-                        />
+                        <h4 style={{ margin: '0 0 0.25rem 0', color: fvDaily.mod2Attendance ? '#4caf50' : (isDark ? '#ffb74d' : '#e65100'), fontSize: '1.05rem' }}>{fvVault?.meetingTitle}</h4>
+                        <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744' }}>{fvVault?.meetingDesc}</p>
                       </div>
-                    )}
-                  </div>
-
-                  {fvGdveBastiaoLink && (
-                    <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                      <a href={fvGdveBastiaoLink} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : '#fff', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.9rem', boxShadow: '0 2px 8px rgba(0,0,0,0.2)', transition: 'all 0.2s' }}>
-                        <BookOpen size={18} /> Acessar Leitura
-                      </a>
+                      <button onClick={registerMod2Attendance} style={{ padding: '0.75rem 1.5rem', background: fvDaily.mod2Attendance ? '#4caf50' : 'transparent', color: fvDaily.mod2Attendance ? '#fff' : (isDark ? '#ffb74d' : '#e65100'), border: `2px solid ${fvDaily.mod2Attendance ? '#4caf50' : (isDark ? '#ffb74d' : '#e65100')}`, borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s' }}>
+                        {fvDaily.mod2Attendance ? <><CheckCircle size={18} /> Participação Confirmada</> : 'Marcar Participação nesta data'}
+                      </button>
                     </div>
-                  )}
-                </div>
 
-                {/* Botão de Check-in da Reunião */}
-                <div style={{ padding: '1rem', background: fvDaily.gdveAttendance ? (isDark ? 'rgba(76, 175, 80, 0.2)' : '#e8f5e9') : (isDark ? 'rgba(255, 152, 0, 0.1)' : '#fff3e0'), borderRadius: '8px', border: `1px solid ${fvDaily.gdveAttendance ? '#4caf50' : (isDark ? 'rgba(255, 152, 0, 0.3)' : '#ffb74d')}`, marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-                  <div>
-                    <h4 style={{ margin: '0 0 0.25rem 0', color: fvDaily.gdveAttendance ? '#4caf50' : (isDark ? '#ffb74d' : '#e65100'), fontSize: '1.05rem' }}>Reunião GDVE</h4>
-                    <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744' }}>Registrar participação e calcular próximo encontro.</p>
-                  </div>
-                  <button onClick={registerGdveAttendance} style={{ padding: '0.75rem 1.5rem', background: fvDaily.gdveAttendance ? '#4caf50' : 'transparent', color: fvDaily.gdveAttendance ? '#fff' : (isDark ? '#ffb74d' : '#e65100'), border: `2px solid ${fvDaily.gdveAttendance ? '#4caf50' : (isDark ? '#ffb74d' : '#e65100')}`, borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s' }}>
-                    {fvDaily.gdveAttendance ? <><CheckCircle size={18} /> Participação Confirmada</> : 'Marcar Participação nesta data'}
-                  </button>
-                </div>
-
-                {/* Tarefas GDVE */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                  <h4 style={{ margin: 0, color: isDark ? '#d4af37' : '#6b4423', fontSize: '1rem' }}>Práticas Específicas do Grupo</h4>
-                </div>
-                
-                {/* Formulário de Adição/Edição */}
-                <div style={{ padding: '1rem', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.3)', borderRadius: '8px', border: `1px dashed ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`, marginBottom: '1.5rem' }}>
-                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                    <input type="text" value={newGdveTaskName} onChange={(e) => setNewGdveTaskName(e.target.value)} placeholder="Ex: Dizer 'eu sou discípulo'..." style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.9rem' }}>
-                      <input type="checkbox" checked={newGdveTaskIsCycle} onChange={(e) => { setNewGdveTaskIsCycle(e.target.checked); if(e.target.checked) setNewGdveTaskTarget(1); }} style={{ width: '18px', height: '18px', accentColor: '#d4af37' }} />
-                      <span>Missão de Ciclo (Não zera por dia)</span>
-                    </label>
-                    {!newGdveTaskIsCycle && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.9rem' }}>
-                        <span>Vezes por dia:</span>
-                        <input type="number" min="1" max="100" value={newGdveTaskTarget} onChange={(e) => setNewGdveTaskTarget(e.target.value)} style={{ width: '60px', padding: '0.4rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                      <h4 style={{ margin: 0, color: isDark ? '#d4af37' : '#6b4423', fontSize: '1rem' }}>{fvVault?.tasksTitle}</h4>
+                    </div>
+                    
+                    <div style={{ padding: '1rem', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.3)', borderRadius: '8px', border: `1px dashed ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`, marginBottom: '1.5rem' }}>
+                      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                        <input type="text" value={newMod2TaskName} onChange={(e) => setNewMod2TaskName(e.target.value)} placeholder={fvVault?.taskPlaceholder} style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
                       </div>
-                    )}
-                    <button onClick={addGdveTask} style={{ marginLeft: 'auto', padding: '0.6rem 1.2rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
-                      {editingGdveTaskId ? 'Salvar Edição' : 'Adicionar'}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.9rem' }}>
+                          <input type="checkbox" checked={newMod2TaskIsCycle} onChange={(e) => { setNewMod2TaskIsCycle(e.target.checked); if(e.target.checked) setNewMod2TaskTarget(1); }} style={{ width: '18px', height: '18px', accentColor: '#d4af37' }} />
+                          <span>Missão de Ciclo (Não zera por dia)</span>
+                        </label>
+                        {!newMod2TaskIsCycle && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.9rem' }}>
+                            <span>Vezes por dia:</span>
+                            <input type="number" min="1" max="100" value={newMod2TaskTarget} onChange={(e) => setNewMod2TaskTarget(e.target.value)} style={{ width: '60px', padding: '0.4rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                          </div>
+                        )}
+                        <button onClick={addMod2Task} style={{ marginLeft: 'auto', padding: '0.6rem 1.2rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
+                          {editingMod2TaskId ? 'Salvar Edição' : 'Adicionar'}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      {fvMod2Tasks.length === 0 ? (
+                        <p style={{ margin: 0, fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic' }}>Nenhuma tarefa cadastrada.</p>
+                      ) : (
+                        fvMod2Tasks.map(task => {
+                          const isCycle = task.isCycle;
+                          const isCounter = !isCycle && task.target > 1;
+                          let isCompleted = false;
+                          let displayValue = '';
+
+                          const currentCount = (typeof fvDaily.mod2TasksStatus?.[task.id] === 'boolean' ? (fvDaily.mod2TasksStatus[task.id] ? 1 : 0) : fvDaily.mod2TasksStatus?.[task.id]) || 0;
+                          const targetCount = task.target || 1;
+                          const taskColor = getTaskColor(currentCount, targetCount, isDark);
+
+                          if (isCycle) {
+                             isCompleted = !!fvMod2CycleStatus[task.id];
+                             displayValue = isCompleted ? 'Feito' : 'Pendente';
+                          } else if (isCounter) {
+                             isCompleted = currentCount >= targetCount;
+                             displayValue = `${currentCount}/${targetCount}`;
+                          } else {
+                             isCompleted = !!fvDaily.mod2TasksStatus?.[task.id];
+                          }
+
+                          return (
+                            <div key={task.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.7)', borderRadius: '8px', border: `2px solid ${taskColor}`, transition: 'all 0.3s ease' }}>
+                              <div onClick={() => toggleMod2Task(task)} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
+                                {isCounter ? (
+                                  <div style={{ padding: '0.4rem 0.8rem', background: taskColor, border: `1px solid ${taskColor}`, borderRadius: '12px', color: '#fff', fontWeight: 'bold', fontSize: '0.9rem', minWidth: '50px', textAlign: 'center', transition: 'all 0.3s ease' }}>
+                                    {displayValue}
+                                  </div>
+                                ) : (
+                                  <input type="checkbox" checked={isCompleted} readOnly style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: '#4caf50' }} />
+                                )}
+                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                  <span style={{ color: isCompleted ? (isDark ? '#81c784' : '#2e7d32') : (isDark ? '#f0e6d2' : '#2c1810'), textDecoration: isCompleted ? 'line-through' : 'none', fontWeight: isCompleted ? 'bold' : 'normal', fontSize: '1.05rem' }}>{task.name}</span>
+                                  <span style={{ fontSize: '0.75rem', color: isDark ? '#b8a88a' : '#888', marginTop: '0.2rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                    {isCycle ? '⏳ Missão de Ciclo' : (isCounter ? '📅 Meta Diária' : '📅 Diário')}
+                                  </span>
+                                </div>
+                              </div>
+                              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <button onClick={() => startEditingMod2Task(task)} style={{ background: 'transparent', border: 'none', color: isDark ? '#d4af37' : '#6b4423', cursor: 'pointer', display: 'flex' }}><Edit size={18} /></button>
+                                <button onClick={() => { if(window.confirm(`Excluir a tarefa "${task.name}"?`)) removeMod2Task(task.id); }} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer', display: 'flex' }}><Trash2 size={18} /></button>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                    <h3 style={{ margin: 0, color: isDark ? '#FFD700' : '#996515', fontSize: '1.4rem', fontFamily: "'Cinzel', serif" }}>Planejamento de Datas</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Última Entrega da CD </label>
+                        <input type="date" value={fvLastCartaDate || ''} onChange={(e) => { const novaData = e.target.value; setFvLastCartaDate(novaData); if (novaData) { const [ano, mes, dia] = novaData.split('-'); const dataCalculada = new Date(parseInt(ano, 10), parseInt(mes, 10) - 1 + 3, parseInt(dia, 10)); setFvNextCartaDate(`${dataCalculada.getFullYear()}-${String(dataCalculada.getMonth() + 1).padStart(2, '0')}-${String(dataCalculada.getDate()).padStart(2, '0')}`); } else { setFvNextCartaDate(''); } }} style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Próxima Entrega Prevista da CD</label>
+                        <input type="date" value={fvNextCartaDate || ''} onChange={(e) => setFvNextCartaDate(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                      </div>
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: 600, fontSize: '1.1rem', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif" }}>Próximo Encontro (Módulo 2)</label>
+                      <input type="datetime-local" value={fvMod2Meeting || ''} onChange={(e) => setFvMod2Meeting(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                    </div>
+                    
+                    <button onClick={saveFvPlanning} style={{ padding: '0.75rem 1.5rem', background: 'transparent', color: isDark ? '#FFD700' : '#996515', border: '2px solid #FFD700', borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', alignSelf: 'flex-start' }}>
+                      <Save size={18} /> Salvar Datas de Planejamento
                     </button>
                   </div>
                 </div>
-
-                {/* Lista de Tarefas GDVE (COM A CORREÇÃO DA COR) */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {fvGdveTasks.length === 0 ? (
-                    <p style={{ margin: 0, fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic' }}>Nenhuma tarefa GDVE cadastrada.</p>
-                  ) : (
-                    fvGdveTasks.map(task => {
-                      const isCycle = task.isCycle;
-                      const isCounter = !isCycle && task.target > 1;
-                      let isCompleted = false;
-                      let displayValue = '';
-
-                      // A CURA DA TELA BRANCA: Variável definida como taskColor
-                      const currentCount = (typeof fvDaily.gdveTasksStatus?.[task.id] === 'boolean' ? (fvDaily.gdveTasksStatus[task.id] ? 1 : 0) : fvDaily.gdveTasksStatus?.[task.id]) || 0;
-                      const targetCount = task.target || 1;
-                      const taskColor = getTaskColor(currentCount, targetCount, isDark);
-
-                      if (isCycle) {
-                         isCompleted = !!fvGdveCycleStatus[task.id];
-                         displayValue = isCompleted ? 'Feito' : 'Pendente';
-                      } else if (isCounter) {
-                         isCompleted = currentCount >= targetCount;
-                         displayValue = `${currentCount}/${targetCount}`;
-                      } else {
-                         isCompleted = !!fvDaily.gdveTasksStatus?.[task.id];
-                      }
-
-                      return (
-                        <div key={task.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.7)', borderRadius: '8px', border: `2px solid ${taskColor}`, transition: 'all 0.3s ease' }}>
-                          <div onClick={() => toggleGdveTask(task)} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
-                            
-                            {isCounter ? (
-                              <div style={{ padding: '0.4rem 0.8rem', background: taskColor, border: `1px solid ${taskColor}`, borderRadius: '12px', color: '#fff', fontWeight: 'bold', fontSize: '0.9rem', minWidth: '50px', textAlign: 'center', transition: 'all 0.3s ease' }}>
-                                {displayValue}
-                              </div>
-                            ) : (
-                              <input type="checkbox" checked={isCompleted} readOnly style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: '#4caf50' }} />
-                            )}
-                            
-                            <div style={{ display: 'flex', flexDirection: 'column' }}>
-                              <span style={{ color: isCompleted ? (isDark ? '#81c784' : '#2e7d32') : (isDark ? '#f0e6d2' : '#2c1810'), textDecoration: isCompleted ? 'line-through' : 'none', fontWeight: isCompleted ? 'bold' : 'normal', fontSize: '1.05rem' }}>{task.name}</span>
-                              <span style={{ fontSize: '0.75rem', color: isDark ? '#b8a88a' : '#888', marginTop: '0.2rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                {isCycle ? '⏳ Missão de Ciclo' : (isCounter ? '📅 Meta Diária' : '📅 Diário')}
-                              </span>
-                            </div>
-                          </div>
-                          <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <button onClick={() => startEditingGdveTask(task)} style={{ background: 'transparent', border: 'none', color: isDark ? '#d4af37' : '#6b4423', cursor: 'pointer', display: 'flex' }}><Edit size={18} /></button>
-                            <button onClick={() => { if(window.confirm(`Excluir a tarefa "${task.name}"?`)) removeGdveTask(task.id); }} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer', display: 'flex' }}><Trash2 size={18} /></button>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-
-              {/* PLANEJAMENTO DATAS FV */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                <h3 style={{ margin: 0, color: isDark ? '#FFD700' : '#996515', fontSize: '1.4rem', fontFamily: "'Cinzel', serif" }}>Planejamento de Datas</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Última Entrega da CD </label>
-                    <input 
-                      type="date" 
-                      value={fvLastCartaDate || ''} 
-                      onChange={(e) => {
-                        const novaData = e.target.value;
-                        setFvLastCartaDate(novaData);
-                        if (novaData) {
-                          const [ano, mes, dia] = novaData.split('-');
-                          const dataCalculada = new Date(parseInt(ano, 10), parseInt(mes, 10) - 1 + 3, parseInt(dia, 10));
-                          const proxAno = dataCalculada.getFullYear();
-                          const proxMes = String(dataCalculada.getMonth() + 1).padStart(2, '0');
-                          const proxDia = String(dataCalculada.getDate()).padStart(2, '0');
-                          setFvNextCartaDate(`${proxAno}-${proxMes}-${proxDia}`);
-                        } else { setFvNextCartaDate(''); }
-                      }} 
-                      style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} 
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Próxima Entrega Prevista da CD</label>
-                    <input type="date" value={fvNextCartaDate || ''} onChange={(e) => setFvNextCartaDate(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
-                  </div>
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: 600, fontSize: '1.1rem', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif" }}>Próxima Reunião GDVE</label>
-                  <input type="datetime-local" value={fvGdveReuniao || ''} onChange={(e) => setFvGdveReuniao(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
-                </div>
-                
-                <button onClick={saveFvPlanning} style={{ padding: '0.75rem 1.5rem', background: 'transparent', color: isDark ? '#FFD700' : '#996515', border: '2px solid #FFD700', borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', alignSelf: 'flex-start' }}>
-                  <Save size={18} /> Salvar Datas de Planejamento
-                </button>
-              </div>
-            </div>
+              </>
+            )}
           </div>
         )}
 
@@ -2469,7 +2350,7 @@ function App() {
                 <button onClick={exportToCSV} disabled={entries.length === 0} style={{ padding: '0.75rem 1.5rem', background: entries.length > 0 ? (isDark ? '#d4af37' : '#6b4423') : '#ccc', color: 'white', border: 'none', borderRadius: '8px', cursor: entries.length > 0 ? 'pointer' : 'not-allowed', fontFamily: 'Georgia, serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Download size={18} /> Exportar CSV
                 </button>
-                {/* NOVO: BOTÃO DO RELATÓRIO TXT DA FORÇA VIVA */}
+                {/* NOVO: BOTÃO DO RELATÓRIO TXT DA FV */}
                 {fvUnlocked && (
                   <button onClick={exportFvReportTXT} disabled={entries.length === 0} style={{ padding: '0.75rem 1.5rem', background: entries.length > 0 ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : '#ccc', color: '#000', border: 'none', borderRadius: '8px', cursor: entries.length > 0 ? 'pointer' : 'not-allowed', fontFamily: 'Georgia, serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: entries.length > 0 ? '0 4px 12px rgba(255,215,0,0.2)' : 'none' }}>
                     <FileText size={18} /> Relatório CD (TXT)
@@ -2485,7 +2366,7 @@ function App() {
             {/* PAINEL DATAS FV NO HISTÓRICO */}
             {fvUnlocked && (fvLastCartaDate || fvGdveReuniao) && (
               <div className="animate-fadeIn" style={{ background: isDark ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.05) 0%, rgba(255, 165, 0, 0.05) 100%)' : '#fffbf0', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255, 215, 0, 0.3)' : '#ffe082'}`, marginBottom: '2rem', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-                <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#ffd700' : '#d4af37', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.2rem' }}><Award size={20} /> Planejamento da Força Viva</h3>
+                <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#ffd700' : '#d4af37', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.2rem' }}><Award size={20} /> Planejamento FV</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                   {fvLastCartaDate && (<div><span style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', display: 'block' }}>Última Carta:</span><strong style={{ color: isDark ? '#f0e6d2' : '#2c1810' }}>{new Date(fvLastCartaDate + 'T12:00:00').toLocaleDateString('pt-BR')}</strong></div>)}
                   {fvNextCartaDate && (<div><span style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', display: 'block' }}>Próxima Entrega:</span><strong style={{ color: '#e74c3c' }}>{new Date(fvNextCartaDate + 'T12:00:00').toLocaleDateString('pt-BR')}</strong></div>)}
@@ -3205,16 +3086,16 @@ function App() {
               </div>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {fvGdveTasks.filter(t => !t.isCycle).length === 0 ? (
+                {fvMod2Tasks.filter(t => !t.isCycle).length === 0 ? (
                    <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#888', fontStyle: 'italic' }}>Nenhuma prática diária pendente.</p>
                 ) : (
-                  fvGdveTasks.filter(t => !t.isCycle).map(task => {
-                    const currentCount = (typeof fvDaily.gdveTasksStatus?.[task.id] === 'boolean' ? (fvDaily.gdveTasksStatus[task.id] ? 1 : 0) : fvDaily.gdveTasksStatus?.[task.id]) || 0;
+                  fvMod2Tasks.filter(t => !t.isCycle).map(task => {
+                    const currentCount = (typeof fvDaily.mod2TasksStatus?.[task.id] === 'boolean' ? (fvDaily.mod2TasksStatus[task.id] ? 1 : 0) : fvDaily.mod2TasksStatus?.[task.id]) || 0;
                     const targetCount = task.target || 1;
                     const taskColor = getTaskColor(currentCount, targetCount, isDark);
                     
                     return (
-                      <div key={task.id} onClick={() => toggleGdveTask(task)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 1rem', background: isDark ? 'rgba(0,0,0,0.3)' : '#fff', borderRadius: '8px', border: `1px solid ${taskColor}`, cursor: 'pointer', transition: 'all 0.2s', gap: '1rem' }}>
+                      <div key={task.id} onClick={() => toggleMod2Task(task)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 1rem', background: isDark ? 'rgba(0,0,0,0.3)' : '#fff', borderRadius: '8px', border: `1px solid ${taskColor}`, cursor: 'pointer', transition: 'all 0.2s', gap: '1rem' }}>
                         <span style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem', fontWeight: currentCount >= targetCount ? 'bold' : 'normal' }}>{task.name}</span>
                         <div style={{ background: taskColor, color: '#fff', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold' }}>
                           {currentCount}/{targetCount}
