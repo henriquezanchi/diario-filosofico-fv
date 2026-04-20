@@ -925,17 +925,33 @@ function App() {
     }));
 
     const todayKey = selectedDate;
+
+    // 🎲 A MÁGICA ACONTECE AQUI: O Sorteio Automático
+    // Sorteia uma hora aleatória entre 10 e 18 (horário comercial/ativo)
+    const randomHour = Math.floor(Math.random() * (18 - 10 + 1)) + 10;
+    const randomHourStr = String(randomHour).padStart(2, '0') + ':00'; // Transforma em "14:00", "16:00", etc.
+
     const entry = {
-      userId: user.uid, date: todayKey, morningDone: true, virtue: finalVirtue,
-      customVirtue: showCustomVirtue ? customVirtue : '', quote: dailyQuote || null,
-      intention: dailyIntention || '', tasksStatus: todayTasksStatus || {},
-      tasksSnapshot: tasksSnapshot || [], morningTimestamp: Timestamp.now()
+      userId: user.uid, 
+      date: todayKey, 
+      morningDone: true, 
+      virtue: finalVirtue,
+      customVirtue: showCustomVirtue ? customVirtue : '', 
+      quote: dailyQuote || null,
+      intention: dailyIntention || '', 
+      tasksStatus: todayTasksStatus || {},
+      tasksSnapshot: tasksSnapshot || [], 
+      morningTimestamp: Timestamp.now(),
+      randomReminderHour: randomHourStr // 👈 O app salva a hora sorteada secretamente no banco!
     };
 
     try {
       await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), entry, { merge: true });
-      setMorningDone(true); alert('✅ Prólogo salvo com sucesso!');
-    } catch (error) { alert('Erro ao salvar prólogo. Verifique sua conexão.'); }
+      setMorningDone(true); 
+      alert('✅ Prólogo salvo com sucesso!');
+    } catch (error) { 
+      alert('Erro ao salvar prólogo. Verifique sua conexão.'); 
+    }
   };
 
   const saveEvening = async () => {
