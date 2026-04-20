@@ -414,6 +414,15 @@ function App() {
     { text: "A vida não examinada não vale a pena ser vivida", author: "Sócrates" }
   ];
 
+  // BANCO DE MEMÓRIA DOS BASTIÕES GDVE
+  const BASTIOES_DB = [
+    { name: "Bastiões 1976 - 001 a 006", link: "https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=23101&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es" },
+    { name: "Bastiões 1977 - 007 a 017", link: "https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=23102&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es" },
+    { name: "Bastiões 1978 - 018 a 029", link: "https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=23103&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es" },
+    { name: "Bastiões 1979 - 029 a 039", link: "https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=23104&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es" },
+    // 👈 Você pode adicionar quantas linhas quiser aqui seguindo esse mesmo padrão!
+  ];
+
   const getTodayKey = () => {
     const today = new Date();
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -2291,27 +2300,55 @@ function App() {
                     <Star size={24} /> Módulo GDVE
                   </h3>
                   
-                  {/* O LINK MÁGICO DO BASTIÃO */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-                    <div>
-                      <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Bastião Atual (Número)</label>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <input 
-                          type="number" 
-                          value={fvGdveBastiao || ''} 
-                          onChange={(e) => setFvGdveBastiao(e.target.value)} 
-                          placeholder="Ex: 45" 
-                          style={{ width: '100px', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} 
-                        />
-                        {/* ATENÇÃO: Substitua o "URL_DA_ACROPOLE" pelo link real antes do número */}
-                        {fvGdveBastiao && (
-                          <a href={`https://biblioteca.acropolebrasil.com.br/${fvGdveBastiao}`} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0 1rem', background: isDark ? 'rgba(255,215,0,0.1)' : '#fff3e0', color: isDark ? '#FFD700' : '#e65100', textDecoration: 'none', borderRadius: '8px', border: `1px solid ${isDark ? '#FFD700' : '#ffb74d'}`, fontWeight: 'bold' }}>
-                            <BookOpen size={18} /> Ler Bastião {fvGdveBastiao}
-                          </a>
-                        )}
+                  {/* O LINK MÁGICO DO BASTIÃO (AGORA COM BANCO DE MEMÓRIA) */}
+                  <div style={{ background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.3)', padding: '1rem', borderRadius: '8px', border: `1px dashed ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`, marginBottom: '1.5rem' }}>
+                    <h4 style={{ margin: '0 0 1rem 0', color: isDark ? '#d4af37' : '#6b4423', fontSize: '1rem' }}>Leitura do Ciclo (Bastião)</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                      
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: 600, color: isDark ? '#b8a88a' : '#6b5744' }}>Selecione o Bastião/Grupo</label>
+                        <select 
+                          value={fvGdveBastiaoName} 
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setFvGdveBastiaoName(val);
+                            // Busca automática no Banco de Memória!
+                            const found = BASTIOES_DB.find(b => b.name === val);
+                            if (found) setFvGdveBastiaoLink(found.link);
+                            else if (val !== 'Outro') setFvGdveBastiaoLink('');
+                          }} 
+                          style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', fontSize: '0.9rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }}
+                        >
+                          <option value="">Selecione...</option>
+                          {BASTIOES_DB.map((b, idx) => (
+                            <option key={idx} value={b.name}>{b.name}</option>
+                          ))}
+                          <option value="Outro">Outro (Inserir Manualmente)</option>
+                        </select>
                       </div>
+
+                      {fvGdveBastiaoName === 'Outro' && (
+                        <div>
+                          <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: 600, color: isDark ? '#b8a88a' : '#6b5744' }}>Link do PDF (Manual)</label>
+                          <input 
+                            type="url" 
+                            value={fvGdveBastiaoLink} 
+                            onChange={(e) => setFvGdveBastiaoLink(e.target.value)} 
+                            placeholder="Cole o link aqui..." 
+                            style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', fontSize: '0.9rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} 
+                          />
+                        </div>
+                      )}
                     </div>
-                  </div>      
+
+                    {fvGdveBastiaoLink && (
+                      <div style={{ marginTop: '1rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                        <a href={fvGdveBastiaoLink} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.2rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : '#fff', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.9rem', boxShadow: '0 2px 8px rgba(0,0,0,0.2)', transition: 'all 0.2s' }}>
+                          <BookOpen size={18} /> Acessar Leitura
+                        </a>
+                      </div>
+                    )}
+                  </div>
 
                   {/* Botão de Check-in da Reunião */}
                   <div style={{ padding: '1rem', background: fvDaily.gdveAttendance ? (isDark ? 'rgba(76, 175, 80, 0.2)' : '#e8f5e9') : (isDark ? 'rgba(255, 152, 0, 0.1)' : '#fff3e0'), borderRadius: '8px', border: `1px solid ${fvDaily.gdveAttendance ? '#4caf50' : (isDark ? 'rgba(255, 152, 0, 0.3)' : '#ffb74d')}`, marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
@@ -2351,7 +2388,7 @@ function App() {
                     </div>
                   </div>
 
-                  {/* Lista de Tarefas */}
+                  {/* Lista de Tarefas - CORRIGIDA (SEM TELA BRANCA) */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     {fvGdveTasks.length === 0 ? (
                       <p style={{ margin: 0, fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic' }}>Nenhuma tarefa GDVE cadastrada.</p>
@@ -2362,23 +2399,27 @@ function App() {
                         let isCompleted = false;
                         let displayValue = '';
 
+                        // A CURA DA TELA BRANCA: Definimos as variáveis antes de renderizar
+                        const currentCount = (typeof fvDaily.gdveTasksStatus?.[task.id] === 'boolean' ? (fvDaily.gdveTasksStatus[task.id] ? 1 : 0) : fvDaily.gdveTasksStatus?.[task.id]) || 0;
+                        const targetCount = task.target || 1;
+                        const taskColor = getTaskColor(currentCount, targetCount, isDark);
+
                         if (isCycle) {
                            isCompleted = !!fvGdveCycleStatus[task.id];
                            displayValue = isCompleted ? 'Feito' : 'Pendente';
                         } else if (isCounter) {
-                           const val = fvDaily.gdveTasksStatus?.[task.id] || 0;
-                           isCompleted = val >= task.target;
-                           displayValue = `${val}/${task.target}`;
+                           isCompleted = currentCount >= targetCount;
+                           displayValue = `${currentCount}/${targetCount}`;
                         } else {
                            isCompleted = !!fvDaily.gdveTasksStatus?.[task.id];
                         }
 
                         return (
-                          <div key={task.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.7)', borderRadius: '8px', border: `2px solid ${color}`, transition: 'all 0.3s ease' }}>
+                          <div key={task.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.7)', borderRadius: '8px', border: `2px solid ${taskColor}`, transition: 'all 0.3s ease' }}>
                             <div onClick={() => toggleGdveTask(task)} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
                               
                               {isCounter ? (
-                                <div style={{ padding: '0.4rem 0.8rem', background: color, border: `1px solid ${color}`, borderRadius: '12px', color: '#fff', fontWeight: 'bold', fontSize: '0.9rem', minWidth: '50px', textAlign: 'center', transition: 'all 0.3s ease' }}>
+                                <div style={{ padding: '0.4rem 0.8rem', background: taskColor, border: `1px solid ${taskColor}`, borderRadius: '12px', color: '#fff', fontWeight: 'bold', fontSize: '0.9rem', minWidth: '50px', textAlign: 'center', transition: 'all 0.3s ease' }}>
                                   {displayValue}
                                 </div>
                               ) : (
