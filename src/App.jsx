@@ -1081,7 +1081,10 @@ function App() {
           fvTextsTimestamp: Timestamp.now()
         }, { merge: true }); 
         
-        await loadAllEntries(user.uid); // Isso força o recálculo dos Streaks!
+        // A MÁGICA ESTÁ AQUI: Isso força o app a puxar os dados atualizados do banco 
+        // e refazer os cálculos da Montanha e do Templo NA HORA.
+        await loadAllEntries(user.uid); 
+        
         alert('✅ Reflexões da Carta de Degrau salvas com sucesso!');
       } catch (error) { console.error(error); alert('Erro ao salvar os textos.'); }
     }
@@ -1099,7 +1102,10 @@ function App() {
           fvPracticesTimestamp: Timestamp.now()
         }, { merge: true }); 
         
-        await loadAllEntries(user.uid); // Isso força o recálculo dos Streaks!
+        // A MÁGICA ESTÁ AQUI: Isso força o app a puxar os dados atualizados do banco 
+        // e refazer os cálculos da Montanha e do Templo NA HORA.
+        await loadAllEntries(user.uid); 
+        
         alert('✅ Práticas Internas salvas com sucesso!');
       } catch (error) { console.error(error); alert('Erro ao salvar as práticas.'); }
     }
