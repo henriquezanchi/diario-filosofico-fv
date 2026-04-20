@@ -1,21 +1,21 @@
 {
   "short_name": "Diário",
   "name": "Diário Filosófico",
-  "description": "Seu ambiente para cultivo de virtudes e autoexame diário.",
+  "description": "Um ambiente digital minimalista para o autoexame e o cultivo de virtudes clássicas.",
   "icons": [
     {
-      "src": "logo192.png",
+      "src": "/icon-192.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "logo512.png",
+      "src": "/icon-512.png",
       "type": "image/png",
       "sizes": "512x512"
     }
   ],
-  "start_url": ".",
+  "start_url": "/",
+  "background_color": "#f0e6d2",
   "display": "standalone",
-  "theme_color": "#d4af37",
-  "background_color": "#1a1a2e"
+  "theme_color": "#8b7355"
 }
