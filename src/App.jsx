@@ -219,6 +219,8 @@ function App() {
   const [newMod2TaskTarget, setNewMod2TaskTarget] = useState(1);
   const [newMod2TaskIsCycle, setNewMod2TaskIsCycle] = useState(false);
   const [mod2CycleStatus, setMod2CycleStatus] = useState({});
+  const [fvVault, setFvVault] = useState(null); // O Cofre
+  const [vaultInput, setVaultInput] = useState(''); // O campo de colar o cofre
 
   const [mod2Daily, setMod2Daily] = useState({
     item1: '', item2: '', item3: '', item4: '', item5: '', item6: '',
@@ -843,7 +845,7 @@ function App() {
 
   const loadMod2Data = async (uid) => {
     try {
-      const mod2Doc = await getDoc(doc(db, 'mod2Data', uid));
+      const mod2Doc = await getDoc(doc(db, 'fvData', uid));
       if (mod2Doc.exists()) {
         const data = mod2Doc.data();
         setMod2LastDeliveryDate(data.lastDeliveryDate || '');
@@ -1012,7 +1014,7 @@ function App() {
 
   const saveMod2TasksToDB = async (tasks) => {
     if (user) {
-      try { await setDoc(doc(db, 'mod2Data', user.uid), { tasks: tasks }, { merge: true }); } 
+      try { await setDoc(doc(db, 'fvData', user.uid), { tasks: tasks }, { merge: true }); } 
       catch(e) { console.error("Erro", e); }
     }
   };
@@ -1042,7 +1044,7 @@ function App() {
     if (task.isCycle) {
       const newStatus = { ...mod2CycleStatus, [task.id]: !mod2CycleStatus[task.id] };
       setMod2CycleStatus(newStatus);
-      if (user) await setDoc(doc(db, 'mod2Data', user.uid), { cycleStatus: newStatus }, { merge: true });
+      if (user) await setDoc(doc(db, 'fvData', user.uid), { cycleStatus: newStatus }, { merge: true });
     } else {
       let currentVal = mod2Daily.tasksStatus?.[task.id] || 0;
       if (typeof currentVal === 'boolean') currentVal = currentVal ? 1 : 0;
@@ -1072,7 +1074,7 @@ function App() {
          }
          const nextDateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}T${nextHour}:${nextMinute}`;
          setMod2MeetingDate(nextDateStr); setMod2CycleStatus({}); 
-         if(user) await setDoc(doc(db, 'mod2Data', user.uid), { meetingDate: nextDateStr, cycleStatus: {} }, { merge: true });
+         if(user) await setDoc(doc(db, 'fvData', user.uid), { meetingDate: nextDateStr, cycleStatus: {} }, { merge: true });
       }
     }
     if (user) {
@@ -1084,7 +1086,7 @@ function App() {
   const saveMod2Planning = async () => {
     if (user) {
       try {
-        await setDoc(doc(db, 'mod2Data', user.uid), {
+        await setDoc(doc(db, 'fvData', user.uid), {
           lastDeliveryDate: mod2LastDeliveryDate || '',
           nextDeliveryDate: mod2NextDeliveryDate || '',
           meetingDate: mod2MeetingDate || '',
