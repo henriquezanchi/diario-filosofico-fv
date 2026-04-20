@@ -2,7 +2,11 @@
   "crons": [
     {
       "path": "/api/lembretes",
-      "schedule": "0 * * * *"
+      "schedule": "0 11 * * *"
+    },
+    {
+      "path": "/api/lembretes",
+      "schedule": "0 23 * * *"
     }
   ]
 }
