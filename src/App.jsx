@@ -2713,9 +2713,25 @@ function App() {
                       <h3 style={{ margin: 0, color: isDark ? '#FFD700' : '#996515', fontSize: '1.3rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <Sparkles size={22} /> Relatório Discipular do Ciclo
                       </h3>
-                      <button onClick={generateDiscipularSynthesis} disabled={isGeneratingDiscSync} style={{ padding: '0.6rem 1.2rem', background: isDark ? 'rgba(255, 215, 0, 0.1)' : '#fff8dc', color: isDark ? '#FFD700' : '#996515', border: `1px solid ${isDark ? '#FFD700' : '#996515'}`, borderRadius: '8px', cursor: isGeneratingDiscSync ? 'not-allowed' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        {isGeneratingDiscSync ? <Sparkles className="animate-spin" size={16} /> : <Target size={16} />}
-                        {isGeneratingDiscSync ? 'Forjando Relatório...' : 'Gerar Relatório Profundo'}
+                      <button onClick={generateDiscipularSynthesis} disabled={isGeneratingDiscSync} style={{ 
+                        padding: '0.6rem 1.2rem', 
+                        background: isGeneratingDiscSync 
+                          ? (isDark ? 'rgba(255, 152, 0, 0.15)' : '#fff3e0') 
+                          : (discipularSynthesis ? (isDark ? 'rgba(39, 174, 96, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(255, 215, 0, 0.1)' : '#fff8dc')), 
+                        color: isGeneratingDiscSync 
+                          ? (isDark ? '#ff9800' : '#e65100') 
+                          : (discipularSynthesis ? (isDark ? '#2ecc71' : '#27ae60') : (isDark ? '#FFD700' : '#996515')), 
+                        border: `1px solid ${isGeneratingDiscSync 
+                          ? (isDark ? '#ff9800' : '#ffb74d') 
+                          : (discipularSynthesis ? (isDark ? '#2ecc71' : '#27ae60') : (isDark ? '#FFD700' : '#996515'))}`, 
+                        borderRadius: '8px', 
+                        cursor: isGeneratingDiscSync ? 'not-allowed' : 'pointer', 
+                        fontWeight: 'bold', 
+                        display: 'flex', alignItems: 'center', gap: '0.5rem',
+                        transition: 'all 0.3s ease'
+                      }}>
+                        {isGeneratingDiscSync ? <Sparkles className="animate-spin" size={16} /> : (discipularSynthesis ? <CheckCircle size={16} /> : <Target size={16} />)}
+                        {isGeneratingDiscSync ? 'Forjando...' : (discipularSynthesis ? 'Relatório Gerado (Refazer)' : 'Gerar Relatório Profundo')}
                       </button>
                     </div>
 
