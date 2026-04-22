@@ -45,6 +45,9 @@ function App() {
   const [showPassword, setShowPassword] = useState(false);
   const [fvConfig, setFvConfig] = useState(null); // Armazena a estrutura vinda do Firebase
   const [isDownloadingConfig, setIsDownloadingConfig] = useState(false);
+  const [feedbackRating, setFeedbackRating] = useState(0);
+  const [feedbackText, setFeedbackText] = useState('');
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
 
   // Estados das Notificações
   const [notificationsActive, setNotificationsActive] = useState(false);
@@ -1280,7 +1283,7 @@ function App() {
 
       ESTRUTURA DO RETORNO:
       1. METRICAS GERAIS: Compare o volume do Ciclo Atual com o Anterior (%).
-      2. AUDITORIA DA POSTURA (EVASÃO): Avalie a métrica de "Comportamento de Autoexame" (respostas em branco/parciais). Aponte estatisticamente a proporção de preenchimento mecânico versus preenchimento reflexivo.
+      2. COMPLETUDE E PADRÃO DE PREENCHIMENTO: Avalie a taxa de preenchimento. Se os campos estruturados estiverem vazios, mas o campo de "Reflexões amplas" contiver dados que responderiam a essas perguntas, considere o preenchimento como válido, classificando-o apenas como "Preenchimento Desestruturado". É EXPRESSAMENTE PROIBIDO usar palavras como "fuga", "evasão", "pressa" ou termos acusatórios. Seja puramente descritivo e neutro.
       3. A BALANÇA ESTOICA (ACERTOS E ERROS): Dê IGUAL peso à análise semântica das falhas e das vitórias. Quais foram os padrões das ações bem-sucedidas? Quais os padrões das falhas e omissões?
       4. ANÁLISE DO TEXTO LIVRE: Avalie as "Reflexões amplas" usando estritamente estas 4 lentes:
          - Vazamento: Há vitórias/falhas relatadas aqui que deveriam estar nos campos específicos?
@@ -1321,6 +1324,33 @@ function App() {
   const generateDiscipularSynthesis = async () => {
     if (!user) return;
     setIsGeneratingDiscSync(true);
+
+    const submitSynthesisFeedback = async (tipoRelatorio) => {
+    if (feedbackRating === 0) return alert("Por favor, selecione uma nota de 1 a 5 estrelas.");
+    
+    try {
+      // Cria um ID aleatório na coleção 'synthesisFeedback'
+      const feedbackRef = doc(collection(db, 'synthesisFeedback')); 
+      await setDoc(feedbackRef, {
+        tipo: tipoRelatorio,
+        nota: feedbackRating,
+        comentario: feedbackText || "Sem comentário escrito.",
+        data: new Date().toISOString(),
+        userId: "Anônimo" // Protege a identidade do estudante
+      });
+      
+      setFeedbackSubmitted(true);
+      setTimeout(() => {
+        setFeedbackRating(0);
+        setFeedbackText('');
+        setFeedbackSubmitted(false);
+      }, 5000); // Oculta o agradecimento após 5 segundos
+      
+    } catch (error) {
+      console.error("Erro ao enviar avaliação:", error);
+      alert("Erro ao enviar sua avaliação.");
+    }
+  };
 
     try {
       // 1. Coleta e Divisão do Tempo (60 dias)
@@ -1382,7 +1412,7 @@ function App() {
       ESTRUTURA OBRIGATÓRIA:
       1. MÉTRICAS DA VONTADE (PRÁTICAS): Compare (em %) "Práticas FV" e "Preenchimentos" do Ciclo Atual com o Anterior.
       2. AUDITORIA ESTOICA (ACERTOS vs ERROS): Dê igual peso ao mapeamento de padrões nas Vitórias e nas Falhas. O que ele executou bem de forma recorrente e onde mais falhou?
-      3. ÍNDICE DE EVASÃO: O que a proporção de preenchimentos vazios/parciais revela estatisticamente sobre a disciplina dele no momento da reflexão noturna?
+      3. COMPLETUDE DO AUTOEXAME: Avalie se as respostas estão nos campos corretos ou se o usuário concentrou tudo na "Reflexão Livre". Valide o conteúdo do texto livre se ele cobrir as falhas e acertos. PROIBIDO usar as palavras "evasão", "fuga" ou julgar a dedicação do aluno. Apenas relate o formato de preenchimento.
       4. AUDITORIA DO TEXTO LIVRE E ITENS FV: Faça a análise lexical das "Reflexões amplas" e dos "Itens 1 e 6". Isole: 
          - Padrões de causalidade (o que gera o quê na mente dele).
          - Elaboração de hipóteses sobre si mesmo.
@@ -2469,12 +2499,49 @@ function App() {
                               </p>
                             </div>
 
-                            {technicalSynthesis ? (
-                              <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', padding: '1.5rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : '#ccc'}`, whiteSpace: 'pre-wrap', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem', lineHeight: '1.6', fontFamily: 'Georgia, serif' }}>
-                                {technicalSynthesis}
+                            {/* BLOCO DE AVALIAÇÃO DA SÍNTESE */}
+                            {technicalSynthesis && (
+                              <div style={{ marginTop: '2rem', padding: '1.5rem', background: isDark ? 'rgba(0,0,0,0.2)' : '#fdfbf7', borderRadius: '8px', border: `1px dashed ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`, textAlign: 'center' }}>
+                                {feedbackSubmitted ? (
+                                  <p style={{ color: isDark ? '#81c784' : '#2e7d32', fontWeight: 'bold', margin: 0 }}>✓ Avaliação enviada anonimamente. Obrigado por ajudar a calibrar o sistema!</p>
+                                ) : (
+                                  <>
+                                    <p style={{ margin: '0 0 1rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem', fontWeight: 'bold' }}>Esta síntese foi útil e precisa?</p>
+                                    
+                                    {/* Estrelas */}
+                                    <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                                      {[1, 2, 3, 4, 5].map((star) => (
+                                        <button 
+                                          key={star} 
+                                          onClick={() => setFeedbackRating(star)} 
+                                          style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
+                                        >
+                                          <Star size={28} fill={feedbackRating >= star ? (isDark ? '#FFD700' : '#FFB300') : 'none'} color={feedbackRating >= star ? (isDark ? '#FFD700' : '#FFB300') : (isDark ? '#555' : '#ccc')} />
+                                        </button>
+                                      ))}
+                                    </div>
+
+                                    {/* Campo de Texto (Só aparece se ele der uma nota) */}
+                                    {feedbackRating > 0 && (
+                                      <div className="animate-fadeIn">
+                                        <textarea 
+                                          value={feedbackText} 
+                                          onChange={(e) => setFeedbackText(e.target.value)} 
+                                          placeholder="Opcional: Por que você deu esta nota? A IA foi injusta, imprecisa ou ajudou muito?" 
+                                          rows={3} 
+                                          style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', fontSize: '0.9rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical', marginBottom: '1rem' }} 
+                                        />
+                                        <button 
+                                          onClick={() => submitSynthesisFeedback("Aberta")} 
+                                          style={{ padding: '0.6rem 1.5rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'Georgia, serif' }}
+                                        >
+                                          Enviar Avaliação Anônima
+                                        </button>
+                                      </div>
+                                    )}
+                                  </>
+                                )}
                               </div>
-                            ) : (
-                              <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', textAlign: 'center', margin: '2rem 0' }}>Nenhuma síntese gerada para este ciclo ainda. Clique no botão acima para compilar seus dados.</p>
                             )}
                           </div>  
 
@@ -2816,12 +2883,49 @@ function App() {
                       </p>
                     </div>
 
-                    {discipularSynthesis ? (
-                      <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.9)' : 'white', padding: '1.5rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255, 215, 0, 0.3)' : '#ccc'}`, whiteSpace: 'pre-wrap', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem', lineHeight: '1.7', fontFamily: 'Georgia, serif' }}>
-                        {discipularSynthesis}
+                    {/* BLOCO DE AVALIAÇÃO DA SÍNTESE FV */}
+                    {discipularSynthesis && (
+                      <div style={{ marginTop: '2rem', padding: '1.5rem', background: isDark ? 'rgba(0,0,0,0.3)' : '#fdfbf7', borderRadius: '8px', border: `1px dashed ${isDark ? 'rgba(255, 215, 0, 0.4)' : 'rgba(153, 101, 21, 0.3)'}`, textAlign: 'center' }}>
+                        {feedbackSubmitted ? (
+                          <p style={{ color: isDark ? '#FFD700' : '#996515', fontWeight: 'bold', margin: 0 }}>✓ Avaliação enviada anonimamente. Obrigado por ajudar a calibrar o sistema!</p>
+                        ) : (
+                          <>
+                            <p style={{ margin: '0 0 1rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem', fontWeight: 'bold' }}>Este relatório técnico foi útil e preciso?</p>
+                            
+                            {/* Estrelas */}
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <button 
+                                  key={star} 
+                                  onClick={() => setFeedbackRating(star)} 
+                                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
+                                >
+                                  <Star size={28} fill={feedbackRating >= star ? (isDark ? '#FFD700' : '#FFB300') : 'none'} color={feedbackRating >= star ? (isDark ? '#FFD700' : '#FFB300') : (isDark ? '#555' : '#ccc')} />
+                                </button>
+                              ))}
+                            </div>
+
+                            {/* Campo de Texto (Só aparece se ele der uma nota) */}
+                            {feedbackRating > 0 && (
+                              <div className="animate-fadeIn">
+                                <textarea 
+                                  value={feedbackText} 
+                                  onChange={(e) => setFeedbackText(e.target.value)} 
+                                  placeholder="Opcional: Por que você deu esta nota? A análise de dados ajudou?" 
+                                  rows={3} 
+                                  style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(255, 215, 0, 0.5)' : '#ccc'}`, borderRadius: '8px', fontSize: '0.9rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical', marginBottom: '1rem' }} 
+                                />
+                                <button 
+                                  onClick={() => submitSynthesisFeedback("Força Viva")} 
+                                  style={{ padding: '0.6rem 1.5rem', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: '#000', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'Georgia, serif', boxShadow: '0 4px 10px rgba(255,215,0,0.2)' }}
+                                >
+                                  Enviar Avaliação Anônima
+                                </button>
+                              </div>
+                            )}
+                          </>
+                        )}
                       </div>
-                    ) : (
-                      <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', textAlign: 'center', margin: '2rem 0' }}>Sua Alma aguarda a síntese das suas batalhas. Clique acima para processar o ciclo.</p>
                     )}
                   </div>
 
