@@ -220,6 +220,10 @@ function App() {
   const [fvLockClickCount, setFvLockClickCount] = useState(0);
   const [fvLastCartaDate, setFvLastCartaDate] = useState('');
   const [fvNextCartaDate, setFvNextCartaDate] = useState('');
+  const [fvMasterName, setFvMasterName] = useState('');
+  const [fvLastMeetingDate, setFvLastMeetingDate] = useState('');
+  const [technicalSynthesis, setTechnicalSynthesis] = useState(null);
+  const [isGeneratingSynthesis, setIsGeneratingSynthesis] = useState(false);
   const [fvGdveDesafios, setFvGdveDesafios] = useState([]);
   const [fvGdveReuniao, setFvGdveReuniao] = useState('');
   const [fvGdveBastiaoName, setFvGdveBastiaoName] = useState(''); 
@@ -877,6 +881,9 @@ function App() {
         setFvGdveCycleStatus(data.gdveCycleStatus || {});
         setFvGdveBastiaoName(data.gdveBastiaoName || '');
         setFvGdveBastiaoLink(data.gdveBastiaoLink || '');
+        setFvMasterName(data.fvMasterName || '');
+        setFvLastMeetingDate(data.fvLastMeetingDate || '');
+        setTechnicalSynthesis(data.technicalSynthesis || null);
       }
     } catch (error) { console.error('Erro ao carregar dados FV:', error); }
   };
@@ -1192,18 +1199,77 @@ function App() {
   // --------------------
 
   const saveFvPlanning = async () => {
-    if (user) {
-      try {
-        await setDoc(doc(db, 'fvData', user.uid), {
-          lastCartaDate: fvLastCartaDate || '',
-          nextCartaDate: fvNextCartaDate || '',
-          gdveReuniao: fvGdveReuniao || '',
-          gdveBastiaoName: fvGdveBastiaoName || '',
-          gdveBastiaoLink: fvGdveBastiaoLink || '',
-          updatedAt: Timestamp.now()
-        }, { merge: true }); 
-        alert('✅ Planejamento FV salvo com sucesso!');
-      } catch (error) { console.error(error); alert('Erro ao salvar dados.'); }
+    if (!user) return;
+    try {
+      const docRef = doc(db, 'fvData', user.uid);
+      await setDoc(docRef, { 
+        lastCartaDate: fvLastCartaDate, 
+        nextCartaDate: fvNextCartaDate,
+        gdveReuniao: fvGdveReuniao,
+        fvMasterName: fvMasterName,
+        fvLastMeetingDate: fvLastMeetingDate
+      }, { merge: true });
+      alert("Planejamento e dados do Instrutor salvos com sucesso!");
+    } catch (error) { console.error("Erro ao salvar datas FV:", error); }
+  };
+
+  const generateTechnicalSynthesis = async () => {
+    if (!user) return;
+    setIsGeneratingSynthesis(true);
+
+    try {
+      // 1. Coleta os dados dos últimos 30 dias
+      const trintaDiasAtras = new Date();
+      trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
+      
+      const relatoriosRecentes = entries.filter(e => new Date(e.date + 'T12:00:00') >= trintaDiasAtras);
+      
+      // 2. Monta o corpo do texto para a análise
+      let dossie = `DOSSIÊ DOS ÚLTIMOS 30 DIAS:\n\n`;
+      dossie += `- Dias preenchidos no Diário: ${relatoriosRecentes.length}\n`;
+      
+      const falhas = relatoriosRecentes.filter(e => e.whereIFailed).map(e => e.whereIFailed);
+      const vitorias = relatoriosRecentes.filter(e => e.whatIWentWell).map(e => e.whatIWentWell);
+      
+      dossie += `\nFALHAS RECORRENTES RELATADAS:\n${falhas.join('\n')}\n`;
+      dossie += `\nVITÓRIAS E VIRTUDES RELATADAS:\n${vitorias.join('\n')}\n`;
+      dossie += `\nSTATUS DA FORÇA VIVA (AÇÕES PRÁTICAS):\n`;
+      dossie += `Streak Atual de Práticas: ${fvTasksStreak} dias.\n`;
+
+      // 3. O Comando (Prompt) para o Espelho Lógico
+      const prompt = `Você é um assistente analítico e lógico focado em filosofia clássica. Seu papel é ser um 'espelho' frio e objetivo.
+      Abaixo está o dossiê de 30 dias de preenchimento de um estudante.
+      
+      SUA MISSÃO OBRIGATÓRIA:
+      1. Faça uma síntese técnica, direta e objetiva apontando as inconsistências entre o que ele quer fazer e o que ele relata que falhou. Identifique o padrão principal de erro (ex: falta de ordem, preguiça, reatividade).
+      2. NÃO dê conselhos de vida. NÃO aja como um guru. NÃO dê a solução.
+      3. Termine o seu texto elaborando 2 (duas) perguntas filosóficas profundas e incômodas baseadas nesses erros específicos. Instrua o estudante a levar estas perguntas para reflexão com seu instrutor/mestre humano.
+      
+      DADOS DO ESTUDANTE:
+      ${dossie}`;
+
+      // 4. Conexão com a API do Google Gemini
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+      });
+
+      const data = await response.json();
+      if (data.error) throw new Error(data.error.message);
+
+      const resultado = data.candidates[0].content.parts[0].text;
+      
+      // 5. Salva a resposta no Firebase para consulta futura
+      setTechnicalSynthesis(resultado);
+      const docRef = doc(db, 'fvData', user.uid);
+      await setDoc(docRef, { technicalSynthesis: resultado }, { merge: true });
+
+    } catch (error) {
+      console.error("Erro na Síntese:", error);
+      alert("Erro ao conectar com o motor de síntese. Verifique sua chave de API no arquivo .env.");
+    } finally {
+      setIsGeneratingSynthesis(false);
     }
   };
 
@@ -2227,6 +2293,38 @@ function App() {
                                )}
                             </ul>
                           </div>
+                              
+                             {/* SÍNTESE TÉCNICA (IA) */}
+                          <div style={{ background: isDark ? 'rgba(0,0,0,0.3)' : '#f8f9fa', padding: '2rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(74, 144, 226, 0.3)' : 'rgba(74, 144, 226, 0.3)'}`, marginTop: '2rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
+                              <h3 style={{ margin: 0, color: isDark ? '#6cb2eb' : '#2980b9', fontSize: '1.2rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <Sparkles size={20} /> Síntese Técnica do Ciclo
+                              </h3>
+                              <button onClick={generateTechnicalSynthesis} disabled={isGeneratingSynthesis} style={{ padding: '0.6rem 1.2rem', background: 'rgba(74, 144, 226, 0.1)', color: isDark ? '#6cb2eb' : '#2980b9', border: '1px solid #4A90E2', borderRadius: '8px', cursor: isGeneratingSynthesis ? 'not-allowed' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                {isGeneratingSynthesis ? <Sparkles className="animate-spin" size={16} /> : <Target size={16} />}
+                                {isGeneratingSynthesis ? 'Gerando Relatório...' : 'Gerar Nova Síntese'}
+                              </button>
+                            </div>
+
+                            {/* O AVISO DE SEGURANÇA E ÉTICA */}
+                            <div style={{ background: isDark ? 'rgba(231, 76, 60, 0.1)' : 'rgba(231, 76, 60, 0.05)', padding: '1rem', borderRadius: '8px', borderLeft: '3px solid #e74c3c', marginBottom: '1.5rem' }}>
+                              <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.5', fontStyle: 'italic' }}>
+                                <strong>Aviso Importante:</strong> Essa síntese é gerada por Inteligência Artificial e não substitui a reflexão individual. Confiar apenas na síntese desse relatório é contraindicado. 
+                                {fvUnlocked && (
+                                  <span style={{ fontWeight: 'bold', color: isDark ? '#e74c3c' : '#c0392b' }}> Procure seu Mestre/Instrutor para orientações sobre o conteúdo e as perguntas geradas nesta Síntese.</span>
+                                )}
+                                {!fvUnlocked && " Procure orientação de pessoas mais experientes para debater estes pontos."}
+                              </p>
+                            </div>
+
+                            {technicalSynthesis ? (
+                              <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', padding: '1.5rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : '#ccc'}`, whiteSpace: 'pre-wrap', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem', lineHeight: '1.6', fontFamily: 'Georgia, serif' }}>
+                                {technicalSynthesis}
+                              </div>
+                            ) : (
+                              <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', textAlign: 'center', margin: '2rem 0' }}>Nenhuma síntese gerada para este ciclo ainda. Clique no botão acima para compilar seus dados.</p>
+                            )}
+                          </div>  
 
                         </>
                       );
@@ -2501,12 +2599,23 @@ function App() {
                     </div>
                   </div>
 
-                  {/* PLANEJAMENTO DE DATAS FV */}
+                  {/* ACOMPANHAMENTO E DATAS */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                    <h3 style={{ margin: 0, color: isDark ? '#FFD700' : '#996515', fontSize: '1.4rem', fontFamily: "'Cinzel', serif" }}>Planejamento de Datas</h3>
+                    <h3 style={{ margin: 0, color: isDark ? '#FFD700' : '#996515', fontSize: '1.4rem', fontFamily: "'Cinzel', serif" }}>Acompanhamento Discipular</h3>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
                       <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Última Entrega</label>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Nome do Mestre / Instrutor</label>
+                        <input type="text" value={fvMasterName || ''} onChange={(e) => setFvMasterName(e.target.value)} placeholder="Com quem você se reporta..." style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Data do Último Encontro</label>
+                        <input type="date" value={fvLastMeetingDate || ''} onChange={(e) => setFvLastMeetingDate(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Última Entrega de Carta</label>
                         <input type="date" value={fvLastCartaDate || ''} onChange={(e) => { const novaData = e.target.value; setFvLastCartaDate(novaData); if (novaData) { const [ano, mes, dia] = novaData.split('-'); const dataCalculada = new Date(parseInt(ano, 10), parseInt(mes, 10) - 1 + 3, parseInt(dia, 10)); setFvNextCartaDate(`${dataCalculada.getFullYear()}-${String(dataCalculada.getMonth() + 1).padStart(2, '0')}-${String(dataCalculada.getDate()).padStart(2, '0')}`); } else { setFvNextCartaDate(''); } }} style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
                       </div>
                       <div>
@@ -2514,13 +2623,9 @@ function App() {
                         <input type="date" value={fvNextCartaDate || ''} onChange={(e) => setFvNextCartaDate(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
                       </div>
                     </div>
-                    <div>
-                      <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: 600, fontSize: '1.1rem', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif" }}>Próximo Encontro</label>
-                      <input type="datetime-local" value={fvGdveReuniao || ''} onChange={(e) => setFvGdveReuniao(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
-                    </div>
                     
                     <button onClick={saveFvPlanning} style={{ padding: '0.75rem 1.5rem', background: 'transparent', color: isDark ? '#FFD700' : '#996515', border: '2px solid #FFD700', borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', alignSelf: 'flex-start' }}>
-                      <Save size={18} /> Salvar Datas
+                      <Save size={18} /> Salvar Planejamento
                     </button>
                   </div>
                 </div>
