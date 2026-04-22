@@ -910,21 +910,7 @@ function App() {
   };
 
 
-  // Verifica a validade da Síntese Técnica
-        if (data.technicalSynthesis && data.technicalSynthesisDate) {
-          const dataGeracao = new Date(data.technicalSynthesisDate);
-          const hoje = new Date();
-          const diferencaDias = (hoje - dataGeracao) / (1000 * 60 * 60 * 24);
-          
-          if (diferencaDias > 30) {
-            setTechnicalSynthesis(null); // Expirou, some da tela
-            // Aqui futuramente enviaremos para o array de histórico
-          } else {
-            setTechnicalSynthesis(data.technicalSynthesis);
-          }
-        }
-
-  const loadMod2Config = async () => {
+    const loadMod2Config = async () => {
     if (!user || fvConfig) return;
     setIsDownloadingConfig(true);
     try {
