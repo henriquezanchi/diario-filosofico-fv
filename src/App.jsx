@@ -1215,6 +1215,7 @@ function App() {
 
   const generateTechnicalSynthesis = async () => {
     if (!user) return;
+    console.log("Minha chave está sendo lida?", import.meta.env.VITE_GEMINI_API_KEY);
     setIsGeneratingSynthesis(true);
 
     try {
