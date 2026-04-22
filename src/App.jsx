@@ -1269,18 +1269,27 @@ function App() {
       dossie += `- Intenções matinais (compromissos): ${cicloAtual.filter(e => e.intention).map(e => e.intention).join(' | ')}\n`;
 
       // 3. O Novo Prompt (Auditor Frio)
-      const prompt = `Você é um Analista de Dados e Auditor Técnico rigoroso. Seu papel é processar os registros de um diário e devolver UM RELATÓRIO ESTATÍSTICO, FRIO E OBJETIVO.
+      const prompt = `Você é um Analista de Dados e Auditor Técnico. Entregue um RELATÓRIO ESTATÍSTICO, FRIO E OBJETIVO.
 
-      REGRA DE OURO: É EXPRESSAMENTE PROIBIDO dar conselhos, usar tom professoral, agir como mestre, emitir juízos de valor ou tentar "ajudar" o usuário moralmente. Você é uma máquina de ler dados.
+      REGRAS DE FORMATAÇÃO (CRÍTICO): 
+      - É EXPRESSAMENTE PROIBIDO usar formatação Markdown. NÃO use asteriscos (*), hashtags (#), negrito ou itálico. 
+      - Use apenas texto limpo, parágrafos simples e letras MAIÚSCULAS para títulos de seção.
 
-      ESTRUTURA OBRIGATÓRIA DO RETORNO:
-      1. MÉTRICAS DE ENGAJAMENTO: Compare o volume de preenchimento do Ciclo Atual com o Ciclo Anterior. Dê as porcentagens exatas de crescimento ou queda.
-      2. AUDITORIA SEMÂNTICA DE FALHAS: Analise friamente os textos de "Falhas relatadas". Categorize os motivos (ex: X% estão ligados a alimentação, Y% a gestão de tempo, Z% a reatividade emocional). Identifique as palavras mais repetidas.
-      3. MAPEAMENTO DE DISCREPÂNCIAS: Compare as "Intenções matinais" com as "Falhas relatadas" do Ciclo Atual. Aponte de forma técnica se há um padrão estatístico de abandono da intenção durante o dia.
-      4. CONCLUSÃO TÉCNICA: Resuma o cenário em um único parágrafo frio.
-      5. PONTOS PARA AUDITORIA HUMANA: Liste 2 perguntas baseadas nos dados coletados, sugerindo que o usuário as leve para um instrutor humano analisar. Exemplo: "Leve para seu instrutor debater: Por que a palavra 'ansiedade' aumentou 40% neste ciclo?"
+      REGRAS DE TOM:
+      - NÃO dê conselhos morais. NÃO aja como mestre. Você é uma máquina analisando dados.
 
-      DADOS PARA PROCESSAMENTO:
+      ESTRUTURA DO RETORNO:
+      1. METRICAS GERAIS: Compare o volume do Ciclo Atual com o Anterior (%).
+      2. AUDITORIA DA POSTURA (EVASÃO): Avalie a métrica de "Comportamento de Autoexame" (respostas em branco/parciais). Aponte estatisticamente a proporção de preenchimento mecânico versus preenchimento reflexivo.
+      3. A BALANÇA ESTOICA (ACERTOS E ERROS): Dê IGUAL peso à análise semântica das falhas e das vitórias. Quais foram os padrões das ações bem-sucedidas? Quais os padrões das falhas e omissões?
+      4. ANÁLISE DO TEXTO LIVRE: Avalie as "Reflexões amplas" usando estritamente estas 4 lentes:
+         - Vazamento: Há vitórias/falhas relatadas aqui que deveriam estar nos campos específicos?
+         - Causalidade: Quais são os padrões lógicos identificados (ex: "Ação X gerou Emoção Y")?
+         - Hipóteses: O usuário expressa mais certezas ou está formulando suspeitas sobre si mesmo?
+         - Cenários: Quais áreas da vida (trabalho, relacionamentos, etc) mais aparecem neste campo livre?
+      5. PONTOS PARA AUDITORIA HUMANA: Liste 2 perguntas técnicas baseadas nestes dados, sugerindo o debate com pessoas mais experientes.
+
+      DADOS:
       ${dossie}`;
 
       // 4. Chamada da API
@@ -1362,17 +1371,25 @@ function App() {
       const termoMestre = fvMasterName ? `seu Mestre/Instrutor (${fvMasterName})` : "seu Mestre/Instrutor";
 
       // 3. O Prompt Rigoroso e Frio
-      const prompt = `Você é um Analista de Dados e Auditor de Desempenho. Seu papel é analisar o dossiê de rotina avançada de um estudante e entregar um RELATÓRIO ESTATÍSTICO, FRIO E TÉCNICO.
+      const prompt = `Você é um Analista de Dados. Entregue um RELATÓRIO ESTATÍSTICO E TÉCNICO de um estudante avançado.
       
-      REGRA DE OURO: É EXPRESSAMENTE PROIBIDO dar conselhos morais, agir como guru, usar tom professoral ou avaliar a evolução espiritual do usuário. Apenas compare dados matemáticos, aponte métricas e faça análise lexicológica e semântica estrita.
+      REGRAS DE FORMATAÇÃO (CRÍTICO): 
+      - É EXPRESSAMENTE PROIBIDO usar formatação Markdown. NÃO use asteriscos (*), hashtags (#), negrito ou itálico. Use texto puro e MAIÚSCULAS para títulos.
       
-      ESTRUTURA OBRIGATÓRIA DO RETORNO:
-      1. MÉTRICAS DE ENGAJAMENTO (PRÁTICAS): Compare o volume de "Práticas FV realizadas" e "Preenchimentos" do Ciclo Atual com o Anterior. Entregue os percentuais exatos (crescimento ou queda).
-      2. AUDITORIA LEXICAL (VARRER POR DENTRO E VÍCIOS): Analise estritamente os textos dos Itens 1 e 6 e "Falhas relatadas" do Ciclo Atual. Faça contagem semântica: quais foram os temas ou palavras-chave predominantes na justificativa dos erros? Categorize estatisticamente (Ex: X% das anotações remetem à procrastinação).
-      3. CORRELAÇÃO DE DADOS: Aponte de forma técnica se a oscilação nas práticas diárias tem correlação com os padrões lexicais encontrados nas falhas.
-      4. PAUTA TÉCNICA PARA O MESTRE: Formule 2 perguntas baseadas ESTRITAMENTE nas estatísticas e recorrências mapeadas, e instrua o usuário a levar este relatório de dados para o encontro presencial com ${termoMestre}.
+      REGRAS DE TOM:
+      - PROIBIDO dar conselhos ou agir como mestre. Faça apenas análise matemática e lexical.
 
-      DADOS PARA AUDITORIA:
+      ESTRUTURA OBRIGATÓRIA:
+      1. MÉTRICAS DA VONTADE (PRÁTICAS): Compare (em %) "Práticas FV" e "Preenchimentos" do Ciclo Atual com o Anterior.
+      2. AUDITORIA ESTOICA (ACERTOS vs ERROS): Dê igual peso ao mapeamento de padrões nas Vitórias e nas Falhas. O que ele executou bem de forma recorrente e onde mais falhou?
+      3. ÍNDICE DE EVASÃO: O que a proporção de preenchimentos vazios/parciais revela estatisticamente sobre a disciplina dele no momento da reflexão noturna?
+      4. AUDITORIA DO TEXTO LIVRE E ITENS FV: Faça a análise lexical das "Reflexões amplas" e dos "Itens 1 e 6". Isole: 
+         - Padrões de causalidade (o que gera o quê na mente dele).
+         - Elaboração de hipóteses sobre si mesmo.
+         - Temas ou cenários predominantes (onde os vícios ou vitórias mais se manifestam).
+      5. PAUTA PARA O INSTRUTOR: Formule 2 perguntas baseadas estritamente nas métricas para o encontro presencial com ${termoMestre}.
+
+      DADOS:
       ${dossie}`;
 
       // 4. Chamada da API
