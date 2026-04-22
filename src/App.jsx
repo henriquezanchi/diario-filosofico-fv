@@ -1678,6 +1678,10 @@ function App() {
               <button onClick={() => setView('tasks')} style={{ padding: '0.5rem 1rem', background: view === 'tasks' ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: view === 'tasks' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Tarefas</button>
               <button onClick={() => setView('goals')} style={{ padding: '0.5rem 1rem', background: view === 'goals' ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: view === 'goals' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Metas</button>
               <button onClick={() => setView('biblioteca')} style={{ padding: '0.5rem 1rem', background: view === 'biblioteca' ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: view === 'biblioteca' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Virtudes</button>
+              <button onClick={() => setView('analytics')} style={{ padding: '0.5rem 1rem', background: view === 'analytics' ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: view === 'analytics' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <TrendingUp size={16} /> Métricas
+              </button>
+
 
               {/* ATALHO RÁPIDO DO TRATAK (GLOBAL) */}
               <button onClick={() => { setActivePracticeId('tratack'); setPracticePhase('intro'); setIsPracticeActive(true); }} style={{ padding: '0.5rem 1rem', background: isDark ? '#b8a88a' : '#8b7355', color: isDark ? '#1a1a2e' : '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem', marginLeft: '0.5rem' }}>
@@ -1725,8 +1729,8 @@ function App() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
-              {['today', 'history', 'tasks', 'goals', 'biblioteca'].map((item) => {
-                const labels = { today: '☀️ Hoje', history: '📚 Histórico', tasks: '📋 Tarefas', goals: '🎯 Metas', biblioteca: '🏛️ Virtudes' };
+              {['today', 'history', 'tasks', 'goals', 'biblioteca', 'analytics'].map((item) => {
+                const labels = { today: '☀️ Hoje', history: '📚 Histórico', tasks: '📋 Tarefas', goals: '🎯 Metas', biblioteca: '🏛️ Virtudes', analytics: '📊 Métricas' };
                 return (
                   <button 
                     key={item}
@@ -2126,6 +2130,109 @@ function App() {
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* VIEW: ANALYTICS (Métricas da Alma) */}
+        {view === 'analytics' && (
+          <div className="animate-fadeIn">
+            <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+                <TrendingUp size={32} color={isDark ? '#d4af37' : '#6b4423'} />
+                <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif" }}>Métricas da Alma</h2>
+              </div>
+              <p style={{ color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2rem', fontSize: '1rem' }}>Observe seus padrões de comportamento e a constância do seu autoexame.</p>
+
+              {entries.length === 0 ? (
+                <div style={{ padding: '3rem', textAlign: 'center', background: isDark ? 'rgba(26, 26, 46, 0.4)' : '#fdfbf7', borderRadius: '12px' }}>
+                  <TrendingUp size={48} color={isDark ? '#d4af37' : '#6b4423'} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
+                  <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontSize: '1.1rem' }}>Ainda não há dados suficientes para gerar métricas. Continue forjando seu diário!</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                   {(() => {
+                      const total = entries.length;
+                      const morningCount = entries.filter(e => e.morningDone).length;
+                      const eveningCount = entries.filter(e => e.eveningDone).length;
+
+                      // Calcula as Virtudes Mais Invocadas
+                      const virtueCounts = {};
+                      entries.forEach(e => {
+                         if(e.virtue) virtueCounts[e.virtue] = (virtueCounts[e.virtue] || 0) + 1;
+                      });
+                      const topVirtues = Object.entries(virtueCounts).sort((a,b) => b[1] - a[1]).slice(0, 5);
+
+                      return (
+                        <>
+                          {/* CARDS DE VISÃO GERAL */}
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
+                            <div style={{ padding: '1.5rem', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.5)', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, textAlign: 'center' }}>
+                              <span style={{ fontSize: '2.5rem', fontWeight: 'bold', color: isDark ? '#d4af37' : '#6b4423', fontFamily: "'Cinzel', serif" }}>{total}</span>
+                              <span style={{ display: 'block', fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', marginTop: '0.5rem', fontWeight: 'bold', letterSpacing: '1px' }}>Dias Forjados</span>
+                            </div>
+                            <div style={{ padding: '1.5rem', background: isDark ? 'rgba(76, 175, 80, 0.05)' : '#e8f5e9', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(76, 175, 80, 0.2)' : '#c8e6c9'}`, textAlign: 'center' }}>
+                              <span style={{ fontSize: '2.5rem', fontWeight: 'bold', color: isDark ? '#81c784' : '#2e7d32', fontFamily: "'Cinzel', serif" }}>{Math.round((morningCount/total)*100)}%</span>
+                              <span style={{ display: 'block', fontSize: '0.85rem', color: isDark ? '#81c784' : '#2e7d32', textTransform: 'uppercase', marginTop: '0.5rem', fontWeight: 'bold', letterSpacing: '1px' }}>Prólogos Constantes</span>
+                            </div>
+                            <div style={{ padding: '1.5rem', background: isDark ? 'rgba(156, 39, 176, 0.05)' : '#f3e5f5', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(156, 39, 176, 0.2)' : '#e1bee7'}`, textAlign: 'center' }}>
+                              <span style={{ fontSize: '2.5rem', fontWeight: 'bold', color: isDark ? '#b19cd9' : '#8e24aa', fontFamily: "'Cinzel', serif" }}>{Math.round((eveningCount/total)*100)}%</span>
+                              <span style={{ display: 'block', fontSize: '0.85rem', color: isDark ? '#b19cd9' : '#8e24aa', textTransform: 'uppercase', marginTop: '0.5rem', fontWeight: 'bold', letterSpacing: '1px' }}>Epílogos Constantes</span>
+                            </div>
+                          </div>
+
+                          {/* GRÁFICO DE BARRAS DAS VIRTUDES */}
+                          <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'white', padding: '2rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}` }}>
+                            <h3 style={{ margin: '0 0 1.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.2rem', fontFamily: "'Cinzel', serif" }}>Virtudes Mais Invocadas</h3>
+                            {topVirtues.length > 0 ? (
+                               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+                                 {topVirtues.map(([vName, vCount]) => {
+                                    const percentage = Math.round((vCount / total) * 100);
+                                    return (
+                                      <div key={vName}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem', fontSize: '0.95rem', color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 'bold' }}>
+                                          <span>{vName}</span>
+                                          <span style={{ color: isDark ? '#d4af37' : '#6b4423' }}>{vCount} vezes ({percentage}%)</span>
+                                        </div>
+                                        <div style={{ width: '100%', height: '12px', background: isDark ? 'rgba(255,255,255,0.05)' : '#f0f0f0', borderRadius: '6px', overflow: 'hidden' }}>
+                                          <div style={{ width: `${percentage}%`, height: '100%', background: isDark ? 'linear-gradient(90deg, #b8a88a 0%, #d4af37 100%)' : 'linear-gradient(90deg, #8b7355 0%, #6b4423 100%)', borderRadius: '6px', transition: 'width 1s ease-out' }}></div>
+                                        </div>
+                                      </div>
+                                    );
+                                 })}
+                               </div>
+                            ) : (
+                               <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', fontSize: '0.95rem', margin: 0 }}>Nenhuma virtude registrada nas suas anotações matinais.</p>
+                            )}
+                          </div>
+
+                          {/* PADRÕES RECENTES (ESPELHO DA ALMA) */}
+                          <div style={{ background: isDark ? 'rgba(231, 76, 60, 0.05)' : '#fff5f5', padding: '2rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(231, 76, 60, 0.2)' : 'rgba(231, 76, 60, 0.2)'}` }}>
+                            <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#e74c3c' : '#c0392b', fontSize: '1.2rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <Target size={20} /> Onde a Guarda Baixou
+                            </h3>
+                            <p style={{ fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '1.5rem', fontStyle: 'italic' }}>Suas últimas 3 anotações em "Onde errei". Encontrar o padrão é o primeiro passo para a vitória.</p>
+                            
+                            <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                               {entries.filter(e => e.whereIFailed).slice(0,3).map((e, idx) => (
+                                  <li key={e.id} style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'white', padding: '1rem', borderRadius: '8px', borderLeft: `4px solid ${isDark ? '#e74c3c' : '#c0392b'}` }}>
+                                    <span style={{ color: isDark ? '#e74c3c' : '#c0392b', fontSize: '0.8rem', fontWeight: 'bold', display: 'block', marginBottom: '0.3rem' }}>
+                                      {new Date(e.date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' }).toUpperCase()}
+                                    </span>
+                                    <span style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem', lineHeight: '1.5' }}>"{e.whereIFailed}"</span>
+                                  </li>
+                               ))}
+                               {entries.filter(e => e.whereIFailed).length === 0 && (
+                                  <li style={{ color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic' }}>Nenhuma falha registrada recentemente.</li>
+                               )}
+                            </ul>
+                          </div>
+
+                        </>
+                      );
+                   })()}
+                </div>
+              )}
             </div>
           </div>
         )}
