@@ -1,20 +1,20 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-import { getMessaging } from "firebase/messaging"; // 👈 NOVO: Importando o mensageiro
+import { getMessaging } from "firebase/messaging";
 
-// SUAS CREDENCIAIS DO FIREBASE
+// Lendo as credenciais escondidas do arquivo .env
 const firebaseConfig = {
-  apiKey: "AIzaSyAIGwnL--sP4uJiru0d_XFCcOkJ5NpViFU",
-  authDomain: "diario-filosofico.firebaseapp.com",
-  projectId: "diario-filosofico",
-  storageBucket: "diario-filosofico.firebasestorage.app",
-  messagingSenderId: "284774616483",
-  appId: "1:284774616483:web:a7705573f1071b56e35e16",
-  measurementId: "G-JFD8VCB1W1"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const messaging = getMessaging(app); // 👈 NOVO: Exportando o mensageiro
+export const messaging = getMessaging(app);
