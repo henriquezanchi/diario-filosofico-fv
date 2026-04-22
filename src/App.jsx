@@ -2368,9 +2368,15 @@ function App() {
                               </h3>
                               <button onClick={generateTechnicalSynthesis} disabled={isGeneratingSynthesis} style={{ 
                                 padding: '0.6rem 1.2rem', 
-                                background: technicalSynthesis ? (isDark ? 'rgba(39, 174, 96, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(74, 144, 226, 0.1)' : 'rgba(74, 144, 226, 0.1)'), 
-                                color: technicalSynthesis ? (isDark ? '#2ecc71' : '#27ae60') : (isDark ? '#6cb2eb' : '#2980b9'), 
-                                border: `1px solid ${technicalSynthesis ? (isDark ? '#2ecc71' : '#27ae60') : '#4A90E2'}`, 
+                                background: isGeneratingSynthesis 
+                                  ? (isDark ? 'rgba(255, 152, 0, 0.15)' : '#fff3e0') 
+                                  : (technicalSynthesis ? (isDark ? 'rgba(39, 174, 96, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(74, 144, 226, 0.1)' : 'rgba(74, 144, 226, 0.1)')), 
+                                color: isGeneratingSynthesis 
+                                  ? (isDark ? '#ff9800' : '#e65100') 
+                                  : (technicalSynthesis ? (isDark ? '#2ecc71' : '#27ae60') : (isDark ? '#6cb2eb' : '#2980b9')), 
+                                border: `1px solid ${isGeneratingSynthesis 
+                                  ? (isDark ? '#ff9800' : '#ffb74d') 
+                                  : (technicalSynthesis ? (isDark ? '#2ecc71' : '#27ae60') : '#4A90E2')}`, 
                                 borderRadius: '8px', 
                                 cursor: isGeneratingSynthesis ? 'not-allowed' : 'pointer', 
                                 fontWeight: 'bold', 
