@@ -871,25 +871,42 @@ function App() {
     } catch (error) { console.error('Erro ao carregar metas:', error); }
   };
 
-  const loadFVData = async (uid) => {
+  const loadFVData = async () => {
+    if (!user) return;
     try {
-      const fvDoc = await getDoc(doc(db, 'fvData', uid));
-      if (fvDoc.exists()) {
-        const data = fvDoc.data();
+      const docRef = doc(db, 'fvData', user.uid);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        const data = docSnap.data(); // É aqui que o "data" nasce e resolve o erro!
+        
+        setFvUnlocked(data.fvUnlocked || false);
         setFvLastCartaDate(data.lastCartaDate || '');
         setFvNextCartaDate(data.nextCartaDate || '');
-        setFvGdveDesafios(data.gdveDesafios || []);
-        setFvGdveReuniao(data.gdveReuniao || '');
-        setFvGdveTasks(data.gdveTasks || []);
-        setFvGdveCycleStatus(data.gdveCycleStatus || {});
-        setFvGdveBastiaoName(data.gdveBastiaoName || '');
+        setFvGdveReuniao(data.gdveReuniao || false);
         setFvGdveBastiaoLink(data.gdveBastiaoLink || '');
         setFvMasterName(data.fvMasterName || '');
         setFvLastMeetingDate(data.fvLastMeetingDate || '');
-        setTechnicalSynthesis(data.technicalSynthesis || null);
         setDiscipularSynthesis(data.discipularSynthesis || null);
+
+        // Limpador Automático de 30 dias (Síntese Técnica Aberta)
+        if (data.technicalSynthesis && data.technicalSynthesisDate) {
+          const dataGeracao = new Date(data.technicalSynthesisDate);
+          const hoje = new Date();
+          const diferencaDias = (hoje - dataGeracao) / (1000 * 60 * 60 * 24);
+          
+          if (diferencaDias > 30) {
+            setTechnicalSynthesis(null); // Expirou, some da tela
+          } else {
+            setTechnicalSynthesis(data.technicalSynthesis);
+          }
+        } else {
+          setTechnicalSynthesis(data.technicalSynthesis || null);
+        }
       }
-    } catch (error) { console.error('Erro ao carregar dados FV:', error); }
+    } catch (error) {
+      console.error("Erro ao carregar dados FV:", error);
+    }
   };
 
 
