@@ -48,6 +48,7 @@ function App() {
   const [feedbackRating, setFeedbackRating] = useState(0);
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
 
   // Estados das Notificações
   const [notificationsActive, setNotificationsActive] = useState(false);
@@ -1323,18 +1324,21 @@ function App() {
     if (!user) return;
     setIsGeneratingDiscSync(true);
 
-    const submitSynthesisFeedback = async (tipoRelatorio) => {
+    // ==========================================
+  // FUNÇÃO MESTRE: FEEDBACK DA IA
+  // ==========================================
+  const submitSynthesisFeedback = async (tipoRelatorio) => {
     if (feedbackRating === 0) return alert("Por favor, selecione uma nota de 1 a 5 estrelas.");
+    setIsSubmittingFeedback(true); // LIGA O MODO ENVIANDO
     
     try {
-      // Cria um ID aleatório na coleção 'synthesisFeedback'
       const feedbackRef = doc(collection(db, 'synthesisFeedback')); 
       await setDoc(feedbackRef, {
         tipo: tipoRelatorio,
         nota: feedbackRating,
         comentario: feedbackText || "Sem comentário escrito.",
         data: new Date().toISOString(),
-        userId: "Anônimo" // Protege a identidade do estudante
+        userId: "Anônimo" 
       });
       
       setFeedbackSubmitted(true);
@@ -1342,13 +1346,16 @@ function App() {
         setFeedbackRating(0);
         setFeedbackText('');
         setFeedbackSubmitted(false);
-      }, 5000); // Oculta o agradecimento após 5 segundos
+      }, 5000); 
       
     } catch (error) {
       console.error("Erro ao enviar avaliação:", error);
-      alert("Erro ao enviar sua avaliação.");
+      alert("Erro ao enviar avaliação. Verifique as permissões do Firebase.");
+    } finally {
+      setIsSubmittingFeedback(false); // DESLIGA O MODO ENVIANDO
     }
   };
+  
 
     try {
       // 1. Coleta e Divisão do Tempo (60 dias)
@@ -2511,8 +2518,12 @@ function App() {
                                       {feedbackRating > 0 && (
                                         <div className="animate-fadeIn">
                                           <textarea value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} placeholder="Opcional: Por que você deu esta nota? A IA foi precisa?" rows={3} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', fontSize: '0.9rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical', marginBottom: '1rem' }} />
-                                          <button onClick={() => submitSynthesisFeedback("Aberta")} style={{ padding: '0.6rem 1.5rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'Georgia, serif' }}>
-                                            Enviar Avaliação Anônima
+                                          <button 
+                                            onClick={() => submitSynthesisFeedback("Aberta")} 
+                                            disabled={isSubmittingFeedback}
+                                            style={{ padding: '0.6rem 1.5rem', background: isSubmittingFeedback ? (isDark ? '#555' : '#ccc') : (isDark ? '#d4af37' : '#6b4423'), color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: isSubmittingFeedback ? 'not-allowed' : 'pointer', fontWeight: 'bold', fontFamily: 'Georgia, serif', transition: 'all 0.2s' }}
+                                          >
+                                            {isSubmittingFeedback ? 'Enviando...' : 'Enviar Avaliação Anônima'}
                                           </button>
                                         </div>
                                       )}
@@ -2862,6 +2873,15 @@ function App() {
                         <strong style={{ color: isDark ? '#e74c3c' : '#c0392b' }}> Confiar exclusivamente neste texto é ilusão. Leve-o para o diálogo vivo com seu Instrutor.</strong>
                       </p>
                     </div>
+
+                    {/* O TEXTO DO RELATÓRIO QUE ESTAVA FALTANDO */}
+                    {discipularSynthesis ? (
+                      <div className="animate-fadeIn" style={{ background: isDark ? 'rgba(26, 26, 46, 0.9)' : 'white', padding: '1.5rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255, 215, 0, 0.3)' : '#ccc'}`, whiteSpace: 'pre-wrap', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem', lineHeight: '1.7', fontFamily: 'Georgia, serif' }}>
+                        {discipularSynthesis}
+                      </div>
+                    ) : (
+                      <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', textAlign: 'center', margin: '2rem 0' }}>Sua Alma aguarda a síntese das suas batalhas. Clique no botão acima para processar o ciclo.</p>
+                    )}
 
                     {/* BLOCO DE AVALIAÇÃO DA SÍNTESE FV */}
                     {discipularSynthesis && (
