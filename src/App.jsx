@@ -1240,31 +1240,47 @@ function App() {
     setIsGeneratingSynthesis(true);
 
     try {
-      // 1. Coleta os dados
-      const trintaDiasAtras = new Date();
-      trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
-      const relatoriosRecentes = entries.filter(e => new Date(e.date + 'T12:00:00') >= trintaDiasAtras);
-      
-      // 2. Monta o Dossiê Aberto
-      let dossie = `DOSSIÊ ABERTO DOS ÚLTIMOS 30 DIAS:\n\n`;
-      dossie += `- Dias preenchidos no Diário: ${relatoriosRecentes.length}\n`;
-      const falhas = relatoriosRecentes.filter(e => e.whereIFailed).map(e => e.whereIFailed);
-      const vitorias = relatoriosRecentes.filter(e => e.whatIWentWell).map(e => e.whatIWentWell);
-      dossie += `\nFALHAS RECORRENTES RELATADAS:\n${falhas.join('\n')}\n`;
-      dossie += `\nVITÓRIAS E VIRTUDES RELATADAS:\n${vitorias.join('\n')}\n`;
+      // 1. Coleta e Divisão do Tempo (60 dias)
+      const hoje = new Date();
+      const trintaDiasAtras = new Date(); 
+      trintaDiasAtras.setDate(hoje.getDate() - 30);
+      const sessentaDiasAtras = new Date(); 
+      sessentaDiasAtras.setDate(hoje.getDate() - 60);
 
-      // 3. Prompt da Área Aberta (Sem FV e Sem Mestre)
-      const prompt = `Você é um assistente focado em Filosofia à Maneira Clássica. Seu papel é ser um 'espelho' refletindo os hábitos de um estudante com compaixão e firmeza.
+      const cicloAtual = entries.filter(e => {
+        const d = new Date(e.date + 'T12:00:00');
+        return d >= trintaDiasAtras && d <= hoje;
+      });
+      const cicloAnterior = entries.filter(e => {
+        const d = new Date(e.date + 'T12:00:00');
+        return d >= sessentaDiasAtras && d < trintaDiasAtras;
+      });
       
-      SUA MISSÃO OBRIGATÓRIA:
-      1. Identifique o padrão principal de erro cotidiano (ex: preguiça, reatividade, dispersão).
-      2. TOM: Seja encorajador. Mostre a falha como uma oportunidade de forjar a Vontade contra a inércia da matéria.
-      3. VOCABULÁRIO: Use terminologia filosófica clássica (Alma, Personalidade, Vontade, Matéria, Virtude). É EXPRESSAMENTE PROIBIDO usar jargões da psicologia moderna (não use "self", "ego", "inconsciente").
-      4. NÃO dê a resposta final ou conselho de vida.
-      5. Termine com 2 perguntas filosóficas profundas baseadas nesses erros.
-      6. Encerre instruindo o estudante a levar estas perguntas para reflexão com "pessoas mais experientes ou professores da Escola".
-      
-      DADOS DO ESTUDANTE:
+      // 2. Monta o Dossiê Estatístico
+      let dossie = `DADOS ESTATÍSTICOS DO USUÁRIO:\n\n`;
+      dossie += `[CICLO ANTERIOR: Dias -60 a -31]\n`;
+      dossie += `- Preenchimentos do diário: ${cicloAnterior.length}\n`;
+      dossie += `- Falhas relatadas: ${cicloAnterior.filter(e => e.whereIFailed).map(e => e.whereIFailed).join(' | ')}\n\n`;
+
+      dossie += `[CICLO ATUAL: Últimos 30 dias]\n`;
+      dossie += `- Preenchimentos do diário: ${cicloAtual.length}\n`;
+      dossie += `- Falhas relatadas: ${cicloAtual.filter(e => e.whereIFailed).map(e => e.whereIFailed).join(' | ')}\n`;
+      dossie += `- Vitórias relatadas: ${cicloAtual.filter(e => e.whatIDidWell).map(e => e.whatIDidWell).join(' | ')}\n`;
+      dossie += `- Intenções matinais (compromissos): ${cicloAtual.filter(e => e.intention).map(e => e.intention).join(' | ')}\n`;
+
+      // 3. O Novo Prompt (Auditor Frio)
+      const prompt = `Você é um Analista de Dados e Auditor Técnico rigoroso. Seu papel é processar os registros de um diário e devolver UM RELATÓRIO ESTATÍSTICO, FRIO E OBJETIVO.
+
+      REGRA DE OURO: É EXPRESSAMENTE PROIBIDO dar conselhos, usar tom professoral, agir como mestre, emitir juízos de valor ou tentar "ajudar" o usuário moralmente. Você é uma máquina de ler dados.
+
+      ESTRUTURA OBRIGATÓRIA DO RETORNO:
+      1. MÉTRICAS DE ENGAJAMENTO: Compare o volume de preenchimento do Ciclo Atual com o Ciclo Anterior. Dê as porcentagens exatas de crescimento ou queda.
+      2. AUDITORIA SEMÂNTICA DE FALHAS: Analise friamente os textos de "Falhas relatadas". Categorize os motivos (ex: X% estão ligados a alimentação, Y% a gestão de tempo, Z% a reatividade emocional). Identifique as palavras mais repetidas.
+      3. MAPEAMENTO DE DISCREPÂNCIAS: Compare as "Intenções matinais" com as "Falhas relatadas" do Ciclo Atual. Aponte de forma técnica se há um padrão estatístico de abandono da intenção durante o dia.
+      4. CONCLUSÃO TÉCNICA: Resuma o cenário em um único parágrafo frio.
+      5. PONTOS PARA AUDITORIA HUMANA: Liste 2 perguntas baseadas nos dados coletados, sugerindo que o usuário as leve para um instrutor humano analisar. Exemplo: "Leve para seu instrutor debater: Por que a palavra 'ansiedade' aumentou 40% neste ciclo?"
+
+      DADOS PARA PROCESSAMENTO:
       ${dossie}`;
 
       // 4. Chamada da API
@@ -1274,7 +1290,7 @@ function App() {
       const data = await response.json();
       if (data.error) throw new Error(data.error.message);
 
-      // 5. Salva o resultado e a Data exata para o prazo de validade
+      // 5. Salva o resultado
       const resultado = data.candidates[0].content.parts[0].text;
       const dataAtual = new Date().toISOString();
 
@@ -1298,45 +1314,86 @@ function App() {
     setIsGeneratingDiscSync(true);
 
     try {
-      const trintaDiasAtras = new Date();
-      trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
-      const relatoriosRecentes = entries.filter(e => new Date(e.date + 'T12:00:00') >= trintaDiasAtras);
+      // 1. Coleta e Divisão do Tempo (60 dias)
+      const hoje = new Date();
+      const trintaDiasAtras = new Date(); 
+      trintaDiasAtras.setDate(hoje.getDate() - 30);
+      const sessentaDiasAtras = new Date(); 
+      sessentaDiasAtras.setDate(hoje.getDate() - 60);
+
+      const cicloAtual = entries.filter(e => {
+        const d = new Date(e.date + 'T12:00:00');
+        return d >= trintaDiasAtras && d <= hoje;
+      });
+      const cicloAnterior = entries.filter(e => {
+        const d = new Date(e.date + 'T12:00:00');
+        return d >= sessentaDiasAtras && d < trintaDiasAtras;
+      });
+
+      // Função auxiliar para somar práticas FV realizadas
+      const countPractices = (ciclo) => {
+        let total = 0;
+        ciclo.forEach(e => {
+          if(e.fvDaily && e.fvDaily.praticas) {
+            total += Object.values(e.fvDaily.praticas).filter(v => v === true).length;
+          }
+        });
+        return total;
+      };
       
-      let dossie = `DOSSIÊ DISCIPULAR (FORÇA VIVA) - ÚLTIMOS 30 DIAS:\n\n`;
-      dossie += `- Dias preenchidos no Diário: ${relatoriosRecentes.length}\n`;
-      const falhas = relatoriosRecentes.filter(e => e.whereIFailed).map(e => e.whereIFailed);
-      const vitorias = relatoriosRecentes.filter(e => e.whatIWentWell).map(e => e.whatIWentWell);
-      dossie += `\nFALHAS RECORRENTES (Ações e Pensamentos):\n${falhas.join('\n')}\n`;
-      dossie += `\nVITÓRIAS RELATADAS:\n${vitorias.join('\n')}\n`;
-      dossie += `\nSTATUS DO TEMPLO INTERIOR E PRÁTICAS:\n`;
-      dossie += `Streak Atual de Práticas Ocultas: ${fvTasksStreak} dias.\n`;
+      // 2. Monta o Dossiê Estatístico Profundo (Força Viva)
+      let dossie = `DADOS ESTATÍSTICOS DO DISCIPULADO (FORÇA VIVA):\n\n`;
+      dossie += `[CICLO ANTERIOR: Dias -60 a -31]\n`;
+      dossie += `- Preenchimentos do diário geral: ${cicloAnterior.length}\n`;
+      dossie += `- Total de Práticas FV realizadas: ${countPractices(cicloAnterior)}\n`;
+      dossie += `- Falhas relatadas: ${cicloAnterior.filter(e => e.whereIFailed).map(e => e.whereIFailed).join(' | ')}\n\n`;
+
+      dossie += `[CICLO ATUAL: Últimos 30 dias]\n`;
+      dossie += `- Preenchimentos do diário geral: ${cicloAtual.length}\n`;
+      dossie += `- Total de Práticas FV realizadas: ${countPractices(cicloAtual)}\n`;
+      dossie += `- Streak ininterrupto atual de práticas ocultas: ${fvTasksStreak} dias\n`;
+      dossie += `- Falhas relatadas: ${cicloAtual.filter(e => e.whereIFailed).map(e => e.whereIFailed).join(' | ')}\n`;
+
+      const fvTextsItem1 = cicloAtual.filter(e => e.fvDaily && e.fvDaily.item1).map(e => e.fvDaily.item1).join(' | ');
+      const fvTextsItem6 = cicloAtual.filter(e => e.fvDaily && e.fvDaily.item6).map(e => e.fvDaily.item6).join(' | ');
+      dossie += `- Relatos FV de "Varrer por Dentro" (Item 1): ${fvTextsItem1}\n`;
+      dossie += `- Relatos FV de "Vícios" (Item 6): ${fvTextsItem6}\n`;
 
       const termoMestre = fvMasterName ? `seu Mestre/Instrutor (${fvMasterName})` : "seu Mestre/Instrutor";
 
-      const prompt = `Você é um assistente focado em Filosofia à Maneira Clássica e discipulado. Este é o dossiê profundo de um estudante comprometido (Força Viva).
+      // 3. O Prompt Rigoroso e Frio
+      const prompt = `Você é um Analista de Dados e Auditor de Desempenho. Seu papel é analisar o dossiê de rotina avançada de um estudante e entregar um RELATÓRIO ESTATÍSTICO, FRIO E TÉCNICO.
       
-      SUA MISSÃO OBRIGATÓRIA:
-      1. Cruze as falhas cotidianas com o nível de engajamento dele nas Práticas Internas (Streak de Práticas). Identifique o Nó de Personalidade ou Ilusão que o afasta da Virtude.
-      2. TOM: Acolhedor, mas exigente e profundo. O tom deve ser de um mestre de obras ajudando o aprendiz a esculpir a própria Alma. Lembre-o do combate heroico e da nobreza.
-      3. VOCABULÁRIO: Estritamente filosófico e místico clássico (Alma, Personalidade, Vontade, Mente Concreta, Nous, Ilusão da Matéria, Fogo Interno). PROIBIDO usar "self", "ego", "inconsciente", "gatilhos".
-      4. NÃO dê soluções fáceis. O objetivo é causar catarse reflexiva.
-      5. Elabore 2 perguntas duras, amorosas e incômodas sobre o eixo moral dele.
-      6. Encerre instruindo de forma imperativa que ele leve este relatório e debata estas perguntas em seu próximo encontro com ${termoMestre}.
+      REGRA DE OURO: É EXPRESSAMENTE PROIBIDO dar conselhos morais, agir como guru, usar tom professoral ou avaliar a evolução espiritual do usuário. Apenas compare dados matemáticos, aponte métricas e faça análise lexicológica e semântica estrita.
       
-      DADOS:
+      ESTRUTURA OBRIGATÓRIA DO RETORNO:
+      1. MÉTRICAS DE ENGAJAMENTO (PRÁTICAS): Compare o volume de "Práticas FV realizadas" e "Preenchimentos" do Ciclo Atual com o Anterior. Entregue os percentuais exatos (crescimento ou queda).
+      2. AUDITORIA LEXICAL (VARRER POR DENTRO E VÍCIOS): Analise estritamente os textos dos Itens 1 e 6 e "Falhas relatadas" do Ciclo Atual. Faça contagem semântica: quais foram os temas ou palavras-chave predominantes na justificativa dos erros? Categorize estatisticamente (Ex: X% das anotações remetem à procrastinação).
+      3. CORRELAÇÃO DE DADOS: Aponte de forma técnica se a oscilação nas práticas diárias tem correlação com os padrões lexicais encontrados nas falhas.
+      4. PAUTA TÉCNICA PARA O MESTRE: Formule 2 perguntas baseadas ESTRITAMENTE nas estatísticas e recorrências mapeadas, e instrua o usuário a levar este relatório de dados para o encontro presencial com ${termoMestre}.
+
+      DADOS PARA AUDITORIA:
       ${dossie}`;
 
+      // 4. Chamada da API
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
       });
       const data = await response.json();
       if (data.error) throw new Error(data.error.message);
 
+      // 5. Salvar resultado
       const resultado = data.candidates[0].content.parts[0].text;
       setDiscipularSynthesis(resultado);
       const docRef = doc(db, 'fvData', user.uid);
       await setDoc(docRef, { discipularSynthesis: resultado }, { merge: true });
-    } catch (error) { console.error("Erro no Relatório Discipular:", error); alert("Erro ao gerar relatório discipular."); } finally { setIsGeneratingDiscSync(false); }
+
+    } catch (error) { 
+      console.error("Erro no Relatório Discipular:", error); 
+      alert("Erro ao gerar relatório discipular."); 
+    } finally { 
+      setIsGeneratingDiscSync(false); 
+    }
   };
 
   const saveFvTexts = async () => {
