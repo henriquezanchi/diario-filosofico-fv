@@ -5,7 +5,8 @@ import {
   AlertCircle, Eye, EyeOff, CheckCircle, Download, Upload,
   Target, TrendingUp, Award, FileText, Book, Settings,
   Trash2, Edit, Save, XCircle, Flame, Zap, Shield, Star, Crown, 
-  Bell, Check, Music, MessageSquare, Menu, Lock, ChevronDown, ChevronUp, Mountain, Landmark
+  Bell, Check, Music, MessageSquare, Menu, Lock, ChevronDown, ChevronUp, 
+  Mountain, Landmark
 } from 'lucide-react';
 
 import { auth, db, messaging } from './config/firebase-config'; 
@@ -223,6 +224,8 @@ function App() {
   const [fvMasterName, setFvMasterName] = useState('');
   const [fvLastMeetingDate, setFvLastMeetingDate] = useState('');
   const [technicalSynthesis, setTechnicalSynthesis] = useState(null);
+  const [discipularSynthesis, setDiscipularSynthesis] = useState(null);
+  const [isGeneratingDiscSync, setIsGeneratingDiscSync] = useState(false);
   const [isGeneratingSynthesis, setIsGeneratingSynthesis] = useState(false);
   const [fvGdveDesafios, setFvGdveDesafios] = useState([]);
   const [fvGdveReuniao, setFvGdveReuniao] = useState('');
@@ -884,9 +887,25 @@ function App() {
         setFvMasterName(data.fvMasterName || '');
         setFvLastMeetingDate(data.fvLastMeetingDate || '');
         setTechnicalSynthesis(data.technicalSynthesis || null);
+        setDiscipularSynthesis(data.discipularSynthesis || null);
       }
     } catch (error) { console.error('Erro ao carregar dados FV:', error); }
   };
+
+
+  // Verifica a validade da Síntese Técnica
+        if (data.technicalSynthesis && data.technicalSynthesisDate) {
+          const dataGeracao = new Date(data.technicalSynthesisDate);
+          const hoje = new Date();
+          const diferencaDias = (hoje - dataGeracao) / (1000 * 60 * 60 * 24);
+          
+          if (diferencaDias > 30) {
+            setTechnicalSynthesis(null); // Expirou, some da tela
+            // Aqui futuramente enviaremos para o array de histórico
+          } else {
+            setTechnicalSynthesis(data.technicalSynthesis);
+          }
+        }
 
   const loadMod2Config = async () => {
     if (!user || fvConfig) return;
@@ -1218,67 +1237,103 @@ function App() {
     setIsGeneratingSynthesis(true);
 
     try {
-      // 1. Coleta os dados dos últimos 30 dias
+      // 1. Coleta os dados
       const trintaDiasAtras = new Date();
       trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
-      
       const relatoriosRecentes = entries.filter(e => new Date(e.date + 'T12:00:00') >= trintaDiasAtras);
       
-      // 2. Monta o corpo do texto para a análise
-      let dossie = `DOSSIÊ DOS ÚLTIMOS 30 DIAS:\n\n`;
+      // 2. Monta o Dossiê Aberto
+      let dossie = `DOSSIÊ ABERTO DOS ÚLTIMOS 30 DIAS:\n\n`;
       dossie += `- Dias preenchidos no Diário: ${relatoriosRecentes.length}\n`;
-      
       const falhas = relatoriosRecentes.filter(e => e.whereIFailed).map(e => e.whereIFailed);
       const vitorias = relatoriosRecentes.filter(e => e.whatIWentWell).map(e => e.whatIWentWell);
-      
       dossie += `\nFALHAS RECORRENTES RELATADAS:\n${falhas.join('\n')}\n`;
       dossie += `\nVITÓRIAS E VIRTUDES RELATADAS:\n${vitorias.join('\n')}\n`;
-      dossie += `\nSTATUS DA FORÇA VIVA (AÇÕES PRÁTICAS):\n`;
-      dossie += `Streak Atual de Práticas: ${fvTasksStreak} dias.\n`;
 
-      // 3. O Comando (Prompt) Refinado (Ajuste de Tom, Vocabulário e Regra FV)
-      const termoInstrutor = fvUnlocked 
-        ? (fvMasterName ? `seu Mestre (${fvMasterName})` : "seu Mestre") 
-        : "uma pessoa mais experiente ou instrutor";
-
-      const prompt = `Você é um assistente analítico focado em Filosofia à Maneira Clássica (Platão, Estoicismo, ensinamentos de Jorge Ángel Livraga). Seu papel é ser um 'espelho' que reflete a realidade do discípulo com amor filosófico, firmeza e compaixão.
-      Abaixo está o dossiê de 30 dias de preenchimento de um estudante.
+      // 3. Prompt da Área Aberta (Sem FV e Sem Mestre)
+      const prompt = `Você é um assistente focado em Filosofia à Maneira Clássica. Seu papel é ser um 'espelho' refletindo os hábitos de um estudante com compaixão e firmeza.
       
       SUA MISSÃO OBRIGATÓRIA:
-      1. Faça uma síntese apontando as inconsistências entre a intenção dele e as falhas relatadas. Identifique o padrão principal de erro (ex: preguiça, reatividade, inércia da matéria).
-      2. TOM: Seja acolhedor, nobre e encorajador. Mostre a falha não como uma condenação, mas como uma oportunidade de forjar a Vontade. Aja com empatia, lembrando que o combate contra os vícios da personalidade é a jornada natural do herói em busca da Sabedoria. NÃO seja duro, irônico ou crítico de forma destrutiva.
-      3. VOCABULÁRIO: Use ESTRITAMENTE terminologia filosófica clássica (Alma, Personalidade, Vontade, Mente, Matéria, Virtude, Inércia). É EXPRESSAMENTE PROIBIDO usar jargões da psicologia moderna (não use as palavras "self", "ego", "inconsciente" ou "id").
-      4. NÃO dê conselhos de vida. NÃO aja como o salvador ou guru. NÃO dê a resposta final.
-      5. Termine o texto elaborando 2 (duas) perguntas filosóficas profundas e encorajadoras baseadas nestes erros, para que ele desperte suas próprias respostas. 
-      6. Encerre instruindo expressamente o estudante a levar estas duas perguntas para reflexão e diálogo presencial com ${termoInstrutor}.
+      1. Identifique o padrão principal de erro cotidiano (ex: preguiça, reatividade, dispersão).
+      2. TOM: Seja encorajador. Mostre a falha como uma oportunidade de forjar a Vontade contra a inércia da matéria.
+      3. VOCABULÁRIO: Use terminologia filosófica clássica (Alma, Personalidade, Vontade, Matéria, Virtude). É EXPRESSAMENTE PROIBIDO usar jargões da psicologia moderna (não use "self", "ego", "inconsciente").
+      4. NÃO dê a resposta final ou conselho de vida.
+      5. Termine com 2 perguntas filosóficas profundas baseadas nesses erros.
+      6. Encerre instruindo o estudante a levar estas perguntas para reflexão com "pessoas mais experientes ou professores da Escola".
       
       DADOS DO ESTUDANTE:
       ${dossie}`;
-//
 
-      // 4. Conexão com a API do Google Gemini
+      // 4. Chamada da API
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
       });
+      const data = await response.json();
+      if (data.error) throw new Error(data.error.message);
 
+      // 5. Salva o resultado e a Data exata para o prazo de validade
+      const resultado = data.candidates[0].content.parts[0].text;
+      const dataAtual = new Date().toISOString();
+
+      setTechnicalSynthesis(resultado);
+      const docRef = doc(db, 'fvData', user.uid);
+      await setDoc(docRef, { 
+        technicalSynthesis: resultado,
+        technicalSynthesisDate: dataAtual
+      }, { merge: true });
+
+    } catch (error) { 
+      console.error("Erro na Síntese Aberta:", error); 
+      alert("Erro ao gerar síntese aberta."); 
+    } finally { 
+      setIsGeneratingSynthesis(false); 
+    }
+  };
+
+  const generateDiscipularSynthesis = async () => {
+    if (!user) return;
+    setIsGeneratingDiscSync(true);
+
+    try {
+      const trintaDiasAtras = new Date();
+      trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
+      const relatoriosRecentes = entries.filter(e => new Date(e.date + 'T12:00:00') >= trintaDiasAtras);
+      
+      let dossie = `DOSSIÊ DISCIPULAR (FORÇA VIVA) - ÚLTIMOS 30 DIAS:\n\n`;
+      dossie += `- Dias preenchidos no Diário: ${relatoriosRecentes.length}\n`;
+      const falhas = relatoriosRecentes.filter(e => e.whereIFailed).map(e => e.whereIFailed);
+      const vitorias = relatoriosRecentes.filter(e => e.whatIWentWell).map(e => e.whatIWentWell);
+      dossie += `\nFALHAS RECORRENTES (Ações e Pensamentos):\n${falhas.join('\n')}\n`;
+      dossie += `\nVITÓRIAS RELATADAS:\n${vitorias.join('\n')}\n`;
+      dossie += `\nSTATUS DO TEMPLO INTERIOR E PRÁTICAS:\n`;
+      dossie += `Streak Atual de Práticas Ocultas: ${fvTasksStreak} dias.\n`;
+
+      const termoMestre = fvMasterName ? `seu Mestre/Instrutor (${fvMasterName})` : "seu Mestre/Instrutor";
+
+      const prompt = `Você é um assistente focado em Filosofia à Maneira Clássica e discipulado. Este é o dossiê profundo de um estudante comprometido (Força Viva).
+      
+      SUA MISSÃO OBRIGATÓRIA:
+      1. Cruze as falhas cotidianas com o nível de engajamento dele nas Práticas Internas (Streak de Práticas). Identifique o Nó de Personalidade ou Ilusão que o afasta da Virtude.
+      2. TOM: Acolhedor, mas exigente e profundo. O tom deve ser de um mestre de obras ajudando o aprendiz a esculpir a própria Alma. Lembre-o do combate heroico e da nobreza.
+      3. VOCABULÁRIO: Estritamente filosófico e místico clássico (Alma, Personalidade, Vontade, Mente Concreta, Nous, Ilusão da Matéria, Fogo Interno). PROIBIDO usar "self", "ego", "inconsciente", "gatilhos".
+      4. NÃO dê soluções fáceis. O objetivo é causar catarse reflexiva.
+      5. Elabore 2 perguntas duras, amorosas e incômodas sobre o eixo moral dele.
+      6. Encerre instruindo de forma imperativa que ele leve este relatório e debata estas perguntas em seu próximo encontro com ${termoMestre}.
+      
+      DADOS:
+      ${dossie}`;
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+      });
       const data = await response.json();
       if (data.error) throw new Error(data.error.message);
 
       const resultado = data.candidates[0].content.parts[0].text;
-      
-      // 5. Salva a resposta no Firebase para consulta futura
-      setTechnicalSynthesis(resultado);
+      setDiscipularSynthesis(resultado);
       const docRef = doc(db, 'fvData', user.uid);
-      await setDoc(docRef, { technicalSynthesis: resultado }, { merge: true });
-
-    } catch (error) {
-      console.error("Erro na Síntese:", error);
-      alert("Erro ao conectar com o motor de síntese. Verifique sua chave de API no arquivo .env.");
-    } finally {
-      setIsGeneratingSynthesis(false);
-    }
+      await setDoc(docRef, { discipularSynthesis: resultado }, { merge: true });
+    } catch (error) { console.error("Erro no Relatório Discipular:", error); alert("Erro ao gerar relatório discipular."); } finally { setIsGeneratingDiscSync(false); }
   };
 
   const saveFvTexts = async () => {
@@ -2308,20 +2363,26 @@ function App() {
                               <h3 style={{ margin: 0, color: isDark ? '#6cb2eb' : '#2980b9', fontSize: '1.2rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <Sparkles size={20} /> Síntese Técnica do Ciclo
                               </h3>
-                              <button onClick={generateTechnicalSynthesis} disabled={isGeneratingSynthesis} style={{ padding: '0.6rem 1.2rem', background: 'rgba(74, 144, 226, 0.1)', color: isDark ? '#6cb2eb' : '#2980b9', border: '1px solid #4A90E2', borderRadius: '8px', cursor: isGeneratingSynthesis ? 'not-allowed' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                {isGeneratingSynthesis ? <Sparkles className="animate-spin" size={16} /> : <Target size={16} />}
-                                {isGeneratingSynthesis ? 'Gerando Relatório...' : 'Gerar Nova Síntese'}
+                              <button onClick={generateTechnicalSynthesis} disabled={isGeneratingSynthesis} style={{ 
+                                padding: '0.6rem 1.2rem', 
+                                background: technicalSynthesis ? (isDark ? 'rgba(39, 174, 96, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(74, 144, 226, 0.1)' : 'rgba(74, 144, 226, 0.1)'), 
+                                color: technicalSynthesis ? (isDark ? '#2ecc71' : '#27ae60') : (isDark ? '#6cb2eb' : '#2980b9'), 
+                                border: `1px solid ${technicalSynthesis ? (isDark ? '#2ecc71' : '#27ae60') : '#4A90E2'}`, 
+                                borderRadius: '8px', 
+                                cursor: isGeneratingSynthesis ? 'not-allowed' : 'pointer', 
+                                fontWeight: 'bold', 
+                                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                transition: 'all 0.3s ease'
+                              }}>
+                                {isGeneratingSynthesis ? <Sparkles className="animate-spin" size={16} /> : (technicalSynthesis ? <CheckCircle size={16} /> : <Target size={16} />)}
+                                {isGeneratingSynthesis ? 'Forjando...' : (technicalSynthesis ? 'Síntese Gerada (Refazer)' : 'Gerar Síntese')}
                               </button>
                             </div>
 
                             {/* O AVISO DE SEGURANÇA E ÉTICA */}
                             <div style={{ background: isDark ? 'rgba(231, 76, 60, 0.1)' : 'rgba(231, 76, 60, 0.05)', padding: '1rem', borderRadius: '8px', borderLeft: '3px solid #e74c3c', marginBottom: '1.5rem' }}>
                               <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.5', fontStyle: 'italic' }}>
-                                <strong>Aviso Importante:</strong> Essa síntese é gerada por Inteligência Artificial e não substitui a reflexão individual. Confiar apenas na síntese desse relatório é contraindicado. 
-                                {fvUnlocked && (
-                                  <span style={{ fontWeight: 'bold', color: isDark ? '#e74c3c' : '#c0392b' }}> Procure seu Mestre/Instrutor para orientações sobre o conteúdo e as perguntas geradas nesta Síntese.</span>
-                                )}
-                                {!fvUnlocked && " Procure orientação de pessoas mais experientes para debater estes pontos."}
+                                <strong>Aviso Importante:</strong> Essa síntese é gerada por Inteligência Artificial analisando o seu Diário Aberto. Ela não substitui a reflexão individual. Procure orientação de pessoas mais experientes para debater estes pontos.
                               </p>
                             </div>
 
@@ -2636,6 +2697,35 @@ function App() {
                       <Save size={18} /> Salvar Planejamento
                     </button>
                   </div>
+
+                      {/* RELATÓRIO DISCIPULAR (IA FORÇA VIVA) */}
+                  <div style={{ background: isDark ? 'rgba(0,0,0,0.4)' : '#f0f4f8', padding: '2rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255, 215, 0, 0.4)' : 'rgba(255, 215, 0, 0.6)'}`, marginTop: '3rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
+                      <h3 style={{ margin: 0, color: isDark ? '#FFD700' : '#996515', fontSize: '1.3rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Sparkles size={22} /> Relatório Discipular do Ciclo
+                      </h3>
+                      <button onClick={generateDiscipularSynthesis} disabled={isGeneratingDiscSync} style={{ padding: '0.6rem 1.2rem', background: isDark ? 'rgba(255, 215, 0, 0.1)' : '#fff8dc', color: isDark ? '#FFD700' : '#996515', border: `1px solid ${isDark ? '#FFD700' : '#996515'}`, borderRadius: '8px', cursor: isGeneratingDiscSync ? 'not-allowed' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        {isGeneratingDiscSync ? <Sparkles className="animate-spin" size={16} /> : <Target size={16} />}
+                        {isGeneratingDiscSync ? 'Forjando Relatório...' : 'Gerar Relatório Profundo'}
+                      </button>
+                    </div>
+
+                    <div style={{ background: isDark ? 'rgba(231, 76, 60, 0.15)' : '#fdf2f2', padding: '1rem', borderRadius: '8px', borderLeft: '3px solid #e74c3c', marginBottom: '1.5rem' }}>
+                      <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.5', fontStyle: 'italic' }}>
+                        <strong>Aviso Ético:</strong> Este relatório utiliza Inteligência Artificial para cruzar seus hábitos e práticas da Força Viva. A máquina apenas organiza o passado; a intuição do Mestre acende o futuro. 
+                        <strong style={{ color: isDark ? '#e74c3c' : '#c0392b' }}> Confiar exclusivamente neste texto é ilusão. Leve-o para o diálogo vivo com seu Instrutor.</strong>
+                      </p>
+                    </div>
+
+                    {discipularSynthesis ? (
+                      <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.9)' : 'white', padding: '1.5rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255, 215, 0, 0.3)' : '#ccc'}`, whiteSpace: 'pre-wrap', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem', lineHeight: '1.7', fontFamily: 'Georgia, serif' }}>
+                        {discipularSynthesis}
+                      </div>
+                    ) : (
+                      <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', textAlign: 'center', margin: '2rem 0' }}>Sua Alma aguarda a síntese das suas batalhas. Clique acima para processar o ciclo.</p>
+                    )}
+                  </div>
+
                 </div>
               </>
             ) : (
