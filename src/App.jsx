@@ -232,9 +232,6 @@ function App() {
   const [aiGuarda, setAiGuarda] = useState(null);
   const [aiConquistas, setAiConquistas] = useState(null);
   const [aiInvestigacoes, setAiInvestigacoes] = useState(null);
-  const [fvAiMetricas, setFvAiMetricas] = useState(null);
-  const [fvAiAuditoria, setFvAiAuditoria] = useState(null);
-  const [fvAiLexical, setFvAiLexical] = useState(null);
   const [isGeneratingDiscSync, setIsGeneratingDiscSync] = useState(false);
   const [isGeneratingSynthesis, setIsGeneratingSynthesis] = useState(false);
   const [fvGdveDesafios, setFvGdveDesafios] = useState([]);
@@ -887,34 +884,28 @@ function App() {
       const docRef = doc(db, 'fvData', user.uid);
       const docSnap = await getDoc(docRef);
       
-      // Limpador Automático de 30 dias (Síntese Técnica Aberta e FV)
+      // Limpador Automático de 30 dias (Síntese Técnica Aberta)
         if (data.technicalSynthesis && data.technicalSynthesisDate) {
           const dataGeracao = new Date(data.technicalSynthesisDate);
           const hoje = new Date();
           const diferencaDias = (hoje - dataGeracao) / (1000 * 60 * 60 * 24);
           
           if (diferencaDias > 30) {
-            setTechnicalSynthesis(null); setAiGuarda(null); setAiConquistas(null); setAiInvestigacoes(null);
-            setDiscipularSynthesis(null); setFvAiMetricas(null); setFvAiAuditoria(null); setFvAiLexical(null);
+            setTechnicalSynthesis(null);
+            setAiGuarda(null);
+            setAiConquistas(null);
+            setAiInvestigacoes(null);
           } else {
             setTechnicalSynthesis(data.technicalSynthesis);
             setAiGuarda(data.aiGuarda || null);
             setAiConquistas(data.aiConquistas || null);
             setAiInvestigacoes(data.aiInvestigacoes || null);
-            setDiscipularSynthesis(data.discipularSynthesis || null);
-            setFvAiMetricas(data.fvAiMetricas || null);
-            setFvAiAuditoria(data.fvAiAuditoria || null);
-            setFvAiLexical(data.fvAiLexical || null);
           }
         } else {
           setTechnicalSynthesis(data.technicalSynthesis || null);
           setAiGuarda(data.aiGuarda || null);
           setAiConquistas(data.aiConquistas || null);
           setAiInvestigacoes(data.aiInvestigacoes || null);
-          setDiscipularSynthesis(data.discipularSynthesis || null);
-          setFvAiMetricas(data.fvAiMetricas || null);
-          setFvAiAuditoria(data.fvAiAuditoria || null);
-          setFvAiLexical(data.fvAiLexical || null);
         }
     } catch (error) {
       console.error("Erro ao carregar dados FV:", error);
@@ -1329,89 +1320,151 @@ function App() {
     }
   };
 
-  // ==========================================
-  // FUNÇÃO MESTRE: RELATÓRIO DISCIPULAR
-  // ==========================================
   const generateDiscipularSynthesis = async () => {
     if (!user) return;
     setIsGeneratingDiscSync(true);
 
+    // ==========================================
+  // FUNÇÃO MESTRE: FEEDBACK DA IA
+  // ==========================================
+  const submitSynthesisFeedback = async (tipoRelatorio) => {
+    if (feedbackRating === 0) return alert("Por favor, selecione uma nota de 1 a 5 estrelas.");
+    setIsSubmittingFeedback(true); // LIGA O MODO ENVIANDO
+    
     try {
-      const hoje = new Date();
-      const trintaDiasAtras = new Date(); trintaDiasAtras.setDate(hoje.getDate() - 30);
-      const sessentaDiasAtras = new Date(); sessentaDiasAtras.setDate(hoje.getDate() - 60);
-
-      const cicloAtual = entries.filter(e => { const d = new Date(e.date + 'T12:00:00'); return d >= trintaDiasAtras && d <= hoje; });
-      const cicloAnterior = entries.filter(e => { const d = new Date(e.date + 'T12:00:00'); return d >= sessentaDiasAtras && d < trintaDiasAtras; });
-
-      const countPractices = (ciclo) => { let total = 0; ciclo.forEach(e => { if(e.fvDaily && e.fvDaily.praticas) { total += Object.values(e.fvDaily.praticas).filter(v => v === true).length; } }); return total; };
+      const feedbackRef = doc(collection(db, 'synthesisFeedback')); 
+      await setDoc(feedbackRef, {
+        tipo: tipoRelatorio,
+        nota: feedbackRating,
+        comentario: feedbackText || "Sem comentário escrito.",
+        data: new Date().toISOString(),
+        userId: "Anônimo" 
+      });
       
-      const epilogosAtual = cicloAtual.filter(e => e.eveningDone);
-      const respostasVazias = epilogosAtual.filter(e => !e.whereIFailed && !e.whatIDidWell && !e.whatILeftUndone && !e.freeEpilogue).length;
+      setFeedbackSubmitted(true);
+      setTimeout(() => {
+        setFeedbackRating(0);
+        setFeedbackText('');
+        setFeedbackSubmitted(false);
+      }, 5000); 
+      
+    } catch (error) {
+      console.error("Erro ao enviar avaliação:", error);
+      alert("Erro ao enviar avaliação. Verifique as permissões do Firebase.");
+    } finally {
+      setIsSubmittingFeedback(false); // DESLIGA O MODO ENVIANDO
+    }
+  };
+  
 
+    try {
+      // 1. Coleta e Divisão do Tempo (60 dias)
+      const hoje = new Date();
+      const trintaDiasAtras = new Date(); 
+      trintaDiasAtras.setDate(hoje.getDate() - 30);
+      const sessentaDiasAtras = new Date(); 
+      sessentaDiasAtras.setDate(hoje.getDate() - 60);
+
+      const cicloAtual = entries.filter(e => {
+        const d = new Date(e.date + 'T12:00:00');
+        return d >= trintaDiasAtras && d <= hoje;
+      });
+      const cicloAnterior = entries.filter(e => {
+        const d = new Date(e.date + 'T12:00:00');
+        return d >= sessentaDiasAtras && d < trintaDiasAtras;
+      });
+
+      // Função auxiliar para somar práticas FV realizadas
+      const countPractices = (ciclo) => {
+        let total = 0;
+        ciclo.forEach(e => {
+          if(e.fvDaily && e.fvDaily.praticas) {
+            total += Object.values(e.fvDaily.praticas).filter(v => v === true).length;
+          }
+        });
+        return total;
+      };
+      
+      // 2. Monta o Dossiê Estatístico Profundo (Força Viva)
       let dossie = `DADOS ESTATÍSTICOS DO DISCIPULADO (FORÇA VIVA):\n\n`;
-      dossie += `[CICLO ANTERIOR: Dias -60 a -31]\n- Preenchimentos gerais: ${cicloAnterior.length}\n- Práticas FV realizadas: ${countPractices(cicloAnterior)}\n\n`;
+      dossie += `[CICLO ANTERIOR: Dias -60 a -31]\n`;
+      dossie += `- Preenchimentos do diário geral: ${cicloAnterior.length}\n`;
+      dossie += `- Total de Práticas FV realizadas: ${countPractices(cicloAnterior)}\n`;
+      dossie += `- Falhas relatadas: ${cicloAnterior.filter(e => e.whereIFailed).map(e => e.whereIFailed).join(' | ')}\n\n`;
 
-      dossie += `[CICLO ATUAL: Últimos 30 dias]\n- Preenchimentos gerais: ${cicloAtual.length}\n- Práticas FV realizadas: ${countPractices(cicloAtual)}\n`;
-      dossie += `- Streak de práticas ocultas ininterruptas: ${fvTasksStreak} dias\n`;
-      dossie += `- Ausência de texto no autoexame: ${respostasVazias} dias em branco de ${epilogosAtual.length} epílogos.\n`;
-      dossie += `- Vitórias relatadas: ${cicloAtual.filter(e => e.whatIDidWell).map(e => e.whatIDidWell).join(' | ')}\n`;
-      dossie += `- Falhas e Omissões relatadas: ${cicloAtual.filter(e => e.whereIFailed || e.whatILeftUndone).map(e => (e.whereIFailed || '') + " " + (e.whatILeftUndone || '')).join(' | ')}\n`;
-      dossie += `- Texto Livre: ${cicloAtual.filter(e => e.freeEpilogue).map(e => e.freeEpilogue).join(' | ')}\n`;
+      dossie += `[CICLO ATUAL: Últimos 30 dias]\n`;
+      dossie += `- Preenchimentos do diário geral: ${cicloAtual.length}\n`;
+      dossie += `- Total de Práticas FV realizadas: ${countPractices(cicloAtual)}\n`;
+      dossie += `- Streak ininterrupto atual de práticas ocultas: ${fvTasksStreak} dias\n`;
+      dossie += `- Falhas relatadas: ${cicloAtual.filter(e => e.whereIFailed).map(e => e.whereIFailed).join(' | ')}\n`;
 
       const fvTextsItem1 = cicloAtual.filter(e => e.fvDaily && e.fvDaily.item1).map(e => e.fvDaily.item1).join(' | ');
       const fvTextsItem6 = cicloAtual.filter(e => e.fvDaily && e.fvDaily.item6).map(e => e.fvDaily.item6).join(' | ');
-      dossie += `- Relatos FV "Varrer por Dentro" (Item 1): ${fvTextsItem1}\n`;
-      dossie += `- Relatos FV "Vícios" (Item 6): ${fvTextsItem6}\n`;
+      dossie += `- Relatos FV de "Varrer por Dentro" (Item 1): ${fvTextsItem1}\n`;
+      dossie += `- Relatos FV de "Vícios" (Item 6): ${fvTextsItem6}\n`;
 
-      const termoMestre = fvMasterName ? `seu Instrutor (${fvMasterName})` : "seu Instrutor";
+      const termoMestre = fvMasterName ? `seu Mestre/Instrutor (${fvMasterName})` : "seu Mestre/Instrutor";
 
-      const prompt = `Você é um Analista de Dados. Retorne ESTRITAMENTE um objeto JSON válido (sem formatação Markdown e sem blocos de código).
+      // 3. O Prompt Rigoroso e Frio
+      const prompt = `Você é um Analista de Dados. Entregue um RELATÓRIO ESTATÍSTICO E TÉCNICO de um estudante avançado.
       
-      REGRAS DE CONTEÚDO:
-      - NÃO dê conselhos morais. Aja como um auditor imparcial.
-      - Cruze os dados de preenchimento prático (Métricas) com as ocorrências de texto (Falhas/Acertos/Itens 1 e 6).
+      REGRAS DE FORMATAÇÃO (CRÍTICO): 
+      - É EXPRESSAMENTE PROIBIDO usar formatação Markdown. NÃO use asteriscos (*), hashtags (#), negrito ou itálico. Use texto puro e MAIÚSCULAS para títulos.
+      
+      REGRAS DE TOM:
+      - PROIBIDO dar conselhos ou agir como mestre. Faça apenas análise matemática e lexical.
 
-      O JSON deve conter EXATAMENTE as seguintes chaves:
-      "metricas": Uma síntese técnica comparando as "Práticas FV" e os "Preenchimentos" do Ciclo Atual com o Anterior, comentando a taxa de preenchimento em branco e o Streak (máximo 3 linhas).
-      "auditoria": O cruzamento dos padrões de Acertos vs Erros. Avalie como a execução (ou falta) das práticas da Força Viva pode estar impactando a rotina de falhas e vitórias do aluno (máximo 3 linhas).
-      "lexical": A varredura dos "Itens 1 e 6" e do Texto Livre. Identifique padrões de causalidade (o que ativa os vícios dele) e hipóteses de auto-investigação que o estudante levantou (máximo 4 linhas).
-      "sinteseGeral": Um relatório de 2 parágrafos: O primeiro com a conclusão técnica final sobre a 'Vontade' do ciclo; o segundo contendo 2 perguntas espinhosas e baseadas puramente nestes dados para o encontro com ${termoMestre}.
+      ESTRUTURA OBRIGATÓRIA:
+      1. MÉTRICAS DA VONTADE (PRÁTICAS): Compare (em %) "Práticas FV" e "Preenchimentos" do Ciclo Atual com o Anterior.
+      2. AUDITORIA ESTOICA (ACERTOS vs ERROS): Dê igual peso ao mapeamento de padrões nas Vitórias e nas Falhas. O que ele executou bem de forma recorrente e onde mais falhou?
+      3. COMPLETUDE DO AUTOEXAME: Avalie se as respostas estão nos campos corretos ou se o usuário concentrou tudo na "Reflexão Livre". Valide o conteúdo do texto livre se ele cobrir as falhas e acertos. PROIBIDO usar as palavras "evasão", "fuga" ou julgar a dedicação do aluno. Apenas relate o formato de preenchimento.
+      4. AUDITORIA DO TEXTO LIVRE E ITENS FV: Faça a análise lexical das "Reflexões amplas" e dos "Itens 1 e 6". Isole: 
+         - Padrões de causalidade (o que gera o quê na mente dele).
+         - Elaboração de hipóteses sobre si mesmo.
+         - Temas ou cenários predominantes (onde os vícios ou vitórias mais se manifestam).
+      5. PAUTA PARA O INSTRUTOR: Formule 2 perguntas baseadas estritamente nas métricas para o encontro presencial com ${termoMestre}.
 
       DADOS:
       ${dossie}`;
 
+      // 4. Chamada da API
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ 
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { responseMimeType: "application/json" }
-        })
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
       });
       const data = await response.json();
       if (data.error) throw new Error(data.error.message);
 
-      const rawText = data.candidates[0].content.parts[0].text;
-      const parsedData = JSON.parse(rawText);
-      const dataAtual = new Date().toISOString();
-
-      setFvAiMetricas(parsedData.metricas);
-      setFvAiAuditoria(parsedData.auditoria);
-      setFvAiLexical(parsedData.lexical);
-      setDiscipularSynthesis(parsedData.sinteseGeral);
-
-      await setDoc(doc(db, 'fvData', user.uid), { 
-        discipularSynthesis: parsedData.sinteseGeral,
-        fvAiMetricas: parsedData.metricas,
-        fvAiAuditoria: parsedData.auditoria,
-        fvAiLexical: parsedData.lexical,
-        technicalSynthesisDate: dataAtual // Usamos a mesma âncora de data
-      }, { merge: true });
+      // 5. Salvar resultado
+      const resultado = data.candidates[0].content.parts[0].text;
+      setDiscipularSynthesis(resultado);
+      const docRef = doc(db, 'fvData', user.uid);
+      await setDoc(docRef, { discipularSynthesis: resultado }, { merge: true });
 
     } catch (error) { 
-      console.error(error); 
+      console.error("Erro no Relatório Discipular:", error); 
       alert("Erro ao gerar relatório discipular."); 
     } finally { 
       setIsGeneratingDiscSync(false); 
+    }
+  };
+
+  const saveFvTexts = async () => {
+    if (user) {
+      const todayKey = selectedDate;
+      try {
+        const payload = {
+          userId: user.uid,
+          date: todayKey,
+          fvDaily: fvDaily, 
+          fvTextsTimestamp: Timestamp.now()
+        };
+
+        await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), payload, { merge: true }); 
+        
+        await loadAllEntries(user.uid); 
+        
+        alert('✅ Reflexões da Carta de Degrau salvas com sucesso!');
+      } catch (error) { console.error(error); alert('Erro ao salvar os textos.'); }
     }
   };
 
@@ -2814,68 +2867,12 @@ function App() {
                       </button>
                     </div>
 
-                    <div style={{ background: isDark ? 'rgba(231, 76, 60, 0.15)' : '#fdf2f2', padding: '1rem', borderRadius: '8px', borderLeft: '3px solid #e74c3c', marginBottom: '2rem' }}>
+                    <div style={{ background: isDark ? 'rgba(231, 76, 60, 0.15)' : '#fdf2f2', padding: '1rem', borderRadius: '8px', borderLeft: '3px solid #e74c3c', marginBottom: '1.5rem' }}>
                       <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.5', fontStyle: 'italic' }}>
-                        <strong>Aviso Ético:</strong> Este relatório utiliza IA para cruzar seus hábitos práticos com seus padrões de pensamento. Confirme as anomalias com seu Instrutor.
+                        <strong>Aviso Ético:</strong> Este relatório utiliza Inteligência Artificial para cruzar seus hábitos e práticas da Força Viva. A máquina apenas organiza o passado; a intuição do Mestre acende o futuro. 
+                        <strong style={{ color: isDark ? '#e74c3c' : '#c0392b' }}> Confiar exclusivamente neste texto é ilusão. Leve-o para o diálogo vivo com seu Instrutor.</strong>
                       </p>
                     </div>
-
-                    {discipularSynthesis ? (
-                      <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                        
-                        {/* CAIXA 1: MÉTRICAS DA VONTADE */}
-                        <div style={{ background: isDark ? 'rgba(74, 144, 226, 0.05)' : '#f4f8ff', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(74, 144, 226, 0.3)' : 'rgba(74, 144, 226, 0.3)'}` }}>
-                          <h4 style={{ margin: '0 0 0.75rem 0', color: isDark ? '#6cb2eb' : '#2980b9', fontSize: '1.1rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}><TrendingUp size={18} /> Métricas da Vontade</h4>
-                          <p style={{ margin: 0, color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem', lineHeight: '1.6' }}>{fvAiMetricas}</p>
-                        </div>
-
-                        {/* CAIXA 2: AUDITORIA ESTOICA CRUZADA */}
-                        <div style={{ background: isDark ? 'rgba(255, 152, 0, 0.05)' : '#fff8f0', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255, 152, 0, 0.3)' : 'rgba(255, 152, 0, 0.3)'}` }}>
-                          <h4 style={{ margin: '0 0 0.75rem 0', color: isDark ? '#ffb74d' : '#e65100', fontSize: '1.1rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Shield size={18} /> Auditoria Cruzada</h4>
-                          <p style={{ margin: 0, color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem', lineHeight: '1.6' }}>{fvAiAuditoria}</p>
-                        </div>
-
-                        {/* CAIXA 3: VARREDURA LEXICAL */}
-                        <div style={{ background: isDark ? 'rgba(155, 89, 182, 0.05)' : '#fdf8ff', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.3)' : 'rgba(155, 89, 182, 0.3)'}` }}>
-                          <h4 style={{ margin: '0 0 0.75rem 0', color: isDark ? '#c39bd3' : '#8e44ad', fontSize: '1.1rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Eye size={18} /> Varredura Lexical (Itens FV)</h4>
-                          <p style={{ margin: 0, color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem', lineHeight: '1.6' }}>{fvAiLexical}</p>
-                        </div>
-
-                        {/* CAIXA 4: SÍNTESE E PAUTA */}
-                        <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255, 215, 0, 0.4)' : '#FFD700'}`, whiteSpace: 'pre-wrap', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem', lineHeight: '1.7', fontFamily: 'Georgia, serif' }}>
-                          <h4 style={{ margin: '0 0 1rem 0', color: isDark ? '#FFD700' : '#996515', fontSize: '1.1rem', fontFamily: "'Cinzel', serif" }}>Conclusão e Pauta do Ciclo</h4>
-                          {discipularSynthesis}
-                        </div>
-
-                        {/* BLOCO DE AVALIAÇÃO DA SÍNTESE FV */}
-                        <div style={{ marginTop: '1rem', padding: '1.5rem', background: isDark ? 'rgba(0,0,0,0.2)' : '#fdfbf7', borderRadius: '8px', border: `1px dashed ${isDark ? 'rgba(255, 215, 0, 0.4)' : 'rgba(153, 101, 21, 0.3)'}`, textAlign: 'center' }}>
-                          {feedbackSubmitted ? (
-                            <p style={{ color: isDark ? '#FFD700' : '#996515', fontWeight: 'bold', margin: 0 }}>✓ Avaliação enviada anonimamente. Obrigado!</p>
-                          ) : (
-                            <>
-                              <p style={{ margin: '0 0 1rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem', fontWeight: 'bold' }}>Este relatório técnico foi útil e preciso?</p>
-                              <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                  <button key={star} onClick={() => setFeedbackRating(star)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}>
-                                    <Star size={28} fill={feedbackRating >= star ? (isDark ? '#FFD700' : '#FFB300') : 'none'} color={feedbackRating >= star ? (isDark ? '#FFD700' : '#FFB300') : (isDark ? '#555' : '#ccc')} />
-                                  </button>
-                                ))}
-                              </div>
-                              {feedbackRating > 0 && (
-                                <div className="animate-fadeIn">
-                                  <textarea value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} placeholder="Opcional: Por que você deu esta nota?" rows={3} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(255, 215, 0, 0.5)' : '#ccc'}`, borderRadius: '8px', fontSize: '0.9rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical', marginBottom: '1rem' }} />
-                                  <button onClick={() => submitSynthesisFeedback("Força Viva")} disabled={isSubmittingFeedback} style={{ padding: '0.6rem 1.5rem', background: isSubmittingFeedback ? (isDark ? '#555' : '#ccc') : 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: isSubmittingFeedback ? '#aaa' : '#000', border: 'none', borderRadius: '8px', cursor: isSubmittingFeedback ? 'not-allowed' : 'pointer', fontWeight: 'bold', fontFamily: 'Georgia, serif', boxShadow: isSubmittingFeedback ? 'none' : '0 4px 10px rgba(255,215,0,0.2)' }}>
-                                    {isSubmittingFeedback ? 'Enviando...' : 'Enviar Avaliação Anônima'}
-                                  </button>
-                                </div>
-                              )}
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    ) : (
-                      <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', textAlign: 'center', margin: '3rem 0' }}>Sua Alma aguarda a síntese das suas batalhas. Clique no botão acima para processar o ciclo.</p>
-                    )}
 
                     {/* O TEXTO DO RELATÓRIO QUE ESTAVA FALTANDO */}
                     {discipularSynthesis ? (
