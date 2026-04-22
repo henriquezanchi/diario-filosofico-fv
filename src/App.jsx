@@ -228,6 +228,9 @@ function App() {
   const [fvLastMeetingDate, setFvLastMeetingDate] = useState('');
   const [technicalSynthesis, setTechnicalSynthesis] = useState(null);
   const [discipularSynthesis, setDiscipularSynthesis] = useState(null);
+  const [aiGuarda, setAiGuarda] = useState(null);
+  const [aiConquistas, setAiConquistas] = useState(null);
+  const [aiInvestigacoes, setAiInvestigacoes] = useState(null);
   const [isGeneratingDiscSync, setIsGeneratingDiscSync] = useState(false);
   const [isGeneratingSynthesis, setIsGeneratingSynthesis] = useState(false);
   const [fvGdveDesafios, setFvGdveDesafios] = useState([]);
@@ -880,33 +883,29 @@ function App() {
       const docRef = doc(db, 'fvData', user.uid);
       const docSnap = await getDoc(docRef);
       
-      if (docSnap.exists()) {
-        const data = docSnap.data(); // É aqui que o "data" nasce e resolve o erro!
-        
-        setFvUnlocked(data.fvUnlocked || false);
-        setFvLastCartaDate(data.lastCartaDate || '');
-        setFvNextCartaDate(data.nextCartaDate || '');
-        setFvGdveReuniao(data.gdveReuniao || false);
-        setFvGdveBastiaoLink(data.gdveBastiaoLink || '');
-        setFvMasterName(data.fvMasterName || '');
-        setFvLastMeetingDate(data.fvLastMeetingDate || '');
-        setDiscipularSynthesis(data.discipularSynthesis || null);
-
-        // Limpador Automático de 30 dias (Síntese Técnica Aberta)
+      // Limpador Automático de 30 dias (Síntese Técnica Aberta)
         if (data.technicalSynthesis && data.technicalSynthesisDate) {
           const dataGeracao = new Date(data.technicalSynthesisDate);
           const hoje = new Date();
           const diferencaDias = (hoje - dataGeracao) / (1000 * 60 * 60 * 24);
           
           if (diferencaDias > 30) {
-            setTechnicalSynthesis(null); // Expirou, some da tela
+            setTechnicalSynthesis(null);
+            setAiGuarda(null);
+            setAiConquistas(null);
+            setAiInvestigacoes(null);
           } else {
             setTechnicalSynthesis(data.technicalSynthesis);
+            setAiGuarda(data.aiGuarda || null);
+            setAiConquistas(data.aiConquistas || null);
+            setAiInvestigacoes(data.aiInvestigacoes || null);
           }
         } else {
           setTechnicalSynthesis(data.technicalSynthesis || null);
+          setAiGuarda(data.aiGuarda || null);
+          setAiConquistas(data.aiConquistas || null);
+          setAiInvestigacoes(data.aiInvestigacoes || null);
         }
-      }
     } catch (error) {
       console.error("Erro ao carregar dados FV:", error);
     }
@@ -1243,79 +1242,78 @@ function App() {
     setIsGeneratingSynthesis(true);
 
     try {
-      // 1. Coleta e Divisão do Tempo (60 dias)
       const hoje = new Date();
-      const trintaDiasAtras = new Date(); 
-      trintaDiasAtras.setDate(hoje.getDate() - 30);
-      const sessentaDiasAtras = new Date(); 
-      sessentaDiasAtras.setDate(hoje.getDate() - 60);
+      const trintaDiasAtras = new Date(); trintaDiasAtras.setDate(hoje.getDate() - 30);
+      const sessentaDiasAtras = new Date(); sessentaDiasAtras.setDate(hoje.getDate() - 60);
 
-      const cicloAtual = entries.filter(e => {
-        const d = new Date(e.date + 'T12:00:00');
-        return d >= trintaDiasAtras && d <= hoje;
-      });
-      const cicloAnterior = entries.filter(e => {
-        const d = new Date(e.date + 'T12:00:00');
-        return d >= sessentaDiasAtras && d < trintaDiasAtras;
-      });
+      const cicloAtual = entries.filter(e => { const d = new Date(e.date + 'T12:00:00'); return d >= trintaDiasAtras && d <= hoje; });
+      const cicloAnterior = entries.filter(e => { const d = new Date(e.date + 'T12:00:00'); return d >= sessentaDiasAtras && d < trintaDiasAtras; });
       
-      // 2. Monta o Dossiê Estatístico
+      const epilogosAtual = cicloAtual.filter(e => e.eveningDone);
+      const evasaoVazia = epilogosAtual.filter(e => !e.whereIFailed && !e.whatIDidWell && !e.whatILeftUndone && !e.freeEpilogue).length;
+      const evasaoParcial = epilogosAtual.filter(e => (e.whereIFailed || e.whatIDidWell || e.whatILeftUndone) && (!e.whereIFailed || !e.whatIDidWell || !e.whatILeftUndone)).length;
+
       let dossie = `DADOS ESTATÍSTICOS DO USUÁRIO:\n\n`;
-      dossie += `[CICLO ANTERIOR: Dias -60 a -31]\n`;
-      dossie += `- Preenchimentos do diário: ${cicloAnterior.length}\n`;
-      dossie += `- Falhas relatadas: ${cicloAnterior.filter(e => e.whereIFailed).map(e => e.whereIFailed).join(' | ')}\n\n`;
+      dossie += `[CICLO ANTERIOR: Dias -60 a -31]\n- Preenchimentos: ${cicloAnterior.length}\n\n`;
 
-      dossie += `[CICLO ATUAL: Últimos 30 dias]\n`;
-      dossie += `- Preenchimentos do diário: ${cicloAtual.length}\n`;
-      dossie += `- Falhas relatadas: ${cicloAtual.filter(e => e.whereIFailed).map(e => e.whereIFailed).join(' | ')}\n`;
-      dossie += `- Vitórias relatadas: ${cicloAtual.filter(e => e.whatIDidWell).map(e => e.whatIDidWell).join(' | ')}\n`;
-      dossie += `- Intenções matinais (compromissos): ${cicloAtual.filter(e => e.intention).map(e => e.intention).join(' | ')}\n`;
+      dossie += `[CICLO ATUAL: Últimos 30 dias]\n- Preenchimentos: ${cicloAtual.length}\n`;
+      dossie += `- COMPORTAMENTO DE AUTOEXAME: Dos ${epilogosAtual.length} epílogos, ${evasaoVazia} foram deixados em branco e ${evasaoParcial} foram parciais.\n`;
+      dossie += `- ONDE FALHOU: ${cicloAtual.filter(e => e.whereIFailed).map(e => e.whereIFailed).join(' | ')}\n`;
+      dossie += `- O QUE FEZ BEM: ${cicloAtual.filter(e => e.whatIDidWell).map(e => e.whatIDidWell).join(' | ')}\n`;
+      dossie += `- O QUE DEIXOU DE FAZER: ${cicloAtual.filter(e => e.whatILeftUndone).map(e => e.whatILeftUndone).join(' | ')}\n`;
+      dossie += `- TEXTO LIVRE: ${cicloAtual.filter(e => e.freeEpilogue).map(e => e.freeEpilogue).join(' | ')}\n`;
 
-      // 3. O Novo Prompt (Auditor Frio)
-      const prompt = `Você é um Analista de Dados e Auditor Técnico. Entregue um RELATÓRIO ESTATÍSTICO, FRIO E OBJETIVO.
+      const prompt = `Você é um Analista de Dados. Retorne ESTRITAMENTE um objeto JSON válido (sem formatação Markdown e sem blocos de código).
 
-      REGRAS DE FORMATAÇÃO (CRÍTICO): 
-      - É EXPRESSAMENTE PROIBIDO usar formatação Markdown. NÃO use asteriscos (*), hashtags (#), negrito ou itálico. 
-      - Use apenas texto limpo, parágrafos simples e letras MAIÚSCULAS para títulos de seção.
+      REGRAS DE CONTEÚDO:
+      - NÃO dê conselhos. Aja como um auditor imparcial.
+      - Analise simultaneamente os campos estruturados (Falhas, Acertos, Omissões) e cruze-os com as informações contidas no "TEXTO LIVRE".
 
-      REGRAS DE TOM:
-      - NÃO dê conselhos morais. NÃO aja como mestre. Você é uma máquina analisando dados.
-
-      ESTRUTURA DO RETORNO:
-      1. METRICAS GERAIS: Compare o volume do Ciclo Atual com o Anterior (%).
-      2. COMPLETUDE E PADRÃO DE PREENCHIMENTO: Avalie a taxa de preenchimento. Se os campos estruturados estiverem vazios, mas o campo de "Reflexões amplas" contiver dados que responderiam a essas perguntas, considere o preenchimento como válido, classificando-o apenas como "Preenchimento Desestruturado". É EXPRESSAMENTE PROIBIDO usar palavras como "fuga", "evasão", "pressa" ou termos acusatórios. Seja puramente descritivo e neutro.
-      3. A BALANÇA ESTOICA (ACERTOS E ERROS): Dê IGUAL peso à análise semântica das falhas e das vitórias. Quais foram os padrões das ações bem-sucedidas? Quais os padrões das falhas e omissões?
-      4. ANÁLISE DO TEXTO LIVRE: Avalie as "Reflexões amplas" usando estritamente estas 4 lentes:
-         - Vazamento: Há vitórias/falhas relatadas aqui que deveriam estar nos campos específicos?
-         - Causalidade: Quais são os padrões lógicos identificados (ex: "Ação X gerou Emoção Y")?
-         - Hipóteses: O usuário expressa mais certezas ou está formulando suspeitas sobre si mesmo?
-         - Cenários: Quais áreas da vida (trabalho, relacionamentos, etc) mais aparecem neste campo livre?
-      5. PONTOS PARA AUDITORIA HUMANA: Liste 2 perguntas técnicas baseadas nestes dados, sugerindo o debate com pessoas mais experientes.
+      O JSON deve conter EXATAMENTE as seguintes chaves:
+      "guardaBaixou": Uma síntese fria dos padrões onde o usuário falhou ou demonstrou fraqueza (máximo 3 linhas).
+      "conquistas": Uma síntese técnica dos padrões de acerto, virtudes executadas e sucessos mapeados (máximo 3 linhas).
+      "investigacoes": Um mapeamento de hipóteses, percepções, suspeitas e dúvidas que o usuário expressou predominantemente no Texto Livre (máximo 4 linhas).
+      "sinteseGeral": Um relatório de 2 parágrafos: O primeiro avaliando o comportamento de evasão/completude do preenchimento e comparando com o ciclo anterior; o segundo sugerindo 2 perguntas técnicas para auditoria com um instrutor presencial.
 
       DADOS:
       ${dossie}`;
 
-      // 4. Chamada da API
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+      // Configuração forçando o Gemini a cuspir JSON puro
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ 
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { responseMimeType: "application/json" }
+        }) 
       });
+      
       const data = await response.json();
       if (data.error) throw new Error(data.error.message);
 
-      // 5. Salva o resultado
-      const resultado = data.candidates[0].content.parts[0].text;
+      // Parse do JSON recebido
+      const rawText = data.candidates[0].content.parts[0].text;
+      const parsedData = JSON.parse(rawText);
       const dataAtual = new Date().toISOString();
 
-      setTechnicalSynthesis(resultado);
-      const docRef = doc(db, 'fvData', user.uid);
-      await setDoc(docRef, { 
-        technicalSynthesis: resultado,
-        technicalSynthesisDate: dataAtual
+      // Salva nos estados
+      setAiGuarda(parsedData.guardaBaixou);
+      setAiConquistas(parsedData.conquistas);
+      setAiInvestigacoes(parsedData.investigacoes);
+      setTechnicalSynthesis(parsedData.sinteseGeral);
+
+      // Salva no Firebase
+      await setDoc(doc(db, 'fvData', user.uid), { 
+        technicalSynthesis: parsedData.sinteseGeral, 
+        aiGuarda: parsedData.guardaBaixou,
+        aiConquistas: parsedData.conquistas,
+        aiInvestigacoes: parsedData.investigacoes,
+        technicalSynthesisDate: dataAtual 
       }, { merge: true });
 
     } catch (error) { 
-      console.error("Erro na Síntese Aberta:", error); 
-      alert("Erro ao gerar síntese aberta."); 
+      console.error(error); 
+      alert("Erro ao gerar síntese estruturada."); 
     } finally { 
       setIsGeneratingSynthesis(false); 
     }
@@ -2442,109 +2440,91 @@ function App() {
                             )}
                           </div>
 
-                          {/* PADRÕES RECENTES (ESPELHO DA ALMA) */}
-                          <div style={{ background: isDark ? 'rgba(231, 76, 60, 0.05)' : '#fff5f5', padding: '2rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(231, 76, 60, 0.2)' : 'rgba(231, 76, 60, 0.2)'}` }}>
-                            <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#e74c3c' : '#c0392b', fontSize: '1.2rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                              <Target size={20} /> Onde a Guarda Baixou
-                            </h3>
-                            <p style={{ fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '1.5rem', fontStyle: 'italic' }}>Suas últimas 3 anotações em "Onde errei". Encontrar o padrão é o primeiro passo para a vitória.</p>
-                            
-                            <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                               {entries.filter(e => e.whereIFailed).slice(0,3).map((e, idx) => (
-                                  <li key={e.id} style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'white', padding: '1rem', borderRadius: '8px', borderLeft: `4px solid ${isDark ? '#e74c3c' : '#c0392b'}` }}>
-                                    <span style={{ color: isDark ? '#e74c3c' : '#c0392b', fontSize: '0.8rem', fontWeight: 'bold', display: 'block', marginBottom: '0.3rem' }}>
-                                      {new Date(e.date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' }).toUpperCase()}
-                                    </span>
-                                    <span style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem', lineHeight: '1.5' }}>"{e.whereIFailed}"</span>
-                                  </li>
-                               ))}
-                               {entries.filter(e => e.whereIFailed).length === 0 && (
-                                  <li style={{ color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic' }}>Nenhuma falha registrada recentemente.</li>
-                               )}
-                            </ul>
-                          </div>
-                              
-                             {/* SÍNTESE TÉCNICA (IA) */}
+                          {/* PAINEL DE AUDITORIA ESTATÍSTICA (IA) */}
                           <div style={{ background: isDark ? 'rgba(0,0,0,0.3)' : '#f8f9fa', padding: '2rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(74, 144, 226, 0.3)' : 'rgba(74, 144, 226, 0.3)'}`, marginTop: '2rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
-                              <h3 style={{ margin: 0, color: isDark ? '#6cb2eb' : '#2980b9', fontSize: '1.2rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <Sparkles size={20} /> Síntese Técnica do Ciclo
-                              </h3>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
+                              <div>
+                                <h3 style={{ margin: 0, color: isDark ? '#6cb2eb' : '#2980b9', fontSize: '1.4rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                  <Sparkles size={24} /> Auditoria do Ciclo
+                                </h3>
+                                <p style={{ fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744', margin: '0.5rem 0 0 0', fontStyle: 'italic' }}>Cruzamento analítico de dados estruturados e reflexões livres.</p>
+                              </div>
                               <button onClick={generateTechnicalSynthesis} disabled={isGeneratingSynthesis} style={{ 
-                                padding: '0.6rem 1.2rem', 
-                                background: isGeneratingSynthesis 
-                                  ? (isDark ? 'rgba(255, 152, 0, 0.15)' : '#fff3e0') 
-                                  : (technicalSynthesis ? (isDark ? 'rgba(39, 174, 96, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(74, 144, 226, 0.1)' : 'rgba(74, 144, 226, 0.1)')), 
-                                color: isGeneratingSynthesis 
-                                  ? (isDark ? '#ff9800' : '#e65100') 
-                                  : (technicalSynthesis ? (isDark ? '#2ecc71' : '#27ae60') : (isDark ? '#6cb2eb' : '#2980b9')), 
-                                border: `1px solid ${isGeneratingSynthesis 
-                                  ? (isDark ? '#ff9800' : '#ffb74d') 
-                                  : (technicalSynthesis ? (isDark ? '#2ecc71' : '#27ae60') : '#4A90E2')}`, 
-                                borderRadius: '8px', 
-                                cursor: isGeneratingSynthesis ? 'not-allowed' : 'pointer', 
-                                fontWeight: 'bold', 
-                                display: 'flex', alignItems: 'center', gap: '0.5rem',
-                                transition: 'all 0.3s ease'
+                                padding: '0.8rem 1.5rem', 
+                                background: isGeneratingSynthesis ? (isDark ? 'rgba(255, 152, 0, 0.15)' : '#fff3e0') : (technicalSynthesis ? (isDark ? 'rgba(39, 174, 96, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(74, 144, 226, 0.1)' : 'rgba(74, 144, 226, 0.1)')), 
+                                color: isGeneratingSynthesis ? (isDark ? '#ff9800' : '#e65100') : (technicalSynthesis ? (isDark ? '#2ecc71' : '#27ae60') : (isDark ? '#6cb2eb' : '#2980b9')), 
+                                border: `2px solid ${isGeneratingSynthesis ? (isDark ? '#ff9800' : '#ffb74d') : (technicalSynthesis ? (isDark ? '#2ecc71' : '#27ae60') : '#4A90E2')}`, 
+                                borderRadius: '8px', cursor: isGeneratingSynthesis ? 'not-allowed' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.3s ease', fontSize: '1.05rem'
                               }}>
-                                {isGeneratingSynthesis ? <Sparkles className="animate-spin" size={16} /> : (technicalSynthesis ? <CheckCircle size={16} /> : <Target size={16} />)}
-                                {isGeneratingSynthesis ? 'Forjando...' : (technicalSynthesis ? 'Síntese Gerada (Refazer)' : 'Gerar Síntese')}
+                                {isGeneratingSynthesis ? <Sparkles className="animate-spin" size={18} /> : (technicalSynthesis ? <CheckCircle size={18} /> : <Target size={18} />)}
+                                {isGeneratingSynthesis ? 'Processando Dados...' : (technicalSynthesis ? 'Refazer Auditoria' : 'Gerar Auditoria')}
                               </button>
                             </div>
 
-                            {/* O AVISO DE SEGURANÇA E ÉTICA */}
-                            <div style={{ background: isDark ? 'rgba(231, 76, 60, 0.1)' : 'rgba(231, 76, 60, 0.05)', padding: '1rem', borderRadius: '8px', borderLeft: '3px solid #e74c3c', marginBottom: '1.5rem' }}>
+                            <div style={{ background: isDark ? 'rgba(231, 76, 60, 0.1)' : 'rgba(231, 76, 60, 0.05)', padding: '1rem', borderRadius: '8px', borderLeft: '3px solid #e74c3c', marginBottom: '2rem' }}>
                               <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.5', fontStyle: 'italic' }}>
-                                <strong>Aviso Importante:</strong> Essa síntese é gerada por Inteligência Artificial analisando o seu Diário Aberto. Ela não substitui a reflexão individual. Procure orientação de pessoas mais experientes para debater estes pontos.
+                                <strong>Aviso Importante:</strong> Esta auditoria utiliza Inteligência Artificial. Ela mapeia o passado para que você construa o futuro. Confirme os padrões com seu instrutor.
                               </p>
                             </div>
 
-                            {/* BLOCO DE AVALIAÇÃO DA SÍNTESE */}
-                            {technicalSynthesis && (
-                              <div style={{ marginTop: '2rem', padding: '1.5rem', background: isDark ? 'rgba(0,0,0,0.2)' : '#fdfbf7', borderRadius: '8px', border: `1px dashed ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`, textAlign: 'center' }}>
-                                {feedbackSubmitted ? (
-                                  <p style={{ color: isDark ? '#81c784' : '#2e7d32', fontWeight: 'bold', margin: 0 }}>✓ Avaliação enviada anonimamente. Obrigado por ajudar a calibrar o sistema!</p>
-                                ) : (
-                                  <>
-                                    <p style={{ margin: '0 0 1rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem', fontWeight: 'bold' }}>Esta síntese foi útil e precisa?</p>
-                                    
-                                    {/* Estrelas */}
-                                    <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                                      {[1, 2, 3, 4, 5].map((star) => (
-                                        <button 
-                                          key={star} 
-                                          onClick={() => setFeedbackRating(star)} 
-                                          style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}
-                                        >
-                                          <Star size={28} fill={feedbackRating >= star ? (isDark ? '#FFD700' : '#FFB300') : 'none'} color={feedbackRating >= star ? (isDark ? '#FFD700' : '#FFB300') : (isDark ? '#555' : '#ccc')} />
-                                        </button>
-                                      ))}
-                                    </div>
+                            {technicalSynthesis ? (
+                              <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                
+                                {/* CAIXA 1: A GUARDA BAIXOU */}
+                                <div style={{ background: isDark ? 'rgba(231, 76, 60, 0.05)' : '#fff5f5', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(231, 76, 60, 0.3)' : 'rgba(231, 76, 60, 0.3)'}` }}>
+                                  <h4 style={{ margin: '0 0 0.75rem 0', color: isDark ? '#e74c3c' : '#c0392b', fontSize: '1.1rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Target size={18} /> Onde a Guarda Baixou</h4>
+                                  <p style={{ margin: 0, color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem', lineHeight: '1.6' }}>{aiGuarda}</p>
+                                </div>
 
-                                    {/* Campo de Texto (Só aparece se ele der uma nota) */}
-                                    {feedbackRating > 0 && (
-                                      <div className="animate-fadeIn">
-                                        <textarea 
-                                          value={feedbackText} 
-                                          onChange={(e) => setFeedbackText(e.target.value)} 
-                                          placeholder="Opcional: Por que você deu esta nota? A IA foi injusta, imprecisa ou ajudou muito?" 
-                                          rows={3} 
-                                          style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', fontSize: '0.9rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical', marginBottom: '1rem' }} 
-                                        />
-                                        <button 
-                                          onClick={() => submitSynthesisFeedback("Aberta")} 
-                                          style={{ padding: '0.6rem 1.5rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'Georgia, serif' }}
-                                        >
-                                          Enviar Avaliação Anônima
-                                        </button>
+                                {/* CAIXA 2: CONQUISTAS */}
+                                <div style={{ background: isDark ? 'rgba(76, 175, 80, 0.05)' : '#f8fff8', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(76, 175, 80, 0.3)' : 'rgba(76, 175, 80, 0.3)'}` }}>
+                                  <h4 style={{ margin: '0 0 0.75rem 0', color: isDark ? '#81c784' : '#2e7d32', fontSize: '1.1rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Award size={18} /> Conquistas Forjadas</h4>
+                                  <p style={{ margin: 0, color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem', lineHeight: '1.6' }}>{aiConquistas}</p>
+                                </div>
+
+                                {/* CAIXA 3: INVESTIGAÇÕES */}
+                                <div style={{ background: isDark ? 'rgba(156, 39, 176, 0.05)' : '#faf5ff', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(156, 39, 176, 0.3)' : 'rgba(156, 39, 176, 0.3)'}` }}>
+                                  <h4 style={{ margin: '0 0 0.75rem 0', color: isDark ? '#c39bd3' : '#8e44ad', fontSize: '1.1rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Search size={18} /> Investigações e Padrões</h4>
+                                  <p style={{ margin: 0, color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem', lineHeight: '1.6' }}>{aiInvestigacoes}</p>
+                                </div>
+
+                                {/* CAIXA 4: SÍNTESE GERAL */}
+                                <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(74, 144, 226, 0.3)' : '#ccc'}`, whiteSpace: 'pre-wrap', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem', lineHeight: '1.7', fontFamily: 'Georgia, serif' }}>
+                                  <h4 style={{ margin: '0 0 1rem 0', color: isDark ? '#6cb2eb' : '#2980b9', fontSize: '1.1rem', fontFamily: "'Cinzel', serif" }}>Relatório Técnico Geral</h4>
+                                  {technicalSynthesis}
+                                </div>
+
+                                {/* BLOCO DE AVALIAÇÃO DA SÍNTESE */}
+                                <div style={{ marginTop: '1rem', padding: '1.5rem', background: isDark ? 'rgba(0,0,0,0.2)' : '#fdfbf7', borderRadius: '8px', border: `1px dashed ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`, textAlign: 'center' }}>
+                                  {feedbackSubmitted ? (
+                                    <p style={{ color: isDark ? '#81c784' : '#2e7d32', fontWeight: 'bold', margin: 0 }}>✓ Avaliação enviada anonimamente. Obrigado por ajudar a calibrar o sistema!</p>
+                                  ) : (
+                                    <>
+                                      <p style={{ margin: '0 0 1rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem', fontWeight: 'bold' }}>Esta síntese foi útil e precisa?</p>
+                                      <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                          <button key={star} onClick={() => setFeedbackRating(star)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}>
+                                            <Star size={28} fill={feedbackRating >= star ? (isDark ? '#FFD700' : '#FFB300') : 'none'} color={feedbackRating >= star ? (isDark ? '#FFD700' : '#FFB300') : (isDark ? '#555' : '#ccc')} />
+                                          </button>
+                                        ))}
                                       </div>
-                                    )}
-                                  </>
-                                )}
-                              </div>
-                            )}
-                          </div>  
+                                      {feedbackRating > 0 && (
+                                        <div className="animate-fadeIn">
+                                          <textarea value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} placeholder="Opcional: Por que você deu esta nota? A IA foi precisa?" rows={3} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', fontSize: '0.9rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical', marginBottom: '1rem' }} />
+                                          <button onClick={() => submitSynthesisFeedback("Aberta")} style={{ padding: '0.6rem 1.5rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'Georgia, serif' }}>
+                                            Enviar Avaliação Anônima
+                                          </button>
+                                        </div>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
 
+                              </div>
+                            ) : (
+                              <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', textAlign: 'center', margin: '3rem 0' }}>Os dados do seu ciclo aguardam processamento. Clique no botão acima para compilar seu dossiê.</p>
+                            )}
+                          </div>
                         </>
                       );
                    })()}
