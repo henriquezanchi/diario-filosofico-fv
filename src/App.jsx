@@ -884,7 +884,29 @@ function App() {
       const docRef = doc(db, 'fvData', user.uid);
       const docSnap = await getDoc(docRef);
       
-      // Limpador Automático de 30 dias (Síntese Técnica Aberta)
+      if (docSnap.exists()) {
+        const data = docSnap.data(); // Definimos o "data" aqui para evitar erros
+
+        // 1. Puxa as Datas e Planeamento
+        setFvLastCartaDate(data.lastCartaDate || '');
+        setFvNextCartaDate(data.nextCartaDate || '');
+        setFvGdveReuniao(data.gdveReuniao || '');
+        setFvMasterName(data.fvMasterName || '');
+        setFvLastMeetingDate(data.fvLastMeetingDate || '');
+
+        // 2. Puxa as Tarefas e Status do Grupo (O que estava a faltar)
+        setFvGdveTasks(data.gdveTasks || []);
+        setFvGdveCycleStatus(data.gdveCycleStatus || {});
+        setFvGdveBastiaoName(data.fvGdveBastiaoName || '');
+        setFvGdveBastiaoLink(data.fvGdveBastiaoLink || '');
+
+        // 3. Puxa os Relatórios da IA
+        setDiscipularSynthesis(data.discipularSynthesis || null);
+        setFvAiMetricas(data.fvAiMetricas || null);
+        setFvAiAuditoria(data.fvAiAuditoria || null);
+        setFvAiLexical(data.fvAiLexical || null);
+
+        // 4. Limpador Automático de 30 dias para a Síntese Aberta
         if (data.technicalSynthesis && data.technicalSynthesisDate) {
           const dataGeracao = new Date(data.technicalSynthesisDate);
           const hoje = new Date();
@@ -892,23 +914,17 @@ function App() {
           
           if (diferencaDias > 30) {
             setTechnicalSynthesis(null);
-            setAiGuarda(null);
-            setAiConquistas(null);
-            setAiInvestigacoes(null);
+            setAiGuarda(null); setAiConquistas(null); setAiInvestigacoes(null);
           } else {
             setTechnicalSynthesis(data.technicalSynthesis);
             setAiGuarda(data.aiGuarda || null);
             setAiConquistas(data.aiConquistas || null);
             setAiInvestigacoes(data.aiInvestigacoes || null);
           }
-        } else {
-          setTechnicalSynthesis(data.technicalSynthesis || null);
-          setAiGuarda(data.aiGuarda || null);
-          setAiConquistas(data.aiConquistas || null);
-          setAiInvestigacoes(data.aiInvestigacoes || null);
         }
+      }
     } catch (error) {
-      console.error("Erro ao carregar dados FV:", error);
+      console.error("Erro ao carregar dados da nuvem:", error);
     }
   };
 
