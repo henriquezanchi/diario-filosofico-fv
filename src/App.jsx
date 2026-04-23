@@ -148,6 +148,7 @@ function App() {
   // Embaralha e escolhe 3 ações quando o modal abre
   useEffect(() => {
     if (showConsciousnessModal && displayedActions.length === 0) {
+      const shuffled = [...actionPool].sort(() => 0.5 - Math.random());
       setDisplayedActions(shuffled.slice(0, 3));
     }
   }, [showConsciousnessModal]);
