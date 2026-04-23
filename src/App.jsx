@@ -133,7 +133,6 @@ function App() {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showDiaryMenu, setShowDiaryMenu] = useState(false);
   const [showPracticesMenu, setShowPracticesMenu] = useState(false);
-  const [showConsciousnessModal, setShowConsciousnessModal] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 850);
 
   // --- ESTADOS DO BALÃO DE CONSCIÊNCIA ---
@@ -2070,33 +2069,7 @@ function App() {
   };
 
   // --- O MOTOR DO BALÃO (ELEVAÇÃO DE CONSCIÊNCIA) ---
-  const calculateConsciousness = () => {
-    let altitude = 50; // Começamos no meio termo (50%)
-
-    // 1. O Peso do Passado (Inércia e Omissões puxam para baixo)
-    const ultimosDias = entries.slice(0, 3); // Analisa só os últimos 3 dias
-    ultimosDias.forEach(e => {
-      if (e.whereIFailed) altitude -= 5; // A falha pesa
-      if (e.whatILeftUndone) altitude -= 3; // A omissão pesa
-      if (!e.didMorning) altitude -= 5; // A falta de planejamento pesa
-    });
-
-    // 2. O Kurava da Semana (Se há um vício dominante, o balão pesa muito)
-    if (kuravaData) altitude -= 15; 
-
-    // 3. O Fogo da Vontade (Hábito empurra para cima)
-    altitude += Math.min(streak * 2, 20); // Constância geral (máx 20 pts)
-    altitude += Math.min(fvTasksStreak * 3, 20); // Práticas FV (máx 20 pts)
-
-    // 4. O Calor do Dia (Ações de Hoje)
-    if (morningDone) altitude += 10;
-    const completedTasksCount = getTasksForToday().filter(t => todayTasksStatus[t.id]).length;
-    altitude += (completedTasksCount * 3); 
-
-    // Limita entre 0% (Chão) e 100% (Céu)
-    return Math.max(0, Math.min(100, altitude));
-  };
-  const altitude = calculateConsciousness();
+  
 
   // --- MOTOR DA CONSCIÊNCIA (FÍSICA DO BALÃO) ---
   const calculateConsciousness = () => {
