@@ -1288,50 +1288,44 @@ function App() {
       dossie += `- O QUE DEIXOU DE FAZER: ${cicloAtual.filter(e => e.whatILeftUndone).map(e => e.whatILeftUndone).join(' | ')}\n`;
       dossie += `- TEXTO LIVRE: ${cicloAtual.filter(e => e.freeEpilogue).map(e => e.freeEpilogue).join(' | ')}\n`;
 
-      // 3. O Prompt JSON
       const prompt = `Você é um Analista de Dados. Retorne ESTRITAMENTE um objeto JSON válido (sem formatação Markdown e sem blocos de código).
-      
+
       REGRAS DE CONTEÚDO:
-      - NÃO dê conselhos morais. Aja como um auditor imparcial.
-      - Cruze os dados de preenchimento prático (Métricas) com as ocorrências de texto.
+      - NÃO dê conselhos. Aja como um auditor imparcial.
+      - Analise simultaneamente os campos estruturados (Falhas, Acertos, Omissões) e cruze-os com as informações contidas no "TEXTO LIVRE".
 
       O JSON deve conter EXATAMENTE as seguintes chaves:
-      "metricas": Uma síntese técnica comparando as "Práticas FV" e os "Preenchimentos" do Ciclo Atual com o Anterior (máximo 3 linhas).
-      "auditoria": O cruzamento dos padrões de Acertos vs Erros e como as práticas FV impactam a rotina (máximo 3 linhas).
-      "lexical": A varredura dos Itens FV e Texto Livre. Isole padrões de causalidade e hipóteses (máximo 4 linhas).
-      "sinteseGeral": Um relatório final de 2 parágrafos com a conclusão e 2 perguntas técnicas para o encontro com ${termoMestre}.
+      "guardaBaixou": Uma síntese fria dos padrões onde o usuário falhou ou demonstrou fraqueza (máximo 3 linhas).
+      "conquistas": Uma síntese técnica dos padrões de acerto, virtudes executadas e sucessos mapeados (máximo 3 linhas).
+      "investigacoes": Um mapeamento de hipóteses, percepções, suspeitas e dúvidas que o usuário expressou predominantemente no Texto Livre (máximo 4 linhas).
+      "sinteseGeral": Um relatório de 2 parágrafos: O primeiro avaliando o comportamento de evasão/completude do preenchimento e comparando com o ciclo anterior; o segundo sugerindo 2 perguntas técnicas para auditoria com um instrutor presencial.
 
       DADOS:
       ${dossie}`;
 
-      // 4. Chamada da API forçando JSON
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ 
+      // Configuração forçando o Gemini a cuspir JSON puro
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ 
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: { responseMimeType: "application/json" }
-        })
+        }) 
       });
+      
       const data = await response.json();
       if (data.error) throw new Error(data.error.message);
 
-      // 5. Salvar resultado nas 4 gavetas
+      // Parse do JSON recebido
       const rawText = data.candidates[0].content.parts[0].text;
       const parsedData = JSON.parse(rawText);
       const dataAtual = new Date().toISOString();
 
-      setFvAiMetricas(parsedData.metricas);
-      setFvAiAuditoria(parsedData.auditoria);
-      setFvAiLexical(parsedData.lexical);
-      setDiscipularSynthesis(parsedData.sinteseGeral);
-
-      const docRef = doc(db, 'fvData', user.uid);
-      await setDoc(docRef, { 
-        discipularSynthesis: parsedData.sinteseGeral,
-        fvAiMetricas: parsedData.metricas,
-        fvAiAuditoria: parsedData.auditoria,
-        fvAiLexical: parsedData.lexical,
-        technicalSynthesisDate: dataAtual
-      }, { merge: true });
+      // Salva nos estados
+      setAiGuarda(parsedData.guardaBaixou);
+      setAiConquistas(parsedData.conquistas);
+      setAiInvestigacoes(parsedData.investigacoes);
+      setTechnicalSynthesis(parsedData.sinteseGeral);
 
       // Salva no Firebase
       await setDoc(doc(db, 'fvData', user.uid), { 
@@ -1344,7 +1338,7 @@ function App() {
 
     } catch (error) { 
       console.error(error); 
-      alert("Erro ao gerar síntese estruturada."); 
+      alert("Erro ao gerar síntese estruturada. Tente novamente."); 
     } finally { 
       setIsGeneratingSynthesis(false); 
     }
