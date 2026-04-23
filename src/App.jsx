@@ -878,10 +878,10 @@ function App() {
     } catch (error) { console.error('Erro ao carregar metas:', error); }
   };
 
-  const loadFVData = async () => {
-    if (!user) return;
+  const loadFVData = async (uid) => {
+    if (!uid) return;
     try {
-      const docRef = doc(db, 'fvData', user.uid);
+      const docRef = doc(db, 'fvData', uid);
       const docSnap = await getDoc(docRef);
       
       if (docSnap.exists()) {
