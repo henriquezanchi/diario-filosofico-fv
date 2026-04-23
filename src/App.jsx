@@ -217,6 +217,8 @@ function App() {
   const [projectGoals, setProjectGoals] = useState([]);
   const [newVirtueGoal, setNewVirtueGoal] = useState('');
   const [newProjectGoal, setNewProjectGoal] = useState('');
+  const [acceptedMissions, setAcceptedMissions] = useState([]);
+  const [missionToAccept, setMissionToAccept] = useState(null);
   const [showGoalsEditor, setShowGoalsEditor] = useState(false);
   const [selectedVirtueDetail, setSelectedVirtueDetail] = useState(null);
   const [entries, setEntries] = useState([]);
@@ -880,262 +882,19 @@ function App() {
         const data = goalsDoc.data();
         setVirtueGoals(data.virtueGoals || []);
         setProjectGoals(data.projectGoals || []);
+        setAcceptedMissions(data.acceptedMissions || []);
         setAiSuggestedGoals(data.aiSuggestedGoals || null);
       }
     } catch (error) { console.error('Erro ao carregar metas:', error); }
   };
 
-  const loadFVData = async (uid) => {
-    if (!uid) return;
-    try {
-      const docRef = doc(db, 'fvData', uid);
-      const docSnap = await getDoc(docRef);
-      
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-
-        // 1. Puxa as Datas e Planejamento
-        setFvLastCartaDate(data.lastCartaDate || '');
-        setFvNextCartaDate(data.nextCartaDate || '');
-        setFvGdveReuniao(data.gdveReuniao || '');
-        setFvMasterName(data.fvMasterName || '');
-        setFvLastMeetingDate(data.fvLastMeetingDate || '');
-
-        // 2. Puxa as Tarefas e Status do Grupo
-        setFvGdveTasks(data.gdveTasks || []);
-        setFvGdveCycleStatus(data.gdveCycleStatus || {});
-        setFvGdveBastiaoName(data.fvGdveBastiaoName || '');
-        setFvGdveBastiaoLink(data.fvGdveBastiaoLink || '');
-
-        // 3. Puxa os Relatórios da IA
-        setDiscipularSynthesis(data.discipularSynthesis || null);
-        setFvAiMetricas(data.fvAiMetricas || null);
-        setFvAiAuditoria(data.fvAiAuditoria || null);
-        setFvAiLexical(data.fvAiLexical || null);
-
-        // 4. Limpador Automático de 30 dias para a Síntese Aberta
-        if (data.technicalSynthesis && data.technicalSynthesisDate) {
-          const dataGeracao = new Date(data.technicalSynthesisDate);
-          const hoje = new Date();
-          const diferencaDias = (hoje - dataGeracao) / (1000 * 60 * 60 * 24);
-          
-          if (diferencaDias > 30) {
-            setTechnicalSynthesis(null);
-            setAiGuarda(null); setAiConquistas(null); setAiInvestigacoes(null);
-          } else {
-            setTechnicalSynthesis(data.technicalSynthesis);
-            setAiGuarda(data.aiGuarda || null);
-            setAiConquistas(data.aiConquistas || null);
-            setAiInvestigacoes(data.aiInvestigacoes || null);
-          }
-        } else {
-          setTechnicalSynthesis(data.technicalSynthesis || null);
-          setAiGuarda(data.aiGuarda || null);
-          setAiConquistas(data.aiConquistas || null);
-          setAiInvestigacoes(data.aiInvestigacoes || null);
-        }
-      }
-    } catch (error) {
-      console.error("Erro ao carregar dados da nuvem:", error);
-    }
-  };
-
-
-    const loadMod2Config = async () => {
-    if (!user || fvConfig) return;
-    setIsDownloadingConfig(true);
-    try {
-      // Usa a pasta autorizada do Firebase (fvData) para guardar o motor
-      const docRef = doc(db, 'fvData', user.uid);
-      const docSnap = await getDoc(docRef);
-      
-      if (docSnap.exists() && docSnap.data().config) {
-        setFvConfig(docSnap.data().config);
-      } else {
-        // Textos completos originais restaurados
-        const initialConfig = {
-          tituloAba: "Registro de Ciclo",
-          secaoReflexao: "A Escalada (Reflexões)",
-          itensCarta: [
-            { id: 'item1', label: '1 – VARRER POR DENTRO', desc: 'Exame da personalidade, descobrir os nós, buscar as causas que os geraram, encontrar a fórmula de limpeza (redenção) e aplicá-las.' },
-            { id: 'item2', label: '2 – AS LEIS DA MATÉRIA', desc: 'Descobrir como atuam em nós os ciclos da matéria (para não nos afetarem): instintos de conservação/procriação, idade, enfermidade, ânimo, humor, ideias, sentimentos, ambiente.' },
-            { id: 'item34', label: '3 e 4 – TRABALHO ORDENADO E EFICAZ', desc: 'Colocar ordem na vida. Necessária disciplina e perseverança: exercícios de ordem e limpeza.' },
-            { id: 'item5', label: '5 – ECONOMIA DE TEMPO E ENERGIA', desc: 'Requer atenção.' },
-            { id: 'item6', label: '6 – OS VÍCIOS', desc: 'Superar: preguiça, gula e luxúria e outros da mesma natureza (apatia, moleza, debilidade, negligência). Moderar: álcool e fumo. Proibido: drogas.' },
-            { id: 'item7', label: '7 – AS VIRTUDES: PERSEVERANÇA E CONSTÂNCIA', desc: 'Perseverança: repetir sem rotina com sentido de perfeição. Constância: estabilidade e consciência elevada. (Nota: Comentar sobre frequência no diário, carta, exercícios, ED, etc).' }
-          ],
-          praticas: [
-            { key: 'tratack', label: 'Tratak' },
-            { key: 'recitarHonra', label: 'Recitar Código de Dignidade' },
-            { key: 'recitar7Fases', label: 'Recitar 7 fases da ED' },
-            { key: 'camara', label: 'Câmara de Purificação' }
-          ],
-          modulo2: {
-            titulo: "Módulo GDVE",
-            rotuloLeitura: "Leitura do Ciclo (Bastião)",
-            bancoTemas: [
-              { name: "Bastiões 1976 - 001 a 006", link: "https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=23101&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es" },
-              { name: "Bastiões 1977 - 007 a 017", link: "https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=23102&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es" },
-              { name: "Bastiões 1978 - 018 a 029", link: "https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=23103&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es" },
-              { name: "Bastiões 1979 - 029 a 039", link: "https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=23104&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es" }
-            ]
-          }
-        };
-        await setDoc(docRef, { config: initialConfig }, { merge: true }); 
-        setFvConfig(initialConfig); 
-      }
-    } catch (e) { console.error("Erro ao baixar motor:", e); }
-    setIsDownloadingConfig(false);
-  };
-
-  const saveCustomTask = async () => {
-    if (!newTaskName.trim()) return;
-    if (newTaskRecurrence === 'weekly' && (!newTaskWeekDays || newTaskWeekDays.length === 0)) {
-      alert('Por favor, selecione pelo menos um dia da semana.');
-      return;
-    }
-    if (newTaskRecurrence === 'biweekly' && !newTaskBaseDate) {
-      alert('Por favor, selecione a data de início para a tarefa quinzenal.');
-      return;
-    }
-
-    const isDuplicate = customTasks.some(t => t.name.toLowerCase().trim() === newTaskName.trim().toLowerCase() && t.id !== editingTaskId);
-    if (isDuplicate) {
-      alert('Você já tem uma prática cadastrada com este nome!');
-      return;
-    }
-
-    const uniqueId = editingTaskId || `task_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-    const taskData = {
-      id: uniqueId, name: newTaskName.trim(), recurrence: newTaskRecurrence,
-      weekDays: newTaskRecurrence === 'weekly' ? newTaskWeekDays : [],
-      monthDay: newTaskRecurrence === 'monthly' ? parseInt(newTaskMonthDay) || 1 : 1,
-      baseDate: newTaskRecurrence === 'biweekly' ? newTaskBaseDate : ""
-    };
-
-    let newTasks = editingTaskId ? customTasks.map(t => t.id === editingTaskId ? taskData : t) : [...customTasks, taskData];
-    const cleanTasksForFirebase = JSON.parse(JSON.stringify(newTasks));
-
-    setCustomTasks(cleanTasksForFirebase);
-    setNewTaskName(''); setShowAddTask(false); setEditingTaskId(null);
-    setNewTaskRecurrence('daily'); setNewTaskWeekDays([]); setNewTaskMonthDay(1); setNewTaskBaseDate('');
-
-    if (user) {
-      try { await setDoc(doc(db, 'customTasks', user.uid), { tasks: cleanTasksForFirebase }); } 
-      catch (error) { alert('O Firebase reclamou de algo, mas a tarefa está salva no seu dispositivo.'); }
-    }
-  };
-
-  const startEditingTask = (task) => {
-    setEditingTaskId(task.id); setNewTaskName(task.name); setNewTaskRecurrence(task.recurrence || 'daily');
-    setNewTaskWeekDays(task.weekDays || []); setNewTaskMonthDay(task.monthDay || 1); setNewTaskBaseDate(task.baseDate || ''); 
-    setShowAddTask(true); window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const removeCustomTask = async (taskId) => {
-    const newTasks = customTasks.filter(t => t.id !== taskId);
-    const cleanTasksForFirebase = JSON.parse(JSON.stringify(newTasks));
-    setCustomTasks(cleanTasksForFirebase);
-    if (user) {
-      try { await setDoc(doc(db, 'customTasks', user.uid), { tasks: cleanTasksForFirebase }); } 
-      catch (error) { console.error("Erro ao excluir:", error); }
-    }
-  };
-
-  const toggleTaskStatus = async (taskId) => {
-    const newStatus = { ...todayTasksStatus, [taskId]: !todayTasksStatus[taskId] };
-    setTodayTasksStatus(newStatus);
-
-    if (user) {
-      const todayKey = selectedDate;
-      const updatedSnapshot = getTasksForToday().map(task => ({
-        id: task.id, name: task.name, completed: !!newStatus[task.id]
-      }));
-
-      try {
-        await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), {
-          tasksStatus: newStatus, tasksSnapshot: updatedSnapshot
-        }, { merge: true }); 
-        await loadAllEntries(user.uid);
-      } catch (error) { console.error('Erro ao salvar o status da tarefa:', error); }
-    }
-  };  
-
-  const saveMorning = async () => {
-    const finalVirtue = showCustomVirtue ? customVirtue : selectedVirtue;
-    if (!finalVirtue || !finalVirtue.trim()) { alert('Por favor, selecione ou digite uma virtude para o dia.'); return; }
-
-    const tasksSnapshot = getTasksForToday().map(task => ({
-      id: task.id, name: task.name, completed: !!todayTasksStatus[task.id]
-    }));
-
-    const todayKey = selectedDate;
-
-    const randomHour = Math.floor(Math.random() * (18 - 10 + 1)) + 10;
-    const randomHourStr = String(randomHour).padStart(2, '0') + ':00'; 
-
-    const entry = {
-      userId: user.uid, 
-      date: todayKey, 
-      morningDone: true, 
-      virtue: finalVirtue,
-      customVirtue: showCustomVirtue ? customVirtue : '', 
-      quote: dailyQuote || null,
-      intention: dailyIntention || '', 
-      tasksStatus: todayTasksStatus || {},
-      tasksSnapshot: tasksSnapshot || [], 
-      morningTimestamp: Timestamp.now(),
-      randomReminderHour: randomHourStr 
-    };
-
-    try {
-      await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), entry, { merge: true });
-      setMorningDone(true); 
-      alert('✅ Prólogo salvo com sucesso!');
-    } catch (error) { 
-      alert('Erro ao salvar prólogo. Verifique sua conexão.'); 
-    }
-  };
-
-  const saveEvening = async () => {
-    const hasSpecifics = (whereIFailed && whereIFailed.trim()) && (whatIDidWell && whatIDidWell.trim()) && (whatILeftUndone && whatILeftUndone.trim());
-    const hasFreeText = freeEpilogue && freeEpilogue.trim();
-
-    if (!hasSpecifics && !hasFreeText) {
-      alert('Por favor, responda as 3 perguntas estruturadas OU utilize o campo de Reflexão Livre.'); return;
-    }
-
-    const todayKey = selectedDate;
-    const tasksSnapshot = getTasksForToday().map(task => ({
-      id: task.id, name: task.name, completed: !!todayTasksStatus[task.id]
-    }));
-
-    try {
-      const updatedEntry = {
-        userId: user.uid, date: todayKey, eveningDone: true,
-        whereIFailed: whereIFailed || '', whatIDidWell: whatIDidWell || '', whatILeftUndone: whatILeftUndone || '',
-        freeEpilogue: freeEpilogue || '',
-        didMorning: didMorning !== false, tasksStatus: todayTasksStatus || {},
-        tasksSnapshot: tasksSnapshot || [], eveningTimestamp: Timestamp.now()
-      };
-
-      await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), updatedEntry, { merge: true });
-      
-      setEveningDone(true); 
-      await loadAllEntries(user.uid);
-      alert('✅ Epílogo salvo com sucesso!');
-    } catch (error) { 
-      console.error(error);
-      alert('Erro ao salvar epílogo. Tente novamente.'); 
-    }
-  };
-
-  const saveLongTermGoals = async (vGoals, pGoals) => {
+  const saveLongTermGoals = async (vGoals, pGoals, aMissions) => {
     if (!user) return;
     try {
       await setDoc(doc(db, 'longTermGoals', user.uid), { 
         virtueGoals: vGoals || virtueGoals, 
         projectGoals: pGoals || projectGoals, 
+        acceptedMissions: aMissions || acceptedMissions,
         updatedAt: Timestamp.now() 
       }, { merge: true });
     } catch (error) { console.error('Erro ao salvar metas:', error); }
@@ -1144,22 +903,22 @@ function App() {
   const addVirtueGoal = () => {
     if (!newVirtueGoal.trim()) return;
     const newList = [...virtueGoals, { id: Date.now(), text: newVirtueGoal, completed: false }];
-    setVirtueGoals(newList); setNewVirtueGoal(''); saveLongTermGoals(newList, null);
+    setVirtueGoals(newList); setNewVirtueGoal(''); saveLongTermGoals(newList, null, null);
   };
 
   const addProjectGoal = () => {
     if (!newProjectGoal.trim()) return;
     const newList = [...projectGoals, { id: Date.now(), text: newProjectGoal, completed: false }];
-    setProjectGoals(newList); setNewProjectGoal(''); saveLongTermGoals(null, newList);
+    setProjectGoals(newList); setNewProjectGoal(''); saveLongTermGoals(null, newList, null);
   };
 
   const toggleGoal = (id, type) => {
     if (type === 'virtue') {
       const newList = virtueGoals.map(g => g.id === id ? { ...g, completed: !g.completed } : g);
-      setVirtueGoals(newList); saveLongTermGoals(newList, null);
+      setVirtueGoals(newList); saveLongTermGoals(newList, null, null);
     } else {
       const newList = projectGoals.map(g => g.id === id ? { ...g, completed: !g.completed } : g);
-      setProjectGoals(newList); saveLongTermGoals(null, newList);
+      setProjectGoals(newList); saveLongTermGoals(null, newList, null);
     }
   };
 
@@ -1167,11 +926,41 @@ function App() {
     if(window.confirm("Deseja excluir esta meta?")) {
       if (type === 'virtue') {
         const newList = virtueGoals.filter(g => g.id !== id);
-        setVirtueGoals(newList); saveLongTermGoals(newList, null);
+        setVirtueGoals(newList); saveLongTermGoals(newList, null, null);
       } else {
         const newList = projectGoals.filter(g => g.id !== id);
-        setProjectGoals(newList); saveLongTermGoals(null, newList);
+        setProjectGoals(newList); saveLongTermGoals(null, newList, null);
       }
+    }
+  };
+
+  // --- MOTOR DAS MISSÕES DE CICLO (IA E JURAMENTO) ---
+  const confirmAcceptMission = () => {
+    if (!missionToAccept) return;
+    const newMission = {
+      id: Date.now(),
+      titulo: missionToAccept.titulo,
+      descricao: missionToAccept.descricao,
+      startDate: getTodayKey(),
+      completed: false
+    };
+    const newList = [...acceptedMissions, newMission];
+    setAcceptedMissions(newList);
+    saveLongTermGoals(null, null, newList);
+    setMissionToAccept(null);
+  };
+
+  const toggleAcceptedMission = (id) => {
+    const newList = acceptedMissions.map(m => m.id === id ? { ...m, completed: !m.completed } : m);
+    setAcceptedMissions(newList);
+    saveLongTermGoals(null, null, newList);
+  };
+
+  const removeAcceptedMission = (id) => {
+    if(window.confirm("Deseja abandonar esta missão? A verdadeira derrota é desistir de lutar.")) {
+      const newList = acceptedMissions.filter(m => m.id !== id);
+      setAcceptedMissions(newList);
+      saveLongTermGoals(null, null, newList);
     }
   };
 
@@ -2539,6 +2328,30 @@ function App() {
 
               </div>
 
+              {/* BLOCO 3: MISSÕES DE CICLO ATIVAS */}
+              {acceptedMissions.length > 0 && (
+                <div className="animate-fadeIn" style={{ marginTop: '2rem', padding: '1.5rem', background: isDark ? 'rgba(155, 89, 182, 0.05)' : '#fdf8ff', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.3)' : 'rgba(155, 89, 182, 0.3)'}` }}>
+                  <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#c39bd3' : '#8e44ad', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Shield size={20} /> Missões em Andamento</h3>
+                  <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '1.5rem' }}>Desafios práticos assumidos para forjar a vontade.</p>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {acceptedMissions.map(missao => (
+                      <div key={missao.id} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '1rem', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', borderRadius: '8px', border: `1px solid ${missao.completed ? '#4caf50' : (isDark ? 'rgba(155, 89, 182, 0.3)' : '#e1bee7')}`, transition: 'all 0.3s ease' }}>
+                        <label style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', cursor: 'pointer', flex: 1 }}>
+                          <input type="checkbox" checked={missao.completed} onChange={() => toggleAcceptedMission(missao.id)} style={{ width: '20px', height: '20px', marginTop: '0.1rem', accentColor: '#8e44ad' }} />
+                          <div style={{ opacity: missao.completed ? 0.6 : 1 }}>
+                            <strong style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.05rem', textDecoration: missao.completed ? 'line-through' : 'none', display: 'block', marginBottom: '0.25rem' }}>{missao.titulo}</strong>
+                            <span style={{ color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.9rem', lineHeight: '1.4', display: 'block' }}>{missao.descricao}</span>
+                            <span style={{ color: isDark ? '#c39bd3' : '#8e44ad', fontSize: '0.75rem', fontWeight: 'bold', marginTop: '0.5rem', display: 'block' }}>Assumida em: {missao.startDate.split('-').reverse().join('/')}</span>
+                          </div>
+                        </label>
+                        <button onClick={() => removeAcceptedMission(missao.id)} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer', padding: '0.2rem' }} title="Abandonar Missão"><X size={18} /></button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* O ORÁCULO FICA AQUI EMBAIXO */}
               <div style={{ borderTop: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, marginTop: '2rem', paddingTop: '2rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
@@ -2560,11 +2373,16 @@ function App() {
                       </p>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
                         {aiSuggestedGoals.missoes.map((missao, idx) => (
-                          <div key={idx} style={{ background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.4)', padding: '1rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}` }}>
-                            <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#d4af37' : '#6b4423', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                              <Flame size={16} /> {missao.titulo}
-                            </h4>
-                            <p style={{ margin: 0, color: isDark ? '#c8b896' : '#6b5744', fontSize: '0.9rem', lineHeight: '1.5' }}>{missao.descricao}</p>
+                          <div key={idx} style={{ background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.4)', padding: '1rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                            <div>
+                              <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#d4af37' : '#6b4423', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                <Flame size={16} /> {missao.titulo}
+                              </h4>
+                              <p style={{ margin: '0 0 1rem 0', color: isDark ? '#c8b896' : '#6b5744', fontSize: '0.9rem', lineHeight: '1.5' }}>{missao.descricao}</p>
+                            </div>
+                            <button onClick={() => setMissionToAccept(missao)} style={{ alignSelf: 'flex-start', padding: '0.5rem 1rem', background: 'transparent', color: isDark ? '#FFD700' : '#996515', border: `1px solid ${isDark ? '#FFD700' : '#996515'}`, borderRadius: '6px', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', transition: 'all 0.2s' }} onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(255,215,0,0.1)' : 'rgba(153,101,21,0.1)'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
+                              <Shield size={14} /> Aceitar Missão
+                            </button>
                           </div>
                         ))}
                       </div>
@@ -2572,9 +2390,38 @@ function App() {
                   )}
               </div>
 
+              {/* MODAL DE JURAMENTO (POP-UP) */}
+              {missionToAccept && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(5px)' }}>
+                  <div className="animate-fadeIn" style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '2.5rem', borderRadius: '16px', maxWidth: '450px', width: '100%', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }}>
+                    <Shield size={56} color={isDark ? '#d4af37' : '#6b4423'} style={{ margin: '0 auto 1rem' }} />
+                    <h2 style={{ margin: '0 0 1rem 0', fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.6rem' }}>Juramento de Missão</h2>
+                    
+                    <div style={{ background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.5)', padding: '1.5rem', borderRadius: '8px', borderLeft: `4px solid ${isDark ? '#FFD700' : '#996515'}`, marginBottom: '1.5rem', textAlign: 'left' }}>
+                      <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#d4af37' : '#6b4423', fontSize: '1.1rem' }}>{missionToAccept.titulo}</h4>
+                      <p style={{ margin: 0, color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.95rem', lineHeight: '1.5' }}>{missionToAccept.descricao}</p>
+                    </div>
+
+                    <p style={{ margin: '0 0 2rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.1rem', fontStyle: 'italic', fontWeight: 'bold', lineHeight: '1.6' }}>
+                      "Eu me comprometo comigo mesmo a trabalhar por esse objetivo, não por vaidade, mas pela minha própria lapidação interior."
+                    </p>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      <button onClick={confirmAcceptMission} style={{ width: '100%', padding: '1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
+                        <CheckCircle size={20} /> Assumir a Missão
+                      </button>
+                      <button onClick={() => setMissionToAccept(null)} style={{ width: '100%', padding: '1rem', background: 'transparent', color: isDark ? '#b8a88a' : '#6b4423', border: 'none', fontSize: '1rem', cursor: 'pointer', fontFamily: 'Georgia, serif', textDecoration: 'underline' }}>
+                        Recuar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
             </div>
           </div>
         )}
+
 
         {/* VIEW: BIBLIOTECA */}
         {view === 'biblioteca' && (
