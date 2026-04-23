@@ -2198,36 +2198,47 @@ function App() {
                 <button onClick={handleFvTabClick} style={{ padding: '0.5rem 1rem', background: view === 'fv' ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'transparent', color: view === 'fv' ? '#000' : '#FFD700', border: '2px solid #FFD700', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, boxShadow: '0 0 10px rgba(255, 215, 0, 0.3)' }}>FV</button>
               )}
               
-              {/* MENU DE OPÇÕES (DROPDOWN) */}
-              <div style={{ position: 'relative' }} onMouseLeave={() => setShowProfileMenu(false)}>
-                <button onClick={() => setShowProfileMenu(!showProfileMenu)} style={{ padding: '0.5rem 1rem', background: showProfileMenu ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: showProfileMenu ? (isDark ? '#1a1a2e' : 'white') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s' }}>
+              {/* MENU DE OPÇÕES (DROPDOWN) - CORRIGIDO */}
+              <div 
+                style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }} 
+                onMouseLeave={() => setShowProfileMenu(false)}
+              >
+                <button 
+                  onMouseEnter={() => setShowProfileMenu(true)}
+                  onClick={() => setShowProfileMenu(!showProfileMenu)} 
+                  style={{ padding: '0.5rem 1rem', background: showProfileMenu ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: showProfileMenu ? (isDark ? '#1a1a2e' : 'white') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s' }}
+                >
                   <Settings size={18} /> Opções {showProfileMenu ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 </button>
 
+                {/* A LISTA DE OPÇÕES AGORA ESTÁ COLADA NO BOTÃO (Tiramos o vão invisível) */}
                 {showProfileMenu && (
-                  <div className="animate-fadeIn" style={{ position: 'absolute', top: 'calc(100% + 0.5rem)', right: 0, width: '220px', background: isDark ? 'rgba(26, 26, 46, 0.98)' : 'rgba(255, 255, 255, 0.98)', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', overflow: 'hidden', zIndex: 1000, display: 'flex', flexDirection: 'column', backdropFilter: 'blur(10px)' }}>
-                    
-                    <button onClick={() => { toggleNotifications(); setShowProfileMenu(false); }} style={{ padding: '1rem', background: 'transparent', border: 'none', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.95rem', fontFamily: 'Georgia, serif' }} onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(139, 115, 85, 0.05)'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
-                      <Bell size={18} color={notificationsActive ? '#4caf50' : (isDark ? '#d4af37' : '#6b4423')} /> {notificationsActive ? 'Lembretes (ON)' : 'Lembretes (OFF)'}
-                    </button>
-                    
-                    <button onClick={() => { setShowSuggestionModal(true); setShowProfileMenu(false); }} style={{ padding: '1rem', background: 'transparent', border: 'none', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.95rem', fontFamily: 'Georgia, serif' }} onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(139, 115, 85, 0.05)'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
-                      <MessageSquare size={18} color={isDark ? '#d4af37' : '#6b4423'} /> Enviar Sugestão
-                    </button>
-                    
-                    <button onClick={() => { setShowSettingsModal(true); setShowProfileMenu(false); }} style={{ padding: '1rem', background: 'transparent', border: 'none', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.95rem', fontFamily: 'Georgia, serif' }} onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(139, 115, 85, 0.05)'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
-                      <Settings size={18} color={isDark ? '#d4af37' : '#6b4423'} /> Configurações
-                    </button>
-                    
-                    <button onClick={() => { toggleTheme(); setShowProfileMenu(false); }} style={{ padding: '1rem', background: 'transparent', border: 'none', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.95rem', fontFamily: 'Georgia, serif' }} onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(139, 115, 85, 0.05)'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
-                      {isDark ? <Sun size={18} color="#d4af37" /> : <Moon size={18} color="#8b7355" />} Tema: {isDark ? 'Mudar para Claro' : 'Mudar para Escuro'}
-                    </button>
-                    
-                    <button onClick={() => { handleLogout(); setShowProfileMenu(false); }} style={{ padding: '1rem', background: 'rgba(231, 76, 60, 0.05)', border: 'none', color: '#e74c3c', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.95rem', fontWeight: 'bold', fontFamily: 'Georgia, serif' }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(231, 76, 60, 0.15)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(231, 76, 60, 0.05)'}>
-                      <LogOut size={18} /> Sair do Diário
-                    </button>
+                  <div style={{ position: 'absolute', top: '100%', right: 0, paddingTop: '0.5rem', zIndex: 1000 }}>
+                    <div className="animate-fadeIn" style={{ width: '220px', background: isDark ? 'rgba(26, 26, 46, 0.98)' : 'rgba(255, 255, 255, 0.98)', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', overflow: 'hidden', display: 'flex', flexDirection: 'column', backdropFilter: 'blur(10px)' }}>
+                      
+                      <button onClick={() => { toggleNotifications(); setShowProfileMenu(false); }} style={{ padding: '1rem', background: 'transparent', border: 'none', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.95rem', fontFamily: 'Georgia, serif' }} onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(139, 115, 85, 0.05)'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
+                        <Bell size={18} color={notificationsActive ? '#4caf50' : (isDark ? '#d4af37' : '#6b4423')} /> {notificationsActive ? 'Lembretes (ON)' : 'Lembretes (OFF)'}
+                      </button>
+                      
+                      <button onClick={() => { setShowSuggestionModal(true); setShowProfileMenu(false); }} style={{ padding: '1rem', background: 'transparent', border: 'none', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.95rem', fontFamily: 'Georgia, serif' }} onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(139, 115, 85, 0.05)'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
+                        <MessageSquare size={18} color={isDark ? '#d4af37' : '#6b4423'} /> Enviar Sugestão
+                      </button>
+                      
+                      <button onClick={() => { setShowSettingsModal(true); setShowProfileMenu(false); }} style={{ padding: '1rem', background: 'transparent', border: 'none', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.95rem', fontFamily: 'Georgia, serif' }} onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(139, 115, 85, 0.05)'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
+                        <Settings size={18} color={isDark ? '#d4af37' : '#6b4423'} /> Configurações
+                      </button>
+                      
+                      <button onClick={() => { toggleTheme(); setShowProfileMenu(false); }} style={{ padding: '1rem', background: 'transparent', border: 'none', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.95rem', fontFamily: 'Georgia, serif' }} onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(139, 115, 85, 0.05)'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
+                        {isDark ? <Sun size={18} color="#d4af37" /> : <Moon size={18} color="#8b7355" />} Tema: {isDark ? 'Mudar para Claro' : 'Mudar para Escuro'}
+                      </button>
+                      
+                      <button onClick={() => { handleLogout(); setShowProfileMenu(false); }} style={{ padding: '1rem', background: 'rgba(231, 76, 60, 0.05)', border: 'none', color: '#e74c3c', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.95rem', fontWeight: 'bold', fontFamily: 'Georgia, serif' }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(231, 76, 60, 0.15)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(231, 76, 60, 0.05)'}>
+                        <LogOut size={18} /> Sair do Diário
+                      </button>
+                    </div>
                   </div>
                 )}
+              
               </div>
             </div>
           )}
