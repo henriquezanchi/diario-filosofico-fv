@@ -136,6 +136,35 @@ function App() {
   const [showConsciousnessModal, setShowConsciousnessModal] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 850);
 
+  // --- ESTADOS DO BALÃO DE CONSCIÊNCIA ---
+  const [showConsciousnessModal, setShowConsciousnessModal] = useState(false);
+  const [manualAltitudeModifier, setManualAltitudeModifier] = useState(0);
+  const [animatingActionId, setAnimatingActionId] = useState(null);
+  
+  // O Banco de Ações Filosóficas (A IA pode alimentar isso futuramente, por ora usamos o banco central)
+  const actionPool = [
+    { id: 1, text: 'Li ou estudei um texto filosófico profundo', value: 10, type: 'positive' },
+    { id: 2, text: 'Cedi à gula ou comi para anestesiar emoções', value: -10, type: 'negative' },
+    { id: 3, text: 'Reagi com raiva ou impaciência a um imprevisto', value: -15, type: 'negative' },
+    { id: 4, text: 'Enfrentei uma situação difícil mantendo a paz interior', value: 15, type: 'positive' },
+    { id: 5, text: 'Participei de fofocas ou críticas inúteis', value: -10, type: 'negative' },
+    { id: 6, text: 'Cumpri um dever mesmo com muita preguiça', value: 15, type: 'positive' },
+    { id: 7, text: 'Perdi tempo precioso com entretenimento vazio/redes sociais', value: -15, type: 'negative' },
+    { id: 8, text: 'Fiz um sacrifício silencioso ou ajudei alguém sem esperar nada', value: 20, type: 'positive' },
+    { id: 9, text: 'Justifiquei um erro meu usando circunstâncias externas', value: -15, type: 'negative' },
+    { id: 10, text: 'Mantive a ordem e a limpeza no meu ambiente de trabalho/casa', value: 10, type: 'positive' }
+  ];
+  
+  const [displayedActions, setDisplayedActions] = useState([]);
+
+  // Embaralha e escolhe 3 ações quando o modal abre
+  useEffect(() => {
+    if (showConsciousnessModal && displayedActions.length === 0) {
+      const shuffled = [...actionPool].sort(() => 0.5 - Math.random());
+      setDisplayedActions(shuffled.slice(0, 3));
+    }
+  }, [showConsciousnessModal]);
+
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 850);
     window.addEventListener('resize', handleResize);
@@ -1247,17 +1276,25 @@ function App() {
         dossie += `\n`;
       });
 
-      const prompt = `Você é um Instrutor Filosófico (com profundo conhecimento do Bhagavad Gita e estoicismo) analisando o diário de um discípulo. 
-      Sua missão é identificar o "Kurava da Semana" (o defeito, vício ou desculpa mais recorrente nos últimos 7 dias) e convocar o "Pandava" exato (a virtude) necessário para derrotá-lo.
+      const prompt = `Você é um Instrutor Filosófico analisando o diário de um discípulo. 
+      Sua missão é identificar o "Kurava da Semana" (defeito dominante) e convocar o "Pandava" (virtude).
+      ALÉM DISSO, você deve gerar 10 "Ações de Foro Íntimo" altamente específicas para este aluno.
       
-      DADOS CRUZADOS:
+      Crie armadilhas morais, "falsas virtudes" (ações que parecem boas mas são fugas, ex: "organizei a mesa para adiar o trabalho"), e vitórias silenciosas baseadas no texto dele.
+
+      DADOS CRUZADOS DOS ÚLTIMOS 7 DIAS:
       ${dossie}
 
       Retorne ESTRITAMENTE um objeto JSON válido com estas chaves:
-      "kurava": "O nome do defeito/vício em 1 ou 2 palavras (ex: Procrastinação, Vaidade, Reatividade).",
-      "pandava": "A Virtude exata para combatê-lo (ex: Ordem, Humildade, Temperança).",
-      "diagnostico": "Explique em 2 linhas de forma fria onde esse Kurava se escondeu nas respostas e entrelinhas do aluno.",
-      "estrategia": "Uma ação prática de 1 linha invocando a força do Pandava para o dia de hoje."
+      "kurava": "Nome do defeito/vício (1 ou 2 palavras)",
+      "pandava": "A Virtude exata para combatê-lo",
+      "diagnostico": "Explique de forma fria onde esse Kurava se escondeu nas respostas.",
+      "estrategia": "Ação prática de 1 linha.",
+      "acoesForoIntimo": [
+        { "id": 1, "text": "Frase da ação em primeira pessoa (ex: Senti raiva e segurei a língua)", "value": 15, "type": "positive" },
+        { "id": 2, "text": "Frase da ação (ex: Gastei horas lendo teoria para não agir)", "value": -15, "type": "negative" }
+        // ... Gere exatamente 10 itens (valores de -20 a +20).
+      ]
       `;
 
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, { 
@@ -2060,6 +2097,79 @@ function App() {
     return Math.max(0, Math.min(100, altitude));
   };
   const altitude = calculateConsciousness();
+
+  // --- MOTOR DA CONSCIÊNCIA (FÍSICA DO BALÃO) ---
+  const calculateConsciousness = () => {
+    let altitude = 40; // Base: A inércia natural puxa pra baixo
+
+    // 1. O Peso do Passado (Omissões)
+    const ultimosDias = entries.slice(0, 3);
+    ultimosDias.forEach(e => {
+      if (e.whereIFailed) altitude -= 5;
+      if (e.whatILeftUndone) altitude -= 3;
+      if (!e.didMorning) altitude -= 5;
+    });
+
+    // 2. O Kurava da Semana (A sombra ativa)
+    if (kuravaData) altitude -= 15; 
+
+    // 3. O Fogo da Vontade (Hábito empurra para cima)
+    altitude += Math.min(streak * 2, 20); // Constância
+    altitude += Math.min(fvTasksStreak * 3, 20); // Práticas FV
+
+    // 4. O Calor do Dia (Ações)
+    if (morningDone) altitude += 10;
+    const completedTasksCount = getTasksForToday().filter(t => todayTasksStatus[t.id]).length;
+    altitude += (completedTasksCount * 4); 
+
+    // 5. A Lista Renovável (Ações Imediatas de Foro Íntimo)
+    altitude += manualAltitudeModifier;
+
+    return Math.max(0, Math.min(100, altitude));
+  };
+  
+  const altitude = calculateConsciousness();
+
+  // Puxa as ações da IA (se existirem) ou usa as de fallback
+  const currentActionPool = (kuravaData && kuravaData.acoesForoIntimo) ? kuravaData.acoesForoIntimo : actionPool;
+
+  useEffect(() => {
+    if (showConsciousnessModal && displayedActions.length === 0) {
+      const shuffled = [...currentActionPool].sort(() => 0.5 - Math.random());
+      setDisplayedActions(shuffled.slice(0, 3));
+    }
+  }, [showConsciousnessModal, currentActionPool]);
+
+  // Função central para trocar a ação na tela
+  const replaceAction = (actionIdToRemove) => {
+    setDisplayedActions(prev => {
+      const remaining = prev.filter(a => a.id !== actionIdToRemove);
+      const available = currentActionPool.filter(a => !remaining.find(d => d.id === a.id) && a.id !== actionIdToRemove);
+      if (available.length > 0) {
+        const randomNew = available[Math.floor(Math.random() * available.length)];
+        remaining.push(randomNew);
+      }
+      return remaining;
+    });
+  };
+
+  // Clique com Honra (Ganha o brilho verde antes de sumir)
+  const handleActionClick = (action) => {
+    if (animatingActionId) return; // Evita cliques duplos
+    setAnimatingActionId(action.id);
+    
+    // Pequeno delay para o usuário ver o botão ficar verde
+    setTimeout(() => {
+      setManualAltitudeModifier(prev => prev + action.value);
+      replaceAction(action.id);
+      setAnimatingActionId(null);
+    }, 400); 
+  };
+
+  // Dispensar (Pula sem alterar a nota)
+  const handleSkipAction = (action) => {
+    replaceAction(action.id);
+  };
 
   if (loading) {
     return (
@@ -4506,6 +4616,135 @@ function App() {
                     {getTasksForToday().filter(t => todayTasksStatus[t.id]).length > 0 && <li>Práticas diárias concluídas (<span style={{ color: '#4caf50' }}>Subindo</span>)</li>}
                     {kuravaData && <li>A presença não combatida do Kurava da Semana (<span style={{ color: '#e74c3c' }}>-15%</span>)</li>}
                   </ul>
+
+                  <button onClick={() => setShowConsciousnessModal(false)} style={{ width: '100%', marginTop: '2rem', padding: '1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
+                    Retornar à Batalha
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* O EIXO DE KURUKSHETRA (TERMÔMETRO VISUAL DE CONSCIÊNCIA) */}
+      {user && view === 'today' && (
+        <>
+          {/* WIDGET FLUTUANTE GRÁFICO (O Balão e a Coluna) */}
+          <div style={{ position: 'fixed', left: '20px', top: '150px', bottom: '100px', width: '60px', zIndex: 9997, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', background: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)', borderRadius: '30px', padding: '10px 0', border: `1px solid ${isDark ? 'rgba(255,215,0,0.1)' : 'rgba(139,115,85,0.1)'}` }}>
+            
+            {/* O Topo: Krishna (Sattva / Sabedoria) */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem', opacity: altitude >= 80 ? 1 : 0.4, transition: 'opacity 0.5s' }}>
+              <Sun size={28} color={isDark ? '#FFD700' : '#f39c12'} style={{ filter: altitude >= 80 ? 'drop-shadow(0 0 10px rgba(255,215,0,0.8))' : 'none' }} />
+            </div>
+
+            {/* O Eixo Invisível por onde o balão corre */}
+            <div style={{ position: 'relative', width: '4px', flex: 1, background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)', margin: '10px 0', borderRadius: '2px' }}>
+              
+              {/* Arjuna (O Balão) Subindo e Descendo */}
+              <div 
+                onClick={() => setShowConsciousnessModal(true)}
+                title="Elevar Consciência"
+                style={{ position: 'absolute', left: '50%', bottom: `${altitude}%`, transform: 'translate(-50%, 50%)', cursor: 'pointer', transition: 'bottom 1.5s cubic-bezier(0.25, 1, 0.5, 1)', zIndex: 9998, display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+              >
+                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: altitude >= 70 ? (isDark ? '#FFD700' : '#FFB300') : (altitude <= 30 ? '#e74c3c' : (isDark ? '#b8a88a' : '#8b7355')), display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 ${altitude >= 70 ? '20px' : '10px'} ${altitude >= 70 ? 'rgba(255,215,0,0.6)' : (altitude <= 30 ? 'rgba(231,76,60,0.6)' : 'rgba(0,0,0,0.2)')}`, transition: 'all 0.5s' }}>
+                  <Flame size={20} color={altitude >= 70 ? '#000' : '#fff'} />
+                </div>
+                <div style={{ width: '12px', height: '10px', background: isDark ? '#f0e6d2' : '#2c1810', borderRadius: '0 0 4px 4px', marginTop: '2px' }}></div>
+                <div style={{ background: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)', padding: '2px 6px', borderRadius: '10px', fontSize: '0.7rem', fontWeight: 'bold', color: isDark ? '#f0e6d2' : '#2c1810', marginTop: '4px', border: `1px solid ${isDark ? 'rgba(255,215,0,0.3)' : 'rgba(0,0,0,0.1)'}` }}>
+                  {altitude}%
+                </div>
+              </div>
+            </div>
+
+            {/* O Chão: Kuravas (Tamas / Inércia) */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem', opacity: altitude <= 30 ? 1 : 0.4, transition: 'opacity 0.5s' }}>
+              <Swords size={28} color="#e74c3c" style={{ filter: altitude <= 30 ? 'drop-shadow(0 0 10px rgba(231,76,60,0.8))' : 'none' }} />
+            </div>
+          </div>
+
+          {/* O MODAL INTERATIVO (A LISTA RENOVÁVEL) */}
+          {showConsciousnessModal && (
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(8px)' }} onClick={() => setShowConsciousnessModal(false)}>
+              <div className="animate-fadeIn" style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '0', borderRadius: '16px', maxWidth: '500px', width: '100%', border: `2px solid ${altitude >= 70 ? '#FFD700' : (altitude <= 30 ? '#e74c3c' : '#8b7355')}`, overflow: 'hidden', boxShadow: '0 10px 50px rgba(0,0,0,0.5)' }} onClick={(e) => e.stopPropagation()}>
+                
+                {/* CABEÇALHO GRÁFICO */}
+                <div style={{ background: altitude >= 70 ? 'linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,165,0,0.2))' : (altitude <= 30 ? 'linear-gradient(135deg, rgba(231,76,60,0.2), rgba(192,57,43,0.2))' : 'linear-gradient(135deg, rgba(139,115,85,0.1), rgba(107,68,35,0.1))'), padding: '2rem 1.5rem', textAlign: 'center', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, position: 'relative' }}>
+                  <button onClick={() => setShowConsciousnessModal(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}><X size={24} /></button>
+                  {altitude >= 70 ? <Sun size={48} color="#FFD700" style={{ margin: '0 auto 1rem' }} /> : (altitude <= 30 ? <Swords size={48} color="#e74c3c" style={{ margin: '0 auto 1rem' }} /> : <Mountain size={48} color="#8b7355" style={{ margin: '0 auto 1rem' }} />)}
+                  <h2 style={{ margin: '0 0 0.5rem 0', fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.6rem' }}>Estado de Consciência</h2>
+                  <div style={{ fontSize: '3.5rem', fontWeight: 'bold', fontFamily: "'Cinzel', serif", color: altitude >= 70 ? (isDark ? '#FFD700' : '#d4af37') : (altitude <= 30 ? '#e74c3c' : (isDark ? '#b8a88a' : '#8b7355')) }}>
+                    {altitude}%
+                  </div>
+                </div>
+
+                <div style={{ padding: '2rem 1.5rem' }}>
+                  
+                  {/* O DIÁLOGO ARQUETÍPICO */}
+                  <div style={{ background: isDark ? 'rgba(255, 255, 255, 0.03)' : '#f5f5f5', padding: '1.2rem', borderRadius: '12px', borderLeft: `4px solid ${altitude >= 70 ? '#FFD700' : (altitude <= 30 ? '#e74c3c' : '#8b7355')}`, marginBottom: '2rem' }}>
+                    {altitude <= 30 ? (
+                      <p style={{ margin: 0, fontStyle: 'italic', fontSize: '1.05rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.6' }}><strong>Kuravas:</strong> "Sim... continue reagindo aos seus instintos e ignorando suas práticas. A gravidade é o nosso domínio. Deixe a mente afundar na matéria."</p>
+                    ) : altitude >= 70 ? (
+                      <p style={{ margin: 0, fontStyle: 'italic', fontSize: '1.05rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.6' }}><strong>Krishna:</strong> "A sua mente repousa no alto, Arjuna. Firme como uma chama num local sem vento. Mantenha a vigília, pois os ventos da distração sopram fortes."</p>
+                    ) : (
+                      <p style={{ margin: 0, fontStyle: 'italic', fontSize: '1.05rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.6' }}><strong>A Voz da Consciência:</strong> "A batalha está empatada. Você não caiu nas sombras, mas ainda não se ergueu à luz. Qual será a sua próxima ação?"</p>
+                    )}
+                  </div>
+
+                  {/* A LISTA RENOVÁVEL DINÂMICA */}
+                  <h4 style={{ margin: '0 0 1rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.1rem', fontFamily: "'Cinzel', serif" }}>Ações do Foro Íntimo (Hoje):</h4>
+                  <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '1rem', fontStyle: 'italic' }}>Clique nas ações que você realizou hoje que não estão nos registros:</p>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {displayedActions.map(action => {
+                      const isAnimating = animatingActionId === action.id;
+                      
+                      return (
+                        <div key={action.id} style={{ display: 'flex', gap: '0.5rem' }}>
+                          
+                          {/* O BOTÃO PRINCIPAL (Ação de confessar) */}
+                          <button 
+                            onClick={() => handleActionClick(action)}
+                            disabled={animatingActionId !== null}
+                            style={{ 
+                              flex: 1, padding: '1rem', textAlign: 'left', 
+                              // Se estiver animando, brilha em verde sucesso. Se não, neutro.
+                              background: isAnimating ? '#4caf50' : (isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)'), 
+                              color: isAnimating ? '#fff' : (isDark ? '#f0e6d2' : '#2c1810'), 
+                              border: `1px solid ${isAnimating ? '#4caf50' : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)')}`, 
+                              borderRadius: '8px', cursor: animatingActionId ? 'default' : 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.95rem',
+                              transition: 'all 0.3s ease', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                              transform: isAnimating ? 'scale(0.98)' : 'scale(1)',
+                              boxShadow: isAnimating ? '0 0 15px rgba(76, 175, 80, 0.5)' : 'none'
+                            }}
+                            onMouseOver={(e) => { if(!animatingActionId) e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.15)' : 'rgba(139, 115, 85, 0.1)' }}
+                            onMouseOut={(e) => { if(!animatingActionId) e.currentTarget.style.background = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)' }}
+                          >
+                            <span>{action.text}</span>
+                            {/* O ícone de Check aparece rápido se clicado */}
+                            {isAnimating && <CheckCircle size={18} color="#fff" />}
+                          </button>
+
+                          {/* O BOTÃO DE DISPENSAR (Refresh/Pular) */}
+                          <button
+                            onClick={() => handleSkipAction(action)}
+                            disabled={animatingActionId !== null}
+                            title="Não ocorreu hoje"
+                            style={{ 
+                              padding: '0 1rem', background: 'transparent', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`,
+                              borderRadius: '8px', color: isDark ? '#b8a88a' : '#6b5744', cursor: animatingActionId ? 'default' : 'pointer',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
+                            }}
+                            onMouseOver={(e) => { if(!animatingActionId) e.currentTarget.style.background = 'rgba(231, 76, 60, 0.1)'; e.currentTarget.style.color = '#e74c3c'; e.currentTarget.style.borderColor = '#e74c3c'; }}
+                            onMouseOut={(e) => { if(!animatingActionId) e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = isDark ? '#b8a88a' : '#6b5744'; e.currentTarget.style.borderColor = isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'; }}
+                          >
+                            <X size={18} />
+                          </button>
+
+                        </div>
+                      );
+                    })}
+                  </div>
 
                   <button onClick={() => setShowConsciousnessModal(false)} style={{ width: '100%', marginTop: '2rem', padding: '1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
                     Retornar à Batalha
