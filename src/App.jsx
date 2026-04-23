@@ -213,8 +213,10 @@ function App() {
   const [newTaskMonthDay, setNewTaskMonthDay] = useState(1);
   const [newTaskBaseDate, setNewTaskBaseDate] = useState(''); 
   const [editingTaskId, setEditingTaskId] = useState(null);
-  const [yearGoals, setYearGoals] = useState('');
-  const [lifeGoals, setLifeGoals] = useState('');
+  const [virtueGoals, setVirtueGoals] = useState([]);
+  const [projectGoals, setProjectGoals] = useState([]);
+  const [newVirtueGoal, setNewVirtueGoal] = useState('');
+  const [newProjectGoal, setNewProjectGoal] = useState('');
   const [showGoalsEditor, setShowGoalsEditor] = useState(false);
   const [selectedVirtueDetail, setSelectedVirtueDetail] = useState(null);
   const [entries, setEntries] = useState([]);
@@ -876,8 +878,8 @@ function App() {
       const goalsDoc = await getDoc(doc(db, 'longTermGoals', uid));
       if (goalsDoc.exists()) {
         const data = goalsDoc.data();
-        setYearGoals(data.yearGoals || '');
-        setLifeGoals(data.lifeGoals || '');
+        setVirtueGoals(data.virtueGoals || []);
+        setProjectGoals(data.projectGoals || []);
         setAiSuggestedGoals(data.aiSuggestedGoals || null);
       }
     } catch (error) { console.error('Erro ao carregar metas:', error); }
@@ -1128,12 +1130,48 @@ function App() {
     }
   };
 
-  const saveLongTermGoals = async () => {
-    if (user) {
-      try {
-        await setDoc(doc(db, 'longTermGoals', user.uid), { yearGoals, lifeGoals, updatedAt: Timestamp.now() });
-        setShowGoalsEditor(false); alert('✅ Metas salvas com sucesso!');
-      } catch (error) { alert('Erro ao salvar metas.'); }
+  const saveLongTermGoals = async (vGoals, pGoals) => {
+    if (!user) return;
+    try {
+      await setDoc(doc(db, 'longTermGoals', user.uid), { 
+        virtueGoals: vGoals || virtueGoals, 
+        projectGoals: pGoals || projectGoals, 
+        updatedAt: Timestamp.now() 
+      }, { merge: true });
+    } catch (error) { console.error('Erro ao salvar metas:', error); }
+  };
+
+  const addVirtueGoal = () => {
+    if (!newVirtueGoal.trim()) return;
+    const newList = [...virtueGoals, { id: Date.now(), text: newVirtueGoal, completed: false }];
+    setVirtueGoals(newList); setNewVirtueGoal(''); saveLongTermGoals(newList, null);
+  };
+
+  const addProjectGoal = () => {
+    if (!newProjectGoal.trim()) return;
+    const newList = [...projectGoals, { id: Date.now(), text: newProjectGoal, completed: false }];
+    setProjectGoals(newList); setNewProjectGoal(''); saveLongTermGoals(null, newList);
+  };
+
+  const toggleGoal = (id, type) => {
+    if (type === 'virtue') {
+      const newList = virtueGoals.map(g => g.id === id ? { ...g, completed: !g.completed } : g);
+      setVirtueGoals(newList); saveLongTermGoals(newList, null);
+    } else {
+      const newList = projectGoals.map(g => g.id === id ? { ...g, completed: !g.completed } : g);
+      setProjectGoals(newList); saveLongTermGoals(null, newList);
+    }
+  };
+
+  const removeGoal = (id, type) => {
+    if(window.confirm("Deseja excluir esta meta?")) {
+      if (type === 'virtue') {
+        const newList = virtueGoals.filter(g => g.id !== id);
+        setVirtueGoals(newList); saveLongTermGoals(newList, null);
+      } else {
+        const newList = projectGoals.filter(g => g.id !== id);
+        setProjectGoals(newList); saveLongTermGoals(null, newList);
+      }
     }
   };
 
@@ -1145,8 +1183,8 @@ function App() {
       const prompt = `Você é um Mentor Filosófico e Estrategista Comportamental.
       Analise a Visão de Longo Prazo e as Metas Anuais do aluno, e cruze isso com suas falhas recentes (Guarda Baixada) extraídas do seu autoexame.
       
-      Metas do Ano: ${yearGoals || 'Não definidas'}
-      Visão de Vida: ${lifeGoals || 'Não definida'}
+      Sonhos (Virtudes a Desenvolver): ${virtueGoals.map(g => g.text).join(' | ') || 'Não definidas'}
+      Projetos (Ações no Mundo): ${projectGoals.map(g => g.text).join(' | ') || 'Não definidos'}
       Onde a Guarda Baixou (Fraquezas recentes): ${aiGuarda || 'Nenhuma fraqueza registrada ainda'}
       
       Crie 3 "Missões de Ciclo" (metas práticas de 15 dias, contraintuitivas e focadas na raiz do problema) para forçar o aluno a sair da zona de conforto e alinhar suas ações aos seus objetivos.
@@ -1173,7 +1211,7 @@ function App() {
       setAiSuggestedGoals(parsedData);
 
       await setDoc(doc(db, 'longTermGoals', user.uid), { 
-        yearGoals, lifeGoals, aiSuggestedGoals: parsedData, updatedAt: Timestamp.now() 
+        virtueGoals, projectGoals, aiSuggestedGoals: parsedData, updatedAt: Timestamp.now() 
       }, { merge: true });
 
     } catch (error) { 
@@ -2444,35 +2482,76 @@ function App() {
         {view === 'goals' && (
           <div className="animate-fadeIn">
             <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+              
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
                 <Target size={32} color={isDark ? '#d4af37' : '#6b4423'} />
-                <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif" }}>Metas de Longo Prazo</h2>
+                <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif" }}>Horizonte de Vida</h2>
               </div>
-              <p style={{ color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2rem', fontSize: '1rem', fontStyle: 'italic' }}>"Amanhã" - Descreva como você deseja ser no futuro</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: 600, fontSize: '1.1rem', color: isDark ? '#d4af37' : '#6b4423', fontFamily: "'Cinzel', serif" }}>Metas para Este Ano</label>
-                  <textarea value={yearGoals} onChange={(e) => setYearGoals(e.target.value)} placeholder="Como você quer estar no final deste ano? Que virtudes quer ter desenvolvido?" rows={6} style={{ width: '100%', padding: '1rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#6b4423'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical', lineHeight: '1.7' }} />
+              <p style={{ color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2rem', fontSize: '1rem', fontStyle: 'italic' }}>O que o homem constrói no mundo reflete o que ele constrói em si mesmo.</p>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
+                
+                {/* BLOCO 1: SONHOS (VIRTUDES) */}
+                <div style={{ background: isDark ? 'rgba(212, 175, 55, 0.05)' : '#fffbf0', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}` }}>
+                  <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#d4af37' : '#6b4423', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Star size={20} /> Sonhos (Forja Interior)</h3>
+                  <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '1rem' }}>Virtudes e qualidades que deseja conquistar.</p>
+                  
+                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                    <input type="text" value={newVirtueGoal} onChange={(e) => setNewVirtueGoal(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter') addVirtueGoal() }} placeholder="Ex: Desenvolver mais paciência..." style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                    <button onClick={addVirtueGoal} style={{ padding: '0 1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}><Plus size={20} /></button>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {virtueGoals.map(goal => (
+                      <div key={goal.id} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '0.75rem', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', borderRadius: '8px', border: `1px solid ${goal.completed ? '#4caf50' : (isDark ? 'rgba(212, 175, 55, 0.2)' : '#eee')}` }}>
+                        <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', cursor: 'pointer', flex: 1 }}>
+                          <input type="checkbox" checked={goal.completed} onChange={() => toggleGoal(goal.id, 'virtue')} style={{ width: '18px', height: '18px', marginTop: '0.2rem', accentColor: '#d4af37' }} />
+                          <span style={{ color: isDark ? '#f0e6d2' : '#2c1810', textDecoration: goal.completed ? 'line-through' : 'none', opacity: goal.completed ? 0.6 : 1, lineHeight: '1.4' }}>{goal.text}</span>
+                        </label>
+                        <button onClick={() => removeGoal(goal.id, 'virtue')} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer', padding: '0.2rem' }}><X size={16} /></button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: 600, fontSize: '1.1rem', color: isDark ? '#d4af37' : '#6b4423', fontFamily: "'Cinzel', serif" }}>Visão de Longo Prazo (Vida)</label>
-                  <textarea value={lifeGoals} onChange={(e) => setLifeGoals(e.target.value)} placeholder="Qual é sua visão maior? Que tipo de pessoa você quer ser?" rows={8} style={{ width: '100%', padding: '1rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#6b4423'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical', lineHeight: '1.7' }} />
+
+                {/* BLOCO 2: PROJETOS (AÇÕES NO MUNDO) */}
+                <div style={{ background: isDark ? 'rgba(74, 144, 226, 0.05)' : '#f4f8ff', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(74, 144, 226, 0.2)' : 'rgba(74, 144, 226, 0.2)'}` }}>
+                  <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#6cb2eb' : '#2980b9', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Landmark size={20} /> Projetos (Obras no Mundo)</h3>
+                  <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '1rem' }}>Conquistas práticas, estudos, viagens, etc.</p>
+                  
+                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                    <input type="text" value={newProjectGoal} onChange={(e) => setNewProjectGoal(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter') addProjectGoal() }} placeholder="Ex: Terminar a leitura do Bastião X..." style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(74, 144, 226, 0.4)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                    <button onClick={addProjectGoal} style={{ padding: '0 1rem', background: isDark ? '#6cb2eb' : '#2980b9', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}><Plus size={20} /></button>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {projectGoals.map(goal => (
+                      <div key={goal.id} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '0.75rem', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', borderRadius: '8px', border: `1px solid ${goal.completed ? '#4caf50' : (isDark ? 'rgba(74, 144, 226, 0.2)' : '#eee')}` }}>
+                        <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', cursor: 'pointer', flex: 1 }}>
+                          <input type="checkbox" checked={goal.completed} onChange={() => toggleGoal(goal.id, 'project')} style={{ width: '18px', height: '18px', marginTop: '0.2rem', accentColor: isDark ? '#6cb2eb' : '#2980b9' }} />
+                          <span style={{ color: isDark ? '#f0e6d2' : '#2c1810', textDecoration: goal.completed ? 'line-through' : 'none', opacity: goal.completed ? 0.6 : 1, lineHeight: '1.4' }}>{goal.text}</span>
+                        </label>
+                        <button onClick={() => removeGoal(goal.id, 'project')} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer', padding: '0.2rem' }}><X size={16} /></button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <button onClick={saveLongTermGoals} style={{ padding: '1rem 2rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', alignSelf: 'flex-end' }}><Save size={20} /> Salvar Metas</button>
+
               </div>
 
-              <div style={{ borderTop: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, marginTop: '1rem', paddingTop: '2rem' }}>
+              {/* O ORÁCULO FICA AQUI EMBAIXO */}
+              <div style={{ borderTop: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, marginTop: '2rem', paddingTop: '2rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
                     <h3 style={{ margin: 0, color: isDark ? '#FFD700' : '#996515', fontSize: '1.3rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <Sparkles size={22} /> Forja de Missões (IA)
                     </h3>
-                    <button onClick={generateAiGoals} disabled={isGeneratingGoals || !yearGoals} style={{ padding: '0.6rem 1.2rem', background: isGeneratingGoals ? (isDark ? 'rgba(255, 152, 0, 0.15)' : '#fff3e0') : 'transparent', color: isGeneratingGoals ? (isDark ? '#ff9800' : '#e65100') : (isDark ? '#FFD700' : '#996515'), border: `1px solid ${isGeneratingGoals ? (isDark ? '#ff9800' : '#ffb74d') : (isDark ? '#FFD700' : '#996515')}`, borderRadius: '8px', cursor: (isGeneratingGoals || !yearGoals) ? 'not-allowed' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.3s ease' }}>
+                    <button onClick={generateAiGoals} disabled={isGeneratingGoals || (virtueGoals.length === 0 && projectGoals.length === 0)} style={{ padding: '0.6rem 1.2rem', background: isGeneratingGoals ? (isDark ? 'rgba(255, 152, 0, 0.15)' : '#fff3e0') : 'transparent', color: isGeneratingGoals ? (isDark ? '#ff9800' : '#e65100') : (isDark ? '#FFD700' : '#996515'), border: `1px solid ${isGeneratingGoals ? (isDark ? '#ff9800' : '#ffb74d') : (isDark ? '#FFD700' : '#996515')}`, borderRadius: '8px', cursor: (isGeneratingGoals || (virtueGoals.length === 0 && projectGoals.length === 0)) ? 'not-allowed' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.3s ease' }}>
                       {isGeneratingGoals ? <Sparkles className="animate-spin" size={16} /> : <Target size={16} />}
                       {isGeneratingGoals ? 'Consultando o Oráculo...' : 'Gerar Missões de Ciclo (15 dias)'}
                     </button>
                   </div>
 
-                  {!yearGoals && <p style={{ fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic' }}>Escreva e salve suas metas de longo prazo acima para que a IA possa cruzá-las com os seus erros do diário.</p>}
+                  {(virtueGoals.length === 0 && projectGoals.length === 0) && <p style={{ fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic' }}>Adicione ao menos um Sonho ou Projeto acima para que a IA possa gerar suas missões cruzadas.</p>}
 
                   {aiSuggestedGoals && (
                     <div className="animate-fadeIn" style={{ background: isDark ? 'rgba(0,0,0,0.3)' : '#fdfbf7', padding: '1.5rem', borderRadius: '12px', border: `1px dashed ${isDark ? 'rgba(255, 215, 0, 0.4)' : 'rgba(153, 101, 21, 0.3)'}` }}>
@@ -2491,7 +2570,7 @@ function App() {
                       </div>
                     </div>
                   )}
-                </div>
+              </div>
 
             </div>
           </div>
