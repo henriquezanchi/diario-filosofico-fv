@@ -1623,9 +1623,15 @@ function App() {
   const exportFvReportTXT = () => {
     if (entries.length === 0) { alert('Não há entradas para exportar'); return; }
     
+    const totals = getFvMonthlyTotals();
     let txtContent = `====================================================\n`;
-    txtContent += `    RELATÓRIO DE PREPARAÇÃO - CARTA DE DEGRAU\n`;
-    txtContent += `    Gerado em: ${new Date().toLocaleDateString('pt-BR')}\n`;
+    txtContent += `      RELATÓRIO DE PREPARAÇÃO - CARTA DE DEGRAU\n`;
+    txtContent += `      Gerado em: ${new Date().toLocaleDateString('pt-BR')}\n`;
+    txtContent += `----------------------------------------------------\n`;
+    txtContent += ` ACUMULADO DO CICLO (ÚLTIMOS 30 DIAS):\n`;
+    txtContent += ` - Voluntariado: ${totals.voluntariado}\n`;
+    txtContent += ` - Aulas Assistidas: ${totals.assistida}\n`;
+    txtContent += ` - Aulas Ministradas: ${totals.ministrada}\n`;
     txtContent += `====================================================\n\n`;
     
     const reversedEntries = [...entries].reverse();
@@ -1796,6 +1802,36 @@ function App() {
   const isDark = theme === 'dark';
   const streakInfo = getStreakInfo(streak);
   const StreakIcon = streakInfo.current.icon; 
+  const getFvMonthlyTotals = () => {
+    const hoje = new Date();
+    const trintaDiasAtras = new Date();
+    trintaDiasAtras.setDate(hoje.getDate() - 30);
+
+    const cicloEntries = entries.filter(e => {
+      const d = new Date(e.date + 'T12:00:00');
+      return d >= trintaDiasAtras && d <= hoje;
+    });
+
+    const sumMinutes = (key) => cicloEntries.reduce((acc, curr) => {
+      if (curr.fvDaily && curr.fvDaily[key]) {
+        const [h, m] = curr.fvDaily[key].split(':').map(Number);
+        return acc + (h * 60 + m);
+      }
+      return acc;
+    }, 0);
+
+    const formatTime = (totalMin) => {
+      const h = Math.floor(totalMin / 60);
+      const m = totalMin % 60;
+      return `${h}h ${String(m).padStart(2, '0')}m`;
+    };
+
+    return {
+      voluntariado: formatTime(sumMinutes('horasVoluntariado')),
+      assistida: formatTime(sumMinutes('horasAulaAssistida')),
+      ministrada: formatTime(sumMinutes('horasAulaMinistrada'))
+    };
+  };
 
   if (loading) {
     return (
@@ -2657,6 +2693,28 @@ function App() {
                         <p style={{ margin: '0.25rem 0 0 0', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.9rem' }}>Dia: {new Date(selectedDate + 'T12:00:00').toLocaleDateString('pt-BR')}</p>
                       </div>
                     </div>
+
+                    {/* BARRA DE ESTATÍSTICAS MENSAIS (30 DIAS) */}
+                  {(() => {
+                    const totals = getFvMonthlyTotals();
+                    return (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: '1rem', marginBottom: '2rem', background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.4)', padding: '1rem', borderRadius: '12px', border: '1px solid rgba(255, 215, 0, 0.3)' }}>
+                        <div style={{ textAlign: 'center' }}>
+                          <span style={{ fontSize: '0.7rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', display: 'block' }}>Total Voluntariado</span>
+                          <strong style={{ fontSize: '1.2rem', color: isDark ? '#FFD700' : '#996515' }}>{totals.voluntariado}</strong>
+                        </div>
+                        <div style={{ textAlign: 'center', borderLeft: isMobile ? 'none' : '1px solid rgba(255,215,0,0.2)', borderTop: isMobile ? '1px solid rgba(255,215,0,0.2)' : 'none', paddingTop: isMobile ? '0.5rem' : '0' }}>
+                          <span style={{ fontSize: '0.7rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', display: 'block' }}>Aulas Assistidas</span>
+                          <strong style={{ fontSize: '1.2rem', color: isDark ? '#FFD700' : '#996515' }}>{totals.assistida}</strong>
+                        </div>
+                        <div style={{ textAlign: 'center', borderLeft: isMobile ? 'none' : '1px solid rgba(255,215,0,0.2)', borderTop: isMobile ? '1px solid rgba(255,215,0,0.2)' : 'none', paddingTop: isMobile ? '0.5rem' : '0' }}>
+                          <span style={{ fontSize: '0.7rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', display: 'block' }}>Aulas Ministradas</span>
+                          <strong style={{ fontSize: '1.2rem', color: isDark ? '#FFD700' : '#996515' }}>{totals.ministrada}</strong>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                     <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: fvDiaryStreak > 0 ? 'rgba(74, 144, 226, 0.15)' : (isDark ? 'rgba(255,255,255,0.05)' : '#fff'), border: `1px solid ${fvDiaryStreak > 0 ? '#4A90E2' : (isDark ? '#555' : '#ccc')}`, borderRadius: '20px', color: fvDiaryStreak > 0 ? '#4A90E2' : (isDark ? '#aaa' : '#777'), fontWeight: 'bold' }}>
                         <Mountain size={18} /> {fvDiaryStreak}
