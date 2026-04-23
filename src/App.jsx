@@ -252,8 +252,7 @@ function App() {
   // Estado Diário da Carta de Degrau FV
   const [fvDaily, setFvDaily] = useState({
     item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
-    horasGuarda: '', horasAula: '',
-    gdveTasksStatus: {}, gdveAttendance: false,
+    horasVoluntariado: '', horasAulaAssistida: '', horasAulaMinistrada: '', gdveTasksStatus: {}, gdveAttendance: false,    gdveTasksStatus: {}, gdveAttendance: false,
     praticas: {
       tratak: false, recitarHonra: false, recitar7Fases: false,
       camara: false, templo: false, porta: false, patioAberto: false,
@@ -317,7 +316,7 @@ function App() {
       tasksSnapshot: data.tasksSnapshot || [],
       fvDaily: data.fvDaily || {
         item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
-        horasGuarda: '', horasAula: '', gdveTasksStatus: {}, gdveAttendance: false,
+        horasVoluntariado: '', horasAulaAssistida: '', horasAulaMinistrada: '', gdveTasksStatus: {}, gdveAttendance: false,
         praticas: { tratak: false, recitarHonra: false, recitar7Fases: false, camara: false, templo: false, porta: false, patioAberto: false, patioColunas: false, santuario: false }
       }
     };
@@ -487,7 +486,7 @@ function App() {
     setSelectedDate(getTodayKey()); 
     setFvDaily({
       item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
-      horasGuarda: '', horasAula: '', gdveTasksStatus: {}, gdveAttendance: false,
+      horasVoluntariado: '', horasAula: '', gdveTasksStatus: {}, gdveAttendance: false,
       praticas: { tratak: false, recitarHonra: false, recitar7Fases: false, camara: false, templo: false, porta: false, patioAberto: false, patioColunas: false, santuario: false }
     });
   };
@@ -725,7 +724,7 @@ function App() {
         setTodayTasksStatus(data.tasksStatus || {});
         setFvDaily(data.fvDaily || {
           item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
-          horasGuarda: '', horasAula: '', gdveTasksStatus: {}, gdveAttendance: false,
+          horasVoluntariado: '', horasAula: '', gdveTasksStatus: {}, gdveAttendance: false,
           praticas: { tratak: false, recitarHonra: false, recitar7Fases: false, camara: false, templo: false, porta: false, patioAberto: false, patioColunas: false, santuario: false }
         });
       } else {
@@ -742,7 +741,7 @@ function App() {
         setTodayTasksStatus({});
         setFvDaily({
           item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
-          horasGuarda: '', horasAula: '', gdveTasksStatus: {}, gdveAttendance: false,
+          horasVoluntariado: '', horasAulaAssistida: '', horasAulaMinistrada: '', gdveTasksStatus: {}, gdveAttendance: false,
           praticas: { tratak: false, recitarHonra: false, recitar7Fases: false, camara: false, templo: false, porta: false, patioAberto: false, patioColunas: false, santuario: false }
         });
       }
@@ -1586,7 +1585,7 @@ function App() {
     
     // Se o modo FV estiver ativado, adicionamos as colunas de 1 a 7 e as práticas
     if (fvUnlocked) {
-      headers.push('FV: 1-Varrer', 'FV: 2-Matéria', 'FV: 3e4-Trabalho', 'FV: 5-Tempo', 'FV: 6-Vícios', 'FV: 7-Virtudes', 'FV: Horas Guarda', 'FV: Horas Aula', 'FV: Práticas Realizadas');
+      headers.push('FV: 1-Varrer', 'FV: 2-Matéria', 'FV: 3e4-Trabalho', 'FV: 5-Tempo', 'FV: 6-Vícios', 'FV: 7-Virtudes', 'FV: Voluntariado', 'FV: Aula Assistida', 'FV: Aula Ministrada', 'FV: Práticas Realizadas');
     }
 
     const rows = entries.map(entry => {
@@ -1607,7 +1606,7 @@ function App() {
 
         row.push(
           fv.item1 || '', fv.item2 || '', fv.item34 || '', fv.item5 || '', 
-          fv.item6 || '', fv.item7 || '', fv.horasGuarda || '', fv.horasAula || '', praticasText
+          fv.item6 || '', fv.item7 || '', fv.horasVoluntariado || '', fv.horasAulaAssistida || '', fv.horasAulaMinistrada || '', praticasText
         );
       }
       return row;
@@ -1650,8 +1649,8 @@ function App() {
           if (fv.item6) txtContent += `[6] Os Vícios:\n${fv.item6}\n\n`;
           if (fv.item7) txtContent += `[7] Virtudes (Perseverança e Constância):\n${fv.item7}\n\n`;
           
-          if (fv.horasGuarda || fv.horasAula) {
-            txtContent += `[Registro de Horas]\nHoras-Guarda: ${fv.horasGuarda || '--'} | Horas-Aula: ${fv.horasAula || '--'}\n\n`;
+          if (fv.horasVoluntariado || fv.horasAulaAssistida || fv.horasAulaMinistrada) {
+            txtContent += `[Registro de Horas]\nHoras de Voluntariado: ${fv.horasVoluntariado || '--'} | Aula Assistida: ${fv.horasAulaAssistida || '--'} | Aula Ministrada: ${fv.horasAulaMinistrada || '--'}\n\n`;
           }
           txtContent += `\n\n`;
         }
@@ -2683,14 +2682,18 @@ function App() {
                         </div>
                       ))}
 
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
                         <div>
-                          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Horas-Guarda (HH:mm)</label>
-                          <input type="time" value={fvDaily.horasGuarda || ''} onChange={(e) => handleFvDailyTextChange('horasGuarda', e.target.value)} style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.9rem', color: isDark ? '#FFD700' : '#996515' }}>Horas Voluntariado</label>
+                          <input type="time" value={fvDaily.horasVoluntariado || ''} onChange={(e) => handleFvDailyTextChange('horasVoluntariado', e.target.value)} style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
                         </div>
                         <div>
-                          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Horas-Aula (HH:mm)</label>
-                          <input type="time" value={fvDaily.horasAula || ''} onChange={(e) => handleFvDailyTextChange('horasAula', e.target.value)} style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.9rem', color: isDark ? '#FFD700' : '#996515' }}>Aula Assistida</label>
+                          <input type="time" value={fvDaily.horasAulaAssistida || ''} onChange={(e) => handleFvDailyTextChange('horasAulaAssistida', e.target.value)} style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.9rem', color: isDark ? '#FFD700' : '#996515' }}>Aula Ministrada</label>
+                          <input type="time" value={fvDaily.horasAulaMinistrada || ''} onChange={(e) => handleFvDailyTextChange('horasAulaMinistrada', e.target.value)} style={{ width: '100%', padding: '0.75rem', border: '2px solid rgba(255, 215, 0, 0.5)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
                         </div>
                       </div>
 
