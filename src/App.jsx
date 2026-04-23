@@ -242,6 +242,8 @@ function App() {
   const [isGeneratingDiscSync, setIsGeneratingDiscSync] = useState(false);
   const [aiSuggestedGoals, setAiSuggestedGoals] = useState(null);
   const [isGeneratingGoals, setIsGeneratingGoals] = useState(false);
+  const [kuravaData, setKuravaData] = useState(null);
+  const [isGeneratingKurava, setIsGeneratingKurava] = useState(false);
   const [isGeneratingSynthesis, setIsGeneratingSynthesis] = useState(false);
   const [fvGdveDesafios, setFvGdveDesafios] = useState([]);
   const [fvGdveReuniao, setFvGdveReuniao] = useState('');
@@ -473,6 +475,7 @@ function App() {
     setMorningDone(false);
     setEveningDone(false);
     setSelectedVirtue('');
+    setKuravaData(null);
     setCustomVirtue('');
     setDailyIntention('');
     setMorningChallenges('');
@@ -1208,6 +1211,70 @@ function App() {
       const newList = acceptedMissions.filter(m => m.id !== id);
       setAcceptedMissions(newList);
       saveLongTermGoals(null, null, newList);
+    }
+  };
+
+  // --- SISTEMA DE AUDITORIA ATIVA: O CAMPO DE KURUKSHETRA ---
+  const generateKuravaAnalysis = async () => {
+    if (!user) return;
+    setIsGeneratingKurava(true);
+
+    try {
+      const hoje = new Date();
+      const seteDiasAtras = new Date(); seteDiasAtras.setDate(hoje.getDate() - 7);
+      
+      const ultimosDias = entries.filter(e => { 
+        const d = new Date(e.date + 'T12:00:00'); 
+        return d >= seteDiasAtras && d <= hoje; 
+      });
+
+      if (ultimosDias.length === 0) {
+        alert("O campo de batalha está vazio. Preencha o diário nos próximos dias para a IA rastrear seus Kuravas.");
+        setIsGeneratingKurava(false);
+        return;
+      }
+
+      let dossie = `REGISTROS DOS ÚLTIMOS 7 DIAS:\n`;
+      ultimosDias.forEach(e => {
+        dossie += `[${e.date.split('-').reverse().join('/')}] `;
+        if (e.whereIFailed) dossie += `FALHA DECLARADA: ${e.whereIFailed} | `;
+        if (e.whatILeftUndone) dossie += `OMISSÃO: ${e.whatILeftUndone} | `;
+        if (e.freeEpilogue) dossie += `TEXTO LIVRE: ${e.freeEpilogue} | `;
+        dossie += `\n`;
+      });
+
+      const prompt = `Você é um Instrutor Filosófico (com profundo conhecimento do Bhagavad Gita e estoicismo) analisando o diário de um discípulo. 
+      Sua missão é identificar o "Kurava da Semana" (o defeito, vício ou desculpa mais recorrente nos últimos 7 dias) e convocar o "Pandava" exato (a virtude) necessário para derrotá-lo.
+      
+      DADOS CRUZADOS:
+      ${dossie}
+
+      Retorne ESTRITAMENTE um objeto JSON válido com estas chaves:
+      "kurava": "O nome do defeito/vício em 1 ou 2 palavras (ex: Procrastinação, Vaidade, Reatividade).",
+      "pandava": "A Virtude exata para combatê-lo (ex: Ordem, Humildade, Temperança).",
+      "diagnostico": "Explique em 2 linhas de forma fria onde esse Kurava se escondeu nas respostas e entrelinhas do aluno.",
+      "estrategia": "Uma ação prática de 1 linha invocando a força do Pandava para o dia de hoje."
+      `;
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, { 
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json" } }) 
+      });
+      
+      const data = await response.json();
+      if (data.error) throw new Error(data.error.message);
+
+      const parsedData = JSON.parse(data.candidates[0].content.parts[0].text);
+      setKuravaData(parsedData);
+
+      // Salva no banco de dados para não perder ao atualizar a página
+      await setDoc(doc(db, 'fvData', user.uid), { kuravaData: parsedData, kuravaUpdatedAt: Timestamp.now() }, { merge: true });
+
+    } catch (error) { 
+      console.error(error); 
+      alert("Erro ao invocar a auditoria de Kurukshetra."); 
+    } finally { 
+      setIsGeneratingKurava(false); 
     }
   };
 
@@ -2258,6 +2325,54 @@ function App() {
               </div>
             )}
 
+            {/* O CAMPO DE KURUKSHETRA (SISTEMA DE AUDITORIA DE VÍCIOS VS VIRTUDES) */}
+            <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : '#fffbf0', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, borderRadius: '12px', padding: '1.5rem', marginBottom: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem', position: 'relative', overflow: 'hidden' }}>
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', zIndex: 1 }}>
+                <h3 style={{ margin: 0, color: isDark ? '#FFD700' : '#996515', fontSize: '1.2rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Swords size={20} /> A Batalha Interior
+                </h3>
+                <button onClick={generateKuravaAnalysis} disabled={isGeneratingKurava} style={{ padding: '0.5rem 1rem', background: 'transparent', color: isDark ? '#FFD700' : '#996515', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#996515'}`, borderRadius: '6px', cursor: isGeneratingKurava ? 'not-allowed' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', transition: 'all 0.3s ease' }}>
+                  {isGeneratingKurava ? <Sparkles className="animate-spin" size={14} /> : <Search size={14} />}
+                  {isGeneratingKurava ? 'Avaliando o Campo...' : 'Identificar o Kurava Oculto (Últimos 7 dias)'}
+                </button>
+              </div>
+
+              {!kuravaData ? (
+                <p style={{ margin: 0, color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.95rem', fontStyle: 'italic', zIndex: 1 }}>Sua mente é Kurukshetra. Acione o oráculo para cruzar seus últimos 7 dias e revelar qual defeito (Kurava) está dominando o campo, e qual virtude (Pandava) você deve convocar.</p>
+              ) : (
+                <div className="animate-fadeIn" style={{ display: 'grid', gap: '1rem', zIndex: 1 }}>
+                  
+                  {/* DISPLAY DUPLO: KURAVA VS PANDAVA */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                    {/* O KURAVA */}
+                    <div style={{ background: isDark ? 'rgba(231, 76, 60, 0.1)' : '#fff5f5', padding: '1.5rem', borderRadius: '8px', border: `1px dashed ${isDark ? 'rgba(231, 76, 60, 0.4)' : 'rgba(231, 76, 60, 0.4)'}`, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                      <span style={{ fontSize: '0.75rem', color: isDark ? '#e74c3c' : '#c0392b', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', marginBottom: '0.5rem' }}>O Kurava da Semana</span>
+                      <strong style={{ fontSize: '1.6rem', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif" }}>{kuravaData.kurava}</strong>
+                    </div>
+
+                    {/* O PANDAVA */}
+                    <div style={{ background: isDark ? 'rgba(76, 175, 80, 0.1)' : '#f0fdf4', padding: '1.5rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(76, 175, 80, 0.4)' : '#4caf50'}`, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', position: 'relative' }}>
+                      <div style={{ position: 'absolute', top: '-10px', background: isDark ? '#81c784' : '#2e7d32', color: isDark ? '#1a1a2e' : 'white', padding: '0.2rem 0.8rem', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>A Arma</div>
+                      <span style={{ fontSize: '0.75rem', color: isDark ? '#81c784' : '#2e7d32', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', marginBottom: '0.5rem', marginTop: '0.5rem' }}>Invoque o Pandava</span>
+                      <strong style={{ fontSize: '1.6rem', color: isDark ? '#81c784' : '#2e7d32', fontFamily: "'Cinzel', serif", filter: 'drop-shadow(0 0 5px rgba(76, 175, 80, 0.3))' }}>{kuravaData.pandava}</strong>
+                    </div>
+                  </div>
+                  
+                  {/* DIAGNÓSTICO E ESTRATÉGIA */}
+                  <div style={{ background: isDark ? 'rgba(0,0,0,0.3)' : 'white', padding: '1rem', borderRadius: '8px', borderLeft: `3px solid ${isDark ? '#e74c3c' : '#c0392b'}` }}>
+                    <span style={{ fontSize: '0.75rem', color: isDark ? '#e74c3c' : '#c0392b', fontWeight: 'bold', textTransform: 'uppercase' }}>Análise do Campo:</span>
+                    <p style={{ margin: '0.2rem 0 0 0', color: isDark ? '#c8b896' : '#6b5744', fontSize: '0.95rem', lineHeight: '1.5' }}>{kuravaData.diagnostico}</p>
+                  </div>
+
+                  <div style={{ background: isDark ? 'rgba(212, 175, 55, 0.1)' : '#fffbf0', padding: '1rem', borderRadius: '8px', borderLeft: `3px solid ${isDark ? '#FFD700' : '#996515'}` }}>
+                    <span style={{ fontSize: '0.75rem', color: isDark ? '#FFD700' : '#996515', fontWeight: 'bold', textTransform: 'uppercase' }}>Estratégia do Dharma:</span>
+                    <p style={{ margin: '0.2rem 0 0 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem', lineHeight: '1.5', fontStyle: 'italic' }}>"{kuravaData.estrategia}"</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', marginBottom: '2rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
                 <Sunrise size={28} color={isDark ? '#ffd966' : '#ff9800'} />
@@ -2587,16 +2702,33 @@ function App() {
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     {acceptedMissions.map(missao => (
-                      <div key={missao.id} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '1rem', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', borderRadius: '8px', border: `1px solid ${missao.completed ? '#4caf50' : (isDark ? 'rgba(155, 89, 182, 0.3)' : '#e1bee7')}`, transition: 'all 0.3s ease' }}>
-                        <label style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', cursor: 'pointer', flex: 1 }}>
-                          <input type="checkbox" checked={missao.completed} onChange={() => toggleAcceptedMission(missao.id)} style={{ width: '20px', height: '20px', marginTop: '0.1rem', accentColor: '#8e44ad' }} />
-                          <div style={{ opacity: missao.completed ? 0.6 : 1 }}>
-                            <strong style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.05rem', textDecoration: missao.completed ? 'line-through' : 'none', display: 'block', marginBottom: '0.25rem' }}>{missao.titulo}</strong>
+                      <div key={missao.id} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '1rem', background: missao.completed ? (isDark ? 'rgba(76, 175, 80, 0.1)' : '#f0fdf4') : (isDark ? 'rgba(0,0,0,0.3)' : 'white'), borderRadius: '8px', border: `1px solid ${missao.completed ? '#4caf50' : (isDark ? 'rgba(155, 89, 182, 0.3)' : '#e1bee7')}`, transition: 'all 0.3s ease', position: 'relative', overflow: 'hidden' }}>
+                        
+                        {/* EFEITO DE BRILHO SE COMPLETA */}
+                        {missao.completed && <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '100px', height: '100px', background: 'radial-gradient(circle, rgba(76,175,80,0.2) 0%, transparent 70%)', borderRadius: '50%' }}></div>}
+
+                        <label style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', cursor: 'pointer', flex: 1, zIndex: 1 }}>
+                          <input type="checkbox" checked={missao.completed} onChange={() => toggleAcceptedMission(missao.id)} style={{ width: '20px', height: '20px', marginTop: '0.1rem', accentColor: '#4caf50' }} />
+                          <div style={{ opacity: missao.completed ? 0.7 : 1 }}>
+                            <strong style={{ color: missao.completed ? '#4caf50' : (isDark ? '#f0e6d2' : '#2c1810'), fontSize: '1.05rem', textDecoration: missao.completed ? 'line-through' : 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                              {missao.titulo}
+                            </strong>
                             <span style={{ color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.9rem', lineHeight: '1.4', display: 'block' }}>{missao.descricao}</span>
                             <span style={{ color: isDark ? '#c39bd3' : '#8e44ad', fontSize: '0.75rem', fontWeight: 'bold', marginTop: '0.5rem', display: 'block' }}>Assumida em: {missao.startDate.split('-').reverse().join('/')}</span>
                           </div>
                         </label>
-                        <button onClick={() => removeAcceptedMission(missao.id)} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer', padding: '0.2rem' }} title="Abandonar Missão"><X size={18} /></button>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem', zIndex: 1 }}>
+                          <button onClick={() => removeAcceptedMission(missao.id)} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer', padding: '0.2rem' }} title="Abandonar Missão"><X size={18} /></button>
+                          
+                          {/* SELO DE VITÓRIA */}
+                          {missao.completed && (
+                            <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '0.5rem' }}>
+                              <Award size={32} color="#FFD700" style={{ filter: 'drop-shadow(0 0 5px rgba(255,215,0,0.5))' }} />
+                              <span style={{ fontSize: '0.65rem', fontWeight: 'bold', color: '#FFD700', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '0.2rem' }}>Vitória</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
