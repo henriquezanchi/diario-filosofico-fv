@@ -890,6 +890,251 @@ function App() {
     } catch (error) { console.error('Erro ao carregar metas:', error); }
   };
 
+  const loadFVData = async (uid) => {
+    if (!uid) return;
+    try {
+      const docRef = doc(db, 'fvData', uid);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+
+        // 1. Puxa as Datas e Planejamento
+        setFvLastCartaDate(data.lastCartaDate || '');
+        setFvNextCartaDate(data.nextCartaDate || '');
+        setFvGdveReuniao(data.gdveReuniao || '');
+        setFvMasterName(data.fvMasterName || '');
+        setFvLastMeetingDate(data.fvLastMeetingDate || '');
+
+        // 2. Puxa as Tarefas e Status do Grupo
+        setFvGdveTasks(data.gdveTasks || []);
+        setFvGdveCycleStatus(data.gdveCycleStatus || {});
+        setFvGdveBastiaoName(data.fvGdveBastiaoName || '');
+        setFvGdveBastiaoLink(data.fvGdveBastiaoLink || '');
+
+        // 3. Puxa os Relatórios da IA
+        setDiscipularSynthesis(data.discipularSynthesis || null);
+        setFvAiMetricas(data.fvAiMetricas || null);
+        setFvAiAuditoria(data.fvAiAuditoria || null);
+        setFvAiLexical(data.fvAiLexical || null);
+
+        // 4. Limpador Automático de 30 dias para a Síntese Aberta
+        if (data.technicalSynthesis && data.technicalSynthesisDate) {
+          const dataGeracao = new Date(data.technicalSynthesisDate);
+          const hoje = new Date();
+          const diferencaDias = (hoje - dataGeracao) / (1000 * 60 * 60 * 24);
+          
+          if (diferencaDias > 30) {
+            setTechnicalSynthesis(null);
+            setAiGuarda(null); setAiConquistas(null); setAiInvestigacoes(null);
+          } else {
+            setTechnicalSynthesis(data.technicalSynthesis);
+            setAiGuarda(data.aiGuarda || null);
+            setAiConquistas(data.aiConquistas || null);
+            setAiInvestigacoes(data.aiInvestigacoes || null);
+          }
+        } else {
+          setTechnicalSynthesis(data.technicalSynthesis || null);
+          setAiGuarda(data.aiGuarda || null);
+          setAiConquistas(data.aiConquistas || null);
+          setAiInvestigacoes(data.aiInvestigacoes || null);
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao carregar dados da nuvem:", error);
+    }
+  };
+
+
+  const loadMod2Config = async () => {
+    if (!user || fvConfig) return;
+    setIsDownloadingConfig(true);
+    try {
+      // Usa a pasta autorizada do Firebase (fvData) para guardar o motor
+      const docRef = doc(db, 'fvData', user.uid);
+      const docSnap = await getDoc(docRef);
+      
+      if (docSnap.exists() && docSnap.data().config) {
+        setFvConfig(docSnap.data().config);
+      } else {
+        // Textos completos originais restaurados
+        const initialConfig = {
+          tituloAba: "Registro de Ciclo",
+          secaoReflexao: "A Escalada (Reflexões)",
+          itensCarta: [
+            { id: 'item1', label: '1 – VARRER POR DENTRO', desc: 'Exame da personalidade, descobrir os nós, buscar as causas que os geraram, encontrar a fórmula de limpeza (redenção) e aplicá-las.' },
+            { id: 'item2', label: '2 – AS LEIS DA MATÉRIA', desc: 'Descobrir como atuam em nós os ciclos da matéria (para não nos afetarem): instintos de conservação/procriação, idade, enfermidade, ânimo, humor, ideias, sentimentos, ambiente.' },
+            { id: 'item34', label: '3 e 4 – TRABALHO ORDENADO E EFICAZ', desc: 'Colocar ordem na vida. Necessária disciplina e perseverança: exercícios de ordem e limpeza.' },
+            { id: 'item5', label: '5 – ECONOMIA DE TEMPO E ENERGIA', desc: 'Requer atenção.' },
+            { id: 'item6', label: '6 – OS VÍCIOS', desc: 'Superar: preguiça, gula e luxúria e outros da mesma natureza (apatia, moleza, debilidade, negligência). Moderar: álcool e fumo. Proibido: drogas.' },
+            { id: 'item7', label: '7 – AS VIRTUDES: PERSEVERANÇA E CONSTÂNCIA', desc: 'Perseverança: repetir sem rotina com sentido de perfeição. Constância: estabilidade e consciência elevada. (Nota: Comentar sobre frequência no diário, carta, exercícios, ED, etc).' }
+          ],
+          praticas: [
+            { key: 'tratack', label: 'Tratak' },
+            { key: 'recitarHonra', label: 'Recitar Código de Dignidade' },
+            { key: 'recitar7Fases', label: 'Recitar 7 fases da ED' },
+            { key: 'camara', label: 'Câmara de Purificação' }
+          ],
+          modulo2: {
+            titulo: "Módulo GDVE",
+            rotuloLeitura: "Leitura do Ciclo (Bastião)",
+            bancoTemas: [
+              { name: "Bastiões 1976 - 001 a 006", link: "https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=23101&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es" },
+              { name: "Bastiões 1977 - 007 a 017", link: "https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=23102&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es" },
+              { name: "Bastiões 1978 - 018 a 029", link: "https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=23103&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es" },
+              { name: "Bastiões 1979 - 029 a 039", link: "https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=23104&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es" }
+            ]
+          }
+        };
+        await setDoc(docRef, { config: initialConfig }, { merge: true }); 
+        setFvConfig(initialConfig); 
+      }
+    } catch (e) { console.error("Erro ao baixar motor:", e); }
+    setIsDownloadingConfig(false);
+  };
+
+  const saveCustomTask = async () => {
+    if (!newTaskName.trim()) return;
+    if (newTaskRecurrence === 'weekly' && (!newTaskWeekDays || newTaskWeekDays.length === 0)) {
+      alert('Por favor, selecione pelo menos um dia da semana.');
+      return;
+    }
+    if (newTaskRecurrence === 'biweekly' && !newTaskBaseDate) {
+      alert('Por favor, selecione a data de início para a tarefa quinzenal.');
+      return;
+    }
+
+    const isDuplicate = customTasks.some(t => t.name.toLowerCase().trim() === newTaskName.trim().toLowerCase() && t.id !== editingTaskId);
+    if (isDuplicate) {
+      alert('Você já tem uma prática cadastrada com este nome!');
+      return;
+    }
+
+    const uniqueId = editingTaskId || `task_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+    const taskData = {
+      id: uniqueId, name: newTaskName.trim(), recurrence: newTaskRecurrence,
+      weekDays: newTaskRecurrence === 'weekly' ? newTaskWeekDays : [],
+      monthDay: newTaskRecurrence === 'monthly' ? parseInt(newTaskMonthDay) || 1 : 1,
+      baseDate: newTaskRecurrence === 'biweekly' ? newTaskBaseDate : ""
+    };
+
+    let newTasks = editingTaskId ? customTasks.map(t => t.id === editingTaskId ? taskData : t) : [...customTasks, taskData];
+    const cleanTasksForFirebase = JSON.parse(JSON.stringify(newTasks));
+
+    setCustomTasks(cleanTasksForFirebase);
+    setNewTaskName(''); setShowAddTask(false); setEditingTaskId(null);
+    setNewTaskRecurrence('daily'); setNewTaskWeekDays([]); setNewTaskMonthDay(1); setNewTaskBaseDate('');
+
+    if (user) {
+      try { await setDoc(doc(db, 'customTasks', user.uid), { tasks: cleanTasksForFirebase }); } 
+      catch (error) { alert('O Firebase reclamou de algo, mas a tarefa está salva no seu dispositivo.'); }
+    }
+  };
+
+  const startEditingTask = (task) => {
+    setEditingTaskId(task.id); setNewTaskName(task.name); setNewTaskRecurrence(task.recurrence || 'daily');
+    setNewTaskWeekDays(task.weekDays || []); setNewTaskMonthDay(task.monthDay || 1); setNewTaskBaseDate(task.baseDate || ''); 
+    setShowAddTask(true); window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const removeCustomTask = async (taskId) => {
+    const newTasks = customTasks.filter(t => t.id !== taskId);
+    const cleanTasksForFirebase = JSON.parse(JSON.stringify(newTasks));
+    setCustomTasks(cleanTasksForFirebase);
+    if (user) {
+      try { await setDoc(doc(db, 'customTasks', user.uid), { tasks: cleanTasksForFirebase }); } 
+      catch (error) { console.error("Erro ao excluir:", error); }
+    }
+  };
+
+  const toggleTaskStatus = async (taskId) => {
+    const newStatus = { ...todayTasksStatus, [taskId]: !todayTasksStatus[taskId] };
+    setTodayTasksStatus(newStatus);
+
+    if (user) {
+      const todayKey = selectedDate;
+      const updatedSnapshot = getTasksForToday().map(task => ({
+        id: task.id, name: task.name, completed: !!newStatus[task.id]
+      }));
+
+      try {
+        await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), {
+          tasksStatus: newStatus, tasksSnapshot: updatedSnapshot
+        }, { merge: true }); 
+        await loadAllEntries(user.uid);
+      } catch (error) { console.error('Erro ao salvar o status da tarefa:', error); }
+    }
+  };  
+
+  const saveMorning = async () => {
+    const finalVirtue = showCustomVirtue ? customVirtue : selectedVirtue;
+    if (!finalVirtue || !finalVirtue.trim()) { alert('Por favor, selecione ou digite uma virtude para o dia.'); return; }
+
+    const tasksSnapshot = getTasksForToday().map(task => ({
+      id: task.id, name: task.name, completed: !!todayTasksStatus[task.id]
+    }));
+
+    const todayKey = selectedDate;
+
+    const randomHour = Math.floor(Math.random() * (18 - 10 + 1)) + 10;
+    const randomHourStr = String(randomHour).padStart(2, '0') + ':00'; 
+
+    const entry = {
+      userId: user.uid, 
+      date: todayKey, 
+      morningDone: true, 
+      virtue: finalVirtue,
+      customVirtue: showCustomVirtue ? customVirtue : '', 
+      quote: dailyQuote || null,
+      intention: dailyIntention || '', 
+      tasksStatus: todayTasksStatus || {},
+      tasksSnapshot: tasksSnapshot || [], 
+      morningTimestamp: Timestamp.now(),
+      randomReminderHour: randomHourStr 
+    };
+
+    try {
+      await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), entry, { merge: true });
+      setMorningDone(true); 
+      alert('✅ Prólogo salvo com sucesso!');
+    } catch (error) { 
+      alert('Erro ao salvar prólogo. Verifique sua conexão.'); 
+    }
+  };
+
+  const saveEvening = async () => {
+    const hasSpecifics = (whereIFailed && whereIFailed.trim()) && (whatIDidWell && whatIDidWell.trim()) && (whatILeftUndone && whatILeftUndone.trim());
+    const hasFreeText = freeEpilogue && freeEpilogue.trim();
+
+    if (!hasSpecifics && !hasFreeText) {
+      alert('Por favor, responda as 3 perguntas estruturadas OU utilize o campo de Reflexão Livre.'); return;
+    }
+
+    const todayKey = selectedDate;
+    const tasksSnapshot = getTasksForToday().map(task => ({
+      id: task.id, name: task.name, completed: !!todayTasksStatus[task.id]
+    }));
+
+    try {
+      const updatedEntry = {
+        userId: user.uid, date: todayKey, eveningDone: true,
+        whereIFailed: whereIFailed || '', whatIDidWell: whatIDidWell || '', whatILeftUndone: whatILeftUndone || '',
+        freeEpilogue: freeEpilogue || '',
+        didMorning: didMorning !== false, tasksStatus: todayTasksStatus || {},
+        tasksSnapshot: tasksSnapshot || [], eveningTimestamp: Timestamp.now()
+      };
+
+      await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), updatedEntry, { merge: true });
+      
+      setEveningDone(true); 
+      await loadAllEntries(user.uid);
+      alert('✅ Epílogo salvo com sucesso!');
+    } catch (error) { 
+      console.error(error);
+      alert('Erro ao salvar epílogo. Tente novamente.'); 
+    }
+  };
+
   const saveLongTermGoals = async (vGoals, pGoals, aMissions) => {
     if (!user) return;
     try {
