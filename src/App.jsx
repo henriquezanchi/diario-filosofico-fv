@@ -480,8 +480,10 @@ function App() {
     setWhereIFailed('');
     setWhatIDidWell('');
     setWhatILeftUndone('');
-    setYearGoals('');
-    setLifeGoals('');
+    setVirtueGoals([]);
+    setProjectGoals([]);
+    setAcceptedMissions([]);
+    setAiSuggestedGoals(null);
     setFvLastCartaDate('');
     setFvNextCartaDate('');
     setFvGdveReuniao('');
