@@ -145,14 +145,6 @@ function App() {
   
   const [displayedActions, setDisplayedActions] = useState([]);
 
-  // Embaralha e escolhe 3 ações quando o modal abre
-  useEffect(() => {
-    if (showConsciousnessModal && displayedActions.length === 0) {
-      const shuffled = [...actionPool].sort(() => 0.5 - Math.random());
-      setDisplayedActions(shuffled.slice(0, 3));
-    }
-  }, [showConsciousnessModal]);
-
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 850);
     window.addEventListener('resize', handleResize);
@@ -2154,14 +2146,21 @@ function App() {
     }
   };
 
+  const currentActionPool = balloonActions || [];
 
-
+  useEffect(() => {
+    if (showConsciousnessModal && displayedActions.length === 0 && consumedActionIds.length === 0 && currentActionPool.length > 0) {
+      const shuffled = [...currentActionPool].sort(() => 0.5 - Math.random());
+      setDisplayedActions(shuffled.slice(0, 3));
+    }
+  }, [showConsciousnessModal, currentActionPool, consumedActionIds.length, displayedActions.length]);
 
   const replaceAction = (actionIdToRemove) => {
     setConsumedActionIds(prevConsumed => {
       const newConsumed = [...prevConsumed, actionIdToRemove];
       setDisplayedActions(prevDisp => {
         const remaining = prevDisp.filter(a => a.id !== actionIdToRemove);
+        const available = currentActionPool.filter(a => !remaining.find(d => d.id === a.id) && !newConsumed.includes(a.id));
         if (available.length > 0) {
           const randomNew = available[Math.floor(Math.random() * available.length)];
           remaining.push(randomNew);
