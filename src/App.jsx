@@ -139,20 +139,9 @@ function App() {
   const [showConsciousnessModal, setShowConsciousnessModal] = useState(false);
   const [manualAltitudeModifier, setManualAltitudeModifier] = useState(0);
   const [animatingActionId, setAnimatingActionId] = useState(null);
+  const [consumedActionIds, setConsumedActionIds] = useState([]);
   
-  // O Banco de Ações Filosóficas (A IA pode alimentar isso futuramente, por ora usamos o banco central)
-  const actionPool = [
-    { id: 1, text: 'Li ou estudei um texto filosófico profundo', value: 10, type: 'positive' },
-    { id: 2, text: 'Cedi à gula ou comi para anestesiar emoções', value: -10, type: 'negative' },
-    { id: 3, text: 'Reagi com raiva ou impaciência a um imprevisto', value: -15, type: 'negative' },
-    { id: 4, text: 'Enfrentei uma situação difícil mantendo a paz interior', value: 15, type: 'positive' },
-    { id: 5, text: 'Participei de fofocas ou críticas inúteis', value: -10, type: 'negative' },
-    { id: 6, text: 'Cumpri um dever mesmo com muita preguiça', value: 15, type: 'positive' },
-    { id: 7, text: 'Perdi tempo precioso com entretenimento vazio/redes sociais', value: -15, type: 'negative' },
-    { id: 8, text: 'Fiz um sacrifício silencioso ou ajudei alguém sem esperar nada', value: 20, type: 'positive' },
-    { id: 9, text: 'Justifiquei um erro meu usando circunstâncias externas', value: -15, type: 'negative' },
-    { id: 10, text: 'Mantive a ordem e a limpeza no meu ambiente de trabalho/casa', value: 10, type: 'positive' }
-  ];
+  
   
   const [displayedActions, setDisplayedActions] = useState([]);
 
@@ -961,6 +950,7 @@ function App() {
           
           if (diferencaDias > 30) {
             setTechnicalSynthesis(null);
+            setBalloonActions(data.balloonActions || null);
             setAiGuarda(null); setAiConquistas(null); setAiInvestigacoes(null);
           } else {
             setTechnicalSynthesis(data.technicalSynthesis);
@@ -970,6 +960,7 @@ function App() {
           }
         } else {
           setTechnicalSynthesis(data.technicalSynthesis || null);
+          setBalloonActions(data.balloonActions || null);
           setAiGuarda(data.aiGuarda || null);
           setAiConquistas(data.aiConquistas || null);
           setAiInvestigacoes(data.aiInvestigacoes || null);
@@ -2103,35 +2094,94 @@ function App() {
   
   const altitude = calculateConsciousness();
 
-  // Puxa as ações da IA (se existirem) ou usa as de fallback
-  const currentActionPool = (kuravaData && kuravaData.acoesForoIntimo) ? kuravaData.acoesForoIntimo : actionPool;
+  const [balloonActions, setBalloonActions] = useState(null);
+  const [isGeneratingBalloon, setIsGeneratingBalloon] = useState(false);
+
+  // --- INTELIGÊNCIA DIRETA DO BALÃO ---
+  const generateBalloonActions = async () => {
+    if (!user) return;
+    setIsGeneratingBalloon(true);
+
+    try {
+      const ultimosDias = entries.slice(0, 7);
+      let dossie = `REGISTROS DOS ÚLTIMOS 7 DIAS:\n`;
+      ultimosDias.forEach(e => {
+        if (e.whereIFailed) dossie += `FALHA: ${e.whereIFailed} | `;
+        if (e.whatILeftUndone) dossie += `OMISSÃO: ${e.whatILeftUndone} | `;
+        if (e.freeEpilogue) dossie += `TEXTO LIVRE: ${e.freeEpilogue} | `;
+      });
+
+      const prompt = `Você é um mentor filosófico e um mestre em psicologia estóica. Avalie este dossiê de um discípulo:
+      ${dossie}
+      
+      Gere um array JSON puro com 10 "Ações de Foro Íntimo" ALTAMENTE PERSONALIZADAS para as fraquezas que ele relatou nas entrelinhas.
+      A lista deve conter:
+      - Armadilhas morais (falsas virtudes que parecem boas mas são fugas do dever).
+      - Derrotas silenciosas (vícios ocultos).
+      - Vitórias íntimas (superação real).
+      
+      Use a primeira pessoa ("Eu..."). Atribua valores entre -20 e +20.
+
+      ESTRUTURA OBRIGATÓRIA (retorne APENAS o array JSON válido):
+      [
+        { "id": 1, "text": "Frase da ação...", "value": 15, "type": "positive" },
+        { "id": 2, "text": "Frase da ação...", "value": -15, "type": "negative" }
+      ]`;
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, { 
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json" } }) 
+      });
+      
+      const data = await response.json();
+      if (data.error) throw new Error(data.error.message);
+
+      const parsedData = JSON.parse(data.candidates[0].content.parts[0].text);
+      setBalloonActions(parsedData);
+      setConsumedActionIds([]); 
+      
+      const shuffled = [...parsedData].sort(() => 0.5 - Math.random());
+      setDisplayedActions(shuffled.slice(0, 3));
+      
+      // Salva no banco de dados para não sumir se você atualizar a página
+      await setDoc(doc(db, 'fvData', user.uid), { balloonActions: parsedData }, { merge: true });
+
+    } catch (error) { 
+      console.error(error); 
+      alert("Erro ao invocar o Oráculo para o Balão. Tente novamente."); 
+    } finally { 
+      setIsGeneratingBalloon(false); 
+    }
+  };
+
+  const currentActionPool = balloonActions || [];
 
   useEffect(() => {
-    if (showConsciousnessModal && displayedActions.length === 0) {
+    if (showConsciousnessModal && displayedActions.length === 0 && consumedActionIds.length === 0 && currentActionPool.length > 0) {
       const shuffled = [...currentActionPool].sort(() => 0.5 - Math.random());
       setDisplayedActions(shuffled.slice(0, 3));
     }
-  }, [showConsciousnessModal, currentActionPool]);
+  }, [showConsciousnessModal, currentActionPool, consumedActionIds.length, displayedActions.length]);
 
-  // Função central para trocar a ação na tela
   const replaceAction = (actionIdToRemove) => {
-    setDisplayedActions(prev => {
-      const remaining = prev.filter(a => a.id !== actionIdToRemove);
-      const available = currentActionPool.filter(a => !remaining.find(d => d.id === a.id) && a.id !== actionIdToRemove);
-      if (available.length > 0) {
-        const randomNew = available[Math.floor(Math.random() * available.length)];
-        remaining.push(randomNew);
-      }
-      return remaining;
+    setConsumedActionIds(prevConsumed => {
+      const newConsumed = [...prevConsumed, actionIdToRemove];
+      setDisplayedActions(prevDisp => {
+        const remaining = prevDisp.filter(a => a.id !== actionIdToRemove);
+        const available = currentActionPool.filter(a => !remaining.find(d => d.id === a.id) && !newConsumed.includes(a.id));
+        if (available.length > 0) {
+          const randomNew = available[Math.floor(Math.random() * available.length)];
+          remaining.push(randomNew);
+        }
+        return remaining;
+      });
+      return newConsumed;
     });
   };
 
-  // Clique com Honra (Ganha o brilho verde antes de sumir)
   const handleActionClick = (action) => {
-    if (animatingActionId) return; // Evita cliques duplos
+    if (animatingActionId) return; 
     setAnimatingActionId(action.id);
-    
-    // Pequeno delay para o usuário ver o botão ficar verde
     setTimeout(() => {
       setManualAltitudeModifier(prev => prev + action.value);
       replaceAction(action.id);
@@ -2139,7 +2189,6 @@ function App() {
     }, 400); 
   };
 
-  // Dispensar (Pula sem alterar a nota)
   const handleSkipAction = (action) => {
     replaceAction(action.id);
   };
@@ -4589,58 +4638,81 @@ function App() {
 
                   {/* A LISTA RENOVÁVEL DINÂMICA */}
                   <h4 style={{ margin: '0 0 1rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.1rem', fontFamily: "'Cinzel', serif" }}>Ações do Foro Íntimo (Hoje):</h4>
-                  <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '1rem', fontStyle: 'italic' }}>Clique nas ações que você realizou hoje que não estão nos registros:</p>
-                  
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    {displayedActions.map(action => {
-                      const isAnimating = animatingActionId === action.id;
+                  {/* CONEXÃO COM O ORÁCULO OU LISTA DE AÇÕES */}
+                  {!balloonActions ? (
+                    <div style={{ textAlign: 'center', padding: '1.5rem', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.4)', borderRadius: '12px', border: `1px dashed ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`, marginBottom: '1.5rem' }}>
+                      <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.95rem', marginBottom: '1.5rem', fontStyle: 'italic', lineHeight: '1.5' }}>
+                        A máquina precisa auditar as entrelinhas dos seus últimos 7 dias para forjar as armadilhas e vitórias personalizadas de hoje.
+                      </p>
+                      <button 
+                        onClick={generateBalloonActions} 
+                        disabled={isGeneratingBalloon}
+                        style={{ padding: '1rem 1.5rem', background: isGeneratingBalloon ? 'transparent' : (isDark ? '#d4af37' : '#6b4423'), color: isGeneratingBalloon ? (isDark ? '#d4af37' : '#6b4423') : (isDark ? '#1a1a2e' : 'white'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: isGeneratingBalloon ? 'wait' : 'pointer', fontWeight: 'bold', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%', transition: 'all 0.3s ease' }}
+                      >
+                        {isGeneratingBalloon ? <Sparkles className="animate-spin" size={18} /> : <Target size={18} />}
+                        {isGeneratingBalloon ? 'Lendo a sua Alma...' : 'Conectar ao Oráculo (IA)'}
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '1rem', fontStyle: 'italic' }}>Clique nas ações que você realizou hoje que não estão nos registros:</p>
                       
-                      return (
-                        <div key={action.id} style={{ display: 'flex', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                        {displayedActions.map(action => {
+                          const isAnimating = animatingActionId === action.id;
                           
-                          {/* O BOTÃO PRINCIPAL (Ação de confessar) */}
-                          <button 
-                            onClick={() => handleActionClick(action)}
-                            disabled={animatingActionId !== null}
-                            style={{ 
-                              flex: 1, padding: '1rem', textAlign: 'left', 
-                              // Se estiver animando, brilha em verde sucesso. Se não, neutro.
-                              background: isAnimating ? '#4caf50' : (isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)'), 
-                              color: isAnimating ? '#fff' : (isDark ? '#f0e6d2' : '#2c1810'), 
-                              border: `1px solid ${isAnimating ? '#4caf50' : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)')}`, 
-                              borderRadius: '8px', cursor: animatingActionId ? 'default' : 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.95rem',
-                              transition: 'all 0.3s ease', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                              transform: isAnimating ? 'scale(0.98)' : 'scale(1)',
-                              boxShadow: isAnimating ? '0 0 15px rgba(76, 175, 80, 0.5)' : 'none'
-                            }}
-                            onMouseOver={(e) => { if(!animatingActionId) e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.15)' : 'rgba(139, 115, 85, 0.1)' }}
-                            onMouseOut={(e) => { if(!animatingActionId) e.currentTarget.style.background = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)' }}
-                          >
-                            <span>{action.text}</span>
-                            {/* O ícone de Check aparece rápido se clicado */}
-                            {isAnimating && <CheckCircle size={18} color="#fff" />}
-                          </button>
+                          return (
+                            <div key={action.id} style={{ display: 'flex', gap: '0.5rem' }}>
+                              <button 
+                                onClick={() => handleActionClick(action)}
+                                disabled={animatingActionId !== null}
+                                style={{ 
+                                  flex: 1, padding: '1rem', textAlign: 'left', 
+                                  background: isAnimating ? '#4caf50' : (isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)'), 
+                                  color: isAnimating ? '#fff' : (isDark ? '#f0e6d2' : '#2c1810'), 
+                                  border: `1px solid ${isAnimating ? '#4caf50' : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)')}`, 
+                                  borderRadius: '8px', cursor: animatingActionId ? 'default' : 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.95rem',
+                                  transition: 'all 0.3s ease', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                  transform: isAnimating ? 'scale(0.98)' : 'scale(1)',
+                                  boxShadow: isAnimating ? '0 0 15px rgba(76, 175, 80, 0.5)' : 'none',
+                                  lineHeight: '1.4'
+                                }}
+                                onMouseOver={(e) => { if(!animatingActionId) e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.15)' : 'rgba(139, 115, 85, 0.1)' }}
+                                onMouseOut={(e) => { if(!animatingActionId) e.currentTarget.style.background = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)' }}
+                              >
+                                <span>{action.text}</span>
+                                {isAnimating && <CheckCircle size={18} color="#fff" />}
+                              </button>
 
-                          {/* O BOTÃO DE DISPENSAR (Refresh/Pular) */}
-                          <button
-                            onClick={() => handleSkipAction(action)}
-                            disabled={animatingActionId !== null}
-                            title="Não ocorreu hoje"
-                            style={{ 
-                              padding: '0 1rem', background: 'transparent', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`,
-                              borderRadius: '8px', color: isDark ? '#b8a88a' : '#6b5744', cursor: animatingActionId ? 'default' : 'pointer',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
-                            }}
-                            onMouseOver={(e) => { if(!animatingActionId) e.currentTarget.style.background = 'rgba(231, 76, 60, 0.1)'; e.currentTarget.style.color = '#e74c3c'; e.currentTarget.style.borderColor = '#e74c3c'; }}
-                            onMouseOut={(e) => { if(!animatingActionId) e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = isDark ? '#b8a88a' : '#6b5744'; e.currentTarget.style.borderColor = isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'; }}
-                          >
-                            <X size={18} />
-                          </button>
+                              <button
+                                onClick={() => handleSkipAction(action)}
+                                disabled={animatingActionId !== null}
+                                title="Não ocorreu hoje"
+                                style={{ 
+                                  padding: '0 1rem', background: 'transparent', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`,
+                                  borderRadius: '8px', color: isDark ? '#b8a88a' : '#6b5744', cursor: animatingActionId ? 'default' : 'pointer',
+                                  display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
+                                }}
+                                onMouseOver={(e) => { if(!animatingActionId) { e.currentTarget.style.background = 'rgba(231, 76, 60, 0.1)'; e.currentTarget.style.color = '#e74c3c'; e.currentTarget.style.borderColor = '#e74c3c'; } }}
+                                onMouseOut={(e) => { if(!animatingActionId) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = isDark ? '#b8a88a' : '#6b5744'; e.currentTarget.style.borderColor = isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'; } }}
+                              >
+                                <X size={18} />
+                              </button>
+                            </div>
+                          );
+                        })}
 
-                        </div>
-                      );
-                    })}
-                  </div>
+                        {displayedActions.length === 0 && (
+                          <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '2rem 1rem', background: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)', borderRadius: '8px', border: `1px dashed ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}` }}>
+                            <CheckCircle size={32} color={isDark ? '#d4af37' : '#6b4423'} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
+                            <p style={{ margin: 0, color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic' }}>
+                              O poço de reflexões foi esgotado. A máquina não tem mais o que auditar por enquanto.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
 
                   <button onClick={() => setShowConsciousnessModal(false)} style={{ width: '100%', marginTop: '2rem', padding: '1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
                     Retornar à Batalha
