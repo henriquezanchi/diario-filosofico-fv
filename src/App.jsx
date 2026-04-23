@@ -236,6 +236,8 @@ function App() {
   const [fvAiAuditoria, setFvAiAuditoria] = useState(null);
   const [fvAiLexical, setFvAiLexical] = useState(null);
   const [isGeneratingDiscSync, setIsGeneratingDiscSync] = useState(false);
+  const [aiSuggestedGoals, setAiSuggestedGoals] = useState(null);
+  const [isGeneratingGoals, setIsGeneratingGoals] = useState(false);
   const [isGeneratingSynthesis, setIsGeneratingSynthesis] = useState(false);
   const [fvGdveDesafios, setFvGdveDesafios] = useState([]);
   const [fvGdveReuniao, setFvGdveReuniao] = useState('');
@@ -876,6 +878,7 @@ function App() {
         const data = goalsDoc.data();
         setYearGoals(data.yearGoals || '');
         setLifeGoals(data.lifeGoals || '');
+        setAiSuggestedGoals(data.aiSuggestedGoals || null);
       }
     } catch (error) { console.error('Erro ao carregar metas:', error); }
   };
@@ -1131,6 +1134,53 @@ function App() {
         await setDoc(doc(db, 'longTermGoals', user.uid), { yearGoals, lifeGoals, updatedAt: Timestamp.now() });
         setShowGoalsEditor(false); alert('✅ Metas salvas com sucesso!');
       } catch (error) { alert('Erro ao salvar metas.'); }
+    }
+  };
+
+  const generateAiGoals = async () => {
+    if (!user) return;
+    setIsGeneratingGoals(true);
+
+    try {
+      const prompt = `Você é um Mentor Filosófico e Estrategista Comportamental.
+      Analise a Visão de Longo Prazo e as Metas Anuais do aluno, e cruze isso com suas falhas recentes (Guarda Baixada) extraídas do seu autoexame.
+      
+      Metas do Ano: ${yearGoals || 'Não definidas'}
+      Visão de Vida: ${lifeGoals || 'Não definida'}
+      Onde a Guarda Baixou (Fraquezas recentes): ${aiGuarda || 'Nenhuma fraqueza registrada ainda'}
+      
+      Crie 3 "Missões de Ciclo" (metas práticas de 15 dias, contraintuitivas e focadas na raiz do problema) para forçar o aluno a sair da zona de conforto e alinhar suas ações aos seus objetivos.
+
+      Retorne ESTRITAMENTE um objeto JSON válido:
+      {
+        "conselho": "Um parágrafo curto e direto de choque de realidade filosófica cruzando o que ele quer com o que ele tem feito.",
+        "missoes": [
+          { "titulo": "Nome da Missão", "descricao": "O que fazer exatamente" },
+          { "titulo": "Nome da Missão", "descricao": "O que fazer exatamente" },
+          { "titulo": "Nome da Missão", "descricao": "O que fazer exatamente" }
+        ]
+      }`;
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, { 
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json" } }) 
+      });
+      
+      const data = await response.json();
+      if (data.error) throw new Error(data.error.message);
+
+      const parsedData = JSON.parse(data.candidates[0].content.parts[0].text);
+      setAiSuggestedGoals(parsedData);
+
+      await setDoc(doc(db, 'longTermGoals', user.uid), { 
+        yearGoals, lifeGoals, aiSuggestedGoals: parsedData, updatedAt: Timestamp.now() 
+      }, { merge: true });
+
+    } catch (error) { 
+      console.error(error); 
+      alert("Erro ao consultar a IA."); 
+    } finally { 
+      setIsGeneratingGoals(false); 
     }
   };
 
@@ -2410,6 +2460,39 @@ function App() {
                 </div>
                 <button onClick={saveLongTermGoals} style={{ padding: '1rem 2rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', alignSelf: 'flex-end' }}><Save size={20} /> Salvar Metas</button>
               </div>
+
+              <div style={{ borderTop: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, marginTop: '1rem', paddingTop: '2rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
+                    <h3 style={{ margin: 0, color: isDark ? '#FFD700' : '#996515', fontSize: '1.3rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Sparkles size={22} /> Forja de Missões (IA)
+                    </h3>
+                    <button onClick={generateAiGoals} disabled={isGeneratingGoals || !yearGoals} style={{ padding: '0.6rem 1.2rem', background: isGeneratingGoals ? (isDark ? 'rgba(255, 152, 0, 0.15)' : '#fff3e0') : 'transparent', color: isGeneratingGoals ? (isDark ? '#ff9800' : '#e65100') : (isDark ? '#FFD700' : '#996515'), border: `1px solid ${isGeneratingGoals ? (isDark ? '#ff9800' : '#ffb74d') : (isDark ? '#FFD700' : '#996515')}`, borderRadius: '8px', cursor: (isGeneratingGoals || !yearGoals) ? 'not-allowed' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.3s ease' }}>
+                      {isGeneratingGoals ? <Sparkles className="animate-spin" size={16} /> : <Target size={16} />}
+                      {isGeneratingGoals ? 'Consultando o Oráculo...' : 'Gerar Missões de Ciclo (15 dias)'}
+                    </button>
+                  </div>
+
+                  {!yearGoals && <p style={{ fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic' }}>Escreva e salve suas metas de longo prazo acima para que a IA possa cruzá-las com os seus erros do diário.</p>}
+
+                  {aiSuggestedGoals && (
+                    <div className="animate-fadeIn" style={{ background: isDark ? 'rgba(0,0,0,0.3)' : '#fdfbf7', padding: '1.5rem', borderRadius: '12px', border: `1px dashed ${isDark ? 'rgba(255, 215, 0, 0.4)' : 'rgba(153, 101, 21, 0.3)'}` }}>
+                      <p style={{ margin: '0 0 1.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.05rem', lineHeight: '1.6', fontStyle: 'italic', borderLeft: `3px solid ${isDark ? '#FFD700' : '#996515'}`, paddingLeft: '1rem' }}>
+                        "{aiSuggestedGoals.conselho}"
+                      </p>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
+                        {aiSuggestedGoals.missoes.map((missao, idx) => (
+                          <div key={idx} style={{ background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.4)', padding: '1rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}` }}>
+                            <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#d4af37' : '#6b4423', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                              <Flame size={16} /> {missao.titulo}
+                            </h4>
+                            <p style={{ margin: 0, color: isDark ? '#c8b896' : '#6b5744', fontSize: '0.9rem', lineHeight: '1.5' }}>{missao.descricao}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
             </div>
           </div>
         )}
