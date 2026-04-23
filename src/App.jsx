@@ -885,16 +885,16 @@ function App() {
       const docSnap = await getDoc(docRef);
       
       if (docSnap.exists()) {
-        const data = docSnap.data(); // Definimos o "data" aqui para evitar erros
+        const data = docSnap.data();
 
-        // 1. Puxa as Datas e Planeamento
+        // 1. Puxa as Datas e Planejamento
         setFvLastCartaDate(data.lastCartaDate || '');
         setFvNextCartaDate(data.nextCartaDate || '');
         setFvGdveReuniao(data.gdveReuniao || '');
         setFvMasterName(data.fvMasterName || '');
         setFvLastMeetingDate(data.fvLastMeetingDate || '');
 
-        // 2. Puxa as Tarefas e Status do Grupo (O que estava a faltar)
+        // 2. Puxa as Tarefas e Status do Grupo
         setFvGdveTasks(data.gdveTasks || []);
         setFvGdveCycleStatus(data.gdveCycleStatus || {});
         setFvGdveBastiaoName(data.fvGdveBastiaoName || '');
@@ -921,6 +921,11 @@ function App() {
             setAiConquistas(data.aiConquistas || null);
             setAiInvestigacoes(data.aiInvestigacoes || null);
           }
+        } else {
+          setTechnicalSynthesis(data.technicalSynthesis || null);
+          setAiGuarda(data.aiGuarda || null);
+          setAiConquistas(data.aiConquistas || null);
+          setAiInvestigacoes(data.aiInvestigacoes || null);
         }
       }
     } catch (error) {
