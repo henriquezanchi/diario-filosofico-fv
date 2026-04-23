@@ -131,6 +131,8 @@ function App() {
   // Controles do Menu Mobile
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showDiaryMenu, setShowDiaryMenu] = useState(false);
+  const [showPracticesMenu, setShowPracticesMenu] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 850);
 
   useEffect(() => {
@@ -2179,14 +2181,51 @@ function App() {
 
               
 
-              <button onClick={() => setView('today')} style={{ padding: '0.5rem 1rem', background: view === 'today' ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: view === 'today' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Hoje</button>
-              <button onClick={() => setView('history')} style={{ padding: '0.5rem 1rem', background: view === 'history' ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: view === 'history' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Histórico</button>
-              <button onClick={() => setView('tasks')} style={{ padding: '0.5rem 1rem', background: view === 'tasks' ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: view === 'tasks' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Tarefas</button>
-              <button onClick={() => setView('goals')} style={{ padding: '0.5rem 1rem', background: view === 'goals' ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: view === 'goals' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Metas</button>
-              <button onClick={() => setView('biblioteca')} style={{ padding: '0.5rem 1rem', background: view === 'biblioteca' ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: view === 'biblioteca' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600 }}>Virtudes</button>
-              <button onClick={() => setView('analytics')} style={{ padding: '0.5rem 1rem', background: view === 'analytics' ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: view === 'analytics' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <TrendingUp size={16} /> Métricas
-              </button>
+              {/* DROPDOWN 1: DIÁRIO */}
+              <div 
+                style={{ position: 'relative', display: 'flex', flexDirection: 'column' }} 
+                onMouseLeave={() => setShowDiaryMenu(false)}
+              >
+                <button 
+                  onMouseEnter={() => setShowDiaryMenu(true)}
+                  onClick={() => setShowDiaryMenu(!showDiaryMenu)} 
+                  style={{ padding: '0.5rem 1rem', background: ['today', 'history', 'analytics'].includes(view) ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: ['today', 'history', 'analytics'].includes(view) ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s' }}
+                >
+                  <BookOpen size={16} /> Diário {showDiaryMenu ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                </button>
+                {showDiaryMenu && (
+                  <div style={{ position: 'absolute', top: '100%', left: 0, paddingTop: '0.5rem', zIndex: 1000 }}>
+                    <div className="animate-fadeIn" style={{ width: '160px', background: isDark ? 'rgba(26, 26, 46, 0.98)' : 'rgba(255, 255, 255, 0.98)', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', overflow: 'hidden', display: 'flex', flexDirection: 'column', backdropFilter: 'blur(10px)' }}>
+                      <button onClick={() => { setView('today'); setShowDiaryMenu(false); }} style={{ padding: '0.75rem 1rem', background: view === 'today' ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', fontFamily: 'Georgia, serif' }} onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(139, 115, 85, 0.05)'} onMouseOut={(e) => e.currentTarget.style.background = view === 'today' ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent'}>☀️ Hoje</button>
+                      <button onClick={() => { setView('history'); setShowDiaryMenu(false); }} style={{ padding: '0.75rem 1rem', background: view === 'history' ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', fontFamily: 'Georgia, serif' }} onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(139, 115, 85, 0.05)'} onMouseOut={(e) => e.currentTarget.style.background = view === 'history' ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent'}>📚 Histórico</button>
+                      <button onClick={() => { setView('analytics'); setShowDiaryMenu(false); }} style={{ padding: '0.75rem 1rem', background: view === 'analytics' ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', fontFamily: 'Georgia, serif' }} onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(139, 115, 85, 0.05)'} onMouseOut={(e) => e.currentTarget.style.background = view === 'analytics' ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent'}><TrendingUp size={16}/> Métricas</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* DROPDOWN 2: A FORJA */}
+              <div 
+                style={{ position: 'relative', display: 'flex', flexDirection: 'column' }} 
+                onMouseLeave={() => setShowPracticesMenu(false)}
+              >
+                <button 
+                  onMouseEnter={() => setShowPracticesMenu(true)}
+                  onClick={() => setShowPracticesMenu(!showPracticesMenu)} 
+                  style={{ padding: '0.5rem 1rem', background: ['tasks', 'goals', 'biblioteca'].includes(view) ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: ['tasks', 'goals', 'biblioteca'].includes(view) ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s' }}
+                >
+                  <Target size={16} /> A Forja {showPracticesMenu ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                </button>
+                {showPracticesMenu && (
+                  <div style={{ position: 'absolute', top: '100%', left: 0, paddingTop: '0.5rem', zIndex: 1000 }}>
+                    <div className="animate-fadeIn" style={{ width: '160px', background: isDark ? 'rgba(26, 26, 46, 0.98)' : 'rgba(255, 255, 255, 0.98)', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', overflow: 'hidden', display: 'flex', flexDirection: 'column', backdropFilter: 'blur(10px)' }}>
+                      <button onClick={() => { setView('tasks'); setShowPracticesMenu(false); }} style={{ padding: '0.75rem 1rem', background: view === 'tasks' ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', fontFamily: 'Georgia, serif' }} onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(139, 115, 85, 0.05)'} onMouseOut={(e) => e.currentTarget.style.background = view === 'tasks' ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent'}>📋 Tarefas</button>
+                      <button onClick={() => { setView('goals'); setShowPracticesMenu(false); }} style={{ padding: '0.75rem 1rem', background: view === 'goals' ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', fontFamily: 'Georgia, serif' }} onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(139, 115, 85, 0.05)'} onMouseOut={(e) => e.currentTarget.style.background = view === 'goals' ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent'}>🎯 Metas</button>
+                      <button onClick={() => { setView('biblioteca'); setShowPracticesMenu(false); }} style={{ padding: '0.75rem 1rem', background: view === 'biblioteca' ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', fontFamily: 'Georgia, serif' }} onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(139, 115, 85, 0.05)'} onMouseOut={(e) => e.currentTarget.style.background = view === 'biblioteca' ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent'}>🏛️ Virtudes</button>
+                    </div>
+                  </div>
+                )}
+              </div>
 
 
               {/* ATALHO RÁPIDO DO TRATAK (GLOBAL) */}
