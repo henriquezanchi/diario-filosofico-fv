@@ -1223,7 +1223,11 @@ function App() {
       Projetos (Ações no Mundo): ${projectGoals.map(g => g.text).join(' | ') || 'Não definidos'}
       Onde a Guarda Baixou (Fraquezas recentes): ${aiGuarda || 'Nenhuma fraqueza registrada ainda'}
       
-      Crie 3 "Missões de Ciclo" (metas práticas de 15 dias, contraintuitivas e focadas na raiz do problema) para forçar o aluno a sair da zona de conforto e alinhar suas ações aos seus objetivos.
+      Crie 3 "Missões de Ciclo" (metas práticas de 15 dias, focadas na raiz do problema) para forçar o aluno a alinhar suas ações aos seus objetivos.
+
+      REGRAS DE SEGURANÇA E ÉTICA (MUITO IMPORTANTE):
+      - NUNCA sugira restrições alimentares (como cortar açúcar, jejuns), alterações drásticas de sono ou exercícios físicos intensos. 
+      - Mantenha os desafios estritamente no campo filosófico, comportamental, de estudos, meditação, reflexão ou organização pessoal e de tempo.
 
       Retorne ESTRITAMENTE um objeto JSON válido:
       {
@@ -2618,20 +2622,53 @@ function App() {
                       <p style={{ margin: '0 0 1.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.05rem', lineHeight: '1.6', fontStyle: 'italic', borderLeft: `3px solid ${isDark ? '#FFD700' : '#996515'}`, paddingLeft: '1rem' }}>
                         "{aiSuggestedGoals.conselho}"
                       </p>
+                      {/* DISCLAIMER DE SEGURANÇA */}
+                      <div style={{ background: isDark ? 'rgba(231, 76, 60, 0.1)' : '#fff5f5', padding: '1rem', borderRadius: '8px', borderLeft: '3px solid #e74c3c', marginBottom: '1.5rem', display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+                        <AlertCircle size={20} color="#e74c3c" style={{ flexShrink: 0, marginTop: '0.1rem' }} />
+                        <p style={{ margin: 0, color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.85rem', lineHeight: '1.5' }}>
+                          <strong style={{ color: '#e74c3c' }}>Prudência Filosófica:</strong> Estas missões são sugestões algorítmicas geradas por IA com base em seus textos. A máquina não possui contexto médico ou psicológico completo. Avalie com responsabilidade e bom senso se a missão é segura e adequada à sua realidade antes de assumi-la.
+                        </p>
+                      </div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
-                        {aiSuggestedGoals.missoes.map((missao, idx) => (
-                          <div key={idx} style={{ background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.4)', padding: '1rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                            <div>
-                              <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#d4af37' : '#6b4423', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                <Flame size={16} /> {missao.titulo}
-                              </h4>
-                              <p style={{ margin: '0 0 1rem 0', color: isDark ? '#c8b896' : '#6b5744', fontSize: '0.9rem', lineHeight: '1.5' }}>{missao.descricao}</p>
+                        {aiSuggestedGoals.missoes.map((missao, idx) => {
+                          const isAccepted = acceptedMissions.some(m => m.titulo === missao.titulo);
+                          return (
+                            <div key={idx} style={{ 
+                              background: isAccepted ? (isDark ? 'rgba(76, 175, 80, 0.05)' : 'rgba(76, 175, 80, 0.1)') : (isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.4)'), 
+                              padding: '1rem', 
+                              borderRadius: '8px', 
+                              border: `1px solid ${isAccepted ? (isDark ? 'rgba(76, 175, 80, 0.3)' : '#4caf50') : (isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)')}`, 
+                              display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+                              opacity: isAccepted ? 0.6 : 1,
+                              transition: 'all 0.3s ease'
+                            }}>
+                              <div>
+                                <h4 style={{ margin: '0 0 0.5rem 0', color: isAccepted ? (isDark ? '#81c784' : '#2e7d32') : (isDark ? '#d4af37' : '#6b4423'), fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                  {isAccepted ? <CheckCircle size={16} /> : <Flame size={16} />} {missao.titulo}
+                                </h4>
+                                <p style={{ margin: '0 0 1rem 0', color: isDark ? '#c8b896' : '#6b5744', fontSize: '0.9rem', lineHeight: '1.5' }}>{missao.descricao}</p>
+                              </div>
+                              <button 
+                                onClick={() => !isAccepted && setMissionToAccept(missao)} 
+                                disabled={isAccepted}
+                                style={{ 
+                                  alignSelf: 'flex-start', padding: '0.5rem 1rem', 
+                                  background: isAccepted ? (isDark ? 'rgba(76, 175, 80, 0.2)' : '#e8f5e9') : 'transparent', 
+                                  color: isAccepted ? (isDark ? '#81c784' : '#2e7d32') : (isDark ? '#FFD700' : '#996515'), 
+                                  border: `1px solid ${isAccepted ? (isDark ? 'rgba(76, 175, 80, 0.5)' : '#4caf50') : (isDark ? '#FFD700' : '#996515')}`, 
+                                  borderRadius: '6px', fontSize: '0.85rem', fontWeight: 'bold', 
+                                  cursor: isAccepted ? 'not-allowed' : 'pointer', 
+                                  display: 'flex', alignItems: 'center', gap: '0.4rem', transition: 'all 0.2s' 
+                                }} 
+                                onMouseOver={(e) => !isAccepted && (e.currentTarget.style.background = isDark ? 'rgba(255,215,0,0.1)' : 'rgba(153,101,21,0.1)')} 
+                                onMouseOut={(e) => !isAccepted && (e.currentTarget.style.background = 'transparent')}
+                              >
+                                {isAccepted ? <CheckCircle size={14} /> : <Shield size={14} />} 
+                                {isAccepted ? 'Missão Assumida' : 'Aceitar Missão'}
+                              </button>
                             </div>
-                            <button onClick={() => setMissionToAccept(missao)} style={{ alignSelf: 'flex-start', padding: '0.5rem 1rem', background: 'transparent', color: isDark ? '#FFD700' : '#996515', border: `1px solid ${isDark ? '#FFD700' : '#996515'}`, borderRadius: '6px', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', transition: 'all 0.2s' }} onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(255,215,0,0.1)' : 'rgba(153,101,21,0.1)'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
-                              <Shield size={14} /> Aceitar Missão
-                            </button>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}
