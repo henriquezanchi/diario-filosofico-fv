@@ -6,7 +6,7 @@ import {
   Target, TrendingUp, Award, FileText, Book, Settings,
   Trash2, Edit, Save, XCircle, Flame, Zap, Shield, Star, Crown, 
   Bell, Check, Music, MessageSquare, Menu, Lock, ChevronDown, ChevronUp, 
-  Mountain, Landmark
+  Mountain, Landmark, Swords
 } from 'lucide-react';
 
 import { auth, db, messaging } from './config/firebase-config'; 
