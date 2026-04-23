@@ -232,6 +232,9 @@ function App() {
   const [aiGuarda, setAiGuarda] = useState(null);
   const [aiConquistas, setAiConquistas] = useState(null);
   const [aiInvestigacoes, setAiInvestigacoes] = useState(null);
+  const [fvAiMetricas, setFvAiMetricas] = useState(null);
+  const [fvAiAuditoria, setFvAiAuditoria] = useState(null);
+  const [fvAiLexical, setFvAiLexical] = useState(null);
   const [isGeneratingDiscSync, setIsGeneratingDiscSync] = useState(false);
   const [isGeneratingSynthesis, setIsGeneratingSynthesis] = useState(false);
   const [fvGdveDesafios, setFvGdveDesafios] = useState([]);
