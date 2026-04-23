@@ -1285,44 +1285,50 @@ function App() {
       dossie += `- O QUE DEIXOU DE FAZER: ${cicloAtual.filter(e => e.whatILeftUndone).map(e => e.whatILeftUndone).join(' | ')}\n`;
       dossie += `- TEXTO LIVRE: ${cicloAtual.filter(e => e.freeEpilogue).map(e => e.freeEpilogue).join(' | ')}\n`;
 
+      // 3. O Prompt JSON
       const prompt = `Você é um Analista de Dados. Retorne ESTRITAMENTE um objeto JSON válido (sem formatação Markdown e sem blocos de código).
-
+      
       REGRAS DE CONTEÚDO:
-      - NÃO dê conselhos. Aja como um auditor imparcial.
-      - Analise simultaneamente os campos estruturados (Falhas, Acertos, Omissões) e cruze-os com as informações contidas no "TEXTO LIVRE".
+      - NÃO dê conselhos morais. Aja como um auditor imparcial.
+      - Cruze os dados de preenchimento prático (Métricas) com as ocorrências de texto.
 
       O JSON deve conter EXATAMENTE as seguintes chaves:
-      "guardaBaixou": Uma síntese fria dos padrões onde o usuário falhou ou demonstrou fraqueza (máximo 3 linhas).
-      "conquistas": Uma síntese técnica dos padrões de acerto, virtudes executadas e sucessos mapeados (máximo 3 linhas).
-      "investigacoes": Um mapeamento de hipóteses, percepções, suspeitas e dúvidas que o usuário expressou predominantemente no Texto Livre (máximo 4 linhas).
-      "sinteseGeral": Um relatório de 2 parágrafos: O primeiro avaliando o comportamento de evasão/completude do preenchimento e comparando com o ciclo anterior; o segundo sugerindo 2 perguntas técnicas para auditoria com um instrutor presencial.
+      "metricas": Uma síntese técnica comparando as "Práticas FV" e os "Preenchimentos" do Ciclo Atual com o Anterior (máximo 3 linhas).
+      "auditoria": O cruzamento dos padrões de Acertos vs Erros e como as práticas FV impactam a rotina (máximo 3 linhas).
+      "lexical": A varredura dos Itens FV e Texto Livre. Isole padrões de causalidade e hipóteses (máximo 4 linhas).
+      "sinteseGeral": Um relatório final de 2 parágrafos com a conclusão e 2 perguntas técnicas para o encontro com ${termoMestre}.
 
       DADOS:
       ${dossie}`;
 
-      // Configuração forçando o Gemini a cuspir JSON puro
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ 
+      // 4. Chamada da API forçando JSON
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ 
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: { responseMimeType: "application/json" }
-        }) 
+        })
       });
-      
       const data = await response.json();
       if (data.error) throw new Error(data.error.message);
 
-      // Parse do JSON recebido
+      // 5. Salvar resultado nas 4 gavetas
       const rawText = data.candidates[0].content.parts[0].text;
       const parsedData = JSON.parse(rawText);
       const dataAtual = new Date().toISOString();
 
-      // Salva nos estados
-      setAiGuarda(parsedData.guardaBaixou);
-      setAiConquistas(parsedData.conquistas);
-      setAiInvestigacoes(parsedData.investigacoes);
-      setTechnicalSynthesis(parsedData.sinteseGeral);
+      setFvAiMetricas(parsedData.metricas);
+      setFvAiAuditoria(parsedData.auditoria);
+      setFvAiLexical(parsedData.lexical);
+      setDiscipularSynthesis(parsedData.sinteseGeral);
+
+      const docRef = doc(db, 'fvData', user.uid);
+      await setDoc(docRef, { 
+        discipularSynthesis: parsedData.sinteseGeral,
+        fvAiMetricas: parsedData.metricas,
+        fvAiAuditoria: parsedData.auditoria,
+        fvAiLexical: parsedData.lexical,
+        technicalSynthesisDate: dataAtual
+      }, { merge: true });
 
       // Salva no Firebase
       await setDoc(doc(db, 'fvData', user.uid), { 
@@ -2895,10 +2901,84 @@ function App() {
                       </p>
                     </div>
 
-                    {/* O TEXTO DO RELATÓRIO QUE ESTAVA FALTANDO */}
+                    {/* AS 4 CAIXAS DO RELATÓRIO DISCIPULAR COM DASHBOARD VISUAL */}
                     {discipularSynthesis ? (
-                      <div className="animate-fadeIn" style={{ background: isDark ? 'rgba(26, 26, 46, 0.9)' : 'white', padding: '1.5rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255, 215, 0, 0.3)' : '#ccc'}`, whiteSpace: 'pre-wrap', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem', lineHeight: '1.7', fontFamily: 'Georgia, serif' }}>
-                        {discipularSynthesis}
+                      <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                        
+                        {/* CAIXA 1: MÉTRICAS DA VONTADE (VISUAL) */}
+                        {(() => {
+                          const hoje = new Date();
+                          const trintaDiasAtras = new Date(); trintaDiasAtras.setDate(hoje.getDate() - 30);
+                          const sessentaDiasAtras = new Date(); sessentaDiasAtras.setDate(hoje.getDate() - 60);
+
+                          const cicloAtual = entries.filter(e => { const d = new Date(e.date + 'T12:00:00'); return d >= trintaDiasAtras && d <= hoje; });
+                          const cicloAnterior = entries.filter(e => { const d = new Date(e.date + 'T12:00:00'); return d >= sessentaDiasAtras && d < trintaDiasAtras; });
+
+                          const countPractices = (ciclo) => { let total = 0; ciclo.forEach(e => { if(e.fvDaily && e.fvDaily.praticas) { total += Object.values(e.fvDaily.praticas).filter(v => v === true).length; } }); return total; };
+
+                          const preenchimentosAtual = cicloAtual.length;
+                          const preenchimentosAnterior = cicloAnterior.length;
+                          const varPreenchimentos = preenchimentosAnterior === 0 ? 100 : Math.round(((preenchimentosAtual - preenchimentosAnterior) / preenchimentosAnterior) * 100);
+
+                          const praticasAtual = countPractices(cicloAtual);
+                          const praticasAnterior = countPractices(cicloAnterior);
+                          const varPraticas = praticasAnterior === 0 ? 100 : Math.round(((praticasAtual - praticasAnterior) / praticasAnterior) * 100);
+
+                          return (
+                            <div style={{ background: isDark ? 'rgba(74, 144, 226, 0.05)' : '#f4f8ff', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(74, 144, 226, 0.3)' : 'rgba(74, 144, 226, 0.3)'}` }}>
+                              <h4 style={{ margin: '0 0 1rem 0', color: isDark ? '#6cb2eb' : '#2980b9', fontSize: '1.1rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}><TrendingUp size={18} /> Métricas da Vontade</h4>
+                              
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+                                {/* Card 1: Preenchimentos */}
+                                <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', padding: '1.5rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(74, 144, 226, 0.2)' : '#ccc'}`, display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                                  <span style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', marginBottom: '0.5rem', textAlign: 'center' }}>Dias Forjados</span>
+                                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+                                    <span style={{ fontSize: '2.5rem', fontWeight: 'bold', color: isDark ? '#6cb2eb' : '#2980b9', fontFamily: "'Cinzel', serif" }}>{preenchimentosAtual}</span>
+                                    <span style={{ fontSize: '1rem', color: isDark ? '#888' : '#999' }}>/ 30</span>
+                                  </div>
+                                  <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.3rem', background: varPreenchimentos >= 0 ? 'rgba(76, 175, 80, 0.15)' : 'rgba(231, 76, 60, 0.15)', color: varPreenchimentos >= 0 ? (isDark ? '#81c784' : '#2e7d32') : '#e74c3c', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                                    {varPreenchimentos >= 0 ? <ChevronUp size={16} /> : <ChevronDown size={16} />} 
+                                    {varPreenchimentos > 0 ? '+' : ''}{varPreenchimentos}%
+                                  </div>
+                                </div>
+
+                                {/* Card 2: Práticas FV */}
+                                <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', padding: '1.5rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(74, 144, 226, 0.2)' : '#ccc'}`, display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                                  <span style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', marginBottom: '0.5rem', textAlign: 'center' }}>Práticas FV Realizadas</span>
+                                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+                                    <span style={{ fontSize: '2.5rem', fontWeight: 'bold', color: isDark ? '#6cb2eb' : '#2980b9', fontFamily: "'Cinzel', serif" }}>{praticasAtual}</span>
+                                    <span style={{ fontSize: '1rem', color: isDark ? '#888' : '#999' }}>ações</span>
+                                  </div>
+                                  <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.3rem', background: varPraticas >= 0 ? 'rgba(76, 175, 80, 0.15)' : 'rgba(231, 76, 60, 0.15)', color: varPraticas >= 0 ? (isDark ? '#81c784' : '#2e7d32') : '#e74c3c', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                                    {varPraticas >= 0 ? <ChevronUp size={16} /> : <ChevronDown size={16} />} 
+                                    {varPraticas > 0 ? '+' : ''}{varPraticas}%
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              {/* Texto opcional da IA analisando a matemática */}
+                              {fvAiMetricas && <p style={{ margin: 0, color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem', lineHeight: '1.6', borderTop: `1px dashed ${isDark ? 'rgba(74, 144, 226, 0.3)' : 'rgba(74, 144, 226, 0.3)'}`, paddingTop: '1rem' }}>{fvAiMetricas}</p>}
+                            </div>
+                          );
+                        })()}
+
+                        {/* CAIXA 2: AUDITORIA ESTOICA CRUZADA */}
+                        <div style={{ background: isDark ? 'rgba(255, 152, 0, 0.05)' : '#fff8f0', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255, 152, 0, 0.3)' : 'rgba(255, 152, 0, 0.3)'}` }}>
+                          <h4 style={{ margin: '0 0 0.75rem 0', color: isDark ? '#ffb74d' : '#e65100', fontSize: '1.1rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Shield size={18} /> Auditoria Cruzada</h4>
+                          <p style={{ margin: 0, color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem', lineHeight: '1.6' }}>{fvAiAuditoria}</p>
+                        </div>
+
+                        {/* CAIXA 3: VARREDURA LEXICAL */}
+                        <div style={{ background: isDark ? 'rgba(155, 89, 182, 0.05)' : '#fdf8ff', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.3)' : 'rgba(155, 89, 182, 0.3)'}` }}>
+                          <h4 style={{ margin: '0 0 0.75rem 0', color: isDark ? '#c39bd3' : '#8e44ad', fontSize: '1.1rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Eye size={18} /> Varredura Lexical (Itens FV)</h4>
+                          <p style={{ margin: 0, color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem', lineHeight: '1.6' }}>{fvAiLexical}</p>
+                        </div>
+
+                        {/* CAIXA 4: SÍNTESE GERAL */}
+                        <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255, 215, 0, 0.4)' : '#FFD700'}`, whiteSpace: 'pre-wrap', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem', lineHeight: '1.7', fontFamily: 'Georgia, serif' }}>
+                          <h4 style={{ margin: '0 0 1rem 0', color: isDark ? '#FFD700' : '#996515', fontSize: '1.1rem', fontFamily: "'Cinzel', serif" }}>Conclusão e Pauta do Ciclo</h4>
+                          {discipularSynthesis}
+                        </div>
                       </div>
                     ) : (
                       <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', textAlign: 'center', margin: '2rem 0' }}>Sua Alma aguarda a síntese das suas batalhas. Clique no botão acima para processar o ciclo.</p>
