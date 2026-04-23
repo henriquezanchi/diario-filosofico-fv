@@ -1435,40 +1435,50 @@ function App() {
 
       const termoMestre = fvMasterName ? `seu Mestre/Instrutor (${fvMasterName})` : "seu Mestre/Instrutor";
 
-      // 3. O Prompt Rigoroso e Frio
-      const prompt = `Você é um Analista de Dados. Entregue um RELATÓRIO ESTATÍSTICO E TÉCNICO de um estudante avançado.
+      // 3. O Prompt Profundo (Cruzamento de Dados)
+      const prompt = `Você é um Analista de Dados e Auditor comportamental avançado. Retorne ESTRITAMENTE um objeto JSON válido (sem formatação Markdown e sem blocos de código).
       
-      REGRAS DE FORMATAÇÃO (CRÍTICO): 
-      - É EXPRESSAMENTE PROIBIDO usar formatação Markdown. NÃO use asteriscos (*), hashtags (#), negrito ou itálico. Use texto puro e MAIÚSCULAS para títulos.
-      
-      REGRAS DE TOM:
-      - PROIBIDO dar conselhos ou agir como mestre. Faça apenas análise matemática e lexical.
+      REGRAS DE CONTEÚDO:
+      - NÃO dê conselhos. Seja frio, analítico e imparcial.
+      - Seu principal objetivo é o CRUZAMENTO DE DADOS. Não apenas liste falhas, mas cruze-as com o comportamento prático. Exemplo: "A queda nas práticas de meditação acompanhou o aumento de relatos de irritabilidade".
 
-      ESTRUTURA OBRIGATÓRIA:
-      1. MÉTRICAS DA VONTADE (PRÁTICAS): Compare (em %) "Práticas FV" e "Preenchimentos" do Ciclo Atual com o Anterior.
-      2. AUDITORIA ESTOICA (ACERTOS vs ERROS): Dê igual peso ao mapeamento de padrões nas Vitórias e nas Falhas. O que ele executou bem de forma recorrente e onde mais falhou?
-      3. COMPLETUDE DO AUTOEXAME: Avalie se as respostas estão nos campos corretos ou se o usuário concentrou tudo na "Reflexão Livre". Valide o conteúdo do texto livre se ele cobrir as falhas e acertos. PROIBIDO usar as palavras "evasão", "fuga" ou julgar a dedicação do aluno. Apenas relate o formato de preenchimento.
-      4. AUDITORIA DO TEXTO LIVRE E ITENS FV: Faça a análise lexical das "Reflexões amplas" e dos "Itens 1 e 6". Isole: 
-         - Padrões de causalidade (o que gera o quê na mente dele).
-         - Elaboração de hipóteses sobre si mesmo.
-         - Temas ou cenários predominantes (onde os vícios ou vitórias mais se manifestam).
-      5. PAUTA PARA O INSTRUTOR: Formule 2 perguntas baseadas estritamente nas métricas para o encontro presencial com ${termoMestre}.
+      O JSON deve conter EXATAMENTE as seguintes chaves:
+      "metricas": Uma síntese técnica cruzando a variação das "Práticas FV" com a variação dos "Preenchimentos" do Ciclo Atual vs Anterior. Comente também sobre o nível de engajamento oculto (Streak) (máximo 3 linhas).
+      "auditoria": O mapeamento de "Onde a Guarda Baixou" vs "Conquistas Forjadas". Identifique os gatilhos recorrentes de falha e os padrões de êxito (máximo 4 linhas).
+      "lexical": A varredura profunda dos "Itens 1 e 6" (Varrer por Dentro e Vícios) cruzada com o Texto Livre. Isole padrões de causalidade e hipóteses de auto-investigação do usuário (máximo 4 linhas).
+      "sinteseGeral": Um relatório final dividido em dois parágrafos. O primeiro com a conclusão técnica sobre a 'Completude do Autoexame' do aluno. O segundo formulando 2 perguntas cirúrgicas e baseadas estritamente em dados (sem tom de conselho) para o encontro presencial com ${termoMestre}.
 
-      DADOS:
+      DADOS DESTE CICLO:
       ${dossie}`;
 
-      // 4. Chamada da API
+      // 4. Chamada da API forçando JSON
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ 
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { responseMimeType: "application/json" }
+        })
       });
       const data = await response.json();
       if (data.error) throw new Error(data.error.message);
 
-      // 5. Salvar resultado
-      const resultado = data.candidates[0].content.parts[0].text;
-      setDiscipularSynthesis(resultado);
+      // 5. Salvar resultado nas 4 gavetas
+      const rawText = data.candidates[0].content.parts[0].text;
+      const parsedData = JSON.parse(rawText);
+      const dataAtual = new Date().toISOString();
+
+      setFvAiMetricas(parsedData.metricas);
+      setFvAiAuditoria(parsedData.auditoria);
+      setFvAiLexical(parsedData.lexical);
+      setDiscipularSynthesis(parsedData.sinteseGeral);
+
       const docRef = doc(db, 'fvData', user.uid);
-      await setDoc(docRef, { discipularSynthesis: resultado }, { merge: true });
+      await setDoc(docRef, { 
+        discipularSynthesis: parsedData.sinteseGeral,
+        fvAiMetricas: parsedData.metricas,
+        fvAiAuditoria: parsedData.auditoria,
+        fvAiLexical: parsedData.lexical,
+        technicalSynthesisDate: dataAtual
+      }, { merge: true });
 
     } catch (error) { 
       console.error("Erro no Relatório Discipular:", error); 
@@ -2434,21 +2444,60 @@ function App() {
                       });
                       const topVirtues = Object.entries(virtueCounts).sort((a,b) => b[1] - a[1]).slice(0, 5);
 
+                      // ==========================================
+                      // LÓGICA DE COMPARAÇÃO DOS CICLOS (30 DIAS)
+                      // ==========================================
+                      const hoje = new Date();
+                      const trintaDiasAtras = new Date(); trintaDiasAtras.setDate(hoje.getDate() - 30);
+                      const sessentaDiasAtras = new Date(); sessentaDiasAtras.setDate(hoje.getDate() - 60);
+
+                      const cicloAtual = entries.filter(e => { const d = new Date(e.date + 'T12:00:00'); return d >= trintaDiasAtras && d <= hoje; });
+                      const cicloAnterior = entries.filter(e => { const d = new Date(e.date + 'T12:00:00'); return d >= sessentaDiasAtras && d < trintaDiasAtras; });
+
+                      const countCustomTasks = (ciclo) => ciclo.reduce((acc, curr) => acc + (curr.tasksSnapshot ? curr.tasksSnapshot.filter(t => t.completed).length : 0), 0);
+
+                      const preenchimentosAtual = cicloAtual.length;
+                      const preenchimentosAnterior = cicloAnterior.length;
+                      const varPreenchimentos = preenchimentosAnterior === 0 ? 100 : Math.round(((preenchimentosAtual - preenchimentosAnterior) / preenchimentosAnterior) * 100);
+
+                      const tarefasAtual = countCustomTasks(cicloAtual);
+                      const tarefasAnterior = countCustomTasks(cicloAnterior);
+                      const varTarefas = tarefasAnterior === 0 ? 100 : Math.round(((tarefasAtual - tarefasAnterior) / tarefasAnterior) * 100);
+
                       return (
                         <>
-                          {/* CARDS DE VISÃO GERAL */}
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
-                            <div style={{ padding: '1.5rem', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.5)', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, textAlign: 'center' }}>
-                              <span style={{ fontSize: '2.5rem', fontWeight: 'bold', color: isDark ? '#d4af37' : '#6b4423', fontFamily: "'Cinzel', serif" }}>{total}</span>
-                              <span style={{ display: 'block', fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', marginTop: '0.5rem', fontWeight: 'bold', letterSpacing: '1px' }}>Dias Forjados</span>
-                            </div>
-                            <div style={{ padding: '1.5rem', background: isDark ? 'rgba(76, 175, 80, 0.05)' : '#e8f5e9', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(76, 175, 80, 0.2)' : '#c8e6c9'}`, textAlign: 'center' }}>
-                              <span style={{ fontSize: '2.5rem', fontWeight: 'bold', color: isDark ? '#81c784' : '#2e7d32', fontFamily: "'Cinzel', serif" }}>{Math.round((morningCount/total)*100)}%</span>
-                              <span style={{ display: 'block', fontSize: '0.85rem', color: isDark ? '#81c784' : '#2e7d32', textTransform: 'uppercase', marginTop: '0.5rem', fontWeight: 'bold', letterSpacing: '1px' }}>Prólogos Constantes</span>
-                            </div>
-                            <div style={{ padding: '1.5rem', background: isDark ? 'rgba(156, 39, 176, 0.05)' : '#f3e5f5', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(156, 39, 176, 0.2)' : '#e1bee7'}`, textAlign: 'center' }}>
-                              <span style={{ fontSize: '2.5rem', fontWeight: 'bold', color: isDark ? '#b19cd9' : '#8e24aa', fontFamily: "'Cinzel', serif" }}>{Math.round((eveningCount/total)*100)}%</span>
-                              <span style={{ display: 'block', fontSize: '0.85rem', color: isDark ? '#b19cd9' : '#8e24aa', textTransform: 'uppercase', marginTop: '0.5rem', fontWeight: 'bold', letterSpacing: '1px' }}>Epílogos Constantes</span>
+                          {/* CARDS DE VISÃO GERAL (NOVO FORMATO DASHBOARD) */}
+                          <div style={{ background: isDark ? 'rgba(212, 175, 55, 0.05)' : '#fffbf0', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(212, 175, 55, 0.3)'}`, marginBottom: '2rem' }}>
+                            <h4 style={{ margin: '0 0 1rem 0', color: isDark ? '#FFD700' : '#996515', fontSize: '1.1rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}><TrendingUp size={18} /> Resumo do Ciclo (30 dias)</h4>
+                            
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                              
+                              {/* Card 1: Preenchimentos */}
+                              <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', padding: '1.5rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : '#ccc'}`, display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                                <span style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', marginBottom: '0.5rem', textAlign: 'center' }}>Dias Forjados</span>
+                                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+                                  <span style={{ fontSize: '2.5rem', fontWeight: 'bold', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif" }}>{preenchimentosAtual}</span>
+                                  <span style={{ fontSize: '1rem', color: isDark ? '#888' : '#999' }}>/ 30</span>
+                                </div>
+                                <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.3rem', background: varPreenchimentos >= 0 ? 'rgba(76, 175, 80, 0.15)' : 'rgba(231, 76, 60, 0.15)', color: varPreenchimentos >= 0 ? (isDark ? '#81c784' : '#2e7d32') : '#e74c3c', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                                  {varPreenchimentos >= 0 ? <ChevronUp size={16} /> : <ChevronDown size={16} />} 
+                                  {varPreenchimentos > 0 ? '+' : ''}{varPreenchimentos}%
+                                </div>
+                              </div>
+
+                              {/* Card 2: Tarefas Personalizadas */}
+                              <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', padding: '1.5rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : '#ccc'}`, display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                                <span style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', marginBottom: '0.5rem', textAlign: 'center' }}>Tarefas Realizadas</span>
+                                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+                                  <span style={{ fontSize: '2.5rem', fontWeight: 'bold', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif" }}>{tarefasAtual}</span>
+                                  <span style={{ fontSize: '1rem', color: isDark ? '#888' : '#999' }}>ações</span>
+                                </div>
+                                <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.3rem', background: varTarefas >= 0 ? 'rgba(76, 175, 80, 0.15)' : 'rgba(231, 76, 60, 0.15)', color: varTarefas >= 0 ? (isDark ? '#81c784' : '#2e7d32') : '#e74c3c', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                                  {varTarefas >= 0 ? <ChevronUp size={16} /> : <ChevronDown size={16} />} 
+                                  {varTarefas > 0 ? '+' : ''}{varTarefas}%
+                                </div>
+                              </div>
+
                             </div>
                           </div>
 
