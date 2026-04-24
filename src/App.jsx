@@ -4567,38 +4567,56 @@ function App() {
       {/* O EIXO DE KURUKSHETRA (TERMÔMETRO VISUAL DE CONSCIÊNCIA) */}
       {user && view === 'today' && (
         <>
-          {/* WIDGET FLUTUANTE GRÁFICO (O Balão e a Coluna) */}
-          <div style={{ position: 'fixed', left: '20px', top: '150px', bottom: '100px', width: '60px', zIndex: 9997, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', background: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)', borderRadius: '30px', padding: '10px 0', border: `1px solid ${isDark ? 'rgba(255,215,0,0.1)' : 'rgba(139,115,85,0.1)'}` }}>
-            
-            {/* O Topo: Krishna (Sattva / Sabedoria) */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem', opacity: altitude >= 80 ? 1 : 0.4, transition: 'opacity 0.5s' }}>
-              <Sun size={28} color={isDark ? '#FFD700' : '#f39c12'} style={{ filter: altitude >= 80 ? 'drop-shadow(0 0 10px rgba(255,215,0,0.8))' : 'none' }} />
-            </div>
-
-            {/* O Eixo Invisível por onde o balão corre */}
-            <div style={{ position: 'relative', width: '4px', flex: 1, background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)', margin: '10px 0', borderRadius: '2px' }}>
-              
-              {/* Arjuna (O Balão) Subindo e Descendo */}
-              <div 
-                onClick={() => setShowConsciousnessModal(true)}
-                title="Elevar Consciência"
-                style={{ position: 'absolute', left: '50%', bottom: `${altitude}%`, transform: 'translate(-50%, 50%)', cursor: 'pointer', transition: 'bottom 1.5s cubic-bezier(0.25, 1, 0.5, 1)', zIndex: 9998, display: 'flex', flexDirection: 'column', alignItems: 'center' }}
-              >
-                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: altitude >= 70 ? (isDark ? '#FFD700' : '#FFB300') : (altitude <= 30 ? '#e74c3c' : (isDark ? '#b8a88a' : '#8b7355')), display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 ${altitude >= 70 ? '20px' : '10px'} ${altitude >= 70 ? 'rgba(255,215,0,0.6)' : (altitude <= 30 ? 'rgba(231,76,60,0.6)' : 'rgba(0,0,0,0.2)')}`, transition: 'all 0.5s' }}>
-                  <Flame size={20} color={altitude >= 70 ? '#000' : '#fff'} />
-                </div>
-                <div style={{ width: '12px', height: '10px', background: isDark ? '#f0e6d2' : '#2c1810', borderRadius: '0 0 4px 4px', marginTop: '2px' }}></div>
-                <div style={{ background: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)', padding: '2px 6px', borderRadius: '10px', fontSize: '0.7rem', fontWeight: 'bold', color: isDark ? '#f0e6d2' : '#2c1810', marginTop: '4px', border: `1px solid ${isDark ? 'rgba(255,215,0,0.3)' : 'rgba(0,0,0,0.1)'}` }}>
-                  {altitude}%
-                </div>
+          {/* WIDGET FLUTUANTE GRÁFICO (Responsivo: Celular vs PC) */}
+          {isMobile ? (
+            /* VERSÃO CELULAR: Botão Discreto no canto inferior esquerdo */
+            <div 
+              onClick={() => setShowConsciousnessModal(true)}
+              style={{ position: 'fixed', left: '20px', bottom: '20px', zIndex: 9997, display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', transition: 'transform 0.2s' }}
+              onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.9)'} 
+              onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: altitude >= 70 ? (isDark ? '#FFD700' : '#FFB300') : (altitude <= 30 ? '#e74c3c' : (isDark ? '#b8a88a' : '#8b7355')), display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 4px 15px ${altitude >= 70 ? 'rgba(255,215,0,0.4)' : (altitude <= 30 ? 'rgba(231,76,60,0.4)' : 'rgba(0,0,0,0.3)')}`, border: `2px solid ${isDark ? '#1a1a2e' : '#fff'}` }}>
+                <Flame size={24} color={altitude >= 70 ? '#000' : '#fff'} />
+              </div>
+              <div style={{ background: isDark ? 'rgba(0,0,0,0.8)' : 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold', color: altitude >= 70 ? (isDark ? '#FFD700' : '#d4af37') : (altitude <= 30 ? '#e74c3c' : (isDark ? '#f0e6d2' : '#2c1810')), marginTop: '-10px', zIndex: 2, border: `1px solid ${isDark ? 'rgba(255,215,0,0.3)' : 'rgba(139,115,85,0.2)'}`, boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
+                {altitude}%
               </div>
             </div>
+          ) : (
+            /* VERSÃO COMPUTADOR: O Eixo Vertical Completo */
+            <div style={{ position: 'fixed', left: '20px', top: '150px', bottom: '100px', width: '60px', zIndex: 9997, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', background: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)', borderRadius: '30px', padding: '10px 0', border: `1px solid ${isDark ? 'rgba(255,215,0,0.1)' : 'rgba(139,115,85,0.1)'}` }}>
+              
+              {/* O Topo: Krishna (Sattva / Sabedoria) */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem', opacity: altitude >= 80 ? 1 : 0.4, transition: 'opacity 0.5s' }}>
+                <Sun size={28} color={isDark ? '#FFD700' : '#f39c12'} style={{ filter: altitude >= 80 ? 'drop-shadow(0 0 10px rgba(255,215,0,0.8))' : 'none' }} />
+              </div>
 
-            {/* O Chão: Kuravas (Tamas / Inércia) */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem', opacity: altitude <= 30 ? 1 : 0.4, transition: 'opacity 0.5s' }}>
-              <Swords size={28} color="#e74c3c" style={{ filter: altitude <= 30 ? 'drop-shadow(0 0 10px rgba(231,76,60,0.8))' : 'none' }} />
+              {/* O Eixo Invisível por onde o balão corre */}
+              <div style={{ position: 'relative', width: '4px', flex: 1, background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)', margin: '10px 0', borderRadius: '2px' }}>
+                
+                {/* Arjuna (O Balão) Subindo e Descendo */}
+                <div 
+                  onClick={() => setShowConsciousnessModal(true)}
+                  title="Elevar Consciência"
+                  style={{ position: 'absolute', left: '50%', bottom: `${altitude}%`, transform: 'translate(-50%, 50%)', cursor: 'pointer', transition: 'bottom 1.5s cubic-bezier(0.25, 1, 0.5, 1)', zIndex: 9998, display: 'flex', flexDirection: 'column', alignItems: 'center' }}
+                >
+                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: altitude >= 70 ? (isDark ? '#FFD700' : '#FFB300') : (altitude <= 30 ? '#e74c3c' : (isDark ? '#b8a88a' : '#8b7355')), display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 ${altitude >= 70 ? '20px' : '10px'} ${altitude >= 70 ? 'rgba(255,215,0,0.6)' : (altitude <= 30 ? 'rgba(231,76,60,0.6)' : 'rgba(0,0,0,0.2)')}`, transition: 'all 0.5s' }}>
+                    <Flame size={20} color={altitude >= 70 ? '#000' : '#fff'} />
+                  </div>
+                  <div style={{ width: '12px', height: '10px', background: isDark ? '#f0e6d2' : '#2c1810', borderRadius: '0 0 4px 4px', marginTop: '2px' }}></div>
+                  <div style={{ background: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)', padding: '2px 6px', borderRadius: '10px', fontSize: '0.7rem', fontWeight: 'bold', color: isDark ? '#f0e6d2' : '#2c1810', marginTop: '4px', border: `1px solid ${isDark ? 'rgba(255,215,0,0.3)' : 'rgba(0,0,0,0.1)'}` }}>
+                    {altitude}%
+                  </div>
+                </div>
+              </div>
+
+              {/* O Chão: Kuravas (Tamas / Inércia) */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem', opacity: altitude <= 30 ? 1 : 0.4, transition: 'opacity 0.5s' }}>
+                <Swords size={28} color="#e74c3c" style={{ filter: altitude <= 30 ? 'drop-shadow(0 0 10px rgba(231,76,60,0.8))' : 'none' }} />
+              </div>
             </div>
-          </div>
+          )}
 
           {/* O MODAL INTERATIVO (A LISTA RENOVÁVEL) */}
           {showConsciousnessModal && (
