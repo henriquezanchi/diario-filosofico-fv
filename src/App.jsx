@@ -4683,7 +4683,10 @@ function App() {
                   ) : (
                     <>
                       {displayedActions.length > 0 && (
-                        <p style={{ fontSize: isMobile ? '0.75rem' : '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '1rem', fontStyle: 'italic' }}>Confesse as ações que você realizou hoje:</p>
+                        <div style={{ marginBottom: '1.2rem' }}>
+                          <p style={{ margin: '0 0 0.3rem 0', fontSize: isMobile ? '0.85rem' : '0.95rem', color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 'bold' }}>Confesse as ações de hoje:</p>
+                          <p style={{ margin: 0, fontSize: isMobile ? '0.75rem' : '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic' }}>Se você realizou a ação, clique na afirmação. Se não ocorreu, clique no X.</p>
+                        </div>
                       )}
                       
                       <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '0.5rem' : '0.75rem', marginBottom: isMobile ? '1rem' : '1.5rem' }}>
