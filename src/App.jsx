@@ -4682,48 +4682,58 @@ function App() {
                       {displayedActions.length > 0 && (
                         <div style={{ marginBottom: '1.2rem' }}>
                           <p style={{ margin: '0 0 0.3rem 0', fontSize: isMobile ? '0.85rem' : '0.95rem', color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 'bold' }}>Confesse as ações de hoje:</p>
-                          <p style={{ margin: 0, fontSize: isMobile ? '0.75rem' : '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic' }}>Se você realizou a ação, clique na afirmação. Se não ocorreu, clique no X.</p>
+                          <p style={{ margin: 0, fontSize: isMobile ? '0.75rem' : '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic' }}>Analise a afirmação e declare o que de fato aconteceu no seu dia.</p>
                         </div>
                       )}
                       
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '0.5rem' : '0.75rem', marginBottom: isMobile ? '1rem' : '1.5rem' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '0.8rem' : '1rem', marginBottom: isMobile ? '1rem' : '1.5rem' }}>
                         {displayedActions.map(action => {
                           const isAnimating = animatingActionId === action.id;
+                          const currentType = isAnimating ? animatingType : null;
                           
                           return (
-                            <div key={action.id} style={{ display: 'flex', gap: '0.5rem' }}>
-                              <button 
-                                onClick={() => handleActionClick(action)}
-                                disabled={animatingActionId !== null}
-                                style={{ 
-                                  flex: 1, padding: isMobile ? '0.75rem' : '1rem', textAlign: 'left', 
-                                  background: isAnimating ? '#4caf50' : (isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)'), 
-                                  color: isAnimating ? '#fff' : (isDark ? '#f0e6d2' : '#2c1810'), 
-                                  border: `1px solid ${isAnimating ? '#4caf50' : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)')}`, 
-                                  borderRadius: '8px', cursor: animatingActionId ? 'default' : 'pointer', fontFamily: 'Georgia, serif', 
-                                  fontSize: isMobile ? '0.85rem' : '0.95rem',
-                                  transition: 'all 0.3s ease', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                  transform: isAnimating ? 'scale(0.98)' : 'scale(1)',
-                                  boxShadow: isAnimating ? '0 0 15px rgba(76, 175, 80, 0.5)' : 'none',
-                                  lineHeight: '1.3'
-                                }}
-                              >
-                                <span>{action.text}</span>
-                                {isAnimating && <CheckCircle size={16} color="#fff" />}
-                              </button>
+                            <div key={action.id} style={{ 
+                              background: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)', 
+                              border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, 
+                              borderRadius: '10px', padding: isMobile ? '0.8rem' : '1rem', 
+                              display: 'flex', flexDirection: 'column', gap: '0.8rem',
+                              transform: isAnimating ? 'scale(0.98)' : 'scale(1)',
+                              transition: 'all 0.3s ease',
+                              boxShadow: isAnimating ? '0 0 15px rgba(212, 175, 55, 0.2)' : 'none'
+                            }}>
+                              
+                              <span style={{ fontSize: isMobile ? '0.85rem' : '0.95rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.4', fontStyle: 'italic', textAlign: 'center' }}>
+                                "{action.text}"
+                              </span>
+                              
+                              {/* OS TRÊS CAMINHOS DA AÇÃO */}
+                              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'space-between' }}>
+                                
+                                <button 
+                                  onClick={() => handleInteraction(action, 1, 'sim')}
+                                  disabled={animatingActionId !== null}
+                                  style={{ flex: 1, padding: '0.5rem', background: currentType === 'sim' ? (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)') : 'transparent', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.4)' : 'rgba(139, 115, 85, 0.4)'}`, borderRadius: '6px', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: isMobile ? '0.7rem' : '0.8rem', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.3rem' }}
+                                >
+                                  <CheckCircle size={16} /> Sim
+                                </button>
+                                
+                                <button 
+                                  onClick={() => handleInteraction(action, -1, 'oposto')}
+                                  disabled={animatingActionId !== null}
+                                  style={{ flex: 1, padding: '0.5rem', background: currentType === 'oposto' ? (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)') : 'transparent', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.4)' : 'rgba(139, 115, 85, 0.4)'}`, borderRadius: '6px', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: isMobile ? '0.7rem' : '0.8rem', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.3rem' }}
+                                >
+                                  <Swords size={16} /> Agi Diferente
+                                </button>
+                                
+                                <button 
+                                  onClick={() => handleInteraction(action, 0, 'pular')}
+                                  disabled={animatingActionId !== null}
+                                  style={{ flex: 1, padding: '0.5rem', background: currentType === 'pular' ? 'rgba(150, 150, 150, 0.2)' : 'transparent', border: `1px dashed ${isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)'}`, borderRadius: '6px', color: isDark ? '#b8a88a' : '#6b5744', fontSize: isMobile ? '0.7rem' : '0.8rem', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.3rem' }}
+                                >
+                                  <X size={16} /> Não Ocorreu
+                                </button>
 
-                              <button
-                                onClick={() => handleSkipAction(action)}
-                                disabled={animatingActionId !== null}
-                                title="Não ocorreu hoje"
-                                style={{ 
-                                  padding: isMobile ? '0 0.75rem' : '0 1rem', background: 'transparent', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`,
-                                  borderRadius: '8px', color: isDark ? '#b8a88a' : '#6b5744', cursor: animatingActionId ? 'default' : 'pointer',
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
-                                }}
-                              >
-                                <X size={isMobile ? 16 : 18} />
-                              </button>
+                              </div>
                             </div>
                           );
                         })}
