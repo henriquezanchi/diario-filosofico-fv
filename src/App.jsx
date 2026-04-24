@@ -903,7 +903,7 @@ function App() {
   };
 
   const loadFVData = async (uid) => {
-    setKuravaEnabled(data.kuravaEnabled !== false); // Padrão é true se for a primeira vez
+    
     if (!uid) return;
     try {
       const docRef = doc(db, 'fvData', uid);
@@ -911,6 +911,13 @@ function App() {
       
       if (docSnap.exists()) {
         const data = docSnap.data();
+        
+        // Suas outras memórias sendo carregadas:
+        if (data.kuravaData) setKuravaData(data.kuravaData);
+        if (data.balloonActions) setBalloonActions(data.balloonActions);
+        
+        // COLE AQUI:
+        setKuravaEnabled(data.kuravaEnabled !== false);
 
         // 1. Puxa as Datas e Planejamento
         setFvLastCartaDate(data.lastCartaDate || '');
