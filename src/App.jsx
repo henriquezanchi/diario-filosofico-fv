@@ -2093,7 +2093,7 @@ function App() {
           morningTime, 
           eveningTime 
         });
-        alert('✅ Congigurações atualizadas com sucesso!');
+        alert('✅ Configurações atualizadas com sucesso!');
         setShowSettingsModal(false);
       } catch (error) {
         console.error("Erro ao salvar", error);
