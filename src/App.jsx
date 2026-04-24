@@ -284,12 +284,34 @@ function App() {
   const [practicePhase, setPracticePhase] = useState('intro'); 
   const [cancelClickCount, setCancelClickCount] = useState(0); 
   const [tratakMouseActive, setTratakMouseActive] = useState(false);
+  const [tempoDecorrido, setTempoDecorrido] = useState(0);
   
   // ESTADO DO TEMPLO
   const [temploSelections, setTemploSelections] = useState({ porta: false, patioAberto: false, patioColunas: false, santuario: false });
-
   const [activeActionMenu, setActiveActionMenu] = useState(null);
   const audioRef = useRef(null); 
+
+// --- MOTOR DE TELA ATIVA (Evita que o celular apague na prática) ---
+  const wakeLockRef = useRef(null);
+
+  const requestWakeLock = async () => {
+    if ('wakeLock' in navigator) {
+      try {
+        wakeLockRef.current = await navigator.wakeLock.request('screen');
+        console.log('Tela blindada contra bloqueio.');
+      } catch (err) {
+        console.error('Erro no WakeLock:', err);
+      }
+    }
+  };
+
+  const releaseWakeLock = () => {
+    if (wakeLockRef.current !== null) {
+      wakeLockRef.current.release().catch(() => {});
+      wakeLockRef.current = null;
+      console.log('Bloqueio de tela restaurado.');
+    }
+  };
 
   // --- SISTEMA DE AUTOSAVE DE EMERGÊNCIA ---
   const autoSaveDataRef = useRef({});
@@ -379,12 +401,14 @@ function App() {
   };
 
   const enterFullScreen = () => {
+    requestWakeLock(); // LIGA A TELA AQUI
     const elem = document.documentElement;
     if (elem.requestFullscreen) { elem.requestFullscreen().catch(e => console.log(e)); }
     else if (elem.webkitRequestFullscreen) { elem.webkitRequestFullscreen(); }
   };
 
   const exitFullScreen = () => {
+    releaseWakeLock(); // DESLIGA A TELA AQUI
     if (document.fullscreenElement || document.webkitFullscreenElement) {
       if (document.exitFullscreen) { document.exitFullscreen().catch(e => console.log(e)); }
       else if (document.webkitExitFullscreen) { document.webkitExitFullscreen(); }
@@ -639,15 +663,24 @@ function App() {
   useEffect(() => {
     let timer;
     let mouseSafetyTimer;
+    let cronometroVisual;
     
-    if (activePracticeId === 'tratack' && practicePhase === 'practice') {
-      timer = setTimeout(() => setPracticePhase('done'), 180000); 
-      mouseSafetyTimer = setTimeout(() => setTratakMouseActive(true), 2000);
+    if (practicePhase === 'practice') {
+      // Inicia a contagem de tempo (1 em 1 segundo)
+      cronometroVisual = setInterval(() => {
+        setTempoDecorrido(prev => prev + 1);
+      }, 1000);
+
+      if (activePracticeId === 'tratack') {
+        timer = setTimeout(() => { setPracticePhase('done'); clearInterval(cronometroVisual); }, 180000); 
+        mouseSafetyTimer = setTimeout(() => setTratakMouseActive(true), 2000);
+      }
     } else {
       setTratakMouseActive(false); 
+      setTempoDecorrido(0); // Zera se a prática fechou
     }
     
-    return () => { clearTimeout(timer); clearTimeout(mouseSafetyTimer); };
+    return () => { clearTimeout(timer); clearTimeout(mouseSafetyTimer); clearInterval(cronometroVisual); };
   }, [practicePhase, activePracticeId]);
 
   useEffect(() => {
@@ -2567,7 +2600,12 @@ function App() {
         {view === 'today' && (
           <div>
             {/* SELETOR DE DATA RETROATIVA */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem', padding: '1rem', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.4)', borderRadius: '12px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}` }}>
+            {/* SELETOR DE DATA RETROATIVA COM ALERTA DE COR */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem', padding: '1rem', 
+              background: selectedDate !== getTodayKey() ? (isDark ? 'rgba(231, 76, 60, 0.15)' : 'rgba(231, 76, 60, 0.1)') : (isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.4)'), 
+              borderRadius: '12px', 
+              border: `2px solid ${selectedDate !== getTodayKey() ? '#e74c3c' : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)')}` 
+            }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Calendar size={24} color={isDark ? '#d4af37' : '#6b4423'} />
                 <span style={{ fontWeight: 'bold', color: isDark ? '#d4af37' : '#6b4423', fontFamily: "'Cinzel', serif", fontSize: '1.2rem' }}>
@@ -3408,7 +3446,12 @@ function App() {
               </div>
             ) : fvConfig ? (
               <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem', padding: '1rem', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.4)', borderRadius: '12px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}` }}>
+                {/* SELETOR DE DATA RETROATIVA COM ALERTA DE COR */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem', padding: '1rem', 
+              background: selectedDate !== getTodayKey() ? (isDark ? 'rgba(231, 76, 60, 0.15)' : 'rgba(231, 76, 60, 0.1)') : (isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.4)'), 
+              borderRadius: '12px', 
+              border: `2px solid ${selectedDate !== getTodayKey() ? '#e74c3c' : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)')}` 
+            }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <Calendar size={24} color={isDark ? '#d4af37' : '#6b4423'} />
                     <span style={{ fontWeight: 'bold', color: isDark ? '#d4af37' : '#6b4423', fontFamily: "'Cinzel', serif", fontSize: '1.2rem' }}>
@@ -3505,7 +3548,10 @@ function App() {
 
                     {/* PRÁTICAS DINÂMICAS */}
                     <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.5)', padding: '1.5rem', borderRadius: '12px', border: '1px solid rgba(255, 215, 0, 0.2)' }}>
-                      <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#FFD700' : '#996515', fontSize: '1.2rem', fontFamily: "'Cinzel', serif" }}>Práticas</h3>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
+                        <h3 style={{ margin: 0, color: isDark ? '#FFD700' : '#996515', fontSize: '1.2rem', fontFamily: "'Cinzel', serif" }}>Práticas</h3>
+                        <span style={{ fontSize: '0.8rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', padding: '0.4rem 0.8rem', borderRadius: '12px' }}>Em caso de dúvida sobre como realizar, peça orientações ao seu mestre.</span>
+                      </div>
                       
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '1.5rem' }}>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
@@ -4429,9 +4475,7 @@ function App() {
                     </div>
 
                     <p style={{ fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '0.5rem', fontStyle: 'italic' }}>A prática terminará automaticamente ao fim da melodia (~5 min).</p>
-                    
-                    <p style={{ fontSize: '0.85rem', color: '#e74c3c', marginBottom: '2rem', fontWeight: 'bold' }}>⚠️ Para interromper, toque 3 vezes na tela.</p>
-
+                                        
                     <button 
                       onClick={() => { 
                         setPracticePhase('practice'); 
@@ -4453,6 +4497,16 @@ function App() {
                     <Music size={56} color={isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'} style={{ opacity: 0.5 }} />
                     <p style={{ marginTop: '2rem', color: isDark ? 'rgba(240, 230, 210, 0.3)' : 'rgba(44, 24, 16, 0.3)', fontStyle: 'italic', fontFamily: 'Georgia, serif', letterSpacing: '2px' }}>Respire e ouça...</p>
                     
+                    {tempoDecorrido >= 180 && (
+                      <button onClick={(e) => {
+                        e.stopPropagation();
+                        if(audioRef.current) { audioRef.current.pause(); }
+                        setPracticePhase('done');
+                      }} style={{ marginTop: '2rem', padding: '0.8rem 2rem', background: '#4caf50', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 15px rgba(76,175,80,0.3)', animation: 'fadeIn 1s' }}>
+                        <CheckCircle size={20} /> Finalizar Purificação
+                      </button>
+                    )}
+
                     {/* BOTÃO DE ENCERRAR */}
                     <button onClick={(e) => {
                       e.stopPropagation();
@@ -4501,9 +4555,6 @@ function App() {
                       <p style={{ fontSize: '1rem', color: isDark ? '#FFD700' : '#996515', margin: '0 0 0.25rem 0', fontWeight: 'bold' }}>⏱️ Duração: ~8 minutos e 30 segundos.</p>
                       <p style={{ fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744', margin: 0, fontStyle: 'italic' }}>Ao final da sinfonia, você registrará seu progresso.</p>
                     </div>
-
-                    <p style={{ fontSize: '0.85rem', color: '#e74c3c', marginBottom: '2rem', fontWeight: 'bold' }}>⚠️ Para interromper, toque 3 vezes na tela.</p>
-
               
                     <button 
                       onClick={() => { 
@@ -4525,6 +4576,7 @@ function App() {
                   <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%', position: 'relative' }}>
                     <Sparkles size={56} color={isDark ? 'rgba(255, 215, 0, 0.2)' : 'rgba(153, 101, 21, 0.2)'} style={{ opacity: 0.7 }} />
                     <p style={{ marginTop: '2rem', color: isDark ? 'rgba(255, 215, 0, 0.4)' : 'rgba(153, 101, 21, 0.4)', fontStyle: 'italic', fontFamily: 'Georgia, serif', letterSpacing: '2px' }}>Caminhando pelo Templo...</p>
+
 
                     {/* BOTÃO DE ENCERRAR */}
                     <button onClick={(e) => {
