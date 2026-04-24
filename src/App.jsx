@@ -1838,6 +1838,8 @@ function App() {
           fvDaily: newFvDaily
         }, { merge: true });
         await loadAllEntries(user.uid); 
+        // Feedback visual para o usuário saber que salvou no FV
+        alert('✅ Prática concluída e registrada com sucesso no seu Diário (Força Viva)!');
       } catch (error) { console.error("Erro ao salvar prática:", error); }
     }
   };
@@ -3550,7 +3552,7 @@ function App() {
                     <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.5)', padding: '1.5rem', borderRadius: '12px', border: '1px solid rgba(255, 215, 0, 0.2)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
                         <h3 style={{ margin: 0, color: isDark ? '#FFD700' : '#996515', fontSize: '1.2rem', fontFamily: "'Cinzel', serif" }}>Práticas</h3>
-                        <span style={{ fontSize: '0.8rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', padding: '0.4rem 0.8rem', borderRadius: '12px' }}>Em caso de dúvida sobre como realizar, peça orientações ao seu mestre.</span>
+                        <span style={{ fontSize: '0.8rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', padding: '0.4rem 0.8rem', borderRadius: '12px' }}>Em caso de dúvida sobre como realizar as práticas, peça orientações ao seu mestre.</span>
                       </div>
                       
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '1.5rem' }}>
@@ -4390,7 +4392,10 @@ function App() {
                 {practicePhase === 'intro' && (
                   <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '2rem', maxWidth: '500px' }}>
                     <Target size={48} color={isDark ? '#FFD700' : '#996515'} style={{ margin: '0 auto 1.5rem' }} />
-                    <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? '#FFD700' : '#996515', fontSize: '2rem', margin: '0 0 1rem 0' }}>Prática de Tratak</h2>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', margin: '0 0 1rem 0' }}>
+                      <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? '#FFD700' : '#996515', fontSize: '2rem', margin: 0 }}>Prática de Tratak</h2>
+                      <button onClick={() => alert("O Tratak é um exercício milenar de concentração. Consiste em manter o olhar fixamente cravado em um único ponto (o círculo central) sem piscar e sem mover o corpo ou o celular.\n\nObjetivo: Domar a mente agitada através do controle absoluto do corpo. Se o celular tremer ou você mover o mouse, a prática é cancelada.")} style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'transparent', border: `2px solid ${isDark ? '#FFD700' : '#996515'}`, color: isDark ? '#FFD700' : '#996515', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="O que é o Tratak?">?</button>
+                    </div>
                     
                     <div style={{ background: isDark ? 'rgba(255,215,0,0.05)' : 'rgba(153,101,21,0.05)', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255,215,0,0.2)' : 'rgba(153,101,21,0.2)'}`, marginBottom: '1.5rem' }}>
                       <p style={{ fontSize: '1.15rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.6', margin: 0 }}>Posicione o seu dispositivo a cerca de 1 metro de distância, alinhado à altura dos olhos.</p>
@@ -4422,6 +4427,7 @@ function App() {
                     className="animate-fadeIn" 
                     onMouseMove={() => {
                       if (tratakMouseActive) {
+                        alert("Prática interrompida.\n\nSeu foco físico foi quebrado e o dispositivo detectou movimento. O domínio da mente começa pelo domínio absoluto do corpo. Tente novamente quando estiver pronto.");
                         setIsPracticeActive(false); 
                         exitFullScreen(); 
                         setTratakMouseActive(false);
