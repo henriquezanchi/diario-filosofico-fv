@@ -4716,6 +4716,9 @@ function App() {
                 <select value={eveningTime} onChange={(e) => setEveningTime(e.target.value)} style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: `1px solid ${isDark ? '#d4af37' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.1rem' }}>
                   {['18:00', '19:00', '20:00', '21:00', '22:00', '23:00'].map(h => <option key={h} value={h}>{h}</option>)}
                 </select>
+                <p style={{ marginTop: '0.5rem', marginBottom: 0, fontSize: '0.8rem', color: isDark ? '#b8a88a' : '#888', fontStyle: 'italic', lineHeight: '1.4' }}>
+                  * Estes horários apenas organizam as janelas do seu diário. As notificações de lembrete no seu dispositivo estão atualmente <strong style={{ color: notificationsActive ? '#4caf50' : '#e74c3c' }}>{notificationsActive ? 'ATIVADAS' : 'DESATIVADAS'}</strong>.
+                </p>
               </div>
 
               {/* Termo de Consentimento da IA */}
@@ -4732,14 +4735,14 @@ function App() {
                     style={{ width: '24px', height: '24px', marginTop: '0.2rem', cursor: 'pointer', accentColor: '#d4af37', flexShrink: 0 }} 
                   />
                   <span style={{ fontSize: '0.9rem', color: isDark ? '#c8b896' : '#6b5744', lineHeight: '1.4' }}>
-                    <strong style={{ color: isDark ? '#d4af37' : '#6b4423' }}>Privacidade e Oráculo (IA):</strong> Autorizo a Inteligência Artificial a ler meus registros e textos de forma anônima para gerar o Kurava da Semana, Missões e Relatórios de Auditoria.
+                    <strong style={{ color: isDark ? '#d4af37' : '#6b4423' }}>Privacidade e Oráculo (IA):</strong> Autorizo o uso da Inteligência Artificial para ler meus registros de forma anônima <span style={{ textDecoration: 'underline' }}>apenas quando eu solicitar</span> uma análise (Batalha Interior, Missões ou Sínteses). Meus dados não são usados para treinar a máquina.
                   </span>
                 </label>
               </div>
 
               {/* Botão de Salvar */}
-              <button onClick={saveNotificationTimes} style={{ width: '100%', padding: '1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
-                <Save size={20} /> Salvar Horários
+              <button onClick={saveNotificationTimes} style={{ width: '100%', padding: '1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', transition: 'transform 0.2s' }} onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'} onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}>
+                <Save size={20} /> Salvar Configurações
               </button>
               
             </div>
