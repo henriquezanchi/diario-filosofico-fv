@@ -138,13 +138,11 @@ function App() {
   // --- ESTADOS DO BALÃO DE CONSCIÊNCIA ---
   const [showConsciousnessModal, setShowConsciousnessModal] = useState(false);
   const [manualAltitudeModifier, setManualAltitudeModifier] = useState(0);
-  const [animatingActionId, setAnimatingActionId] = useState(null);
   const [pendingAltitudeModifier, setPendingAltitudeModifier] = useState(0);
   const [consumedActionIds, setConsumedActionIds] = useState([]);
-  
-  
-  
   const [displayedActions, setDisplayedActions] = useState([]);
+  const [animatingActionId, setAnimatingActionId] = useState(null);
+  const [animatingType, setAnimatingType] = useState(null); // 'sim', 'oposto' ou 'pular'  
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth <= 850);
@@ -2173,19 +2171,20 @@ function App() {
     });
   };
 
-  const handleActionClick = (action) => {
+  
+// A função universal que processa a matemática invertida secretamente
+  const handleInteraction = (action, multiplier, type) => {
     if (animatingActionId) return; 
     setAnimatingActionId(action.id);
+    setAnimatingType(type);
+    
     setTimeout(() => {
-      // Guarda no cofre secreto em vez de aplicar no balão direto
-      setPendingAltitudeModifier(prev => prev + action.value);
+      // O multiplicador inverte a nota se for "Agi Diferente", ou zera se for "Não Ocorreu"
+      setPendingAltitudeModifier(prev => prev + (action.value * multiplier));
       replaceAction(action.id);
       setAnimatingActionId(null);
-    }, 400); 
-  };
-
-  const handleSkipAction = (action) => {
-    replaceAction(action.id);
+      setAnimatingType(null);
+    }, 450); 
   };
 
   // O Veredito: Só aplica a nota e move o balão quando o usuário fecha a janela
