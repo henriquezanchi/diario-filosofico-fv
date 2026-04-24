@@ -35,7 +35,7 @@ const BASTIOES_DB = [
 ];
 
 function App() {
-  // Estados de Autenticação
+  // Estados
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [email, setEmail] = useState('');
@@ -49,17 +49,14 @@ function App() {
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
-
-  // Estados das Notificações
   const [notificationsActive, setNotificationsActive] = useState(false);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
   const [morningTime, setMorningTime] = useState('06:00');
   const [eveningTime, setEveningTime] = useState('22:00');
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-
-  // Controle de Instalação do PWA
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const [kuravaEnabled, setKuravaEnabled] = useState(true);
 
   const toggleNotifications = async () => {
     if (notificationsActive) {
@@ -906,6 +903,7 @@ function App() {
   };
 
   const loadFVData = async (uid) => {
+    setKuravaEnabled(data.kuravaEnabled !== false); // Padrão é true se for a primeira vez
     if (!uid) return;
     try {
       const docRef = doc(db, 'fvData', uid);
@@ -1290,7 +1288,7 @@ function App() {
       setKuravaData(parsedData);
 
       // Salva no banco de dados para não perder ao atualizar a página
-      await setDoc(doc(db, 'fvData', user.uid), { kuravaData: parsedData, kuravaUpdatedAt: Timestamp.now() }, { merge: true });
+      await setDoc(doc(db, 'fvData', user.uid), { kuravaData: { ...parsedData, lastUpdate: new Date().toISOString() }, kuravaEnabled: true }, { merge: true });
 
     } catch (error) { 
       console.error(error); 
@@ -2610,6 +2608,37 @@ function App() {
                 <h3 style={{ margin: 0, color: isDark ? '#FFD700' : '#996515', fontSize: '1.2rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Swords size={20} /> A Batalha Interior
                 </h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            
+            {/* BOTÃO DE ATIVAR/DESATIVAR */}
+            <button 
+              onClick={async () => {
+                const novoEstado = !kuravaEnabled;
+                setKuravaEnabled(novoEstado);
+                await setDoc(doc(db, 'fvData', user.uid), { kuravaEnabled: novoEstado }, { merge: true });
+              }}
+              style={{ 
+                background: 'transparent', border: `1px solid ${isDark ? 'rgba(212,175,55,0.3)' : 'rgba(139,115,85,0.3)'}`,
+                borderRadius: '20px', padding: '4px 12px', fontSize: '0.7rem', cursor: 'pointer',
+                color: kuravaEnabled ? '#4caf50' : '#e74c3c', transition: 'all 0.3s'
+              }}
+            >
+              {kuravaEnabled ? '● Diagnóstico Ativo' : '○ Diagnóstico Pausado'}
+            </button>
+          </div>
+
+          {/* SÓ MOSTRA O CONTEÚDO SE ESTIVER ATIVADO */}
+          {!kuravaEnabled ? (
+            <div style={{ padding: '2rem', textAlign: 'center', background: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)', borderRadius: '12px', border: '1px dashed rgba(139,115,85,0.3)' }}>
+               <p style={{ margin: 0, fontStyle: 'italic', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.9rem' }}>
+                 A avaliação automática do Oráculo está desativada. Seus registros permanecem privados.
+               </p>
+            </div>
+          ) : (
+             <>
+               {/* AQUI FICA O RESTANTE DO SEU CÓDIGO DO KURUKSCHETRA (DIAGNÓSTICO, PANDAVA, ETC) */}
+             </>
+          )}
                 <button onClick={generateKuravaAnalysis} disabled={isGeneratingKurava} style={{ padding: '0.5rem 1rem', background: 'transparent', color: isDark ? '#FFD700' : '#996515', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#996515'}`, borderRadius: '6px', cursor: isGeneratingKurava ? 'not-allowed' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', transition: 'all 0.3s ease' }}>
                   {isGeneratingKurava ? <Sparkles className="animate-spin" size={14} /> : <Search size={14} />}
                   {isGeneratingKurava ? 'Avaliando o Campo...' : 'Identificar o Kurava Oculto (Últimos 7 dias)'}
