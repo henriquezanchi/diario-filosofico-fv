@@ -57,6 +57,7 @@ function App() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
   const [kuravaEnabled, setKuravaEnabled] = useState(true);
+  const [isCloudDataLoaded, setIsCloudDataLoaded] = useState(false);
 
   const toggleNotifications = async () => {
     if (notificationsActive) {
@@ -964,6 +965,9 @@ function App() {
       }
     } catch (error) {
       console.error("Erro ao carregar dados da nuvem:", error);
+    } finally {
+      // ISSO AQUI AVISA O GATILHO QUE O FIREBASE TERMINOU DE ENTREGAR OS DADOS
+      setIsCloudDataLoaded(true); 
     }
   };
 
