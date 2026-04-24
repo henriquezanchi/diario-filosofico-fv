@@ -2107,18 +2107,21 @@ function App() {
       const prompt = `Você é um mentor filosófico e um mestre em psicologia estóica. Avalie este dossiê de um discípulo:
       ${dossie}
       
-      Gere um array JSON puro com 10 "Ações de Foro Íntimo" ALTAMENTE PERSONALIZADAS para as fraquezas que ele relatou nas entrelinhas.
+      Gere um array JSON puro com 10 "Ações de Foro Íntimo" ALTAMENTE PERSONALIZADAS para as fraquezas que ele relatou.
       
-      REGRAS RÍGIDAS DE FORMATAÇÃO:
-      1. Seja EXTREMAMENTE CONCISO. Cada frase de ação deve ter NO MÁXIMO 80 CARACTERES (para caber perfeitamente na tela de um celular). Vá direto ao ponto.
-      2. Use a primeira pessoa ("Eu...").
-      3. Atribua valores entre -20 e +20.
-      4. Crie: armadilhas morais (fugas disfarçadas), derrotas silenciosas (vícios) e vitórias íntimas.
+      REGRAS RÍGIDAS DE COMPORTAMENTO:
+      1. Seja EXTREMAMENTE CONCISO. NO MÁXIMO 80 CARACTERES.
+      2. Use a primeira pessoa, SEMPRE NO PASSADO ("Hoje eu cedi...", "Hoje eu fiz...").
+      3. PROIBIDO criar afirmações positivas, intenções ou mantras (ex: "Eu permito à raiva passar"). O foco é CONFISSÃO de ações reais.
+      4. Crie 3 tipos de ações:
+         - Falsas virtudes (Ex: "Hoje, organizei a mesa apenas e tive que adiar o trabalho real").
+         - Derrotas silenciosas (Ex: "Hoje, rolei o celular para descansar um pouco").
+         - Vitórias íntimas (Ex: "Hoje, senti preguiça extrema, mas cumpri meu dever").
 
       ESTRUTURA OBRIGATÓRIA (retorne APENAS o array JSON válido):
       [
-        { "id": 1, "text": "Frase curta e direta...", "value": 15, "type": "positive" },
-        { "id": 2, "text": "Outra frase curta...", "value": -15, "type": "negative" }
+        { "id": 1, "text": "Frase curta, no passado...", "value": 15, "type": "positive" },
+        { "id": 2, "text": "Outra frase no passado...", "value": -15, "type": "negative" }
       ]`;
 
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, { 
@@ -2197,7 +2200,6 @@ function App() {
   };
 
   // A Máscara: Só revela o resultado se não houver perguntas E não houver pontos no cofre
-  const isMasked = balloonActions && (displayedActions.length > 0 || pendingAltitudeModifier !== 0);
 
   if (loading) {
     return (
@@ -4636,34 +4638,25 @@ function App() {
           {showConsciousnessModal && (
             <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(8px)' }} onClick={closeConsciousnessModal}>
               
-              <div className="animate-fadeIn" style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '0', borderRadius: '16px', maxWidth: '500px', width: '100%', maxHeight: '90dvh', display: 'flex', flexDirection: 'column', border: `2px solid ${isMasked ? (isDark ? '#8b7355' : '#6b5744') : (altitude >= 70 ? '#FFD700' : (altitude <= 30 ? '#e74c3c' : '#8b7355'))}`, overflow: 'hidden', boxShadow: '0 10px 50px rgba(0,0,0,0.5)' }} onClick={(e) => e.stopPropagation()}>
+              <div className="animate-fadeIn" style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '0', borderRadius: '16px', maxWidth: '500px', width: '100%', maxHeight: '90dvh', display: 'flex', flexDirection: 'column', border: `2px solid ${altitude >= 70 ? '#FFD700' : (altitude <= 30 ? '#e74c3c' : '#8b7355')}`, overflow: 'hidden', boxShadow: '0 10px 50px rgba(0,0,0,0.5)' }} onClick={(e) => e.stopPropagation()}>
                 
-                {/* CABEÇALHO GRÁFICO (Oculto ou Revelado) */}
-                <div style={{ flexShrink: 0, background: isMasked ? (isDark ? 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(0,0,0,0.1))' : 'linear-gradient(135deg, rgba(139,115,85,0.1), rgba(107,68,35,0.1))') : (altitude >= 70 ? 'linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,165,0,0.2))' : (altitude <= 30 ? 'linear-gradient(135deg, rgba(231,76,60,0.2), rgba(192,57,43,0.2))' : 'linear-gradient(135deg, rgba(139,115,85,0.1), rgba(107,68,35,0.1))')), padding: isMobile ? '1rem' : '1.5rem', textAlign: 'center', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, position: 'relative' }}>
+                {/* CABEÇALHO GRÁFICO (Sem Placar) */}
+                <div style={{ flexShrink: 0, background: altitude >= 70 ? 'linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,165,0,0.2))' : (altitude <= 30 ? 'linear-gradient(135deg, rgba(231,76,60,0.2), rgba(192,57,43,0.2))' : 'linear-gradient(135deg, rgba(139,115,85,0.1), rgba(107,68,35,0.1))'), padding: isMobile ? '1.5rem 1rem' : '2rem 1.5rem', textAlign: 'center', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, position: 'relative' }}>
                   <button onClick={closeConsciousnessModal} style={{ position: 'absolute', top: isMobile ? '0.75rem' : '1rem', right: isMobile ? '0.75rem' : '1rem', background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}><X size={isMobile ? 20 : 24} /></button>
                   
-                  {isMasked ? (
-                    <Target size={isMobile ? 28 : 40} color={isDark ? '#b8a88a' : '#8b7355'} style={{ margin: '0 auto 0.25rem' }} />
-                  ) : (
-                    altitude >= 70 ? <Sun size={isMobile ? 28 : 40} color="#FFD700" style={{ margin: '0 auto 0.25rem' }} /> : (altitude <= 30 ? <Swords size={isMobile ? 28 : 40} color="#e74c3c" style={{ margin: '0 auto 0.25rem' }} /> : <Mountain size={isMobile ? 28 : 40} color="#8b7355" style={{ margin: '0 auto 0.25rem' }} />)
-                  )}
+                  {altitude >= 70 ? <Sun size={isMobile ? 36 : 48} color="#FFD700" style={{ margin: '0 auto 0.5rem' }} /> : (altitude <= 30 ? <Swords size={isMobile ? 36 : 48} color="#e74c3c" style={{ margin: '0 auto 0.5rem' }} /> : <Mountain size={isMobile ? 36 : 48} color="#8b7355" style={{ margin: '0 auto 0.5rem' }} />)}
                   
-                  <h2 style={{ margin: '0 0 0.2rem 0', fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: isMobile ? '1.1rem' : '1.4rem' }}>
-                    {isMasked ? 'Auto-Observação' : 'Estado de Consciência'}
+                  <h2 style={{ margin: '0', fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: isMobile ? '1.3rem' : '1.6rem' }}>
+                    Estado de Consciência
                   </h2>
-                  <div style={{ fontSize: isMasked ? (isMobile ? '1.5rem' : '2rem') : (isMobile ? '2.2rem' : '3rem'), fontWeight: 'bold', fontFamily: "'Cinzel', serif", color: isMasked ? (isDark ? '#b8a88a' : '#8b7355') : (altitude >= 70 ? (isDark ? '#FFD700' : '#d4af37') : (altitude <= 30 ? '#e74c3c' : (isDark ? '#b8a88a' : '#8b7355'))), lineHeight: '1.1' }}>
-                    {isMasked ? 'Oculto' : `${altitude}%`}
-                  </div>
                 </div>
 
                 {/* ÁREA DE ROLAGEM INDEPENDENTE */}
                 <div style={{ padding: isMobile ? '1rem' : '1.5rem', overflowY: 'auto', flex: 1 }}>
                   
-                  {/* O DIÁLOGO ARQUETÍPICO (Esfinge ou Veredito) */}
-                  <div style={{ background: isDark ? 'rgba(255, 255, 255, 0.03)' : '#f5f5f5', padding: isMobile ? '0.8rem' : '1.2rem', borderRadius: '12px', borderLeft: `4px solid ${isMasked ? '#8b7355' : (altitude >= 70 ? '#FFD700' : (altitude <= 30 ? '#e74c3c' : '#8b7355'))}`, marginBottom: isMobile ? '1rem' : '1.5rem' }}>
-                    {isMasked ? (
-                      <p style={{ margin: 0, fontStyle: 'italic', fontSize: isMobile ? '0.85rem' : '1rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.5' }}><strong>A Esfinge:</strong> "Seja brutalmente honesto. As pontuações estão seladas em segredo. O seu veredito final só será revelado quando você retornar ao campo de batalha."</p>
-                    ) : altitude <= 30 ? (
+                  {/* O DIÁLOGO ARQUETÍPICO */}
+                  <div style={{ background: isDark ? 'rgba(255, 255, 255, 0.03)' : '#f5f5f5', padding: isMobile ? '0.8rem' : '1.2rem', borderRadius: '12px', borderLeft: `4px solid ${altitude >= 70 ? '#FFD700' : (altitude <= 30 ? '#e74c3c' : '#8b7355')}`, marginBottom: isMobile ? '1rem' : '1.5rem' }}>
+                    {altitude <= 30 ? (
                       <p style={{ margin: 0, fontStyle: 'italic', fontSize: isMobile ? '0.85rem' : '1rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.5' }}><strong>Kuravas:</strong> "Sim... continue reagindo e ignorando suas práticas. A gravidade é o nosso domínio. Deixe a mente afundar na matéria."</p>
                     ) : altitude >= 70 ? (
                       <p style={{ margin: 0, fontStyle: 'italic', fontSize: isMobile ? '0.85rem' : '1rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.5' }}><strong>Krishna:</strong> "Sua mente repousa no alto, firme como chama sem vento. Mantenha a vigília."</p>
@@ -4690,7 +4683,7 @@ function App() {
                   ) : (
                     <>
                       {displayedActions.length > 0 && (
-                        <p style={{ fontSize: isMobile ? '0.75rem' : '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '1rem', fontStyle: 'italic' }}>Clique no que você realizou hoje que não está nos registros:</p>
+                        <p style={{ fontSize: isMobile ? '0.75rem' : '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '1rem', fontStyle: 'italic' }}>Confesse as ações que você realizou hoje:</p>
                       )}
                       
                       <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '0.5rem' : '0.75rem', marginBottom: isMobile ? '1rem' : '1.5rem' }}>
