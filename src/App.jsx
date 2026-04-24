@@ -139,6 +139,7 @@ function App() {
   const [showConsciousnessModal, setShowConsciousnessModal] = useState(false);
   const [manualAltitudeModifier, setManualAltitudeModifier] = useState(0);
   const [animatingActionId, setAnimatingActionId] = useState(null);
+  const [pendingAltitudeModifier, setPendingAltitudeModifier] = useState(0);
   const [consumedActionIds, setConsumedActionIds] = useState([]);
   
   
@@ -2175,7 +2176,8 @@ function App() {
     if (animatingActionId) return; 
     setAnimatingActionId(action.id);
     setTimeout(() => {
-      setManualAltitudeModifier(prev => prev + action.value);
+      // Guarda no cofre secreto em vez de aplicar no balão direto
+      setPendingAltitudeModifier(prev => prev + action.value);
       replaceAction(action.id);
       setAnimatingActionId(null);
     }, 400); 
@@ -2184,6 +2186,18 @@ function App() {
   const handleSkipAction = (action) => {
     replaceAction(action.id);
   };
+
+  // O Veredito: Só aplica a nota e move o balão quando o usuário fecha a janela
+  const closeConsciousnessModal = () => {
+    if (pendingAltitudeModifier !== 0) {
+      setManualAltitudeModifier(prev => prev + pendingAltitudeModifier);
+      setPendingAltitudeModifier(0); // Zera o cofre para a próxima vez
+    }
+    setShowConsciousnessModal(false);
+  };
+
+  // A Máscara: Só revela o resultado se não houver perguntas E não houver pontos no cofre
+  const isMasked = balloonActions && (displayedActions.length > 0 || pendingAltitudeModifier !== 0);
 
   if (loading) {
     return (
@@ -4620,27 +4634,36 @@ function App() {
 
           {/* O MODAL INTERATIVO (A LISTA RENOVÁVEL) */}
           {showConsciousnessModal && (
-            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(8px)' }} onClick={() => setShowConsciousnessModal(false)}>
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(8px)' }} onClick={closeConsciousnessModal}>
               
-              {/* CAIXA DO MODAL COM ALTURA MÁXIMA E FLEX COLUMN */}
-              <div className="animate-fadeIn" style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '0', borderRadius: '16px', maxWidth: '500px', width: '100%', maxHeight: '90dvh', display: 'flex', flexDirection: 'column', border: `2px solid ${altitude >= 70 ? '#FFD700' : (altitude <= 30 ? '#e74c3c' : '#8b7355')}`, overflow: 'hidden', boxShadow: '0 10px 50px rgba(0,0,0,0.5)' }} onClick={(e) => e.stopPropagation()}>
+              <div className="animate-fadeIn" style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '0', borderRadius: '16px', maxWidth: '500px', width: '100%', maxHeight: '90dvh', display: 'flex', flexDirection: 'column', border: `2px solid ${isMasked ? (isDark ? '#8b7355' : '#6b5744') : (altitude >= 70 ? '#FFD700' : (altitude <= 30 ? '#e74c3c' : '#8b7355'))}`, overflow: 'hidden', boxShadow: '0 10px 50px rgba(0,0,0,0.5)' }} onClick={(e) => e.stopPropagation()}>
                 
-                {/* CABEÇALHO GRÁFICO FIXO NO TOPO (Responsivo) */}
-                <div style={{ flexShrink: 0, background: altitude >= 70 ? 'linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,165,0,0.2))' : (altitude <= 30 ? 'linear-gradient(135deg, rgba(231,76,60,0.2), rgba(192,57,43,0.2))' : 'linear-gradient(135deg, rgba(139,115,85,0.1), rgba(107,68,35,0.1))'), padding: isMobile ? '1rem' : '1.5rem', textAlign: 'center', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, position: 'relative' }}>
-                  <button onClick={() => setShowConsciousnessModal(false)} style={{ position: 'absolute', top: isMobile ? '0.75rem' : '1rem', right: isMobile ? '0.75rem' : '1rem', background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}><X size={isMobile ? 20 : 24} /></button>
-                  {altitude >= 70 ? <Sun size={isMobile ? 28 : 40} color="#FFD700" style={{ margin: '0 auto 0.25rem' }} /> : (altitude <= 30 ? <Swords size={isMobile ? 28 : 40} color="#e74c3c" style={{ margin: '0 auto 0.25rem' }} /> : <Mountain size={isMobile ? 28 : 40} color="#8b7355" style={{ margin: '0 auto 0.25rem' }} />)}
-                  <h2 style={{ margin: '0 0 0.2rem 0', fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: isMobile ? '1.1rem' : '1.4rem' }}>Estado de Consciência</h2>
-                  <div style={{ fontSize: isMobile ? '2.2rem' : '3rem', fontWeight: 'bold', fontFamily: "'Cinzel', serif", color: altitude >= 70 ? (isDark ? '#FFD700' : '#d4af37') : (altitude <= 30 ? '#e74c3c' : (isDark ? '#b8a88a' : '#8b7355')), lineHeight: '1.1' }}>
-                    {altitude}%
+                {/* CABEÇALHO GRÁFICO (Oculto ou Revelado) */}
+                <div style={{ flexShrink: 0, background: isMasked ? (isDark ? 'linear-gradient(135deg, rgba(255,255,255,0.05), rgba(0,0,0,0.1))' : 'linear-gradient(135deg, rgba(139,115,85,0.1), rgba(107,68,35,0.1))') : (altitude >= 70 ? 'linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,165,0,0.2))' : (altitude <= 30 ? 'linear-gradient(135deg, rgba(231,76,60,0.2), rgba(192,57,43,0.2))' : 'linear-gradient(135deg, rgba(139,115,85,0.1), rgba(107,68,35,0.1))')), padding: isMobile ? '1rem' : '1.5rem', textAlign: 'center', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, position: 'relative' }}>
+                  <button onClick={closeConsciousnessModal} style={{ position: 'absolute', top: isMobile ? '0.75rem' : '1rem', right: isMobile ? '0.75rem' : '1rem', background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}><X size={isMobile ? 20 : 24} /></button>
+                  
+                  {isMasked ? (
+                    <Target size={isMobile ? 28 : 40} color={isDark ? '#b8a88a' : '#8b7355'} style={{ margin: '0 auto 0.25rem' }} />
+                  ) : (
+                    altitude >= 70 ? <Sun size={isMobile ? 28 : 40} color="#FFD700" style={{ margin: '0 auto 0.25rem' }} /> : (altitude <= 30 ? <Swords size={isMobile ? 28 : 40} color="#e74c3c" style={{ margin: '0 auto 0.25rem' }} /> : <Mountain size={isMobile ? 28 : 40} color="#8b7355" style={{ margin: '0 auto 0.25rem' }} />)
+                  )}
+                  
+                  <h2 style={{ margin: '0 0 0.2rem 0', fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: isMobile ? '1.1rem' : '1.4rem' }}>
+                    {isMasked ? 'Auto-Observação' : 'Estado de Consciência'}
+                  </h2>
+                  <div style={{ fontSize: isMasked ? (isMobile ? '1.5rem' : '2rem') : (isMobile ? '2.2rem' : '3rem'), fontWeight: 'bold', fontFamily: "'Cinzel', serif", color: isMasked ? (isDark ? '#b8a88a' : '#8b7355') : (altitude >= 70 ? (isDark ? '#FFD700' : '#d4af37') : (altitude <= 30 ? '#e74c3c' : (isDark ? '#b8a88a' : '#8b7355'))), lineHeight: '1.1' }}>
+                    {isMasked ? 'Oculto' : `${altitude}%`}
                   </div>
                 </div>
 
                 {/* ÁREA DE ROLAGEM INDEPENDENTE */}
                 <div style={{ padding: isMobile ? '1rem' : '1.5rem', overflowY: 'auto', flex: 1 }}>
                   
-                  {/* O DIÁLOGO ARQUETÍPICO */}
-                  <div style={{ background: isDark ? 'rgba(255, 255, 255, 0.03)' : '#f5f5f5', padding: isMobile ? '0.8rem' : '1.2rem', borderRadius: '12px', borderLeft: `4px solid ${altitude >= 70 ? '#FFD700' : (altitude <= 30 ? '#e74c3c' : '#8b7355')}`, marginBottom: isMobile ? '1rem' : '1.5rem' }}>
-                    {altitude <= 30 ? (
+                  {/* O DIÁLOGO ARQUETÍPICO (Esfinge ou Veredito) */}
+                  <div style={{ background: isDark ? 'rgba(255, 255, 255, 0.03)' : '#f5f5f5', padding: isMobile ? '0.8rem' : '1.2rem', borderRadius: '12px', borderLeft: `4px solid ${isMasked ? '#8b7355' : (altitude >= 70 ? '#FFD700' : (altitude <= 30 ? '#e74c3c' : '#8b7355'))}`, marginBottom: isMobile ? '1rem' : '1.5rem' }}>
+                    {isMasked ? (
+                      <p style={{ margin: 0, fontStyle: 'italic', fontSize: isMobile ? '0.85rem' : '1rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.5' }}><strong>A Esfinge:</strong> "Seja brutalmente honesto. As pontuações estão seladas em segredo. O seu veredito final só será revelado quando você retornar ao campo de batalha."</p>
+                    ) : altitude <= 30 ? (
                       <p style={{ margin: 0, fontStyle: 'italic', fontSize: isMobile ? '0.85rem' : '1rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.5' }}><strong>Kuravas:</strong> "Sim... continue reagindo e ignorando suas práticas. A gravidade é o nosso domínio. Deixe a mente afundar na matéria."</p>
                     ) : altitude >= 70 ? (
                       <p style={{ margin: 0, fontStyle: 'italic', fontSize: isMobile ? '0.85rem' : '1rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.5' }}><strong>Krishna:</strong> "Sua mente repousa no alto, firme como chama sem vento. Mantenha a vigília."</p>
@@ -4666,7 +4689,9 @@ function App() {
                     </div>
                   ) : (
                     <>
-                      <p style={{ fontSize: isMobile ? '0.75rem' : '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '1rem', fontStyle: 'italic' }}>Clique no que você realizou hoje que não está nos registros:</p>
+                      {displayedActions.length > 0 && (
+                        <p style={{ fontSize: isMobile ? '0.75rem' : '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '1rem', fontStyle: 'italic' }}>Clique no que você realizou hoje que não está nos registros:</p>
+                      )}
                       
                       <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '0.5rem' : '0.75rem', marginBottom: isMobile ? '1rem' : '1.5rem' }}>
                         {displayedActions.map(action => {
@@ -4714,7 +4739,7 @@ function App() {
                           <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '1.5rem 1rem', background: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)', borderRadius: '8px', border: `1px dashed ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}` }}>
                             <CheckCircle size={24} color={isDark ? '#d4af37' : '#6b4423'} style={{ margin: '0 auto 0.5rem', opacity: 0.5 }} />
                             <p style={{ margin: 0, color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', fontSize: isMobile ? '0.8rem' : '0.9rem' }}>
-                              O poço de reflexões foi esgotado. A máquina não tem mais o que auditar por enquanto.
+                              O poço de reflexões esgotou. Retorne à batalha para revelar as consequências dos seus atos.
                             </p>
                           </div>
                         )}
@@ -4722,7 +4747,7 @@ function App() {
                     </>
                   )}
                   
-                  <button onClick={() => setShowConsciousnessModal(false)} style={{ width: '100%', padding: isMobile ? '0.75rem' : '1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: isMobile ? '0.9rem' : '1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
+                  <button onClick={closeConsciousnessModal} style={{ width: '100%', padding: isMobile ? '0.75rem' : '1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: isMobile ? '0.9rem' : '1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
                     Retornar à Batalha
                   </button>
                 </div>
@@ -4731,7 +4756,6 @@ function App() {
           )}
         </>
       )}
-
 
       {/* BANNER DE INSTALAÇÃO DO PWA (ALTO CONTRASTE) */}
       {showInstallBanner && (
