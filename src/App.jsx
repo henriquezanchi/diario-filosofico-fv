@@ -1713,8 +1713,8 @@ function App() {
         return total;
       };
       
-      // 2. Monta o Dossiê Estatístico Profundo (Força Viva)
-      let dossie = `DADOS ESTATÍSTICOS DO DISCIPULADO (FORÇA VIVA):\n\n`;
+      // 2. Monta o Dossiê Estatístico Profundo (FV)
+      let dossie = `DADOS ESTATÍSTICOS DO DISCIPULADO (FV):\n\n`;
       dossie += `[CICLO ANTERIOR: Dias -60 a -31]\n`;
       dossie += `- Preenchimentos do diário geral: ${cicloAnterior.length}\n`;
       dossie += `- Total de Práticas FV realizadas: ${countPractices(cicloAnterior)}\n`;
@@ -1851,7 +1851,7 @@ function App() {
         }, { merge: true });
         await loadAllEntries(user.uid); 
         // Feedback visual para o usuário saber que salvou no FV
-        alert('✅ Prática concluída e registrada com sucesso no seu Diário (Força Viva)!');
+        alert('✅ Prática concluída e registrada com sucesso no seu Diário (FV)!');
       } catch (error) { console.error("Erro ao salvar prática:", error); }
     }
   };
@@ -3777,7 +3777,7 @@ function App() {
                     </button>
                   </div>
 
-                      {/* RELATÓRIO DISCIPULAR (IA FORÇA VIVA) */}
+                      {/* RELATÓRIO DISCIPULAR (IA FV) */}
                   <div style={{ background: isDark ? 'rgba(0,0,0,0.4)' : '#f0f4f8', padding: '2rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255, 215, 0, 0.4)' : 'rgba(255, 215, 0, 0.6)'}`, marginTop: '3rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
                       <h3 style={{ margin: 0, color: isDark ? '#FFD700' : '#996515', fontSize: '1.3rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -3807,7 +3807,7 @@ function App() {
 
                     <div style={{ background: isDark ? 'rgba(231, 76, 60, 0.15)' : '#fdf2f2', padding: '1rem', borderRadius: '8px', borderLeft: '3px solid #e74c3c', marginBottom: '1.5rem' }}>
                       <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.5', fontStyle: 'italic' }}>
-                        <strong>Aviso Ético:</strong> Este relatório utiliza Inteligência Artificial para cruzar seus hábitos e práticas da Força Viva. A máquina apenas organiza o passado; a intuição do Mestre acende o futuro. 
+                        <strong>Aviso Ético:</strong> Este relatório utiliza Inteligência Artificial para cruzar seus hábitos e práticas FV. A máquina apenas organiza o passado; a intuição do Mestre acende o futuro. 
                         <strong style={{ color: isDark ? '#e74c3c' : '#c0392b' }}> Confiar exclusivamente neste texto é ilusão. Leve-o para o diálogo vivo com seu Instrutor.</strong>
                       </p>
                     </div>
@@ -3928,7 +3928,7 @@ function App() {
                                   style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(255, 215, 0, 0.5)' : '#ccc'}`, borderRadius: '8px', fontSize: '0.9rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical', marginBottom: '1rem' }} 
                                 />
                                 <button 
-                                  onClick={() => submitSynthesisFeedback("Força Viva")} 
+                                  onClick={() => submitSynthesisFeedback("FV")} 
                                   style={{ padding: '0.6rem 1.5rem', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: '#000', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'Georgia, serif', boxShadow: '0 4px 10px rgba(255,215,0,0.2)' }}
                                 >
                                   Enviar Avaliação Anônima
