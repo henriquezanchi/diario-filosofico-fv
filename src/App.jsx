@@ -2107,21 +2107,19 @@ function App() {
       const prompt = `Você é um mentor filosófico e um mestre em psicologia estóica. Avalie este dossiê de um discípulo:
       ${dossie}
       
-      Gere um array JSON puro com 10 "Ações de Foro Íntimo" ALTAMENTE PERSONALIZADAS para as fraquezas que ele relatou.
+      Gere um array JSON puro com 10 "Ações de Foro Íntimo" baseadas nas fraquezas e hábitos relatados.
       
       REGRAS RÍGIDAS DE COMPORTAMENTO:
-      1. Seja EXTREMAMENTE CONCISO. NO MÁXIMO 80 CARACTERES.
-      2. Use a primeira pessoa, SEMPRE NO PASSADO ("Hoje eu cedi...", "Hoje eu fiz...").
-      3. PROIBIDO criar afirmações positivas, intenções ou mantras (ex: "Eu permito à raiva passar"). O foco é CONFISSÃO de ações reais.
-      4. Crie 3 tipos de ações:
-         - Falsas virtudes (Ex: "Hoje, organizei a mesa apenas e tive que adiar o trabalho real").
-         - Derrotas silenciosas (Ex: "Hoje, rolei o celular para descansar um pouco").
-         - Vitórias íntimas (Ex: "Hoje, senti preguiça extrema, mas cumpri meu dever").
+      1. O COTIDIANO VS. O EXCEPCIONAL: MANTENHA a citação direta de hábitos e objetos diários (ex: "celular", "redes sociais", "comida", "acordar tarde", "trabalho"). PORÉM, GENERALIZE eventos únicos e raros (nomes de pessoas, "palestra", "reunião x", viagens), transformando-os na raiz psicológica (ex: em vez de "fiquei triste com a palestra", use "permiti que a falta de reconhecimento me desanimasse").
+      2. SEJA CONCISO: Máximo absoluto de 80 CARACTERES.
+      3. NO PASSADO: Use a primeira pessoa, focando na ação de hoje ("Hoje eu...", "Hoje cedi...").
+      4. ZERO AUTOAJUDA: Proibido criar mantras ou intenções ("Eu sou forte"). Apenas confissões cruas de atos.
+      5. TIPOS DE AÇÕES: Crie falsas virtudes (fugas disfarçadas de produtividade), derrotas silenciosas (vícios cotidianos) e vitórias íntimas.
 
       ESTRUTURA OBRIGATÓRIA (retorne APENAS o array JSON válido):
       [
-        { "id": 1, "text": "Frase curta, no passado...", "value": 15, "type": "positive" },
-        { "id": 2, "text": "Outra frase no passado...", "value": -15, "type": "negative" }
+        { "id": 1, "text": "Hoje perdi tempo no celular para anestesiar o cansaço do trabalho.", "value": -15, "type": "negative" },
+        { "id": 2, "text": "Hoje permiti que a quebra de uma expectativa gerasse mau humor.", "value": -15, "type": "negative" }
       ]`;
 
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, { 
@@ -4669,7 +4667,7 @@ function App() {
                   {!balloonActions ? (
                     <div style={{ textAlign: 'center', padding: isMobile ? '1rem' : '1.5rem', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.4)', borderRadius: '12px', border: `1px dashed ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`, marginBottom: isMobile ? '1rem' : '1.5rem' }}>
                       <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontSize: isMobile ? '0.85rem' : '0.95rem', marginBottom: '1rem', fontStyle: 'italic', lineHeight: '1.4' }}>
-                        A máquina precisa auditar suas entrelinhas para forjar as armadilhas de hoje.
+                        A máquina precisa auditar suas entrelinhas para extrair as reflexões de hoje.
                       </p>
                       <button 
                         onClick={generateBalloonActions} 
