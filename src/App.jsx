@@ -4427,7 +4427,7 @@ function App() {
                     className="animate-fadeIn" 
                     onMouseMove={() => {
                       if (tratakMouseActive) {
-                        alert("Prática interrompida.\n\nSeu foco físico foi quebrado e o dispositivo detectou movimento. O domínio da mente começa pelo domínio absoluto do corpo. Tente novamente quando estiver pronto.");
+                        alert("Prática interrompida.\n\nComo o tempo estipulado não foi atingido, esta sessão não será adicionada ao seu registro de práticas realizadas.");
                         setIsPracticeActive(false); 
                         exitFullScreen(); 
                         setTratakMouseActive(false);
