@@ -2107,17 +2107,17 @@ function App() {
       ${dossie}
       
       Gere um array JSON puro com 10 "Ações de Foro Íntimo" ALTAMENTE PERSONALIZADAS para as fraquezas que ele relatou nas entrelinhas.
-      A lista deve conter:
-      - Armadilhas morais (falsas virtudes que parecem boas mas são fugas do dever).
-      - Derrotas silenciosas (vícios ocultos).
-      - Vitórias íntimas (superação real).
       
-      Use a primeira pessoa ("Eu..."). Atribua valores entre -20 e +20.
+      REGRAS RÍGIDAS DE FORMATAÇÃO:
+      1. Seja EXTREMAMENTE CONCISO. Cada frase de ação deve ter NO MÁXIMO 80 CARACTERES (para caber perfeitamente na tela de um celular). Vá direto ao ponto.
+      2. Use a primeira pessoa ("Eu...").
+      3. Atribua valores entre -20 e +20.
+      4. Crie: armadilhas morais (fugas disfarçadas), derrotas silenciosas (vícios) e vitórias íntimas.
 
       ESTRUTURA OBRIGATÓRIA (retorne APENAS o array JSON válido):
       [
-        { "id": 1, "text": "Frase da ação...", "value": 15, "type": "positive" },
-        { "id": 2, "text": "Frase da ação...", "value": -15, "type": "negative" }
+        { "id": 1, "text": "Frase curta e direta...", "value": 15, "type": "positive" },
+        { "id": 2, "text": "Outra frase curta...", "value": -15, "type": "negative" }
       ]`;
 
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, { 
@@ -4625,40 +4625,40 @@ function App() {
               {/* CAIXA DO MODAL COM ALTURA MÁXIMA E FLEX COLUMN */}
               <div className="animate-fadeIn" style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '0', borderRadius: '16px', maxWidth: '500px', width: '100%', maxHeight: '90dvh', display: 'flex', flexDirection: 'column', border: `2px solid ${altitude >= 70 ? '#FFD700' : (altitude <= 30 ? '#e74c3c' : '#8b7355')}`, overflow: 'hidden', boxShadow: '0 10px 50px rgba(0,0,0,0.5)' }} onClick={(e) => e.stopPropagation()}>
                 
-                {/* CABEÇALHO GRÁFICO FIXO NO TOPO */}
-                <div style={{ flexShrink: 0, background: altitude >= 70 ? 'linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,165,0,0.2))' : (altitude <= 30 ? 'linear-gradient(135deg, rgba(231,76,60,0.2), rgba(192,57,43,0.2))' : 'linear-gradient(135deg, rgba(139,115,85,0.1), rgba(107,68,35,0.1))'), padding: '1.5rem', textAlign: 'center', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, position: 'relative' }}>
-                  <button onClick={() => setShowConsciousnessModal(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}><X size={24} /></button>
-                  {altitude >= 70 ? <Sun size={40} color="#FFD700" style={{ margin: '0 auto 0.5rem' }} /> : (altitude <= 30 ? <Swords size={40} color="#e74c3c" style={{ margin: '0 auto 0.5rem' }} /> : <Mountain size={40} color="#8b7355" style={{ margin: '0 auto 0.5rem' }} />)}
-                  <h2 style={{ margin: '0 0 0.25rem 0', fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.4rem' }}>Estado de Consciência</h2>
-                  <div style={{ fontSize: '3rem', fontWeight: 'bold', fontFamily: "'Cinzel', serif", color: altitude >= 70 ? (isDark ? '#FFD700' : '#d4af37') : (altitude <= 30 ? '#e74c3c' : (isDark ? '#b8a88a' : '#8b7355')), lineHeight: '1.1' }}>
+                {/* CABEÇALHO GRÁFICO FIXO NO TOPO (Responsivo) */}
+                <div style={{ flexShrink: 0, background: altitude >= 70 ? 'linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,165,0,0.2))' : (altitude <= 30 ? 'linear-gradient(135deg, rgba(231,76,60,0.2), rgba(192,57,43,0.2))' : 'linear-gradient(135deg, rgba(139,115,85,0.1), rgba(107,68,35,0.1))'), padding: isMobile ? '1rem' : '1.5rem', textAlign: 'center', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, position: 'relative' }}>
+                  <button onClick={() => setShowConsciousnessModal(false)} style={{ position: 'absolute', top: isMobile ? '0.75rem' : '1rem', right: isMobile ? '0.75rem' : '1rem', background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}><X size={isMobile ? 20 : 24} /></button>
+                  {altitude >= 70 ? <Sun size={isMobile ? 28 : 40} color="#FFD700" style={{ margin: '0 auto 0.25rem' }} /> : (altitude <= 30 ? <Swords size={isMobile ? 28 : 40} color="#e74c3c" style={{ margin: '0 auto 0.25rem' }} /> : <Mountain size={isMobile ? 28 : 40} color="#8b7355" style={{ margin: '0 auto 0.25rem' }} />)}
+                  <h2 style={{ margin: '0 0 0.2rem 0', fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: isMobile ? '1.1rem' : '1.4rem' }}>Estado de Consciência</h2>
+                  <div style={{ fontSize: isMobile ? '2.2rem' : '3rem', fontWeight: 'bold', fontFamily: "'Cinzel', serif", color: altitude >= 70 ? (isDark ? '#FFD700' : '#d4af37') : (altitude <= 30 ? '#e74c3c' : (isDark ? '#b8a88a' : '#8b7355')), lineHeight: '1.1' }}>
                     {altitude}%
                   </div>
                 </div>
 
-                {/* ÁREA DE ROLAGEM INDEPENDENTE (Aqui a mágica acontece) */}
-                <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
+                {/* ÁREA DE ROLAGEM INDEPENDENTE */}
+                <div style={{ padding: isMobile ? '1rem' : '1.5rem', overflowY: 'auto', flex: 1 }}>
                   
                   {/* O DIÁLOGO ARQUETÍPICO */}
-                  <div style={{ background: isDark ? 'rgba(255, 255, 255, 0.03)' : '#f5f5f5', padding: '1.2rem', borderRadius: '12px', borderLeft: `4px solid ${altitude >= 70 ? '#FFD700' : (altitude <= 30 ? '#e74c3c' : '#8b7355')}`, marginBottom: '1.5rem' }}>
+                  <div style={{ background: isDark ? 'rgba(255, 255, 255, 0.03)' : '#f5f5f5', padding: isMobile ? '0.8rem' : '1.2rem', borderRadius: '12px', borderLeft: `4px solid ${altitude >= 70 ? '#FFD700' : (altitude <= 30 ? '#e74c3c' : '#8b7355')}`, marginBottom: isMobile ? '1rem' : '1.5rem' }}>
                     {altitude <= 30 ? (
-                      <p style={{ margin: 0, fontStyle: 'italic', fontSize: '1rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.6' }}><strong>Kuravas:</strong> "Sim... continue reagindo aos seus instintos e ignorando suas práticas. A gravidade é o nosso domínio. Deixe a mente afundar na matéria."</p>
+                      <p style={{ margin: 0, fontStyle: 'italic', fontSize: isMobile ? '0.85rem' : '1rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.5' }}><strong>Kuravas:</strong> "Sim... continue reagindo e ignorando suas práticas. A gravidade é o nosso domínio. Deixe a mente afundar na matéria."</p>
                     ) : altitude >= 70 ? (
-                      <p style={{ margin: 0, fontStyle: 'italic', fontSize: '1rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.6' }}><strong>Krishna:</strong> "A sua mente repousa no alto, Arjuna. Firme como uma chama num local sem vento. Mantenha a vigília, pois os ventos da distração sopram fortes."</p>
+                      <p style={{ margin: 0, fontStyle: 'italic', fontSize: isMobile ? '0.85rem' : '1rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.5' }}><strong>Krishna:</strong> "Sua mente repousa no alto, firme como chama sem vento. Mantenha a vigília."</p>
                     ) : (
-                      <p style={{ margin: 0, fontStyle: 'italic', fontSize: '1rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.6' }}><strong>A Voz da Consciência:</strong> "A batalha está empatada. Você não caiu nas sombras, mas ainda não se ergueu à luz. Qual será a sua próxima ação?"</p>
+                      <p style={{ margin: 0, fontStyle: 'italic', fontSize: isMobile ? '0.85rem' : '1rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.5' }}><strong>A Voz da Consciência:</strong> "A batalha está empatada. Você não caiu, mas não se ergueu à luz. Qual a próxima ação?"</p>
                     )}
                   </div>
 
                   {/* CONEXÃO COM O ORÁCULO OU LISTA DE AÇÕES */}
                   {!balloonActions ? (
-                    <div style={{ textAlign: 'center', padding: '1.5rem', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.4)', borderRadius: '12px', border: `1px dashed ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`, marginBottom: '1.5rem' }}>
-                      <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.95rem', marginBottom: '1.5rem', fontStyle: 'italic', lineHeight: '1.5' }}>
-                        A máquina precisa auditar as entrelinhas dos seus últimos 7 dias para forjar as armadilhas e vitórias personalizadas de hoje.
+                    <div style={{ textAlign: 'center', padding: isMobile ? '1rem' : '1.5rem', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.4)', borderRadius: '12px', border: `1px dashed ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`, marginBottom: isMobile ? '1rem' : '1.5rem' }}>
+                      <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontSize: isMobile ? '0.85rem' : '0.95rem', marginBottom: '1rem', fontStyle: 'italic', lineHeight: '1.4' }}>
+                        A máquina precisa auditar suas entrelinhas para forjar as armadilhas de hoje.
                       </p>
                       <button 
                         onClick={generateBalloonActions} 
                         disabled={isGeneratingBalloon}
-                        style={{ padding: '1rem', background: isGeneratingBalloon ? 'transparent' : (isDark ? '#d4af37' : '#6b4423'), color: isGeneratingBalloon ? (isDark ? '#d4af37' : '#6b4423') : (isDark ? '#1a1a2e' : 'white'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: isGeneratingBalloon ? 'wait' : 'pointer', fontWeight: 'bold', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%', transition: 'all 0.3s ease', fontSize: '0.95rem' }}
+                        style={{ padding: '0.8rem 1rem', background: isGeneratingBalloon ? 'transparent' : (isDark ? '#d4af37' : '#6b4423'), color: isGeneratingBalloon ? (isDark ? '#d4af37' : '#6b4423') : (isDark ? '#1a1a2e' : 'white'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: isGeneratingBalloon ? 'wait' : 'pointer', fontWeight: 'bold', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%', transition: 'all 0.3s ease', fontSize: isMobile ? '0.85rem' : '0.95rem' }}
                       >
                         {isGeneratingBalloon ? <Sparkles className="animate-spin" size={18} /> : <Target size={18} />}
                         {isGeneratingBalloon ? 'Lendo a sua Alma...' : 'Conectar ao Oráculo (IA)'}
@@ -4666,9 +4666,9 @@ function App() {
                     </div>
                   ) : (
                     <>
-                      <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '1rem', fontStyle: 'italic' }}>Clique nas ações que você realizou hoje que não estão nos registros:</p>
+                      <p style={{ fontSize: isMobile ? '0.75rem' : '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '1rem', fontStyle: 'italic' }}>Clique no que você realizou hoje que não está nos registros:</p>
                       
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '0.5rem' : '0.75rem', marginBottom: isMobile ? '1rem' : '1.5rem' }}>
                         {displayedActions.map(action => {
                           const isAnimating = animatingActionId === action.id;
                           
@@ -4678,19 +4678,20 @@ function App() {
                                 onClick={() => handleActionClick(action)}
                                 disabled={animatingActionId !== null}
                                 style={{ 
-                                  flex: 1, padding: '1rem', textAlign: 'left', 
+                                  flex: 1, padding: isMobile ? '0.75rem' : '1rem', textAlign: 'left', 
                                   background: isAnimating ? '#4caf50' : (isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)'), 
                                   color: isAnimating ? '#fff' : (isDark ? '#f0e6d2' : '#2c1810'), 
                                   border: `1px solid ${isAnimating ? '#4caf50' : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)')}`, 
-                                  borderRadius: '8px', cursor: animatingActionId ? 'default' : 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.95rem',
+                                  borderRadius: '8px', cursor: animatingActionId ? 'default' : 'pointer', fontFamily: 'Georgia, serif', 
+                                  fontSize: isMobile ? '0.85rem' : '0.95rem',
                                   transition: 'all 0.3s ease', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                                   transform: isAnimating ? 'scale(0.98)' : 'scale(1)',
                                   boxShadow: isAnimating ? '0 0 15px rgba(76, 175, 80, 0.5)' : 'none',
-                                  lineHeight: '1.4'
+                                  lineHeight: '1.3'
                                 }}
                               >
                                 <span>{action.text}</span>
-                                {isAnimating && <CheckCircle size={18} color="#fff" />}
+                                {isAnimating && <CheckCircle size={16} color="#fff" />}
                               </button>
 
                               <button
@@ -4698,12 +4699,12 @@ function App() {
                                 disabled={animatingActionId !== null}
                                 title="Não ocorreu hoje"
                                 style={{ 
-                                  padding: '0 1rem', background: 'transparent', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`,
+                                  padding: isMobile ? '0 0.75rem' : '0 1rem', background: 'transparent', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`,
                                   borderRadius: '8px', color: isDark ? '#b8a88a' : '#6b5744', cursor: animatingActionId ? 'default' : 'pointer',
                                   display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s'
                                 }}
                               >
-                                <X size={18} />
+                                <X size={isMobile ? 16 : 18} />
                               </button>
                             </div>
                           );
@@ -4711,8 +4712,8 @@ function App() {
 
                         {displayedActions.length === 0 && (
                           <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '1.5rem 1rem', background: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)', borderRadius: '8px', border: `1px dashed ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}` }}>
-                            <CheckCircle size={32} color={isDark ? '#d4af37' : '#6b4423'} style={{ margin: '0 auto 0.5rem', opacity: 0.5 }} />
-                            <p style={{ margin: 0, color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', fontSize: '0.9rem' }}>
+                            <CheckCircle size={24} color={isDark ? '#d4af37' : '#6b4423'} style={{ margin: '0 auto 0.5rem', opacity: 0.5 }} />
+                            <p style={{ margin: 0, color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', fontSize: isMobile ? '0.8rem' : '0.9rem' }}>
                               O poço de reflexões foi esgotado. A máquina não tem mais o que auditar por enquanto.
                             </p>
                           </div>
@@ -4721,7 +4722,7 @@ function App() {
                     </>
                   )}
                   
-                  <button onClick={() => setShowConsciousnessModal(false)} style={{ width: '100%', padding: '1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
+                  <button onClick={() => setShowConsciousnessModal(false)} style={{ width: '100%', padding: isMobile ? '0.75rem' : '1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: isMobile ? '0.9rem' : '1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
                     Retornar à Batalha
                   </button>
                 </div>
