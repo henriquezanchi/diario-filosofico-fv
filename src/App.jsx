@@ -1300,6 +1300,40 @@ function App() {
     }
   };
 
+  // --- GATILHO AUTOMÁTICO DO KURUKSCHETRA (CICLO DE 7 DIAS) ---
+  useEffect(() => {
+    // Só dispara se o usuário estiver logado e tiver histórico suficiente
+    if (user && !loading && entries.length >= 3) {
+      
+      const verificarEGerarKurava = async () => {
+        let precisaAtualizar = true;
+
+        // Se o Kurava já existe, vamos calcular a idade dele
+        if (kuravaData && kuravaData.lastUpdate) {
+          const dataUltimoUpdate = new Date(kuravaData.lastUpdate);
+          const dataHoje = new Date();
+          
+          // Calcula a diferença em milissegundos e converte para dias corridos
+          const diffEmMilissegundos = dataHoje - dataUltimoUpdate;
+          const diffEmDias = diffEmMilissegundos / (1000 * 60 * 60 * 24);
+
+          // Se o diagnóstico tem menos de 7 dias, a validade continua.
+          if (diffEmDias < 7) {
+            precisaAtualizar = false;
+          }
+        }
+
+        if (precisaAtualizar) {
+          console.log("Invocando Oráculo: Novo ciclo semanal do Kurava iniciado...");
+          await generateKuravaAnalysis();
+        }
+      };
+
+      verificarEGerarKurava();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, loading, entries.length]);
+
   const generateAiGoals = async () => {
     if (!user) return;
     setIsGeneratingGoals(true);
@@ -2094,30 +2128,46 @@ function App() {
     setIsGeneratingBalloon(true);
 
     try {
-      const ultimosDias = entries.slice(0, 7);
-      let dossie = `REGISTROS DOS ÚLTIMOS 7 DIAS:\n`;
-      ultimosDias.forEach(e => {
-        if (e.whereIFailed) dossie += `FALHA: ${e.whereIFailed} | `;
-        if (e.whatILeftUndone) dossie += `OMISSÃO: ${e.whatILeftUndone} | `;
-        if (e.freeEpilogue) dossie += `TEXTO LIVRE: ${e.freeEpilogue} | `;
+      // Separa o estado de consciência atual (últimas 24h) dos hábitos de longo prazo (30 dias)
+      const registroHoje = entries.slice(0, 1);
+      const historico30Dias = entries.slice(1, 30);
+
+      let dossie24h = `REGISTROS DAS ÚLTIMAS 24 HORAS (Estado atual da mente):\n`;
+      registroHoje.forEach(e => {
+        if (e.whereIFailed) dossie24h += `FALHA: ${e.whereIFailed} | `;
+        if (e.whatILeftUndone) dossie24h += `OMISSÃO: ${e.whatILeftUndone} | `;
+        if (e.freeEpilogue) dossie24h += `TEXTO LIVRE: ${e.freeEpilogue} | `;
       });
 
-      const prompt = `Você é um mentor filosófico e um mestre em psicologia estóica. Avalie este dossiê de um discípulo:
-      ${dossie}
+      let dossie30Dias = `PADRÕES DOS ÚLTIMOS 30 DIAS:\n`;
+      historico30Dias.forEach(e => {
+        if (e.whereIFailed) dossie30Dias += `FALHA: ${e.whereIFailed} | `;
+        if (e.whatILeftUndone) dossie30Dias += `OMISSÃO: ${e.whatILeftUndone} | `;
+      });
+
+      const prompt = `Você é um mentor filosófico. O Balão de Consciência avalia o estado ATUAL do discípulo.
       
-      Gere um array JSON puro com 10 "Ações de Foro Íntimo" baseadas nas fraquezas e hábitos relatados.
+      ${dossie24h}
+      
+      ${dossie30Dias}
+      
+      Gere um array JSON puro com 10 "Ações de Foro Íntimo" misturando a realidade dele com vícios humanos gerais.
       
       REGRAS RÍGIDAS DE COMPORTAMENTO:
-      1. O COTIDIANO VS. O EXCEPCIONAL: MANTENHA a citação direta de hábitos e objetos diários (ex: "celular", "redes sociais", "comida", "acordar tarde", "trabalho"). PORÉM, GENERALIZE eventos únicos e raros (nomes de pessoas, "palestra", "reunião x", viagens), transformando-os na raiz psicológica (ex: em vez de "fiquei triste com a palestra", use "permiti que a falta de reconhecimento me desanimasse").
-      2. SEJA CONCISO: Máximo absoluto de 80 CARACTERES.
-      3. NO PASSADO: Use a primeira pessoa, focando na ação de hoje ("Hoje eu...", "Hoje cedi...").
-      4. ZERO AUTOAJUDA: Proibido criar mantras ou intenções ("Eu sou forte"). Apenas confissões cruas de atos.
-      5. TIPOS DE AÇÕES: Crie falsas virtudes (fugas disfarçadas de produtividade), derrotas silenciosas (vícios cotidianos) e vitórias íntimas.
+      1. COMPOSIÇÃO DAS 10 AÇÕES: 
+         - Crie ações baseadas no estado das ÚLTIMAS 24 HORAS.
+         - Crie ações baseadas nos padrões dos ÚLTIMOS 30 DIAS.
+         - OBRIGATORIAMENTE adicione "Vícios Universais" que não estão no texto, como: comer mal apenas por prazer, consumir séries/vídeos sem propósito real, achar que precisava de mais descanso do que o necessário, ceder à preguiça, etc.
+      2. O COTIDIANO: Transforme eventos únicos em princípios psicológicos, mas cite hábitos diários normais.
+      3. SEJA CONCISO: Máximo absoluto de 80 CARACTERES por ação.
+      4. NO PASSADO: Use a primeira pessoa, focando na ação de hoje ("Hoje eu...", "Hoje cedi...").
+      5. TIPOS DE AÇÕES: Crie falsas virtudes, derrotas silenciosas e vitórias íntimas.
 
       ESTRUTURA OBRIGATÓRIA (retorne APENAS o array JSON válido):
       [
-        { "id": 1, "text": "Hoje perdi tempo no celular para anestesiar o cansaço do trabalho.", "value": -15, "type": "negative" },
-        { "id": 2, "text": "Hoje permiti que a quebra de uma expectativa gerasse mau humor.", "value": -15, "type": "negative" }
+        { "id": 1, "text": "Hoje consumi séries e vídeos que me divertiram, mas sem propósito real.", "value": -15, "type": "negative" },
+        { "id": 2, "text": "Hoje achei que precisava de mais descanso do que nos outros dias e cedi.", "value": -15, "type": "negative" },
+        { "id": 3, "text": "Hoje comi algo não saudável apenas pela busca do conforto e prazer.", "value": -15, "type": "negative" }
       ]`;
 
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, { 
