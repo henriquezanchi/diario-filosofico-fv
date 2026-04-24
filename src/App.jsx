@@ -58,6 +58,7 @@ function App() {
   const [showInstallBanner, setShowInstallBanner] = useState(false);
   const [kuravaEnabled, setKuravaEnabled] = useState(true);
   const [isCloudDataLoaded, setIsCloudDataLoaded] = useState(false);
+  const [aiConsent, setAiConsent] = useState(false);
 
   const toggleNotifications = async () => {
     if (notificationsActive) {
@@ -395,8 +396,14 @@ function App() {
       setPracticePhase('intro'); 
       setIsPracticeActive(true); 
     } 
+    else if (key === 'recitarHonra' || key === 'recitar7Fases') {
+      setActivePracticeId(key);
+      setPracticePhase('practice'); // Pula a intro e vai direto pra tela
+      setIsPracticeActive(true);
+      enterFullScreen(); // Liga a tela cheia e o WakeLock para não apagar!
+    }
     else {
-      alert('Esta é uma prática de foro íntimo e sagrado. Por favor, faça a sua recitação privadamente e marque a opção "Já Realizado".');
+      alert('Prática não reconhecida.');
     }
   };
 
@@ -952,6 +959,7 @@ function App() {
         
         // COLE AQUI:
         setKuravaEnabled(data.kuravaEnabled !== false);
+        setAiConsent(data.aiConsent || false);
 
         // 1. Puxa as Datas e Planejamento
         setFvLastCartaDate(data.lastCartaDate || '');
@@ -1273,6 +1281,7 @@ function App() {
   // --- SISTEMA DE AUDITORIA ATIVA: O CAMPO DE KURUKSHETRA ---
   const generateKuravaAnalysis = async () => {
     if (!user) return;
+    if (!aiConsent) { alert("Para acionar o Oráculo, autorize o uso da IA no menu de 'Opções > Configurações'."); return; }
     setIsGeneratingKurava(true);
 
     try {
@@ -1378,6 +1387,7 @@ function App() {
 
   const generateAiGoals = async () => {
     if (!user) return;
+    if (!aiConsent) { alert("Para gerar missões, autorize o uso da IA no menu de 'Opções > Configurações'."); return; }
     setIsGeneratingGoals(true);
 
     try {
@@ -1556,6 +1566,7 @@ function App() {
 
   const generateTechnicalSynthesis = async () => {
     if (!user) return;
+    if (!aiConsent) { alert("Para auditar seus dados, autorize o uso da IA no menu de 'Opções > Configurações'."); return; }
     setIsGeneratingSynthesis(true);
 
     try {
@@ -1638,6 +1649,7 @@ function App() {
 
   const generateDiscipularSynthesis = async () => {
     if (!user) return;
+    if (!aiConsent) { alert("Para gerar relatórios avançados, autorize o uso da IA no menu de 'Opções > Configurações'."); return; }
     setIsGeneratingDiscSync(true);
 
     // ==========================================
@@ -2169,6 +2181,7 @@ function App() {
   // --- INTELIGÊNCIA DIRETA DO BALÃO ---
   const generateBalloonActions = async () => {
     if (!user) return;
+    if (!aiConsent) { alert("Para invocar o Oráculo, autorize o uso da IA no menu de 'Opções > Configurações'."); return; }
     setIsGeneratingBalloon(true);
 
     try {
@@ -4636,6 +4649,46 @@ function App() {
           </div>
         )}
 
+        {/* --- 4. PRÁTICA: RECITAÇÕES EM TELA CHEIA --- */}
+        {isPracticeActive && (activePracticeId === 'recitarHonra' || activePracticeId === 'recitar7Fases') && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: isDark ? '#0a0a14' : '#fdfbf7', zIndex: 10001, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+            <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '2rem', maxWidth: '600px', width: '100%' }}>
+              <BookOpen size={64} color={isDark ? '#d4af37' : '#6b4423'} style={{ margin: '0 auto 1.5rem', opacity: 0.8 }} />
+              
+              <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? '#d4af37' : '#6b4423', fontSize: '2.5rem', margin: '0 0 1.5rem 0' }}>
+                {activePracticeId === 'recitarHonra' ? 'Código de Dignidade' : '7 Fases da ED'}
+              </h2>
+              
+              <div style={{ background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(139, 115, 85, 0.05)', padding: '2rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, marginBottom: '3rem' }}>
+                <p style={{ fontSize: '1.2rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.8', margin: 0, fontStyle: 'italic' }}>
+                  Esta é uma prática de foro íntimo e sagrado. Faça sua recitação com atenção plena e propósito.
+                  <br/><br/>
+                  A tela permanecerá ativa para que o celular não bloqueie durante sua prática.
+                </p>
+              </div>
+
+              <button 
+                onClick={() => {
+                  confirmImmersivePractice(activePracticeId);
+                }} 
+                style={{ width: '100%', padding: '1.2rem', fontSize: '1.3rem', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: '#000', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(255, 215, 0, 0.3)', transition: 'transform 0.2s', marginBottom: '1.5rem' }}
+                onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
+                onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              >
+                <CheckCircle size={24} style={{ verticalAlign: 'middle', marginRight: '0.5rem', marginBottom: '2px' }} />
+                Recitação Concluída
+              </button>
+              
+              <button 
+                onClick={() => { setIsPracticeActive(false); exitFullScreen(); }} 
+                style={{ display: 'block', width: '100%', padding: '1rem', background: 'transparent', color: isDark ? '#b8a88a' : '#6b5744', border: 'none', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '1.1rem', textDecoration: 'underline' }}
+              >
+                Cancelar e Voltar
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* MODAL DE CONFIGURAÇÕES (HORÁRIOS) */}
         {showSettingsModal && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(5px)' }}>
@@ -4663,6 +4716,25 @@ function App() {
                 <select value={eveningTime} onChange={(e) => setEveningTime(e.target.value)} style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: `1px solid ${isDark ? '#d4af37' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.1rem' }}>
                   {['18:00', '19:00', '20:00', '21:00', '22:00', '23:00'].map(h => <option key={h} value={h}>{h}</option>)}
                 </select>
+              </div>
+
+              {/* Termo de Consentimento da IA */}
+              <div style={{ textAlign: 'left', marginBottom: '2rem', padding: '1rem', background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}` }}>
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', cursor: 'pointer' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={aiConsent} 
+                    onChange={async (e) => {
+                      const consent = e.target.checked;
+                      setAiConsent(consent);
+                      if (user) await setDoc(doc(db, 'fvData', user.uid), { aiConsent: consent }, { merge: true });
+                    }} 
+                    style={{ width: '24px', height: '24px', marginTop: '0.2rem', cursor: 'pointer', accentColor: '#d4af37', flexShrink: 0 }} 
+                  />
+                  <span style={{ fontSize: '0.9rem', color: isDark ? '#c8b896' : '#6b5744', lineHeight: '1.4' }}>
+                    <strong style={{ color: isDark ? '#d4af37' : '#6b4423' }}>Privacidade e Oráculo (IA):</strong> Autorizo a Inteligência Artificial a ler meus registros e textos de forma anônima para gerar o Kurava da Semana, Missões e Relatórios de Auditoria.
+                  </span>
+                </label>
               </div>
 
               {/* Botão de Salvar */}
