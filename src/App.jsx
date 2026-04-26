@@ -641,7 +641,6 @@ function App() {
     setLastDrawDate(null);
     setSelectedDate(getTodayKey()); 
     setBooks([]); 
-    setTotalForgedPages(0);
     setFvDaily({
       item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
       horasVoluntariado: '', horasAula: '', gdveTasksStatus: {}, gdveAttendance: false,
@@ -3641,9 +3640,8 @@ function App() {
                           
                           // Colocamos o novo livro na FRENTE do array ([novo, ...antigos])
                           const updated = [{ id: `book_${Date.now()}`, ...finishedBook }, ...books];
-                          const novoTotalGlobal = totalForgedPages + newBook.totalPages;
 
-                          saveBooksToDb(updated, novoTotalGlobal);
+                          saveBooksToDb(updated);
                           
                           // Fecha sem popup, a aparição no topo é a confirmação
                           setShowAddBook(false);
