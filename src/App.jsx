@@ -612,6 +612,8 @@ function App() {
     setFvUnlocked(false);
     setLastDrawDate(null);
     setSelectedDate(getTodayKey()); 
+    setBooks([]); 
+    setTotalForgedPages(0);
     setFvDaily({
       item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
       horasVoluntariado: '', horasAula: '', gdveTasksStatus: {}, gdveAttendance: false,
@@ -805,7 +807,8 @@ function App() {
         await loadCustomTasks(currentUser.uid);
         await loadLongTermGoals(currentUser.uid);
         await loadFVData(currentUser.uid);
-        await loadBooks(currentUser.uid);
+        // ESTA LINHA É A ÂNCORA DOS SEUS LIVROS:
+        await loadBooks(currentUser.uid); 
       } else {
         setUser(null);
         clearAllData();
@@ -3576,14 +3579,35 @@ function App() {
                     </div>
                   </div>
 
-                  {/* Atalho para Livro Já Lido */}
+                  {/* Atalho para Livro Já Lido - Salvamento Imediato */}
                   {!editingBookId && newBook.totalPages > 0 && (
                     <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <button 
-                        onClick={() => setNewBook({ ...newBook, currentPage: newBook.totalPages })}
-                        style={{ background: isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9', color: isDark ? '#81c784' : '#2e7d32', border: `1px solid ${isDark ? '#4caf50' : '#4caf50'}`, padding: '0.4rem 0.8rem', borderRadius: '6px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                        onClick={() => {
+                          // 1. Prepara o objeto do livro já concluído
+                          const finishedBook = { 
+                            ...newBook, 
+                            currentPage: newBook.totalPages, 
+                            finishedDate: new Date().toISOString() 
+                          };
+                          
+                          // 2. Prepara a lista atualizada
+                          const updated = [...books, { id: `book_${Date.now()}`, ...finishedBook }];
+                          
+                          // 3. Calcula o novo total de páginas forjadas
+                          const novoTotalGlobal = totalForgedPages + newBook.totalPages;
+
+                          // 4. Salva tudo de uma vez
+                          saveBooksToDb(updated, novoTotalGlobal);
+                          
+                          // 5. Fecha o modal e limpa a busca
+                          setShowAddBook(false);
+                          setBookSearchQuery('');
+                          alert(`Excelente! "${newBook.title}" foi adicionado diretamente à sua lista de conquistas.`);
+                        }}
+                        style={{ background: isDark ? 'rgba(76, 175, 80, 0.2)' : '#e8f5e9', color: isDark ? '#81c784' : '#2e7d32', border: `2px solid ${isDark ? '#4caf50' : '#4caf50'}`, padding: '0.6rem 1rem', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', justifyContent: 'center' }}
                       >
-                        <CheckCircle size={14} /> Marcar como livro já lido (Pág {newBook.totalPages}/{newBook.totalPages})
+                        <CheckCircle size={18} /> Marcar como Já Lido e Guardar na Estante
                       </button>
                     </div>
                   )}
