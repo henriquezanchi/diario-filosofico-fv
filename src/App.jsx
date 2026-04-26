@@ -255,6 +255,7 @@ function App() {
   const [isGeneratingGoals, setIsGeneratingGoals] = useState(false);
   const [kuravaData, setKuravaData] = useState(null);
   const [isGeneratingKurava, setIsGeneratingKurava] = useState(false);
+  const [isKuravaRevealed, setIsKuravaRevealed] = useState(false);
   const [isGeneratingSynthesis, setIsGeneratingSynthesis] = useState(false);
   const [fvGdveDesafios, setFvGdveDesafios] = useState([]);
   const [fvGdveReuniao, setFvGdveReuniao] = useState('');
@@ -423,36 +424,83 @@ function App() {
   };
 
   const virtues = [
-    { name: "Paciência", shortDesc: "Suportar dificuldades mantendo a serenidade", description: "A capacidade de suportar dificuldades sem se perturbar, mantendo a serenidade diante das adversidades e do tempo necessário para as coisas se realizarem.", practices: "• Respirar profundamente antes de reagir\n• Observar a irritação sem agir impulsivamente\n• Lembrar que tudo tem seu tempo", color: "#4A90E2" },
-    { name: "Ordem", shortDesc: "Harmonia no mundo exterior e interior", description: "Disposição harmoniosa das coisas em seu devido lugar, tanto no mundo exterior quanto no interior.", practices: "• Organizar espaço físico diariamente\n• Criar rotinas conscientes\n• Planejar o dia com antecedência", color: "#7B68EE" },
-    { name: "Generosidade", shortDesc: "Dar livremente sem esperar retorno", description: "Compartilhar tempo, atenção, recursos e conhecimento com quem necessita, sem expectativa de recompensa.", practices: "• Oferecer ajuda sem ser pedido\n• Compartilhar conhecimento\n• Doar tempo e atenção genuína", color: "#50C878" },
-    { name: "Coragem", shortDesc: "Agir corretamente mesmo sob pressão", description: "Força interior para enfrentar o medo, agir corretamente mesmo sob pressão e defender princípios mesmo quando difícil.", practices: "• Fazer o certo mesmo com medo\n• Falar a verdade com tato\n• Enfrentar desafios ao invés de evitá-los", color: "#E74C3C" },
-    { name: "Temperança", shortDesc: "Moderação e equilíbrio", description: "Moderação em todas as coisas, equilíbrio entre extremos, domínio sobre impulsos e desejos desmedidos.", practices: "• Evitar excessos em todas as áreas\n• Buscar o meio-termo\n• Dominar impulsos automáticos", color: "#9B59B6" },
-    { name: "Honestidade", shortDesc: "Viver em consonância com a verdade", description: "Ser íntegro em palavras e ações, não enganar a si mesmo nem aos outros.", practices: "• Falar a verdade com compaixão\n• Reconhecer erros abertamente\n• Ser transparente nas intenções", color: "#3498DB" },
-    { name: "Humildade", shortDesc: "Reconhecer limitações e estar aberto", description: "Reconhecer limitações sem falsa modéstia, estar aberto a aprender, não se colocar acima dos outros.", practices: "• Ouvir mais que falar\n• Reconhecer que sempre há mais a aprender\n• Aceitar críticas construtivas", color: "#95A5A6" },
-    { name: "Disciplina", shortDesc: "Manter compromissos consigo mesmo", description: "Capacidade de seguir princípios escolhidos mesmo sem supervisão externa.", practices: "• Cumprir pequenos compromissos diários\n• Manter práticas mesmo sem vontade\n• Criar e seguir uma rotina", color: "#34495E" },
-    { name: "Compaixão", shortDesc: "Sentir com o outro", description: "Compreender o sofrimento alheio e agir para aliviá-lo quando possível.", practices: "• Ver além das aparências\n• Oferecer presença empática\n• Perdoar falhas humanas", color: "#E67E22" },
-    { name: "Prudência", shortDesc: "Sabedoria prática", description: "Avaliar situações, prever consequências e tomar decisões ponderadas.", practices: "• Pensar antes de agir\n• Considerar consequências\n• Buscar conselho quando necessário", color: "#16A085" },
-    { name: "Justiça", shortDesc: "Dar a cada um o que lhe é devido", description: "Agir com equidade, respeitar direitos e cumprir deveres.", practices: "• Tratar todos com equidade\n• Cumprir compromissos assumidos\n• Reconhecer méritos alheios", color: "#C0392B" },
-    { name: "Gratidão", shortDesc: "Reconhecer e valorizar", description: "Cultivar apreciação pelas bênçãos da vida.", practices: "• Agradecer diariamente por três coisas\n• Valorizar pequenas coisas\n• Expressar reconhecimento aos outros", color: "#F39C12" },
-    { name: "Serenidade", shortDesc: "Paz interior", description: "Tranquilidade da mente e do coração independente das circunstâncias.", practices: "• Meditar regularmente\n• Não reagir automaticamente\n• Cultivar paz interior através da contemplação", color: "#1ABC9C" },
-    { name: "Diligência", shortDesc: "Aplicação cuidadosa", description: "Fazer bem o que precisa ser feito, com atenção e dedicação.", practices: "• Fazer cada tarefa com atenção plena\n• Não deixar para depois\n• Completar o que começou", color: "#2ECC71" },
-    { name: "Bondade", shortDesc: "Inclinação natural para o bem", description: "Agir com gentileza e benevolência em todas as circunstâncias.", practices: "• Fazer pequenos gestos gentis diariamente\n• Falar palavras encorajadoras\n• Agir com benevolência mesmo quando difícil", color: "#FF69B4" },
-    { name: "Sabedoria", shortDesc: "Conhecimento com discernimento", description: "Compreensão profunda da vida e capacidade de ver a essência das coisas.", practices: "• Estudar filosofia regularmente\n• Refletir sobre experiências\n• Buscar compreensão profunda, não superficial", color: "#8E44AD" },
-    { name: "Fortaleza", shortDesc: "Resistência interior", description: "Perseverar em objetivos nobres mesmo diante de dificuldades prolongadas.", practices: "• Perseverar em objetivos importantes\n• Manter-se firme em princípios\n• Não desistir facilmente", color: "#D35400" },
-    { name: "Fraternidade", shortDesc: "Reconhecer a unidade", description: "Tratar os outros como irmãos na jornada humana.", practices: "• Ver a humanidade comum em todos\n• Ajudar sem distinção\n• Cultivar sentimento de união", color: "#27AE60" }
+    // --- VIRTUDES CLÁSSICAS ---
+    { name: "Paciência", shortDesc: "A ciência da paz", description: "Capacidade de suportar as adversidades sem se alterar, compreendendo os ritmos naturais do tempo e o processo das coisas.", practices: "• Não reagir à primeira provocação\n• Esperar 10 segundos antes de responder\n• Aceitar o ritmo das outras pessoas", quote: "A paciência não é a capacidade de esperar, mas como nos comportamos enquanto esperamos.", quoteAuthor: "J.A. Livraga", color: "#4A90E2" },
+    { name: "Coragem", shortDesc: "Agir corretamente além do medo", description: "Não é a ausência do medo, mas a ação decidida e reta, movida pelo dever, apesar da presença do medo.", practices: "• Fazer o que deve ser feito, mesmo com receio\n• Assumir a responsabilidade de um erro\n• Defender a verdade de forma justa", quote: "Coragem é a resistência ao medo, o domínio do medo, e não a ausência do medo.", quoteAuthor: "Mark Twain", color: "#E74C3C" },
+    { name: "Prudência", shortDesc: "Sabedoria prática em ação", description: "O discernimento que permite escolher os melhores caminhos e meios para alcançar um fim nobre.", practices: "• Avaliar consequências antes de agir\n• Buscar conselho dos mais sábios\n• Silenciar quando não se tem certeza", quote: "A prudência é a verdadeira mãe de todas as virtudes.", quoteAuthor: "Cícero", color: "#16A085" },
+    { name: "Justiça", shortDesc: "Dar a cada um o que é seu", description: "A busca pelo equilíbrio e equidade, não segundo a conveniência egoísta, mas segundo o Dharma e a Lei Universal.", practices: "• Não julgar por simpatias ou antipatias\n• Cumprir com as próprias obrigações\n• Reconhecer o mérito do outro", quote: "A justiça não é outra coisa senão a conveniência do homem em sociedade.", quoteAuthor: "Platão", color: "#C0392B" },
+    { name: "Disciplina", shortDesc: "O discipulado interior", description: "Não como castigo, mas como o método pelo qual o discípulo alinha sua personalidade inferior aos ditames de sua Alma.", practices: "• Cumprir o cronograma estabelecido\n• Fazer as práticas sem ceder à preguiça\n• Terminar o que se começou", quote: "A disciplina é a ponte entre as metas e as realizações.", quoteAuthor: "Jim Rohn", color: "#34495E" },
+    { name: "Devoção", shortDesc: "O Amor direcionado ao Alto", description: "O fogo interno (Bhakti) que move o ser humano a entregar-se a uma causa sagrada, a um ideal ou ao Mestre.", practices: "• Realizar ações cotidianas como oferenda\n• Manter o altar ou espaço de estudo sagrado\n• Estudar textos sagrados com reverência", quote: "Aquele que realiza todas as suas ações por Mim, e para quem Eu sou a meta suprema, esse chega a Mim.", quoteAuthor: "Bhagavad Gita", color: "#9B59B6" },
+    
+    // --- PILARES DA NOVA ACRÓPOLE ---
+    { name: "Investigação", shortDesc: "A busca sincera pela Verdade", description: "O estudo comparado que não aceita dogmas cegos, mas busca as leis universais ocultas na Natureza e no homem.", practices: "• Questionar os porquês antes de aceitar\n• Ler uma página de filosofia profunda\n• Observar as leis da natureza no dia a dia", quote: "Não há religião superior à Verdade.", quoteAuthor: "H.P. Blavatsky", color: "#2980B9" },
+    { name: "Serviço", shortDesc: "Voluntariado ativo e consciente", description: "O ato de colocar as próprias mãos, mente e coração a serviço da humanidade e dos ideais de fraternidade, sem apego aos frutos.", practices: "• Fazer o trabalho invisível que ninguém quer fazer\n• Ajudar o grupo de trabalho (GDVE)\n• Renunciar ao conforto pelo dever", quote: "Dorme o homem que trabalha para si. Desperta o que trabalha para a humanidade.", quoteAuthor: "J.A. Livraga", color: "#F39C12" },
+    { name: "Generosidade", shortDesc: "Dar livremente sem esperar retorno", description: "Compartilhar tempo, atenção e sabedoria. Na via esotérica, a verdadeira generosidade é dar oportunidades ao outro.", practices: "• Ouvir ativamente sem interromper\n• Partilhar conhecimento sem vaidade\n• Doar tempo para a escola ou para alguém", quote: "O pouco que se dá com o coração vale muito; o muito que se dá sem ele, não vale nada.", quoteAuthor: "Délia Steinberg Guzmán", color: "#27AE60" },
+    { name: "Beleza", shortDesc: "O resplendor da Verdade", description: "A percepção estética e moral da harmonia em todas as coisas. A Beleza como a ponte que nos leva em direção a Deus.", practices: "• Ouvir música clássica com atenção\n• Arrumar-se com dignidade\n• Falar palavras limpas e elevadas", quote: "A beleza é o esplendor da verdade.", quoteAuthor: "Platão", color: "#E84393" },
+    { name: "Bondade", shortDesc: "A manifestação do Bem", description: "A inclinação natural e treinada da Vontade em direção à Luz, promovendo o bem, a compaixão e o amparo a todos os seres.", practices: "• Evitar a crítica destrutiva\n• Olhar o lado luminoso das pessoas\n• Agir para aliviar a carga do outro", quote: "A verdadeira bondade consiste não apenas em não fazer o mal, mas em nem sequer desejá-lo.", quoteAuthor: "Sêneca", color: "#FF69B4" },
+    { name: "Ordem", shortDesc: "A expressão da Lei Universal", description: "A capacidade de alinhar a própria vida, o espaço e a mente ao grande ritmo do Cosmos.", practices: "• Arrumar a própria cama pela manhã\n• Manter os apontamentos de estudo organizados\n• Fazer uma coisa de cada vez", quote: "A ordem é a primeira lei do céu.", quoteAuthor: "Alexander Pope", color: "#7B68EE" },
+    
+    // --- O FOGO E A MENTE ---
+    { name: "Entusiasmo", shortDesc: "Deus dentro de si", description: "O 'En Theos'. A energia ígnea e divina que contagia, que acorda almas adormecidas e nos dá força para continuar a marcha.", practices: "• Sorrir perante uma dificuldade\n• Transmitir força ao grupo de GDVE\n• Realizar uma tarefa mecânica com alegria", quote: "O entusiasmo é a força divina em movimento; é Deus no homem.", quoteAuthor: "Délia Steinberg Guzmán", color: "#FF5722" },
+    { name: "Vontade", shortDesc: "O motor do Espírito", description: "Não é o desejo fugaz, mas o Ícto. O raio de força espiritual que corta a inércia e realiza o plano mental na matéria.", practices: "• Fazer imediatamente algo que está adiando\n• Dominar o corpo (ficar imóvel em meditação)\n• Impor uma pequena renúncia física", quote: "Onde há Vontade, há um Caminho.", quoteAuthor: "Sri Ram", color: "#C0392B" },
+    { name: "Atenção", shortDesc: "A presença do Ser", description: "Estar plenamente presente. Onde está a atenção, está o Prana, a vida e a consciência humana.", practices: "• Escutar o outro sem formular respostas\n• Lavar a louça ou caminhar com atenção plena\n• Tratak e exercícios de fixação", quote: "Atenção é o caminho para a imortalidade; a desatenção é o caminho da morte.", quoteAuthor: "Dhammapada", color: "#3498DB" },
+    { name: "Memória", shortDesc: "O cofre do passado vivo", description: "O resgate consciente da tradição, do próprio caminho e das lições já aprendidas. Relembrar de si mesmo.", practices: "• Recordar o que estudou ontem (Exercício Pitagórico)\n• Lembrar por que começou no caminho\n• Fazer o Prólogo e o Epílogo com fidelidade", quote: "O homem é sua memória. A memória é a força da nossa identidade.", quoteAuthor: "J.A. Livraga", color: "#8E44AD" },
+    
+    // --- O GUERREIRO INTERIOR ---
+    { name: "Perseverança", shortDesc: "Continuar a despeito das quedas", description: "A força para levantar-se após a queda, retomar o passo e continuar a marchar, sem se deixar vencer pela frustração.", practices: "• Voltar a fazer a prática que abandonou\n• Tentar mais uma vez após falhar\n• Não usar o erro como desculpa", quote: "A perseverança é mãe da boa sorte.", quoteAuthor: "Miguel de Cervantes", color: "#D35400" },
+    { name: "Constância", shortDesc: "Estabilidade no esforço", description: "O nível superior da perseverança. É não apenas tentar, mas manter um ritmo constante, inalterado pelos humores ou pelo clima.", practices: "• Fazer o que planejou mesmo sem vontade\n• Manter o ritmo do Diário Filosófico\n• Assiduidade nas aulas e compromissos", quote: "A gota d'água perfura a rocha não pela sua força, mas pela sua constância.", quoteAuthor: "Ovídio", color: "#2ECC71" },
+    { name: "Intuição", shortDesc: "A voz silenciosa da Alma", description: "A percepção direta da Verdade, sem passar pela lógica mecânica (Kama-Manas). O clarão de Buddhi.", practices: "• Fazer 5 minutos de silêncio absoluto\n• Escutar o coração na tomada de decisão\n• Observar símbolos na natureza", quote: "A intuição não é a inimiga da razão, mas sua sucessora alada.", quoteAuthor: "J.A. Livraga", color: "#9B59B6" },
+    { name: "Ousadia", shortDesc: "A audácia para a Luz", description: "A coragem dinâmica. Lançar-se rumo ao ideal, romper a fronteira do conformismo e tentar o impossível.", practices: "• Dar o primeiro passo num grande projeto\n• Falar em público se tiver oportunidade\n• Romper uma rotina cômoda", quote: "Ousai, e vossas forças aumentarão.", quoteAuthor: "Joana d'Arc", color: "#E67E22" },
+    
+    // --- O CAMINHO ALQUÍMICO ---
+    { name: "Transmutar", shortDesc: "O chumbo em ouro", description: "A Alquimia interior: pegar a emoção densa (raiva, dor, medo) e elevá-la à sua oitava superior (ação reta, amor, sabedoria).", practices: "• Converter uma crítica recebida em ação de melhora\n• Responder à rispidez com amabilidade\n• Usar o cansaço como combustível de prova", quote: "O Universo é transformação; a nossa vida é o que os nossos pensamentos fazem dela.", quoteAuthor: "Marco Aurélio", color: "#F1C40F" },
+    { name: "Concórdia", shortDesc: "O coração unificado (Con-Cordis)", description: "A capacidade de unir os corações em torno de um Ideal, superando o atrito das personalidades na Escola ou GDVE.", practices: "• Ceder numa discussão onde só há vaidade em jogo\n• Fazer um elogio sincero a um companheiro\n• Buscar o ponto de união, não o de cisão", quote: "Se quereis que vosso coração encontre concórdia, ide ao centro, que é o Espírito.", quoteAuthor: "Sri Ram", color: "#1ABC9C" },
+    { name: "Fortaleza", shortDesc: "O pilar do templo", description: "A força para sustentar a si mesmo e aos outros nos momentos de crise. Ser um bastião da Lei.", practices: "• Não reclamar de dor física leve ou calor/frio\n• Sustentar moralmente alguém abatido\n• Ler os Bastiões com intenção guerreira", quote: "Sofre e suporta: não há homem forte sem o fogo da provação.", quoteAuthor: "Sêneca", color: "#7F8C8D" },
+    { name: "Nobreza", shortDesc: "A atitude do cavaleiro interior", description: "Viver acima da mediocridade. Não é um título de sangue, mas a qualidade de um caráter que não se curva à baixeza.", practices: "• Portar-se com elegância, inclusive a sós\n• Recusar fofocas ou palavras torpes\n• Defender a honra de quem não está presente", quote: "A verdadeira nobreza está em sermos superiores ao nosso antigo eu.", quoteAuthor: "Ernest Hemingway", color: "#FFD700" },
+    { name: "Integração", shortDesc: "A gota no oceano", description: "Compreender que o pequeno 'eu' faz parte de um Grande Corpo. Integrar-se à humanidade e à Hierarquia.", practices: "• Oferecer o trabalho pessoal ao Ideal Maior\n• Sincronizar-se com as necessidades da Escola\n• Sentir-se peça de uma grande máquina", quote: "O que não é útil ao enxame, não é útil à abelha.", quoteAuthor: "Marco Aurélio", color: "#3498DB" },
+    
+    // --- O COMPROMISSO ---
+    { name: "Dever", shortDesc: "A Vontade de Deus no homem", description: "Fazer o que tem de ser feito por puro amor à Lei (Dharma). Sem fugas, sem negociações.", practices: "• Fazer uma tarefa apenas porque é o certo\n• Dispensar a recompensa final\n• Analisar as omissões no Exame Noturno", quote: "Faça o seu dever, porque a ação é melhor do que a inação.", quoteAuthor: "Bhagavad Gita", color: "#C0392B" },
+    { name: "Dignidade", shortDesc: "O respeito ao ser humano", description: "Manter-se de pé internamente. Tratar a si mesmo e aos demais com a gravidade que a Alma exige.", practices: "• Cumprir com as próprias palavras\n• Recusar baixar o nível da conversa\n• Arrumar-se de forma asseada e polida", quote: "Nenhum homem é livre se não for senhor de si mesmo.", quoteAuthor: "Epicteto", color: "#8E44AD" },
+    { name: "Fidelidade", shortDesc: "Lealdade à Luz", description: "Fidelidade à promessa, à ideia, ao Mestre e ao próprio ser interior. Manter no escuro o que se jurou na luz.", practices: "• Não abandonar os preceitos quando ninguém vê\n• Cumprir a recitação diária do Código de Honra\n• Honrar os compromissos assumidos", quote: "O verdadeiro cavaleiro é aquele que se mantém fiel quando todos os outros fogem.", quoteAuthor: "J.A. Livraga", color: "#2980B9" },
+    { name: "Mística", shortDesc: "A união com o Sagrado", description: "A percepção de que a vida tem um fio condutor invisível e sagrado. Retirar o véu do tédio mecânico da existência.", practices: "• Realizar o Templo Interior (Câmara/Pátio/Santuário)\n• Ver Deus num detalhe da Natureza\n• Estudar os Mistérios com a mente aberta", quote: "Mística é ter sede de Deus.", quoteAuthor: "J.A. Livraga", color: "#6C3483" },
+    { name: "Discipulado", shortDesc: "A condição de quem aprende", description: "Colocar-se em posição de aluno do Universo e do Instrutor. Ter a taça vazia para receber a Água da Sabedoria.", practices: "• Aceitar uma correção sem se justificar\n• Copiar o exemplo dos maiores\n• Estudar ativamente os ensinamentos da Escola", quote: "Quando o discípulo está pronto, o Mestre aparece.", quoteAuthor: "O Caibalion", color: "#27AE60" }
   ];
 
   const philosophicalQuotes = [
-    { text: "Que ninguém hesite em se dedicar à filosofia enquanto jovem, nem se canse de fazê-lo depois de velho", author: "Epicuro" },
-    { text: "Não é porque as coisas são difíceis que não ousamos; é porque não ousamos que elas são difíceis", author: "Sêneca" },
-    { text: "A felicidade não consiste em adquirir e gozar, mas em não desejar nada", author: "Epicteto" },
-    { text: "Conhece-te a ti mesmo e conhecerás o universo e os deuses", author: "Oráculo de Delfos" },
-    { text: "O homem é feito pela sua crença. Como ele acredita, assim ele é", author: "Bhagavad Gita" },
-    { text: "Não há religião superior à verdade", author: "H. P. Blavatsky" },
-    { text: "A mente é tudo. O que você pensa, você se torna", author: "Buda" },
-    { text: "O maior domínio é o domínio de si mesmo", author: "Sêneca" },
-    { text: "A vida não examinada não vale a pena ser vivida", author: "Sócrates" }
+    // Clássicos e Estoicos
+    { text: "Que ninguém hesite em se dedicar à filosofia enquanto jovem, nem se canse de fazê-lo depois de velho.", author: "Epicuro" },
+    { text: "Não é porque as coisas são difíceis que não ousamos; é porque não ousamos que elas são difíceis.", author: "Sêneca" },
+    { text: "A felicidade não consiste em adquirir e gozar, mas em não desejar nada.", author: "Epicteto" },
+    { text: "Conhece-te a ti mesmo e conhecerás o universo e os deuses.", author: "Oráculo de Delfos" },
+    { text: "A vida não examinada não vale a pena ser vivida.", author: "Sócrates" },
+    { text: "Não percas tempo discutindo sobre o que um homem bom deve ser. Sê um.", author: "Marco Aurélio" },
+    { text: "Tudo o que ouvimos é uma opinião, não um fato. Tudo o que vemos é uma perspectiva, não a verdade.", author: "Marco Aurélio" },
+    { text: "O homem corajoso não é o que não sente medo, mas o que conquista esse medo.", author: "Aristóteles" },
+    
+    // Sabedoria Oriental e Esotérica
+    { text: "O homem é feito pela sua crença. Como ele acredita, assim ele é.", author: "Bhagavad Gita" },
+    { text: "A mente é tudo. O que você pensa, você se torna.", author: "Buda" },
+    { text: "O maior domínio é o domínio de si mesmo.", author: "Buda" },
+    { text: "Não há religião superior à verdade.", author: "H. P. Blavatsky" },
+    { text: "Seja indulgente com as fraquezas alheias, mas rigoroso com as suas próprias.", author: "H. P. Blavatsky (A Voz do Silêncio)" },
+    { text: "O sábio molda a si mesmo.", author: "Dhammapada" },
+    { text: "Para o homem resoluto e determinado, não existe a palavra impossível.", author: "Sri Ram" },
+
+    // Nova Acrópole (Jorge Ángel Livraga e Délia Steinberg)
+    { text: "A melhor maneira de vencer as trevas não é lutar contra elas, mas acender uma luz.", author: "J.A. Livraga" },
+    { text: "Um Ideal é o oxigênio da Alma.", author: "J.A. Livraga" },
+    { text: "Temos que forjar uma Juventude que não precise de esperanças artificiais, mas da força dos seus próprios Ideais.", author: "J.A. Livraga" },
+    { text: "As circunstâncias não fazem o homem, apenas o revelam a si mesmo.", author: "Epicteto / J.A. Livraga" },
+    { text: "Ser filósofo não é ler muitos livros, é saber extrair sabedoria de cada ato da Vida.", author: "Délia Steinberg Guzmán" },
+    { text: "O heroísmo cotidiano consiste em fazer o bem, de forma oculta e perseverante, todos os dias.", author: "Délia Steinberg Guzmán" },
+    { text: "É inútil buscar a paz no mundo se não soubermos plantá-la no coração.", author: "Délia Steinberg Guzmán" },
+    { text: "Vontade não é desejar as coisas, é sacrificar-se por elas.", author: "J.A. Livraga" },
+    
+    // Sabedoria Universal Complementar
+    { text: "Mesmo a jornada de mil milhas começa com um único passo.", author: "Lao Tsé" },
+    { text: "Aquele que conhece os outros é sábio; aquele que conhece a si mesmo é iluminado.", author: "Lao Tsé" },
+    { text: "A verdadeira medida de um homem não se vê nos momentos de conforto, mas nos de desafio e controvérsia.", author: "Martin Luther King Jr." }
   ];
 
   const getTodayKey = () => {
@@ -2718,21 +2766,48 @@ function App() {
               ) : (
                 <div className="animate-fadeIn" style={{ display: 'grid', gap: '1rem', zIndex: 1 }}>
                   
-                  {/* DISPLAY DUPLO: KURAVA VS PANDAVA */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                    {/* O KURAVA */}
-                    <div style={{ background: isDark ? 'rgba(231, 76, 60, 0.1)' : '#fff5f5', padding: '1.5rem', borderRadius: '8px', border: `1px dashed ${isDark ? 'rgba(231, 76, 60, 0.4)' : 'rgba(231, 76, 60, 0.4)'}`, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-                      <span style={{ fontSize: '0.75rem', color: isDark ? '#e74c3c' : '#c0392b', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', marginBottom: '0.5rem' }}>O Kurava da Semana</span>
-                      <strong style={{ fontSize: '1.6rem', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif" }}>{kuravaData.kurava}</strong>
+                  {/* O VÉU DO ORÁCULO (KURAVA OCULTO) */}
+                  {!isKuravaRevealed ? (
+                    <div 
+                      onClick={() => setIsKuravaRevealed(true)}
+                      style={{ background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(139, 115, 85, 0.05)', padding: '2rem', borderRadius: '12px', border: `1px dashed ${isDark ? '#FFD700' : '#996515'}`, textAlign: 'center', cursor: 'pointer', transition: 'all 0.3s ease', boxShadow: 'inset 0 0 20px rgba(0,0,0,0.1)' }}
+                      onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(139, 115, 85, 0.1)'}
+                      onMouseOut={(e) => e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(139, 115, 85, 0.05)'}
+                    >
+                      <EyeOff size={32} color={isDark ? '#FFD700' : '#996515'} style={{ margin: '0 auto 1rem', opacity: 0.8 }} />
+                      <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif", fontSize: '1.2rem' }}>O Oráculo Falou</h4>
+                      <p style={{ margin: 0, color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.95rem', fontStyle: 'italic' }}>Clique aqui para revelar o Kurava que domina a sua semana e a Arma para combatê-lo.</p>
                     </div>
+                  ) : (
+                    <div className="animate-fadeIn" style={{ display: 'grid', gap: '1rem', zIndex: 1 }}>
+                      {/* BOTÃO PARA ESCONDER NOVAMENTE */}
+                      <button onClick={() => setIsKuravaRevealed(false)} style={{ justifySelf: 'end', background: 'transparent', border: 'none', color: isDark ? '#b8a88a' : '#6b5744', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><Eye size={14}/> Ocultar Diagnóstico</button>
+                      
+                      {/* DISPLAY DUPLO: KURAVA VS PANDAVA */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                        <div style={{ background: isDark ? 'rgba(231, 76, 60, 0.1)' : '#fff5f5', padding: '1.5rem', borderRadius: '8px', border: `1px dashed ${isDark ? 'rgba(231, 76, 60, 0.4)' : 'rgba(231, 76, 60, 0.4)'}`, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                          <span style={{ fontSize: '0.75rem', color: isDark ? '#e74c3c' : '#c0392b', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', marginBottom: '0.5rem' }}>O Kurava da Semana</span>
+                          <strong style={{ fontSize: '1.6rem', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif" }}>{kuravaData.kurava}</strong>
+                        </div>
 
-                    {/* O PANDAVA */}
-                    <div style={{ background: isDark ? 'rgba(76, 175, 80, 0.1)' : '#f0fdf4', padding: '1.5rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(76, 175, 80, 0.4)' : '#4caf50'}`, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', position: 'relative' }}>
-                      <div style={{ position: 'absolute', top: '-10px', background: isDark ? '#81c784' : '#2e7d32', color: isDark ? '#1a1a2e' : 'white', padding: '0.2rem 0.8rem', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>A Arma</div>
-                      <span style={{ fontSize: '0.75rem', color: isDark ? '#81c784' : '#2e7d32', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', marginBottom: '0.5rem', marginTop: '0.5rem' }}>Invoque o Pandava</span>
-                      <strong style={{ fontSize: '1.6rem', color: isDark ? '#81c784' : '#2e7d32', fontFamily: "'Cinzel', serif", filter: 'drop-shadow(0 0 5px rgba(76, 175, 80, 0.3))' }}>{kuravaData.pandava}</strong>
+                        <div style={{ background: isDark ? 'rgba(76, 175, 80, 0.1)' : '#f0fdf4', padding: '1.5rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(76, 175, 80, 0.4)' : '#4caf50'}`, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', position: 'relative' }}>
+                          <div style={{ position: 'absolute', top: '-10px', background: isDark ? '#81c784' : '#2e7d32', color: isDark ? '#1a1a2e' : 'white', padding: '0.2rem 0.8rem', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>A Arma</div>
+                          <span style={{ fontSize: '0.75rem', color: isDark ? '#81c784' : '#2e7d32', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', marginBottom: '0.5rem', marginTop: '0.5rem' }}>Invoque o Pandava</span>
+                          <strong style={{ fontSize: '1.6rem', color: isDark ? '#81c784' : '#2e7d32', fontFamily: "'Cinzel', serif", filter: 'drop-shadow(0 0 5px rgba(76, 175, 80, 0.3))' }}>{kuravaData.pandava}</strong>
+                        </div>
+                      </div>
+                      
+                      <div style={{ background: isDark ? 'rgba(0,0,0,0.3)' : 'white', padding: '1rem', borderRadius: '8px', borderLeft: `3px solid ${isDark ? '#e74c3c' : '#c0392b'}` }}>
+                        <span style={{ fontSize: '0.75rem', color: isDark ? '#e74c3c' : '#c0392b', fontWeight: 'bold', textTransform: 'uppercase' }}>Análise do Campo:</span>
+                        <p style={{ margin: '0.2rem 0 0 0', color: isDark ? '#c8b896' : '#6b5744', fontSize: '0.95rem', lineHeight: '1.5' }}>{kuravaData.diagnostico}</p>
+                      </div>
+
+                      <div style={{ background: isDark ? 'rgba(212, 175, 55, 0.1)' : '#fffbf0', padding: '1rem', borderRadius: '8px', borderLeft: `3px solid ${isDark ? '#FFD700' : '#996515'}` }}>
+                        <span style={{ fontSize: '0.75rem', color: isDark ? '#FFD700' : '#996515', fontWeight: 'bold', textTransform: 'uppercase' }}>Estratégia do Dharma:</span>
+                        <p style={{ margin: '0.2rem 0 0 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem', lineHeight: '1.5', fontStyle: 'italic' }}>"{kuravaData.estrategia}"</p>
+                      </div>
                     </div>
-                  </div>
+                  )}
                   
                   {/* DIAGNÓSTICO E ESTRATÉGIA */}
                   <div style={{ background: isDark ? 'rgba(0,0,0,0.3)' : 'white', padding: '1rem', borderRadius: '8px', borderLeft: `3px solid ${isDark ? '#e74c3c' : '#c0392b'}` }}>
@@ -2803,9 +2878,18 @@ function App() {
                           {virtues.find(v => v.name === selectedVirtue)?.shortDesc}
                         </p>
 
-                        {/* CONTEÚDO EXPANDIDO (DESCRIÇÃO E PRÁTICAS) */}
+                        {/* CONTEÚDO EXPANDIDO (DESCRIÇÃO, PRÁTICAS E CITAÇÃO) */}
                         {isTodayVirtueExpanded && (
                           <div className="animate-fadeIn" style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}` }}>
+                            
+                            {/* A CITAÇÃO DA VIRTUDE */}
+                            {virtues.find(v => v.name === selectedVirtue)?.quote && (
+                              <blockquote style={{ margin: '0 0 1.5rem 0', padding: '1rem', background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.6)', borderLeft: `4px solid ${virtues.find(v => v.name === selectedVirtue)?.color || '#d4af37'}`, borderRadius: '0 8px 8px 0' }}>
+                                <p style={{ margin: '0 0 0.5rem 0', fontStyle: 'italic', fontSize: '1rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.5' }}>"{virtues.find(v => v.name === selectedVirtue)?.quote}"</p>
+                                <footer style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', fontWeight: 'bold', textAlign: 'right' }}>— {virtues.find(v => v.name === selectedVirtue)?.quoteAuthor}</footer>
+                              </blockquote>
+                            )}
+
                             <p style={{ fontSize: '0.95rem', color: isDark ? '#f0e6d2' : '#2c1810', marginBottom: '1rem', lineHeight: '1.6' }}>
                               {virtues.find(v => v.name === selectedVirtue)?.description}
                             </p>
