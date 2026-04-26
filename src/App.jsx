@@ -315,9 +315,16 @@ function App() {
     }
   };
 
-  // --- MOTOR CENTRAL DO TUTOR SOCRÁTICO ---
+  // --- MOTOR CENTRAL DO TUTOR SOCRÁTICO (COM RAIO-X) ---
   const runSocraticTutor = async (livro, note = '') => {
-    if(!aiConsent) return alert('Autorize a IA nas Configurações do Diário.');
+    console.log("Rastreador 1: Botão clicado. Iniciando função.");
+    
+    if(!aiConsent) {
+      console.log("Rastreador Erro: Consentimento não dado.");
+      return alert('Autorize a IA nas Configurações do Diário.');
+    }
+
+    console.log("Rastreador 2: Consentimento OK. Preparando Modal para o livro:", livro?.title);
     setActiveBookForAi(livro);
     setBookAiInsight(null);
     setIsGeneratingBookAi(true);
@@ -328,14 +335,21 @@ function App() {
     Termine OBRIGATORIAMENTE com uma única pergunta reflexiva para ele pensar hoje.
     Formate em HTML (<b>, <br/>).`;
 
+    console.log("Rastreador 3: Prompt montado. Enviando sinal para o Google...");
+
     try {
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
       });
+      
+      console.log("Rastreador 4: Google respondeu! Status:", response.status);
       const data = await response.json();
       setBookAiInsight(data.candidates[0].content.parts[0].text);
+      console.log("Rastreador 5: Sucesso! Texto na tela.");
+      
     } catch(e) {
+      console.error("Rastreador ERRO FATAL no Fetch:", e);
       setBookAiInsight("O Oráculo está em silêncio. Retorne mais tarde.");
     } finally {
       setIsGeneratingBookAi(false);
