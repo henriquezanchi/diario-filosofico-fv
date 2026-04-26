@@ -315,6 +315,33 @@ function App() {
     }
   };
 
+  // --- MOTOR CENTRAL DO TUTOR SOCRÁTICO ---
+  const runSocraticTutor = async (livro, note = '') => {
+    if(!aiConsent) return alert('Autorize a IA nas Configurações do Diário.');
+    setActiveBookForAi(livro);
+    setBookAiInsight(null);
+    setIsGeneratingBookAi(true);
+
+    const prompt = `Atue como um Tutor Socrático da filosofia clássica. O discípulo está lendo "${livro.title}" (de ${livro.author}) e está na página ${livro.currentPage}.
+    ${note ? `Tópico escolhido pelo discípulo: "${note}". Faça uma reflexão sobre isso.` : `Faça uma breve reflexão profunda (2 a 3 linhas) sobre um tema ou conceito que ele provavelmente encontrou nestas páginas iniciais/médias.`}
+    REGRA ANTI-SPOILER: Não revele o final nem eventos futuros do livro.
+    Termine OBRIGATORIAMENTE com uma única pergunta reflexiva para ele pensar hoje.
+    Formate em HTML (<b>, <br/>).`;
+
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+      });
+      const data = await response.json();
+      setBookAiInsight(data.candidates[0].content.parts[0].text);
+    } catch(e) {
+      setBookAiInsight("O Oráculo está em silêncio. Retorne mais tarde.");
+    } finally {
+      setIsGeneratingBookAi(false);
+    }
+  };
+
   // O Motor de Ranks Literários
   const getReadingRank = (pages) => {
     if (pages < 500) return { title: "Pedra Bruta", next: 500, color: "#95A5A6" };
@@ -3197,7 +3224,10 @@ function App() {
                   {newTaskRecurrence === 'weekly' && (
                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
                       {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((day, idx) => (
-                        <button key={idx} onClick={() => { if (newTaskWeekDays.includes(idx)) { setNewTaskWeekDays(newTaskWeekDays.filter(d => d !== idx)); } else { setNewTaskWeekDays([...newTaskWeekDays, idx]); } }} style={{ padding: '0.5rem', flex: 1, minWidth: '40px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', background: newTaskWeekDays.includes(idx) ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: newTaskWeekDays.includes(idx) ? (isDark ? '#1a1a2e' : 'white') : (isDark ? '#b8a88a' : '#6b4423'), border: `1px solid ${isDark ? '#d4af37' : '#6b4423'}` }}>{day}</button>
+                        <button key={idx} onClick={() => {
+                                setPostReadInvite(null); // Fecha o convite
+                                runSocraticTutor(postReadInvite, topic); // Abre o modal e já CHAMA A IA com o tema!
+                              }}>{day}</button>
                       ))}
                     </div>
                   )}
@@ -3849,33 +3879,11 @@ function App() {
                         <div style={{ background: isDark ? 'rgba(212, 175, 55, 0.1)' : '#fffbf0', padding: '1.5rem', borderRadius: '12px', borderLeft: `4px solid ${isDark ? '#FFD700' : '#996515'}`, color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.05rem', lineHeight: '1.6', fontFamily: 'Georgia, serif', marginBottom: '2rem' }} dangerouslySetInnerHTML={{ __html: bookAiInsight }}>
                         </div>
                         <button 
-                          onClick={async () => { 
-                                if(!aiConsent) return alert('Autorize a IA nas Configurações do Diário.');
-                                setActiveBookForAi(book); 
-                                setBookAiInsight(null); 
-                                setIsGeneratingBookAi(true);
-                                
-                                const prompt = `Atue como um Tutor Socrático. O discípulo está lendo "${book.title}" (de ${book.author}) e está na página ${book.currentPage}. 
-                                Faça uma breve reflexão profunda (2 a 3 linhas) sobre um tema ou conceito que ele provavelmente encontrou nestas páginas iniciais/médias. 
-                                REGRA ANTI-SPOILER: Não revele o final nem eventos futuros do livro.
-                                Termine OBRIGATORIAMENTE com uma única pergunta reflexiva para ele pensar hoje.
-                                Formate em HTML (<b>, <br/>).`;
-
-                                try {
-                                  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, { 
-                                    method: 'POST', headers: { 'Content-Type': 'application/json' }, 
-                                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) 
-                                  });
-                                  const data = await response.json();
-                                  setBookAiInsight(data.candidates[0].content.parts[0].text);
-                                } catch(e) {
-                                  setBookAiInsight("O Oráculo está em silêncio. Retorne mais tarde.");
-                                } finally {
-                                  setIsGeneratingBookAi(false);
-                                }
-                              }}>
-                          Guardar reflexão na Alma
-                        </button>
+                                onClick={() => runSocraticTutor(book)}
+                                style={{ flex: 1, padding: '0.5rem', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: '#000', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.8rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.3rem' }}
+                              >
+                                <Sparkles size={12} /> Socrático
+                              </button>
                       </div>
                     )}
                   </div>
@@ -3930,7 +3938,10 @@ function App() {
                         Apenas Guardar
                       </button>
                       <button 
-                        onClick={() => { setActiveBookForAi(postReadInvite); setPostReadInvite(null); setBookUserNote(''); }} 
+                        onClick={() => { 
+                          setPostReadInvite(null); 
+                          runSocraticTutor(postReadInvite); 
+                        }} 
                         style={{ flex: 1, padding: '0.8rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
                       >
                         Refletir Livremente
