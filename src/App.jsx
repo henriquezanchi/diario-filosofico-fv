@@ -305,7 +305,14 @@ function App() {
       if (!pendingBook || isSearchingBooks) return;
 
       try {
-        const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q&langRestrict=pt=${encodeURIComponent(pendingBook.title + ' ' + pendingBook.author)}&maxResults=1`);
+        const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(pendingBook.title + ' ' + pendingBook.author)}&maxResults=1&langRestrict=pt`);
+        
+        // Se o Google bater a porta (Erro 429), não tentamos processar o JSON, só abortamos e tentamos de novo depois.
+        if (res.status === 429) {
+           console.warn("Operário: O Google Books pediu para ir mais devagar (Erro 429). Pausando as buscas por um tempo.");
+           return; 
+        }
+
         const json = await res.json();
         const info = json.items?.[0]?.volumeInfo;
 
@@ -314,11 +321,10 @@ function App() {
             return {
               ...b,
               totalPages: info?.pageCount || b.totalPages,
-              // Se o status era 'lido', agora que sabemos as páginas, atualizamos a posição atual:
               currentPage: b.status === 'lido' ? (info?.pageCount || 0) : b.currentPage,
               thumbnail: info?.imageLinks?.thumbnail?.replace('http:', 'https:') || b.thumbnail,
               category: (info?.categories?.[0] || b.category).replace('Religion', 'Religião').replace('Fiction', 'Ficção').replace('Philosophy', 'Filosofia').replace('History', 'História').replace('Psychology', 'Psicologia').replace('Science', 'Ciência').replace('Self-Help', 'Autoajuda'),
-              isPendingEnrichment: false // Tira a etiqueta: Trabalho feito!
+              isPendingEnrichment: false 
             };
           }
           return b;
@@ -331,8 +337,8 @@ function App() {
       }
     };
 
-    // O operário trabalha a cada 3 segundos para não estressar a API
-    const timer = setTimeout(enrichNextBook, 3000);
+    // O operário trabalha a cada 6 segundos para não estressar a API
+    const timer = setTimeout(enrichNextBook, 6000);
     return () => clearTimeout(timer);
   }, [books, isSearchingBooks]);
 
@@ -4065,12 +4071,17 @@ function App() {
                                 setNewBook(book); 
                                 setShowAddBook(true); 
                                 
-                                // O GATILHO MÁGICO: Já monta o termo e pesquisa!
-                                const query = `${book.title} ${book.author}`;
-                                setBookSearchQuery(query);
-                                searchBooks(query);
-                                
-                                window.scrollTo(0,0); 
+                                // PESQUISA AUTOMÁTICA COM DEBOUNCE LONGO:
+                                 const queryTerm = `${book.title} ${book.author}`;
+                                 setBookSearchQuery(queryTerm);
+                                 
+                                 // Se já tiver uma busca engatilhada, cancela para não encavalar
+                                 if (window.searchTimeout) clearTimeout(window.searchTimeout);
+                                 
+                                 // Espera 1.5 segundos antes de atirar no Google
+                                 window.searchTimeout = setTimeout(() => {
+                                   searchBooks(queryTerm); 
+                                 }, 1500);
                               }}
                             >
                               <Search size={14} /> Completar Dados
