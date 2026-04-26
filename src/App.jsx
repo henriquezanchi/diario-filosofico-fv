@@ -6,7 +6,7 @@ import {
   Target, TrendingUp, Award, FileText, Book, Settings,
   Trash2, Edit, Save, XCircle, Flame, Zap, Shield, Star, Crown, 
   Bell, Check, Music, MessageSquare, Menu, Lock, ChevronDown, ChevronUp, 
-  Mountain, Landmark, Swords
+  Mountain, Landmark, Swords, Bookmark, Library, MessageCircle
 } from 'lucide-react';
 
 import { auth, db, messaging } from './config/firebase-config'; 
@@ -268,6 +268,22 @@ function App() {
   const [newGdveTaskTarget, setNewGdveTaskTarget] = useState(1);
   const [newGdveTaskIsCycle, setNewGdveTaskIsCycle] = useState(false);
   const [fvGdveCycleStatus, setFvGdveCycleStatus] = useState({});
+  
+  // --- ESTADOS DE LEITURA E ESTUDOS ---
+  const [books, setBooks] = useState([]);
+  const [showAddBook, setShowAddBook] = useState(false);
+  const [newBook, setNewBook] = useState({ title: '', author: '', currentPage: 0, totalPages: 0 });
+  const [editingBookId, setEditingBookId] = useState(null);
+  const [activeBookForAi, setActiveBookForAi] = useState(null);
+  const [bookUserNote, setBookUserNote] = useState('');
+  const [bookAiInsight, setBookAiInsight] = useState(null);
+  const [isGeneratingBookAi, setIsGeneratingBookAi] = useState(false);
+  const [bookSearchQuery, setBookSearchQuery] = useState('');
+  const [bookSearchResults, setBookSearchResults] = useState([]);
+  const [isSearchingBooks, setIsSearchingBooks] = useState(false);
+  const [bookRecommendation, setBookRecommendation] = useState(null);
+  const [isGeneratingRecommendation, setIsGeneratingRecommendation] = useState(false);
+  const AMAZON_AFFILIATE_ID = 'filosofiae0a5-20'; // 👈 SUBSTITUA PELO SEU ID DE AFILIADO REAL
   
   // Estado Diário da Carta de Degrau FV
   const [fvDaily, setFvDaily] = useState({
@@ -777,6 +793,7 @@ function App() {
         await loadCustomTasks(currentUser.uid);
         await loadLongTermGoals(currentUser.uid);
         await loadFVData(currentUser.uid);
+        await loadBooks(currentUser.uid);
       } else {
         setUser(null);
         clearAllData();
@@ -969,6 +986,85 @@ function App() {
         setFvTasksStreak(0);
       }
     } catch (error) { console.error('Erro ao carregar entradas:', error); }
+  };
+
+  const loadBooks = async (uid) => {
+    try {
+      const docSnap = await getDoc(doc(db, 'userBooks', uid));
+      if (docSnap.exists()) setBooks(docSnap.data().books || []);
+    } catch (error) { console.error('Erro ao carregar livros:', error); }
+  };
+
+  const searchBooks = async (query) => {
+    if (!query.trim()) return;
+    setIsSearchingBooks(true);
+    try {
+      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=5&langRestrict=pt`);
+      const data = await response.json();
+      
+      const formattedResults = data.items?.map(item => ({
+        id: item.id,
+        title: item.volumeInfo.title,
+        author: item.volumeInfo.authors?.join(', ') || 'Autor desconhecido',
+        totalPages: item.volumeInfo.pageCount || 0,
+        thumbnail: item.volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:'),
+        category: item.volumeInfo.categories?.[0] || 'Filosofia' // Categoria padrão se não houver
+      })) || [];
+      
+      setBookSearchResults(formattedResults);
+    } catch (error) {
+      console.error("Erro na busca do Google Books:", error);
+    } finally {
+      setIsSearchingBooks(false);
+    }
+  };
+
+  const generateBookRecommendation = async () => {
+    if (!user || books.length === 0) return;
+    setIsGeneratingRecommendation(true);
+
+    const livrosAtuais = books.map(b => `${b.title} (${b.author}) - Categoria: ${b.category}`).join(' | ');
+
+    const prompt = `Você é um bibliotecário da Escola de Filosofia Nova Acrópole. 
+    O aluno está lendo ou já leu estes livros: ${livrosAtuais}.
+    
+    Com base no perfil dele, sugira UM ÚNICO livro clássico de filosofia, história ou humanismo que seja o próximo passo ideal. 
+    Escolha livros de autores como Marco Aurélio, Sêneca, Platão, Helena Blavatsky, Jorge Ángel Livraga ou similares.
+    
+    Retorne ESTRITAMENTE um JSON:
+    {
+      "title": "Título exato do livro",
+      "author": "Autor",
+      "reason": "Uma frase curta explicando por que este livro complementa as leituras atuais."
+    }`;
+
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json" } })
+      });
+      const data = await response.json();
+      const rec = JSON.parse(data.candidates[0].content.parts[0].text);
+
+      // Agora buscamos a capa desse livro sugerido no Google Books para ficar bonito
+      const bookData = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(rec.title + ' ' + rec.author)}&maxResults=1`);
+      const bookInfo = await bookData.json();
+      const thumbnail = bookInfo.items?.[0]?.volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:');
+
+      setBookRecommendation({ ...rec, thumbnail });
+    } catch (e) {
+      console.error("Erro ao gerar recomendação:", e);
+    } finally {
+      setIsGeneratingRecommendation(false);
+    }
+  };
+
+  const saveBooksToDb = async (updatedBooks) => {
+    setBooks(updatedBooks);
+    if (user) {
+      try { await setDoc(doc(db, 'userBooks', user.uid), { books: updatedBooks }, { merge: true }); } 
+      catch (error) { console.error('Erro ao salvar livros:', error); }
+    }
   };
 
   const loadCustomTasks = async (uid) => {
@@ -2547,6 +2643,7 @@ function App() {
                     <div className="animate-fadeIn" style={{ width: '160px', background: isDark ? 'rgba(26, 26, 46, 0.98)' : 'rgba(255, 255, 255, 0.98)', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', overflow: 'hidden', display: 'flex', flexDirection: 'column', backdropFilter: 'blur(10px)' }}>
                       <button onClick={() => { setView('tasks'); setShowPracticesMenu(false); }} style={{ padding: '0.75rem 1rem', background: view === 'tasks' ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', fontFamily: 'Georgia, serif' }} onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(139, 115, 85, 0.05)'} onMouseOut={(e) => e.currentTarget.style.background = view === 'tasks' ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent'}>📋 Tarefas</button>
                       <button onClick={() => { setView('goals'); setShowPracticesMenu(false); }} style={{ padding: '0.75rem 1rem', background: view === 'goals' ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', fontFamily: 'Georgia, serif' }} onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(139, 115, 85, 0.05)'} onMouseOut={(e) => e.currentTarget.style.background = view === 'goals' ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent'}>🎯 Metas</button>
+                      <button onClick={() => { setView('leituras'); setShowPracticesMenu(false); }} style={{ padding: '0.75rem 1rem', background: view === 'leituras' ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', fontFamily: 'Georgia, serif' }} onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(139, 115, 85, 0.05)'} onMouseOut={(e) => e.currentTarget.style.background = view === 'leituras' ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent'}><Library size={16}/> Leituras</button>
                       <button onClick={() => { setView('biblioteca'); setShowPracticesMenu(false); }} style={{ padding: '0.75rem 1rem', background: view === 'biblioteca' ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', fontFamily: 'Georgia, serif' }} onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(139, 115, 85, 0.05)'} onMouseOut={(e) => e.currentTarget.style.background = view === 'biblioteca' ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent'}>🏛️ Virtudes</button>
                     </div>
                   </div>
@@ -2621,8 +2718,8 @@ function App() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
-              {['today', 'history', 'tasks', 'goals', 'biblioteca', 'analytics'].map((item) => {
-                const labels = { today: '☀️ Hoje', history: '📚 Histórico', tasks: '📋 Tarefas', goals: '🎯 Metas', biblioteca: '🏛️ Virtudes', analytics: '📊 Métricas' };
+              {['today', 'history', 'tasks', 'goals', 'leituras', 'biblioteca', 'analytics'].map((item) => {
+                const labels = { today: '☀️ Hoje', history: '📚 Histórico', tasks: '📋 Tarefas', goals: '🎯 Metas', leituras: '📖 Leituras', biblioteca: '🏛️ Virtudes', analytics: '📊 Métricas' };
                 return (
                   <button 
                     key={item}
@@ -3288,6 +3385,321 @@ function App() {
           </div>
         )}
 
+        {/* VIEW: LEITURAS E ESTUDOS */}
+        {view === 'leituras' && (
+          <div className="animate-fadeIn">
+            <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <Library size={32} color={isDark ? '#d4af37' : '#6b4423'} />
+                  <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif" }}>
+                    Estudos e Leituras
+                  </h2>
+                </div>
+                <button
+                  onClick={() => {
+                    setEditingBookId(null);
+                    setNewBook({ title: '', author: '', currentPage: 0, totalPages: 0 });
+                    setShowAddBook(true);
+                  }}
+                  style={{ padding: '0.75rem 1.5rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                >
+                  <Plus size={18} /> Novo Livro
+                </button>
+              </div>
+              <p style={{ color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2rem', fontSize: '1rem', fontStyle: 'italic' }}>
+                "Um quarto sem livros é como um corpo sem alma." — Cícero
+              </p>
+
+              {/* FORMULÁRIO DE ADICIONAR/EDITAR LIVRO (COM BUSCA GOOGLE) */}
+              {showAddBook && (
+                <div style={{ padding: '1.5rem', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.3)', borderRadius: '12px', marginBottom: '2rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                    <h3 style={{ margin: 0, color: isDark ? '#d4af37' : '#6b4423', fontFamily: "'Cinzel', serif" }}>{editingBookId ? 'Editar Livro' : 'Adicionar à Estante'}</h3>
+                    <button onClick={() => { setShowAddBook(false); setBookSearchResults([]); setBookSearchQuery(''); }} style={{ background: 'transparent', color: '#e74c3c', border: 'none', cursor: 'pointer' }}><X size={24} /></button>
+                  </div>
+                  
+                  {/* BARRA DE PESQUISA GOOGLE (Só aparece se for novo livro) */}
+                  {!editingBookId && (
+                    <div style={{ marginBottom: '1.5rem' }}>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <input 
+                          type="text" 
+                          value={bookSearchQuery} 
+                          onChange={(e) => setBookSearchQuery(e.target.value)} 
+                          onKeyDown={(e) => e.key === 'Enter' && searchBooks(bookSearchQuery)}
+                          placeholder="Pesquise por título ou autor..." 
+                          style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, background: isDark ? 'rgba(0,0,0,0.2)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} 
+                        />
+                        <button onClick={() => searchBooks(bookSearchQuery)} style={{ padding: '0 1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
+                          {isSearchingBooks ? <Sparkles className="animate-spin" size={18}/> : <Search size={18}/>}
+                        </button>
+                      </div>
+
+                      {/* RESULTADOS DA BUSCA */}
+                      {bookSearchResults.length > 0 && (
+                        <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', borderRadius: '8px', padding: '0.5rem', maxHeight: '200px', overflowY: 'auto' }}>
+                          {bookSearchResults.map(res => (
+                            <div 
+                              key={res.id} 
+                              onClick={() => {
+                                setNewBook({ title: res.title, author: res.author, currentPage: 0, totalPages: res.totalPages, thumbnail: res.thumbnail, category: res.category });
+                                setBookSearchResults([]);
+                                setBookSearchQuery('');
+                              }}
+                              style={{ display: 'flex', gap: '0.75rem', padding: '0.5rem', cursor: 'pointer', borderRadius: '6px', borderBottom: isDark ? '1px solid #333' : '1px solid #eee' }}
+                              onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.05)' : '#f9f9f9'}
+                              onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                            >
+                              <img src={res.thumbnail || 'https://via.placeholder.com/40x60?text=No+Cover'} alt="Capa" style={{ width: '40px', height: '60px', objectFit: 'cover', borderRadius: '4px' }} />
+                              <div style={{ textAlign: 'left' }}>
+                                <div style={{ fontSize: '0.9rem', fontWeight: 'bold', color: isDark ? '#f0e6d2' : '#2c1810' }}>{res.title}</div>
+                                <div style={{ fontSize: '0.8rem', color: '#888' }}>{res.author}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* FORMULÁRIO FINAL (Preenchido ou Manual) */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <label style={{ fontSize: '0.8rem', color: '#888', marginBottom: '0.2rem' }}>Título</label>
+                      <input type="text" value={newBook.title} onChange={(e) => setNewBook({...newBook, title: e.target.value})} placeholder="Título..." style={{ padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <label style={{ fontSize: '0.8rem', color: '#888', marginBottom: '0.2rem' }}>Autor</label>
+                      <input type="text" value={newBook.author} onChange={(e) => setNewBook({...newBook, author: e.target.value})} placeholder="Autor..." style={{ padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                    </div>
+                  </div>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+                    <div>
+                      <label style={{ fontSize: '0.8rem', color: '#888' }}>Pág. Atual</label>
+                      <input type="number" value={newBook.currentPage} onChange={(e) => setNewBook({...newBook, currentPage: parseInt(e.target.value) || 0})} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.8rem', color: '#888' }}>Total Págs</label>
+                      <input type="number" value={newBook.totalPages} onChange={(e) => setNewBook({...newBook, totalPages: parseInt(e.target.value) || 0})} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '0.8rem', color: '#888' }}>Tema/Categoria</label>
+                      <input type="text" value={newBook.category || ''} onChange={(e) => setNewBook({...newBook, category: e.target.value})} placeholder="Ex: Estoicismo" style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                    </div>
+                  </div>
+
+                  <button 
+                    onClick={() => {
+                      if(!newBook.title) return alert('Dê um título ao livro.');
+                      const updated = editingBookId 
+                        ? books.map(b => b.id === editingBookId ? { ...b, ...newBook } : b)
+                        : [...books, { id: `book_${Date.now()}`, ...newBook, finishedDate: null }];
+                      saveBooksToDb(updated);
+                      setShowAddBook(false);
+                      setBookSearchQuery('');
+                    }} 
+                    style={{ width: '100%', padding: '0.75rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', fontSize: '1rem' }}
+                  >
+                    <Save size={18} style={{ marginRight: '0.5rem' }}/> {editingBookId ? 'Salvar Alterações' : 'Guardar na Estante'}
+                  </button>
+                </div>
+              )}
+
+              {/* VITRINE DE RECOMENDAÇÃO (MONETIZAÇÃO) */}
+              {books.length > 0 && (
+                <div style={{ marginBottom: '3rem', padding: '1.5rem', background: isDark ? 'linear-gradient(135deg, rgba(212,175,55,0.1) 0%, rgba(0,0,0,0.3) 100%)' : 'linear-gradient(135deg, #fffbf0 0%, #fff 100%)', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212,175,55,0.3)' : '#ffe082'}`, position: 'relative', overflow: 'hidden' }}>
+                  {!bookRecommendation ? (
+                    <div style={{ textAlign: 'center', padding: '1rem' }}>
+                      <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.9rem', marginBottom: '1rem' }}>O Oráculo pode sugerir sua próxima leitura baseada na sua estante atual.</p>
+                      <button onClick={generateBookRecommendation} disabled={isGeneratingRecommendation} style={{ background: 'transparent', border: `1px solid ${isDark ? '#d4af37' : '#6b4423'}`, color: isDark ? '#d4af37' : '#6b4423', padding: '0.5rem 1.5rem', borderRadius: '20px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 auto' }}>
+                        {isGeneratingRecommendation ? <Sparkles className="animate-spin" size={14}/> : <Zap size={14}/>}
+                        {isGeneratingRecommendation ? 'Consultando Oráculo...' : 'Sugerir Próxima Leitura'}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="animate-fadeIn" style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <div style={{ position: 'absolute', top: '10px', right: '10px', fontSize: '0.6rem', color: isDark ? '#555' : '#ccc', textTransform: 'uppercase' }}>Sugestão do Oráculo</div>
+                      
+                      <img src={bookRecommendation.thumbnail || 'https://via.placeholder.com/60x90'} alt="Capa" style={{ width: '70px', height: '100px', borderRadius: '6px', boxShadow: '0 4px 10px rgba(0,0,0,0.3)' }} />
+                      
+                      <div style={{ flex: 1, minWidth: '200px' }}>
+                        <h4 style={{ margin: 0, color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif", fontSize: '1.1rem' }}>{bookRecommendation.title}</h4>
+                        <p style={{ margin: '0.2rem 0 0.75rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.85rem' }}>de {bookRecommendation.author}</p>
+                        <p style={{ margin: 0, color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.9rem', fontStyle: 'italic', lineHeight: '1.4' }}>"{bookRecommendation.reason}"</p>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <a 
+                          href={`https://www.amazon.com.br/s?k=${encodeURIComponent(bookRecommendation.title + ' ' + bookRecommendation.author)}&tag=${AMAZON_AFFILIATE_ID}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          style={{ padding: '0.8rem 1.5rem', background: '#FF9900', color: '#000', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(255,153,0,0.3)' }}
+                        >
+                          Comprar na Amazon
+                        </a>
+                        <button onClick={() => setBookRecommendation(null)} style={{ background: 'transparent', border: 'none', color: isDark ? '#555' : '#999', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}>Outra sugestão</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* A ESTANTE DE LIVROS */}
+              {books.length === 0 && !showAddBook ? (
+                <div style={{ textAlign: 'center', padding: '3rem', color: isDark ? '#b8a88a' : '#6b5744' }}>
+                  <Bookmark size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
+                  <p style={{ fontSize: '1.1rem' }}>Sua estante está vazia. Adicione o livro que está lendo.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                  {books.map(book => {
+                    const progress = book.totalPages > 0 ? Math.min(100, Math.round((book.currentPage / book.totalPages) * 100)) : 0;
+                    const isFinished = progress >= 100;
+                    
+                    return (
+                      <div key={book.id} style={{ background: isFinished ? (isDark ? 'rgba(76, 175, 80, 0.05)' : '#f0fdf4') : (isDark ? 'rgba(26, 26, 46, 0.4)' : 'rgba(255, 255, 255, 0.8)'), border: `1px solid ${isFinished ? '#4caf50' : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)')}`, borderRadius: '12px', padding: '1.2rem', position: 'relative', overflow: 'hidden', display: 'flex', gap: '1rem' }}>
+                        
+                        {/* CAPA DO LIVRO */}
+                        <div style={{ flexShrink: 0, width: '80px', height: '120px', background: '#333', borderRadius: '6px', overflow: 'hidden', boxShadow: '0 4px 10px rgba(0,0,0,0.3)' }}>
+                          <img src={book.thumbnail || 'https://via.placeholder.com/80x120?text=No+Cover'} alt="Capa" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </div>
+
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <h3 style={{ margin: 0, color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.1rem', fontFamily: "'Cinzel', serif", lineHeight: '1.2' }}>{book.title}</h3>
+                            <div style={{ display: 'flex', gap: '0.3rem' }}>
+                              <button onClick={() => { setEditingBookId(book.id); setNewBook(book); setShowAddBook(true); window.scrollTo(0,0); }} style={{ background: 'transparent', border: 'none', color: isDark ? '#d4af37' : '#6b4423', cursor: 'pointer' }}><Edit size={14} /></button>
+                              <button onClick={() => { if(window.confirm('Remover da estante?')) saveBooksToDb(books.filter(b => b.id !== book.id)); }} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer' }}><Trash2 size={14} /></button>
+                            </div>
+                          </div>
+                          
+                          <p style={{ margin: '0.2rem 0 0.5rem 0', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.85rem', fontStyle: 'italic' }}>{book.author}</p>
+                          
+                          {/* TAG DE CATEGORIA */}
+                          {book.category && (
+                            <span style={{ alignSelf: 'flex-start', fontSize: '0.65rem', padding: '2px 6px', background: isDark ? 'rgba(212,175,55,0.1)' : 'rgba(0,0,0,0.05)', borderRadius: '4px', color: isDark ? '#d4af37' : '#6b4423', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.75rem' }}>{book.category}</span>
+                          )}
+
+                          {/* PROGRESSO */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '0.3rem' }}>
+                            <span>{progress}% concluído</span>
+                            {isFinished && <span style={{ color: '#4caf50' }}>Lido em {book.finishedDate ? new Date(book.finishedDate).toLocaleDateString('pt-BR') : ''}</span>}
+                          </div>
+                          <div style={{ width: '100%', height: '6px', background: isDark ? 'rgba(255,255,255,0.1)' : '#eee', borderRadius: '3px', overflow: 'hidden', marginBottom: '1rem' }}>
+                            <div style={{ width: `${progress}%`, height: '100%', background: isFinished ? '#4caf50' : (isDark ? '#d4af37' : '#6b4423'), transition: 'width 0.8s ease' }}></div>
+                          </div>
+
+                          {!isFinished ? (
+                            <div style={{ display: 'flex', gap: '0.4rem' }}>
+                              <button 
+                                onClick={() => {
+                                  const sum = prompt(`Quantas páginas você leu hoje? (Soma à pág. ${book.currentPage})`);
+                                  if (sum && !isNaN(sum)) {
+                                    const novaPag = Math.min(book.totalPages, book.currentPage + parseInt(sum));
+                                    const acabouAgora = (novaPag >= book.totalPages);
+                                    saveBooksToDb(books.map(b => b.id === book.id ? { 
+                                      ...b, 
+                                      currentPage: novaPag, 
+                                      finishedDate: acabouAgora ? new Date().toISOString() : null 
+                                    } : b));
+                                  }
+                                }}
+                                style={{ flex: 1, padding: '0.5rem', background: 'transparent', color: isDark ? '#d4af37' : '#6b4423', border: `1px solid ${isDark ? 'rgba(212,175,55,0.4)' : '#ccc'}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}
+                              >
+                                + Atualizar
+                              </button>
+                              <button 
+                                onClick={() => { setActiveBookForAi(book); setBookAiInsight(null); setBookUserNote(''); }}
+                                style={{ flex: 1, padding: '0.5rem', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: '#000', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.8rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.3rem' }}
+                              >
+                                <Sparkles size={12} /> Socrático
+                              </button>
+                            </div>
+                          ) : (
+                            <div style={{ textAlign: 'center', color: '#4caf50', fontSize: '0.8rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', border: '1px solid #4caf50', borderRadius: '6px', padding: '0.4rem' }}>
+                              <Award size={14} /> Leitura Finalizada
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* MODAL DO TUTOR SOCRÁTICO */}
+              {activeBookForAi && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(5px)' }}>
+                  <div className="animate-fadeIn" style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '2rem', borderRadius: '16px', maxWidth: '500px', width: '100%', border: `2px solid ${isDark ? '#FFD700' : '#996515'}`, position: 'relative', boxShadow: '0 10px 40px rgba(0,0,0,0.5)', maxHeight: '90vh', overflowY: 'auto' }}>
+                    <button onClick={() => setActiveBookForAi(null)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}><X size={24} /></button>
+                    
+                    <MessageCircle size={40} color={isDark ? '#FFD700' : '#996515'} style={{ margin: '0 auto 1rem', display: 'block' }} />
+                    <h3 style={{ margin: '0 0 0.5rem 0', fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.4rem', textAlign: 'center' }}>Tutor Socrático</h3>
+                    <p style={{ margin: '0 0 1.5rem 0', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.9rem', textAlign: 'center', fontStyle: 'italic' }}>Livro: {activeBookForAi.title} (Pág. {activeBookForAi.currentPage})</p>
+
+                    {!bookAiInsight ? (
+                      <>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 'bold' }}>O que chamou sua atenção na leitura de hoje?</label>
+                        <textarea 
+                          value={bookUserNote} 
+                          onChange={(e) => setBookUserNote(e.target.value)} 
+                          placeholder="Escreva uma frase marcante, uma dúvida ou um insight que você teve..." 
+                          rows={4} 
+                          style={{ width: '100%', padding: '1rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical', marginBottom: '1.5rem' }} 
+                        />
+                        <button 
+                          onClick={async () => {
+                            if(!aiConsent) return alert('Autorize a IA nas configurações para usar o Tutor Socrático.');
+                            if(!bookUserNote.trim()) return alert('Escreva alguma reflexão primeiro.');
+                            setIsGeneratingBookAi(true);
+                            
+                            const prompt = `Atue como um Tutor Socrático da filosofia clássica. O discípulo está lendo "${activeBookForAi.title}" (de ${activeBookForAi.author}) e está na página ${activeBookForAi.currentPage}. 
+                            Ele acabou de ler e fez a seguinte anotação/dúvida: "${bookUserNote}".
+                            
+                            Sua missão:
+                            1. Escreva um breve parágrafo (2-3 linhas) validando e aprofundando o insight dele, cruzando se possível com a filosofia clássica (Estoicismo, Platão, etc).
+                            2. Termine OBRIGATORIAMENTE com UMA ÚNICA pergunta provocativa e profunda, baseada no que ele escreveu, para forçá-lo a refletir e aplicar o conhecimento na vida prática hoje.
+                            
+                            Formate a resposta em HTML simples: use <b> para negritos, <br/> para quebra de linha. Não use markdown.`;
+
+                            try {
+                              const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, { 
+                                method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+                                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) 
+                              });
+                              const data = await response.json();
+                              setBookAiInsight(data.candidates[0].content.parts[0].text);
+                            } catch (e) {
+                              alert('Erro ao consultar o Tutor. Tente novamente.');
+                            } finally {
+                              setIsGeneratingBookAi(false);
+                            }
+                          }}
+                          disabled={isGeneratingBookAi}
+                          style={{ width: '100%', padding: '1rem', background: isGeneratingBookAi ? (isDark ? '#555' : '#ccc') : 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: '#000', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: isGeneratingBookAi ? 'wait' : 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(255,215,0,0.2)' }}
+                        >
+                          {isGeneratingBookAi ? <Sparkles className="animate-spin" size={20} /> : <MessageCircle size={20} />}
+                          {isGeneratingBookAi ? 'O Tutor está refletindo...' : 'Refletir com o Tutor'}
+                        </button>
+                      </>
+                    ) : (
+                      <div className="animate-fadeIn">
+                        <div style={{ background: isDark ? 'rgba(212, 175, 55, 0.1)' : '#fffbf0', padding: '1.5rem', borderRadius: '12px', borderLeft: `4px solid ${isDark ? '#FFD700' : '#996515'}`, color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.05rem', lineHeight: '1.6', fontFamily: 'Georgia, serif', marginBottom: '2rem' }} dangerouslySetInnerHTML={{ __html: bookAiInsight }}>
+                        </div>
+                        <button onClick={() => { setActiveBookForAi(null); setBookAiInsight(null); setBookUserNote(''); }} style={{ width: '100%', padding: '1rem', background: 'transparent', color: isDark ? '#b8a88a' : '#6b5744', border: `1px solid ${isDark ? '#b8a88a' : '#ccc'}`, borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
+                          Guardar reflexão na Alma
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* VIEW: BIBLIOTECA */}
         {view === 'biblioteca' && (
