@@ -284,8 +284,36 @@ function App() {
   const [bookRecommendation, setBookRecommendation] = useState(null);
   const [isGeneratingRecommendation, setIsGeneratingRecommendation] = useState(false);
   const AMAZON_AFFILIATE_ID = 'filosofiae0a5-20'; // 👈 SUBSTITUA PELO SEU ID DE AFILIADO REAL
-
   const [totalForgedPages, setTotalForgedPages] = useState(0);
+
+// --- MOTOR DO CONVITE SOCRÁTICO PÓS-LEITURA ---
+  const [postReadInvite, setPostReadInvite] = useState(null);
+  const [inviteTopics, setInviteTopics] = useState(null);
+  const [isGeneratingTopics, setIsGeneratingTopics] = useState(false);
+
+  const generateTopicsForInvite = async (livro) => {
+    if (!user) return;
+    setIsGeneratingTopics(true);
+    setInviteTopics(null);
+    
+    const prompt = `Atue como um Tutor Socrático. O aluno está lendo "${livro.title}" de ${livro.author}. Ele acabou de ler até a página ${livro.currentPage} de ${livro.totalPages} (aprox. ${Math.round((livro.currentPage/livro.totalPages)*100)}% da obra). 
+    Sugira 3 tópicos, conceitos ou dúvidas muito breves (1 linha cada) que ele provavelmente encontrou APENAS nestas páginas lidas. 
+    AVISO ESTREITO: NÃO DÊ SPOILERS do final do livro ou de eventos futuros. Baseie-se apenas no arco inicial/médio até esta página.
+    Retorne ESTRITAMENTE um array JSON de strings. Exemplo: ["A atitude do personagem X", "O conceito de Y", "Uma frase que me marcou foi..."]`;
+    
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, { 
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json" } }) 
+      });
+      const data = await response.json();
+      setInviteTopics(JSON.parse(data.candidates[0].content.parts[0].text));
+    } catch (e) {
+      setInviteTopics(["Qual foi a principal ideia destas páginas?", "Teve alguma frase que chamou sua atenção?", "Ficou alguma dúvida sobre o texto?"]);
+    } finally {
+      setIsGeneratingTopics(false);
+    }
+  };
 
   // O Motor de Ranks Literários
   const getReadingRank = (pages) => {
@@ -3730,18 +3758,19 @@ function App() {
                                   const novaPag = Math.min(book.totalPages, novaPaginaInformada);
                                   const acabouAgora = (novaPag >= book.totalPages);
                                   
-                                  // Calcula a diferença real para somar no placar global
                                   const paginasAvançadasReais = novaPag - book.currentPage;
                                   const novoTotalGlobal = totalForgedPages + paginasAvançadasReais;
 
-                                  saveBooksToDb(books.map(b => b.id === book.id ? { 
-                                    ...b, 
-                                    currentPage: novaPag, 
-                                    finishedDate: acabouAgora ? new Date().toISOString() : null 
-                                  } : b), novoTotalGlobal);
+                                  const livroAtualizado = { ...book, currentPage: novaPag, finishedDate: acabouAgora ? new Date().toISOString() : null };
+
+                                  saveBooksToDb(books.map(b => b.id === book.id ? livroAtualizado : b), novoTotalGlobal);
 
                                   if (acabouAgora) {
                                     alert(`Vitória! Você concluiu "${book.title}". O conhecimento agora faz parte de você.`);
+                                  } else if (paginasAvançadasReais > 0) {
+                                    // REQ 6: Dispara o convite e a IA de sugestões!
+                                    setPostReadInvite(livroAtualizado);
+                                    if(aiConsent) generateTopicsForInvite(livroAtualizado);
                                   }
                                 }
                               }}
@@ -3794,11 +3823,15 @@ function App() {
                             if(!bookUserNote.trim()) return alert('Escreva alguma reflexão primeiro.');
                             setIsGeneratingBookAi(true);
                             
-                            const prompt = `Atue como um Tutor Socrático da filosofia clássica. O discípulo está lendo "${activeBookForAi.title}" (de ${activeBookForAi.author}) e está na página ${activeBookForAi.currentPage}. 
-                            Ele acabou de ler e fez a seguinte anotação/dúvida: "${bookUserNote}".
+                            const prompt = `Atue como um Tutor Socrático da filosofia clássica. O discípulo está lendo "${activeBookForAi.title}" (de ${activeBookForAi.author}). 
+                            IMPORTANTE: Ele acabou de ler e está apenas na página ${activeBookForAi.currentPage} de ${activeBookForAi.totalPages}. 
+                            
+                            REGRA DE OURO (ANTI-SPOILER): NÃO DÊ NENHUM SPOILER, revelação de enredo ou conceito avançado que ocorra DEPOIS desta página. Conecte sua reflexão estritamente aos temas iniciais ou médios que ele já deve ter visto.
+                            
+                            Anotação do discípulo: "${bookUserNote}".
                             
                             Sua missão:
-                            1. Escreva um breve parágrafo (2-3 linhas) validando e aprofundando o insight dele, cruzando se possível com a filosofia clássica (Estoicismo, Platão, etc).
+                            1. Escreva um breve parágrafo (2-3 linhas) validando e aprofundando o insight dele.
                             2. Termine OBRIGATORIAMENTE com UMA ÚNICA pergunta provocativa e profunda, baseada no que ele escreveu, para forçá-lo a refletir e aplicar o conhecimento na vida prática hoje.
                             
                             Formate a resposta em HTML simples: use <b> para negritos, <br/> para quebra de linha. Não use markdown.`;
@@ -3838,6 +3871,61 @@ function App() {
             </div>
           </div>
         )}
+
+        {/* MODAL DE CONVITE PÓS-LEITURA (REQ 6) */}
+              {postReadInvite && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 10001, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(5px)' }}>
+                  <div className="animate-fadeIn" style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '2rem', borderRadius: '16px', maxWidth: '450px', width: '100%', border: `2px solid ${isDark ? '#FFD700' : '#996515'}`, textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }}>
+                    <MessageCircle size={48} color={isDark ? '#FFD700' : '#996515'} style={{ margin: '0 auto 1rem' }} />
+                    <h3 style={{ margin: '0 0 0.5rem 0', fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.4rem' }}>Páginas Forjadas!</h3>
+                    <p style={{ margin: '0 0 1.5rem 0', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.95rem', lineHeight: '1.5' }}>
+                      Você avançou na leitura de "{postReadInvite.title}". Deseja solidificar o que aprendeu conversando com o Tutor Socrático?
+                    </p>
+
+                    {!aiConsent ? (
+                      <p style={{ color: '#e74c3c', fontSize: '0.85rem', fontStyle: 'italic', marginBottom: '1.5rem' }}>Autorize a IA nas configurações para receber sugestões de reflexão.</p>
+                    ) : isGeneratingTopics ? (
+                      <div style={{ padding: '1.5rem', background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)', borderRadius: '8px', marginBottom: '1.5rem' }}>
+                        <Sparkles className="animate-spin" size={24} color={isDark ? '#FFD700' : '#996515'} style={{ margin: '0 auto 0.5rem' }} />
+                        <span style={{ fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic' }}>O Tutor está folheando as páginas que você leu...</span>
+                      </div>
+                    ) : inviteTopics ? (
+                      <div style={{ marginBottom: '1.5rem', textAlign: 'left' }}>
+                        <p style={{ fontSize: '0.85rem', color: isDark ? '#d4af37' : '#996515', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Tópicos sugeridos das suas páginas:</p>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          {inviteTopics.map((topic, idx) => (
+                            <button 
+                              key={idx}
+                              onClick={() => {
+                                setBookUserNote(topic); // Pré-preenche a dúvida
+                                setActiveBookForAi(postReadInvite); // Abre o Socrático
+                                setPostReadInvite(null); // Fecha o convite
+                              }}
+                              style={{ textAlign: 'left', padding: '0.75rem', background: isDark ? 'rgba(212, 175, 55, 0.1)' : '#fffbf0', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`, borderRadius: '8px', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer', fontSize: '0.9rem', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                              onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.1)'}
+                              onMouseOut={(e) => e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.1)' : '#fffbf0'}
+                            >
+                              <Target size={14} color={isDark ? '#FFD700' : '#996515'} style={{ flexShrink: 0 }} /> {topic}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <div style={{ display: 'flex', gap: '1rem' }}>
+                      <button onClick={() => setPostReadInvite(null)} style={{ flex: 1, padding: '0.8rem', background: 'transparent', color: isDark ? '#b8a88a' : '#6b4423', border: `1px solid ${isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}`, borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
+                        Apenas Guardar
+                      </button>
+                      <button 
+                        onClick={() => { setActiveBookForAi(postReadInvite); setPostReadInvite(null); setBookUserNote(''); }} 
+                        style={{ flex: 1, padding: '0.8rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+                      >
+                        Refletir Livremente
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
         {/* VIEW: BIBLIOTECA */}
         {view === 'biblioteca' && (
