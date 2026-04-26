@@ -284,7 +284,7 @@ function App() {
   const [bookRecommendation, setBookRecommendation] = useState(null);
   const [isGeneratingRecommendation, setIsGeneratingRecommendation] = useState(false);
   const AMAZON_AFFILIATE_ID = 'filosofiae0a5-20'; // 👈 SUBSTITUA PELO SEU ID DE AFILIADO REAL
-  const [totalForgedPages, setTotalForgedPages] = useState(0);
+  const totalForgedPages = books.reduce((acc, book) => acc + (book.currentPage || 0), 0);
 
 // --- MOTOR DO CONVITE SOCRÁTICO PÓS-LEITURA ---
   const [postReadInvite, setPostReadInvite] = useState(null);
@@ -1037,36 +1037,29 @@ function App() {
       const docRef = doc(db, 'userBooks', uid);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
-        const data = docSnap.data();
-        // Garantimos que se os dados existirem, eles preencham o estado
-        setBooks(data.books || []);
-        setTotalForgedPages(data.totalForgedPages || 0);
-        console.log("Estante carregada com sucesso.");
+        setBooks(docSnap.data().books || []);
+        const savedRec = docSnap.data().bookRecommendation;
+        if (savedRec && savedRec.generatedAt) {
+          const ageInDays = (new Date() - new Date(savedRec.generatedAt)) / (1000 * 60 * 60 * 24);
+          if (ageInDays < 7) setBookRecommendation(savedRec);
+          else setBookRecommendation(null);
+        }
       }
-    } catch (error) { 
-      console.error('Erro ao carregar livros do Firebase:', error); 
-    }
+    } catch (error) { console.error('Erro ao carregar livros:', error); }
   };
 
-  const saveBooksToDb = async (updatedBooks, newForgedPages = null) => {
-    // 1. Atualiza o estado local imediatamente para a UI responder rápido
-    setBooks(updatedBooks);
-    const pagesToSave = newForgedPages !== null ? newForgedPages : totalForgedPages;
-    if (newForgedPages !== null) setTotalForgedPages(newForgedPages);
-
-    // 2. Salva no Firebase de forma assíncrona
+  const saveBooksToDb = async (updatedBooks) => {
+    // Truque Mágico: O JSON.stringify remove automaticamente qualquer campo 'undefined' escondido nos livros!
+    const livrosSanitizados = JSON.parse(JSON.stringify(updatedBooks));
+    
+    setBooks(livrosSanitizados);
+    
     if (user) {
       try { 
-        await setDoc(doc(db, 'userBooks', user.uid), { 
-          books: updatedBooks,
-          totalForgedPages: pagesToSave,
-          lastUpdated: new Date().toISOString()
-        }, { merge: true }); 
-        console.log("Dados salvos na nuvem.");
-      } 
-      catch (error) { 
-        console.error('Erro crítico ao salvar no Firebase:', error);
-        alert("Erro ao salvar na nuvem. Verifique sua conexão.");
+        await setDoc(doc(db, 'userBooks', user.uid), { books: livrosSanitizados }, { merge: true }); 
+        console.log("Estante salva e purificada com sucesso.");
+      } catch (error) { 
+        console.error('Erro ao salvar livros:', error); 
       }
     }
   };
@@ -1127,7 +1120,12 @@ function App() {
       const bookInfo = await bookData.json();
       const thumbnail = bookInfo.items?.[0]?.volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:');
 
-      setBookRecommendation({ ...rec, thumbnail });
+      // Se não houver capa no Google, forçamos 'null' para o Firebase não travar
+      const finalRec = { ...rec, thumbnail: thumbnail || null, generatedAt: new Date().toISOString() };
+      
+      setBookRecommendation(finalRec);
+      await setDoc(doc(db, 'userBooks', user.uid), { bookRecommendation: finalRec }, { merge: true });
+
     } catch (e) {
       console.error("Erro ao gerar recomendação:", e);
     } finally {
@@ -3688,7 +3686,7 @@ function App() {
                     <div className="animate-fadeIn" style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                       <div style={{ position: 'absolute', top: '10px', right: '10px', fontSize: '0.6rem', color: isDark ? '#555' : '#ccc', textTransform: 'uppercase' }}>Sugestão do Oráculo</div>
                       
-                      <img src={bookRecommendation.thumbnail || 'https://via.placeholder.com/60x90'} alt="Capa" style={{ width: '70px', height: '100px', borderRadius: '6px', boxShadow: '0 4px 10px rgba(0,0,0,0.3)' }} />
+                      <img src={bookRecommendation.thumbnail || 'https://placehold.co/60x90/1a1a2e/d4af37?text=Capa'} alt="Capa" style={{ width: '70px', height: '100px', borderRadius: '6px', boxShadow: '0 4px 10px rgba(0,0,0,0.3)' }} />
                       
                       <div style={{ flex: 1, minWidth: '200px' }}>
                         <h4 style={{ margin: 0, color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif", fontSize: '1.1rem' }}>{bookRecommendation.title}</h4>
@@ -3705,7 +3703,10 @@ function App() {
                         >
                           Comprar na Amazon
                         </a>
-                        <button onClick={() => setBookRecommendation(null)} style={{ background: 'transparent', border: 'none', color: isDark ? '#555' : '#999', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}>Outra sugestão</button>
+                        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                          <button onClick={generateBookRecommendation} disabled={isGeneratingRecommendation} style={{ flex: 1, background: 'transparent', border: `1px solid ${isDark ? '#555' : '#ccc'}`, color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.75rem', cursor: 'pointer', borderRadius: '4px', padding: '0.4rem', transition: 'all 0.2s' }}>{isGeneratingRecommendation ? 'Gerando...' : 'Já Li (Gerar Nova)'}</button>
+                          <button onClick={generateBookRecommendation} disabled={isGeneratingRecommendation} style={{ flex: 1, background: 'transparent', border: `1px solid ${isDark ? '#555' : '#ccc'}`, color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.75rem', cursor: 'pointer', borderRadius: '4px', padding: '0.4rem', transition: 'all 0.2s' }}>{isGeneratingRecommendation ? 'Gerando...' : 'Sem interesse'}</button>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -3720,7 +3721,12 @@ function App() {
                 </div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
-                  {books.map(book => {
+                  {[...books].sort((a, b) => {
+                    const aTerminado = a.totalPages > 0 && a.currentPage >= a.totalPages;
+                    const bTerminado = b.totalPages > 0 && b.currentPage >= b.totalPages;
+                    if (aTerminado === bTerminado) return 0;
+                    return aTerminado ? 1 : -1; // Concluídos descem, em andamento sobem
+                  }).map(book => {
                     const progress = book.totalPages > 0 ? Math.min(100, Math.round((book.currentPage / book.totalPages) * 100)) : 0;
                     const isFinished = progress >= 100;
                     
@@ -3729,7 +3735,7 @@ function App() {
                         
                         {/* CAPA DO LIVRO */}
                         <div style={{ flexShrink: 0, width: '80px', height: '120px', background: '#333', borderRadius: '6px', overflow: 'hidden', boxShadow: '0 4px 10px rgba(0,0,0,0.3)' }}>
-                          <img src={book.thumbnail || 'https://via.placeholder.com/80x120?text=No+Cover'} alt="Capa" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <img src={book.thumbnail || 'https://placehold.co/80x120/1a1a2e/d4af37?text=Sem+Capa'} alt="Capa" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         </div>
 
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -3824,59 +3830,40 @@ function App() {
                     <p style={{ margin: '0 0 1.5rem 0', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.9rem', textAlign: 'center', fontStyle: 'italic' }}>Livro: {activeBookForAi.title} (Pág. {activeBookForAi.currentPage})</p>
 
                     {!bookAiInsight ? (
-                      <>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 'bold' }}>O que chamou sua atenção na leitura de hoje?</label>
-                        <textarea 
-                          value={bookUserNote} 
-                          onChange={(e) => setBookUserNote(e.target.value)} 
-                          placeholder="Escreva uma frase marcante, uma dúvida ou um insight que você teve..." 
-                          rows={4} 
-                          style={{ width: '100%', padding: '1rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical', marginBottom: '1.5rem' }} 
-                        />
-                        <button 
-                          onClick={async () => {
-                            if(!aiConsent) return alert('Autorize a IA nas configurações para usar o Tutor Socrático.');
-                            if(!bookUserNote.trim()) return alert('Escreva alguma reflexão primeiro.');
-                            setIsGeneratingBookAi(true);
-                            
-                            const prompt = `Atue como um Tutor Socrático da filosofia clássica. O discípulo está lendo "${activeBookForAi.title}" (de ${activeBookForAi.author}). 
-                            IMPORTANTE: Ele acabou de ler e está apenas na página ${activeBookForAi.currentPage} de ${activeBookForAi.totalPages}. 
-                            
-                            REGRA DE OURO (ANTI-SPOILER): NÃO DÊ NENHUM SPOILER, revelação de enredo ou conceito avançado que ocorra DEPOIS desta página. Conecte sua reflexão estritamente aos temas iniciais ou médios que ele já deve ter visto.
-                            
-                            Anotação do discípulo: "${bookUserNote}".
-                            
-                            Sua missão:
-                            1. Escreva um breve parágrafo (2-3 linhas) validando e aprofundando o insight dele.
-                            2. Termine OBRIGATORIAMENTE com UMA ÚNICA pergunta provocativa e profunda, baseada no que ele escreveu, para forçá-lo a refletir e aplicar o conhecimento na vida prática hoje.
-                            
-                            Formate a resposta em HTML simples: use <b> para negritos, <br/> para quebra de linha. Não use markdown.`;
-
-                            try {
-                              const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, { 
-                                method: 'POST', headers: { 'Content-Type': 'application/json' }, 
-                                body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) 
-                              });
-                              const data = await response.json();
-                              setBookAiInsight(data.candidates[0].content.parts[0].text);
-                            } catch (e) {
-                              alert('Erro ao consultar o Tutor. Tente novamente.');
-                            } finally {
-                              setIsGeneratingBookAi(false);
-                            }
-                          }}
-                          disabled={isGeneratingBookAi}
-                          style={{ width: '100%', padding: '1rem', background: isGeneratingBookAi ? (isDark ? '#555' : '#ccc') : 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: '#000', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: isGeneratingBookAi ? 'wait' : 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(255,215,0,0.2)' }}
-                        >
-                          {isGeneratingBookAi ? <Sparkles className="animate-spin" size={20} /> : <MessageCircle size={20} />}
-                          {isGeneratingBookAi ? 'O Tutor está refletindo...' : 'Refletir com o Tutor'}
-                        </button>
-                      </>
+                      <div style={{ textAlign: 'center', padding: '2rem' }}>
+                        <Sparkles className="animate-spin" size={32} color={isDark ? '#FFD700' : '#996515'} style={{ margin: '0 auto 1rem' }} />
+                        <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic' }}>O Tutor está folheando as páginas que você leu para extrair uma reflexão...</p>
+                      </div>
                     ) : (
                       <div className="animate-fadeIn">
                         <div style={{ background: isDark ? 'rgba(212, 175, 55, 0.1)' : '#fffbf0', padding: '1.5rem', borderRadius: '12px', borderLeft: `4px solid ${isDark ? '#FFD700' : '#996515'}`, color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.05rem', lineHeight: '1.6', fontFamily: 'Georgia, serif', marginBottom: '2rem' }} dangerouslySetInnerHTML={{ __html: bookAiInsight }}>
                         </div>
-                        <button onClick={() => { setActiveBookForAi(null); setBookAiInsight(null); setBookUserNote(''); }} style={{ width: '100%', padding: '1rem', background: 'transparent', color: isDark ? '#b8a88a' : '#6b5744', border: `1px solid ${isDark ? '#b8a88a' : '#ccc'}`, borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
+                        <button 
+                          onClick={async () => { 
+                                if(!aiConsent) return alert('Autorize a IA nas Configurações do Diário.');
+                                setActiveBookForAi(book); 
+                                setBookAiInsight(null); 
+                                setIsGeneratingBookAi(true);
+                                
+                                const prompt = `Atue como um Tutor Socrático. O discípulo está lendo "${book.title}" (de ${book.author}) e está na página ${book.currentPage}. 
+                                Faça uma breve reflexão profunda (2 a 3 linhas) sobre um tema ou conceito que ele provavelmente encontrou nestas páginas iniciais/médias. 
+                                REGRA ANTI-SPOILER: Não revele o final nem eventos futuros do livro.
+                                Termine OBRIGATORIAMENTE com uma única pergunta reflexiva para ele pensar hoje.
+                                Formate em HTML (<b>, <br/>).`;
+
+                                try {
+                                  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, { 
+                                    method: 'POST', headers: { 'Content-Type': 'application/json' }, 
+                                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) 
+                                  });
+                                  const data = await response.json();
+                                  setBookAiInsight(data.candidates[0].content.parts[0].text);
+                                } catch(e) {
+                                  setBookAiInsight("O Oráculo está em silêncio. Retorne mais tarde.");
+                                } finally {
+                                  setIsGeneratingBookAi(false);
+                                }
+                              }}>
                           Guardar reflexão na Alma
                         </button>
                       </div>
