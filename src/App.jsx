@@ -284,6 +284,18 @@ function App() {
   const [bookRecommendation, setBookRecommendation] = useState(null);
   const [isGeneratingRecommendation, setIsGeneratingRecommendation] = useState(false);
   const AMAZON_AFFILIATE_ID = 'filosofiae0a5-20'; // 👈 SUBSTITUA PELO SEU ID DE AFILIADO REAL
+
+  const [totalForgedPages, setTotalForgedPages] = useState(0);
+
+  // O Motor de Ranks Literários
+  const getReadingRank = (pages) => {
+    if (pages < 500) return { title: "Pedra Bruta", next: 500, color: "#95A5A6" };
+    if (pages < 1500) return { title: "Coluna Dórica", next: 1500, color: "#3498DB" };
+    if (pages < 3000) return { title: "Cidadão de Roma", next: 3000, color: "#E67E22" };
+    if (pages < 6000) return { title: "Senador Estóico", next: 6000, color: "#9B59B6" };
+    if (pages < 10000) return { title: "Mestre da Academia", next: 10000, color: "#E74C3C" };
+    return { title: "Sábio do Panteão", next: null, color: "#FFD700" };
+  };
   
   // Estado Diário da Carta de Degrau FV
   const [fvDaily, setFvDaily] = useState({
@@ -991,8 +1003,30 @@ function App() {
   const loadBooks = async (uid) => {
     try {
       const docSnap = await getDoc(doc(db, 'userBooks', uid));
-      if (docSnap.exists()) setBooks(docSnap.data().books || []);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setBooks(data.books || []);
+        setTotalForgedPages(data.totalForgedPages || 0);
+      }
     } catch (error) { console.error('Erro ao carregar livros:', error); }
+  };
+
+  const saveBooksToDb = async (updatedBooks, newForgedPages = null) => {
+    setBooks(updatedBooks);
+    
+    // Atualiza a tela imediatamente
+    const pagesToSave = newForgedPages !== null ? newForgedPages : totalForgedPages;
+    if (newForgedPages !== null) setTotalForgedPages(newForgedPages);
+
+    if (user) {
+      try { 
+        await setDoc(doc(db, 'userBooks', user.uid), { 
+          books: updatedBooks,
+          totalForgedPages: pagesToSave
+        }, { merge: true }); 
+      } 
+      catch (error) { console.error('Erro ao salvar livros:', error); }
+    }
   };
 
   const searchBooks = async (query) => {
@@ -1059,13 +1093,7 @@ function App() {
     }
   };
 
-  const saveBooksToDb = async (updatedBooks) => {
-    setBooks(updatedBooks);
-    if (user) {
-      try { await setDoc(doc(db, 'userBooks', user.uid), { books: updatedBooks }, { merge: true }); } 
-      catch (error) { console.error('Erro ao salvar livros:', error); }
-    }
-  };
+  
 
   const loadCustomTasks = async (uid) => {
     try {
@@ -3410,7 +3438,64 @@ function App() {
               </div>
               <p style={{ color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2rem', fontSize: '1rem', fontStyle: 'italic' }}>
                 "Um quarto sem livros é como um corpo sem alma." — Cícero
+                {/* DASHBOARD DE GAMIFICAÇÃO: O CAMINHO DO SÁBIO */}
+              {(() => {
+                const rank = getReadingRank(totalForgedPages);
+                const progressToNext = rank.next ? Math.min(100, Math.round((totalForgedPages / rank.next) * 100)) : 100;
+                
+                return (
+                  <div className="animate-fadeIn" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
+                    
+                    {/* CARD DO RANK */}
+                    <div style={{ background: isDark ? 'rgba(0,0,0,0.3)' : '#fcfcfc', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : '#eee'}`, display: 'flex', alignItems: 'center', gap: '1.5rem', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
+                      <div style={{ width: '70px', height: '70px', borderRadius: '50%', border: `3px solid ${rank.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', background: isDark ? 'rgba(255,255,255,0.05)' : 'white', boxShadow: `0 0 15px ${rank.color}40` }}>
+                        <Award size={36} color={rank.color} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', color: isDark ? '#b8a88a' : '#888', fontWeight: 'bold' }}>Seu Grau na Escola</span>
+                        <h3 style={{ margin: '0.2rem 0 0.5rem 0', fontFamily: "'Cinzel', serif", fontSize: '1.4rem', color: rank.color }}>{rank.title}</h3>
+                        
+                        {rank.next ? (
+                          <>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: isDark ? '#f0e6d2' : '#2c1810', marginBottom: '0.3rem', fontWeight: 'bold' }}>
+                              <span>Páginas Forjadas: {totalForgedPages}</span>
+                              <span>Rumo a {rank.next}</span>
+                            </div>
+                            <div style={{ width: '100%', height: '6px', background: isDark ? 'rgba(255,255,255,0.1)' : '#e0e0e0', borderRadius: '3px', overflow: 'hidden' }}>
+                              <div style={{ width: `${progressToNext}%`, height: '100%', background: rank.color, transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)' }}></div>
+                            </div>
+                          </>
+                        ) : (
+                          <div style={{ color: rank.color, fontSize: '0.85rem', fontWeight: 'bold', marginTop: '0.5rem' }}>Você alcançou o cume da Sabedoria Literária.</div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* CARD DE ESTATÍSTICAS RÁPIDAS */}
+                    <div style={{ background: isDark ? 'rgba(212,175,55,0.05)' : '#fffbf0', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-around', textAlign: 'center' }}>
+                        <div>
+                          <div style={{ fontSize: '2rem', fontWeight: 'bold', fontFamily: "'Cinzel', serif", color: isDark ? '#FFD700' : '#996515' }}>
+                            {books.length}
+                          </div>
+                          <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', color: isDark ? '#b8a88a' : '#6b5744', fontWeight: 'bold' }}>Na Estante</div>
+                        </div>
+                        <div style={{ width: '1px', background: isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)' }}></div>
+                        <div>
+                          <div style={{ fontSize: '2rem', fontWeight: 'bold', fontFamily: "'Cinzel', serif", color: '#4caf50' }}>
+                            {books.filter(b => b.totalPages > 0 && b.currentPage >= b.totalPages).length}
+                          </div>
+                          <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', color: isDark ? '#b8a88a' : '#6b5744', fontWeight: 'bold' }}>Concluídos</div>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                );
+              })()}
               </p>
+
+
 
               {/* FORMULÁRIO DE ADICIONAR/EDITAR LIVRO (COM BUSCA GOOGLE) */}
               {showAddBook && (
@@ -3596,17 +3681,28 @@ function App() {
                             <div style={{ display: 'flex', gap: '0.4rem' }}>
                               <button 
                                 onClick={() => {
-                                  const sum = prompt(`Quantas páginas você leu hoje? (Soma à pág. ${book.currentPage})`);
-                                  if (sum && !isNaN(sum)) {
-                                    const novaPag = Math.min(book.totalPages, book.currentPage + parseInt(sum));
-                                    const acabouAgora = (novaPag >= book.totalPages);
-                                    saveBooksToDb(books.map(b => b.id === book.id ? { 
-                                      ...b, 
-                                      currentPage: novaPag, 
-                                      finishedDate: acabouAgora ? new Date().toISOString() : null 
-                                    } : b));
+                                const sum = prompt(`Quantas páginas você leu hoje? (Soma à pág. ${book.currentPage})`);
+                                const pagesReadToday = parseInt(sum);
+                                
+                                if (pagesReadToday && !isNaN(pagesReadToday) && pagesReadToday > 0) {
+                                  const novaPag = Math.min(book.totalPages, book.currentPage + pagesReadToday);
+                                  const acabouAgora = (novaPag >= book.totalPages);
+                                  
+                                  // Calcula exatamente quantas páginas avançaram para não somar a mais se passar do limite do livro
+                                  const paginasAvançadasReais = novaPag - book.currentPage;
+                                  const novoTotalGlobal = totalForgedPages + paginasAvançadasReais;
+
+                                  saveBooksToDb(books.map(b => b.id === book.id ? { 
+                                    ...b, 
+                                    currentPage: novaPag, 
+                                    finishedDate: acabouAgora ? new Date().toISOString() : null 
+                                  } : b), novoTotalGlobal);
+
+                                  if (acabouAgora) {
+                                    alert(`Vitória! Você concluiu "${book.title}". O conhecimento agora faz parte de você.`);
                                   }
-                                }}
+                                }
+                              }}
                                 style={{ flex: 1, padding: '0.5rem', background: 'transparent', color: isDark ? '#d4af37' : '#6b4423', border: `1px solid ${isDark ? 'rgba(212,175,55,0.4)' : '#ccc'}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}
                               >
                                 + Atualizar
