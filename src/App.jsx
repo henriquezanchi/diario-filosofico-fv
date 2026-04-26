@@ -6,7 +6,7 @@ import {
   Target, TrendingUp, Award, FileText, Book, Settings,
   Trash2, Edit, Save, XCircle, Flame, Zap, Shield, Star, Crown, 
   Bell, Check, Music, MessageSquare, Menu, Lock, ChevronDown, ChevronUp, 
-  Mountain, Landmark, Swords, Bookmark, Library, MessageCircle
+  Mountain, Landmark, Swords, Bookmark, Library, MessageCircle, Camera
 } from 'lucide-react';
 
 import { auth, db, messaging } from './config/firebase-config'; 
@@ -282,9 +282,27 @@ function App() {
   const [bookSearchResults, setBookSearchResults] = useState([]);
   const [isSearchingBooks, setIsSearchingBooks] = useState(false);
   const [bookRecommendation, setBookRecommendation] = useState(null);
+  const [isScanningShelf, setIsScanningShelf] = useState(false);
+  const [detectedBooks, setDetectedBooks] = useState([]);
+  const [showScannerModal, setShowScannerModal] = useState(false);
   const [isGeneratingRecommendation, setIsGeneratingRecommendation] = useState(false);
   const AMAZON_AFFILIATE_ID = 'filosofiae0a5-20'; // 👈 SUBSTITUA PELO SEU ID DE AFILIADO REAL
   const totalForgedPages = books.reduce((acc, book) => acc + (book.currentPage || 0), 0);
+
+  // --- MOTOR DE MÉTRICAS (Fase 3) ---
+  const getFavoriteTheme = () => {
+    if (books.length === 0) return "Nenhum";
+    const themeCounts = {};
+    books.forEach(b => {
+      const theme = b.category || 'Filosofia';
+      themeCounts[theme] = (themeCounts[theme] || 0) + 1;
+    });
+    // Descobre o tema que mais se repete
+    return Object.keys(themeCounts).reduce((a, b) => themeCounts[a] > themeCounts[b] ? a : b);
+  };
+  
+  const favoriteTheme = getFavoriteTheme();
+  const finishedBooksCount = books.filter(b => b.totalPages > 0 && b.currentPage >= b.totalPages).length;
 
 // --- MOTOR DO CONVITE SOCRÁTICO PÓS-LEITURA ---
   const [postReadInvite, setPostReadInvite] = useState(null);
@@ -1104,6 +1122,56 @@ function App() {
     }
   };
 
+  // --- MOTOR DE VISÃO COMPUTACIONAL (Fase 4) ---
+  const handleShelfScan = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if(!aiConsent) return alert('Autorize a IA nas Configurações do Diário para usar o Olho de Argos.');
+
+    setShowScannerModal(true);
+    setIsScanningShelf(true);
+    setDetectedBooks([]);
+
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = async () => {
+      const base64String = reader.result.split(',')[1];
+      
+      const prompt = `Você é um bibliotecário sábio e especialista em obras clássicas, filosofia e literatura. 
+      Analise a imagem desta estante ou pilha de livros físicos. Leia as lombadas ou as capas.
+      Identifique o máximo de livros legíveis.
+      
+      Retorne ESTRITAMENTE um array JSON de objetos. 
+      Exemplo: [{"title": "Meditações", "author": "Marco Aurélio"}, {"title": "A República", "author": "Platão"}]`;
+
+      try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            contents: [{ 
+              parts: [
+                { text: prompt },
+                { inlineData: { mimeType: file.type, data: base64String } }
+              ] 
+            }],
+            generationConfig: { responseMimeType: "application/json" }
+          })
+        });
+        const data = await response.json();
+        const detected = JSON.parse(data.candidates[0].content.parts[0].text);
+        setDetectedBooks(detected);
+      } catch(err) {
+        console.error("Erro na Visão:", err);
+        alert("O Oráculo não conseguiu focar a visão. A foto estava borrada ou a luz estava fraca.");
+        setShowScannerModal(false);
+      } finally {
+        setIsScanningShelf(false);
+        e.target.value = null; // Limpa o input da câmera para permitir nova foto
+      }
+    };
+  };
+
   const searchBooks = async (query) => {
     if (!query.trim()) return;
     setIsSearchingBooks(true);
@@ -1131,6 +1199,14 @@ function App() {
       setIsSearchingBooks(false);
     }
   };
+
+  // --- GATILHO AUTOMÁTICO DO ORÁCULO (Fase 3) ---
+  // Se o usuário tem livros, mas não tem recomendação (ou ela expirou), gera sozinho em background.
+  useEffect(() => {
+    if (books.length > 0 && bookRecommendation === null && !isGeneratingRecommendation && aiConsent) {
+      generateBookRecommendation();
+    }
+  }, [books, bookRecommendation, aiConsent, isGeneratingRecommendation]);
 
   const generateBookRecommendation = async () => {
     if (!user || books.length === 0) return;
@@ -3513,24 +3589,15 @@ function App() {
           <div className="animate-fadeIn">
             <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
               
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <Library size={32} color={isDark ? '#d4af37' : '#6b4423'} />
-                  <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif" }}>
-                    Estudos e Leituras
-                  </h2>
-                </div>
-                <button
-                  onClick={() => {
-                    setEditingBookId(null);
-                    setNewBook({ title: '', author: '', currentPage: 0, totalPages: 0 });
-                    setShowAddBook(true);
-                  }}
-                  style={{ padding: '0.75rem 1.5rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                >
-                  <Plus size={18} /> Novo Livro
-                </button>
-              </div>
+              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                      <label style={{ cursor: 'pointer', background: 'transparent', color: isDark ? '#b8a88a' : '#6b5744', border: `1px solid ${isDark ? '#b8a88a' : '#6b5744'}`, padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.9rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s' }}>
+                        <Camera size={16} /> Escanear Estante
+                        <input type="file" accept="image/*" capture="environment" onChange={handleShelfScan} style={{ display: 'none' }} />
+                      </label>
+                      <button onClick={() => setShowAddBook(true)} style={{ background: isDark ? '#FFD700' : '#996515', color: isDark ? '#000' : '#fff', border: 'none', padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Plus size={16} /> Novo Livro
+                      </button>
+                    </div>
               <p style={{ color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2rem', fontSize: '1rem', fontStyle: 'italic' }}>
                 "Um quarto sem livros é como um corpo sem alma." — Cícero
               </p>
@@ -3568,23 +3635,41 @@ function App() {
                       </div>
                     </div>
 
-                    {/* CARD DE ESTATÍSTICAS RÁPIDAS */}
-                    <div style={{ background: isDark ? 'rgba(212,175,55,0.05)' : '#fffbf0', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-around', textAlign: 'center' }}>
-                        <div>
-                          <div style={{ fontSize: '2rem', fontWeight: 'bold', fontFamily: "'Cinzel', serif", color: isDark ? '#FFD700' : '#996515' }}>
-                            {books.length}
-                          </div>
-                          <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', color: isDark ? '#b8a88a' : '#6b5744', fontWeight: 'bold' }}>Na Estante</div>
+                    {/* NOVO PAINEL DE MÉTRICAS DETALHADO */}
+                    <div style={{ background: isDark ? 'rgba(212,175,55,0.05)' : '#fffbf0', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', alignItems: 'center' }}>
+                      
+                      {/* Obras Lidas */}
+                      <div style={{ textAlign: 'center', borderRight: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`, borderBottom: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`, paddingBottom: '0.5rem' }}>
+                        <div style={{ fontSize: '1.8rem', fontWeight: 'bold', fontFamily: "'Cinzel', serif", color: isDark ? '#FFD700' : '#996515' }}>
+                          {books.length}
                         </div>
-                        <div style={{ width: '1px', background: isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)' }}></div>
-                        <div>
-                          <div style={{ fontSize: '2rem', fontWeight: 'bold', fontFamily: "'Cinzel', serif", color: '#4caf50' }}>
-                            {books.filter(b => b.totalPages > 0 && b.currentPage >= b.totalPages).length}
-                          </div>
-                          <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', color: isDark ? '#b8a88a' : '#6b5744', fontWeight: 'bold' }}>Concluídos</div>
-                        </div>
+                        <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: isDark ? '#b8a88a' : '#6b5744', fontWeight: 'bold' }}>Na Estante</div>
                       </div>
+
+                      {/* Concluídos */}
+                      <div style={{ textAlign: 'center', borderBottom: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`, paddingBottom: '0.5rem' }}>
+                        <div style={{ fontSize: '1.8rem', fontWeight: 'bold', fontFamily: "'Cinzel', serif", color: '#4caf50' }}>
+                          {finishedBooksCount}
+                        </div>
+                        <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: isDark ? '#b8a88a' : '#6b5744', fontWeight: 'bold' }}>Concluídos</div>
+                      </div>
+
+                      {/* Tema Frequente */}
+                      <div style={{ textAlign: 'center', borderRight: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`, paddingTop: '0.5rem' }}>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: isDark ? '#f0e6d2' : '#2c1810', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', padding: '0 0.5rem' }}>
+                          {favoriteTheme}
+                        </div>
+                        <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: isDark ? '#b8a88a' : '#6b5744', fontWeight: 'bold', marginTop: '0.2rem' }}>Tema Frequente</div>
+                      </div>
+
+                      {/* Taxa de Finalização */}
+                      <div style={{ textAlign: 'center', paddingTop: '0.5rem' }}>
+                        <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: isDark ? '#f0e6d2' : '#2c1810' }}>
+                          {books.length > 0 ? Math.round((finishedBooksCount / books.length) * 100) : 0}%
+                        </div>
+                        <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: isDark ? '#b8a88a' : '#6b5744', fontWeight: 'bold', marginTop: '0.2rem' }}>Taxa de Conclusão</div>
+                      </div>
+
                     </div>
 
                   </div>
@@ -3731,12 +3816,9 @@ function App() {
               {books.length > 0 && (
                 <div style={{ marginBottom: '3rem', padding: '1.5rem', background: isDark ? 'linear-gradient(135deg, rgba(212,175,55,0.1) 0%, rgba(0,0,0,0.3) 100%)' : 'linear-gradient(135deg, #fffbf0 0%, #fff 100%)', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212,175,55,0.3)' : '#ffe082'}`, position: 'relative', overflow: 'hidden' }}>
                   {!bookRecommendation ? (
-                    <div style={{ textAlign: 'center', padding: '1rem' }}>
-                      <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.9rem', marginBottom: '1rem' }}>O Oráculo pode sugerir sua próxima leitura baseada na sua estante atual.</p>
-                      <button onClick={generateBookRecommendation} disabled={isGeneratingRecommendation} style={{ background: 'transparent', border: `1px solid ${isDark ? '#d4af37' : '#6b4423'}`, color: isDark ? '#d4af37' : '#6b4423', padding: '0.5rem 1.5rem', borderRadius: '20px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 auto' }}>
-                        {isGeneratingRecommendation ? <Sparkles className="animate-spin" size={14}/> : <Zap size={14}/>}
-                        {isGeneratingRecommendation ? 'Consultando Oráculo...' : 'Sugerir Próxima Leitura'}
-                      </button>
+                    <div style={{ textAlign: 'center', padding: '2rem' }}>
+                      <Sparkles className="animate-spin" size={24} color={isDark ? '#FFD700' : '#996515'} style={{ margin: '0 auto 1rem' }} />
+                      <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.9rem', fontStyle: 'italic' }}>O Oráculo está consultando os astros e sua estante para encontrar a próxima jornada...</p>
                     </div>
                   ) : (
                     <div className="animate-fadeIn" style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -3963,6 +4045,58 @@ function App() {
                         Refletir Livremente
                       </button>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* MODAL DO ESCANER DE ESTANTE (FASE 4) */}
+              {showScannerModal && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 10001, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(5px)' }}>
+                  <div className="animate-fadeIn" style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '2rem', borderRadius: '16px', maxWidth: '500px', width: '100%', border: `2px solid ${isDark ? '#FFD700' : '#996515'}`, textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.5)', maxHeight: '80vh', overflowY: 'auto' }}>
+                    
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                      <h3 style={{ margin: 0, fontFamily: "'Cinzel', serif", color: isDark ? '#FFD700' : '#996515', fontSize: '1.4rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Camera size={24} /> Olho de Argos
+                      </h3>
+                      <button onClick={() => setShowScannerModal(false)} style={{ background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}><X size={24} /></button>
+                    </div>
+
+                    {isScanningShelf ? (
+                      <div style={{ padding: '3rem 0' }}>
+                        <Sparkles className="animate-spin" size={48} color={isDark ? '#FFD700' : '#996515'} style={{ margin: '0 auto 1.5rem' }} />
+                        <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontSize: '1rem', fontStyle: 'italic' }}>
+                          O Oráculo está lendo as lombadas na sua foto... <br/>Isso pode levar alguns segundos.
+                        </p>
+                      </div>
+                    ) : detectedBooks.length > 0 ? (
+                      <div style={{ textAlign: 'left' }}>
+                        <p style={{ color: isDark ? '#f0e6d2' : '#2c1810', marginBottom: '1rem' }}>Os seguintes tomos foram revelados na imagem. Clique para adicioná-los à busca para registro:</p>
+                        
+                        <div style={{ display: 'grid', gap: '0.8rem' }}>
+                          {detectedBooks.map((b, idx) => (
+                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', padding: '1rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}` }}>
+                              <div>
+                                <h4 style={{ margin: '0 0 0.2rem 0', color: isDark ? '#FFD700' : '#996515' }}>{b.title}</h4>
+                                <span style={{ fontSize: '0.8rem', color: isDark ? '#b8a88a' : '#6b5744' }}>{b.author}</span>
+                              </div>
+                              <button 
+                                onClick={() => {
+                                  setShowScannerModal(false);
+                                  setShowAddBook(true);
+                                  setBookSearchQuery(`${b.title} ${b.author}`);
+                                  searchBooks(`${b.title} ${b.author}`); // Já joga na busca mágica!
+                                }}
+                                style={{ background: isDark ? '#4caf50' : '#2e7d32', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.8rem' }}
+                              >
+                                Cadastrar
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <p style={{ color: '#e74c3c' }}>Nenhum livro pôde ser lido. Tente melhorar a iluminação ou chegar mais perto da estante.</p>
+                    )}
                   </div>
                 </div>
               )}
