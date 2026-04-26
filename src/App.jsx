@@ -1159,17 +1159,64 @@ function App() {
           })
         });
         const data = await response.json();
-        const detected = JSON.parse(data.candidates[0].content.parts[0].text);
-        setDetectedBooks(detected);
+        const rawDetected = JSON.parse(data.candidates[0].content.parts[0].text);
+        
+        // A MÁGICA INVISÍVEL: A IA busca a capa e páginas de cada livro silenciosamente!
+        const enrichedBooks = await Promise.all(rawDetected.map(async (b) => {
+          try {
+            const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(b.title + ' ' + b.author)}&maxResults=1&langRestrict=pt`);
+            const json = await res.json();
+            const info = json.items?.[0]?.volumeInfo;
+            return {
+              title: b.title,
+              author: b.author,
+              totalPages: info?.pageCount || 0,
+              thumbnail: info?.imageLinks?.thumbnail?.replace('http:', 'https:') || null,
+              category: info?.categories?.[0] || 'Filosofia'
+            };
+          } catch(e) {
+            return { title: b.title, author: b.author, totalPages: 0, thumbnail: null, category: 'Filosofia' };
+          }
+        }));
+
+        setDetectedBooks(enrichedBooks);
       } catch(err) {
         console.error("Erro na Visão:", err);
         alert("O Oráculo não conseguiu focar a visão. A foto estava borrada ou a luz estava fraca.");
         setShowScannerModal(false);
       } finally {
         setIsScanningShelf(false);
-        e.target.value = null; // Limpa o input da câmera para permitir nova foto
+        e.target.value = null; 
       }
     };
+  };
+
+  // --- PROCESSADOR RÁPIDO DO ESCANER ---
+  const handleQuickAdd = (detectedBook, status) => {
+    let currentPage = 0;
+    let finishedDate = null;
+
+    if (status === 'lido') {
+      currentPage = detectedBook.totalPages;
+      finishedDate = new Date().toISOString();
+    } else if (status === 'lendo') {
+      const input = prompt(`Você está em qual página de "${detectedBook.title}"? (Total: ${detectedBook.totalPages})`, '0');
+      if (input === null) return; // Se o usuário cancelar, não salva
+      currentPage = Math.min(detectedBook.totalPages, parseInt(input) || 0);
+    }
+
+    const newBook = {
+      id: `book_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      ...detectedBook,
+      currentPage,
+      finishedDate
+    };
+
+    // Salva no banco e já põe na estante
+    saveBooksToDb([newBook, ...books]);
+
+    // Remove da lista do Scanner para dar sensação de "tarefa cumprida"
+    setDetectedBooks(prev => prev.filter(b => b.title !== detectedBook.title));
   };
 
   const searchBooks = async (query) => {
@@ -3732,27 +3779,27 @@ function App() {
                   )}
 
                   {/* FORMULÁRIO FINAL (Preenchido ou Manual) */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '1rem', marginBottom: '1rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
                       <label style={{ fontSize: '0.8rem', color: '#888', marginBottom: '0.2rem' }}>Título</label>
                       <input type="text" value={newBook.title} onChange={(e) => setNewBook({...newBook, title: e.target.value})} placeholder="Título..." style={{ padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
                       <label style={{ fontSize: '0.8rem', color: '#888', marginBottom: '0.2rem' }}>Autor</label>
                       <input type="text" value={newBook.author} onChange={(e) => setNewBook({...newBook, author: e.target.value})} placeholder="Autor..." style={{ padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
                     </div>
                   </div>
                   
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
-                    <div>
+                  <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '1rem', marginBottom: '1.5rem' }}>
+                    <div style={{ flex: 1 }}>
                       <label style={{ fontSize: '0.8rem', color: '#888' }}>Pág. Atual</label>
                       <input type="number" value={newBook.currentPage} onChange={(e) => setNewBook({...newBook, currentPage: parseInt(e.target.value) || 0})} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
                     </div>
-                    <div>
+                    <div style={{ flex: 1 }}>
                       <label style={{ fontSize: '0.8rem', color: '#888' }}>Total Págs</label>
                       <input type="number" value={newBook.totalPages} onChange={(e) => setNewBook({...newBook, totalPages: parseInt(e.target.value) || 0})} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
                     </div>
-                    <div>
+                    <div style={{ flex: 1 }}>
                       <label style={{ fontSize: '0.8rem', color: '#888' }}>Tema/Categoria</label>
                       <input type="text" value={newBook.category || ''} onChange={(e) => setNewBook({...newBook, category: e.target.value})} placeholder="Ex: Estoicismo" style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
                     </div>
@@ -4072,24 +4119,25 @@ function App() {
                       <div style={{ textAlign: 'left' }}>
                         <p style={{ color: isDark ? '#f0e6d2' : '#2c1810', marginBottom: '1rem' }}>Os seguintes tomos foram revelados na imagem. Clique para adicioná-los à busca para registro:</p>
                         
-                        <div style={{ display: 'grid', gap: '0.8rem' }}>
+                        <div style={{ display: 'grid', gap: '1rem' }}>
                           {detectedBooks.map((b, idx) => (
-                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', padding: '1rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}` }}>
-                              <div>
-                                <h4 style={{ margin: '0 0 0.2rem 0', color: isDark ? '#FFD700' : '#996515' }}>{b.title}</h4>
-                                <span style={{ fontSize: '0.8rem', color: isDark ? '#b8a88a' : '#6b5744' }}>{b.author}</span>
+                            <div key={idx} style={{ display: 'flex', gap: '1rem', background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', padding: '1rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, alignItems: 'center' }}>
+                              
+                              {/* CAPA PUXADA AUTOMATICAMENTE */}
+                              <img src={b.thumbnail || 'https://placehold.co/60x90/1a1a2e/d4af37?text=Capa'} alt="Capa" style={{ width: '60px', height: '90px', borderRadius: '6px', objectFit: 'cover', boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }} />
+                              
+                              <div style={{ flex: 1, textAlign: 'left' }}>
+                                <h4 style={{ margin: '0 0 0.2rem 0', color: isDark ? '#FFD700' : '#996515', fontSize: '1.05rem', lineHeight: '1.2' }}>{b.title}</h4>
+                                <span style={{ fontSize: '0.8rem', color: isDark ? '#b8a88a' : '#6b5744', display: 'block', marginBottom: '0.5rem' }}>{b.author} • {b.totalPages > 0 ? `${b.totalPages} págs` : 'Páginas Indefinidas'}</span>
+                                
+                                {/* BOTÕES ÁGEIS */}
+                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                  <button onClick={() => handleQuickAdd(b, 'lido')} style={{ flex: 1, minWidth: '70px', background: isDark ? '#4caf50' : '#2e7d32', color: 'white', border: 'none', padding: '0.4rem', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold' }}>Já Li</button>
+                                  <button onClick={() => handleQuickAdd(b, 'lendo')} style={{ flex: 1, minWidth: '70px', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', padding: '0.4rem', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold' }}>Lendo</button>
+                                  <button onClick={() => handleQuickAdd(b, 'quero')} style={{ flex: 1, minWidth: '70px', background: 'transparent', color: isDark ? '#b8a88a' : '#6b5744', border: `1px solid ${isDark ? '#b8a88a' : '#ccc'}`, padding: '0.4rem', borderRadius: '6px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold' }}>Quero Ler</button>
+                                </div>
                               </div>
-                              <button 
-                                onClick={() => {
-                                  setShowScannerModal(false);
-                                  setShowAddBook(true);
-                                  setBookSearchQuery(`${b.title} ${b.author}`);
-                                  searchBooks(`${b.title} ${b.author}`); // Já joga na busca mágica!
-                                }}
-                                style={{ background: isDark ? '#4caf50' : '#2e7d32', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.8rem' }}
-                              >
-                                Cadastrar
-                              </button>
+                              
                             </div>
                           ))}
                         </div>
