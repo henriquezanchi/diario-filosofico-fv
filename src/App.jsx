@@ -1032,31 +1032,42 @@ function App() {
   };
 
   const loadBooks = async (uid) => {
+    if (!uid) return;
     try {
-      const docSnap = await getDoc(doc(db, 'userBooks', uid));
+      const docRef = doc(db, 'userBooks', uid);
+      const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         const data = docSnap.data();
+        // Garantimos que se os dados existirem, eles preencham o estado
         setBooks(data.books || []);
         setTotalForgedPages(data.totalForgedPages || 0);
+        console.log("Estante carregada com sucesso.");
       }
-    } catch (error) { console.error('Erro ao carregar livros:', error); }
+    } catch (error) { 
+      console.error('Erro ao carregar livros do Firebase:', error); 
+    }
   };
 
   const saveBooksToDb = async (updatedBooks, newForgedPages = null) => {
+    // 1. Atualiza o estado local imediatamente para a UI responder rápido
     setBooks(updatedBooks);
-    
-    // Atualiza a tela imediatamente
     const pagesToSave = newForgedPages !== null ? newForgedPages : totalForgedPages;
     if (newForgedPages !== null) setTotalForgedPages(newForgedPages);
 
+    // 2. Salva no Firebase de forma assíncrona
     if (user) {
       try { 
         await setDoc(doc(db, 'userBooks', user.uid), { 
           books: updatedBooks,
-          totalForgedPages: pagesToSave
+          totalForgedPages: pagesToSave,
+          lastUpdated: new Date().toISOString()
         }, { merge: true }); 
+        console.log("Dados salvos na nuvem.");
       } 
-      catch (error) { console.error('Erro ao salvar livros:', error); }
+      catch (error) { 
+        console.error('Erro crítico ao salvar no Firebase:', error);
+        alert("Erro ao salvar na nuvem. Verifique sua conexão.");
+      }
     }
   };
 
@@ -3612,26 +3623,22 @@ function App() {
                     <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <button 
                         onClick={() => {
-                          // 1. Prepara o objeto do livro já concluído
                           const finishedBook = { 
                             ...newBook, 
                             currentPage: newBook.totalPages, 
                             finishedDate: new Date().toISOString() 
                           };
                           
-                          // 2. Prepara a lista atualizada
-                          const updated = [...books, { id: `book_${Date.now()}`, ...finishedBook }];
-                          
-                          // 3. Calcula o novo total de páginas forjadas
+                          // Colocamos o novo livro na FRENTE do array ([novo, ...antigos])
+                          const updated = [{ id: `book_${Date.now()}`, ...finishedBook }, ...books];
                           const novoTotalGlobal = totalForgedPages + newBook.totalPages;
 
-                          // 4. Salva tudo de uma vez
                           saveBooksToDb(updated, novoTotalGlobal);
                           
-                          // 5. Fecha o modal e limpa a busca
+                          // Fecha sem popup, a aparição no topo é a confirmação
                           setShowAddBook(false);
                           setBookSearchQuery('');
-                          alert(`Excelente! "${newBook.title}" foi adicionado diretamente à sua lista de conquistas.`);
+                          setNewBook({ title: '', author: '', currentPage: 0, totalPages: 0 });
                         }}
                         style={{ background: isDark ? 'rgba(76, 175, 80, 0.2)' : '#e8f5e9', color: isDark ? '#81c784' : '#2e7d32', border: `2px solid ${isDark ? '#4caf50' : '#4caf50'}`, padding: '0.6rem 1rem', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', justifyContent: 'center' }}
                       >
@@ -3643,13 +3650,22 @@ function App() {
                   <button 
                     onClick={() => {
                       if(!newBook.title) return alert('Dê um título ao livro.');
-                      const updated = editingBookId 
-                        ? books.map(b => b.id === editingBookId ? { ...b, ...newBook } : b)
-                        : [...books, { id: `book_${Date.now()}`, ...newBook, finishedDate: null }];
+                      
+                      let updated;
+                      if (editingBookId) {
+                        // Se estiver editando, mantém a posição original
+                        updated = books.map(b => b.id === editingBookId ? { ...b, ...newBook } : b);
+                      } else {
+                        // Se for novo, coloca no TOPO da lista
+                        updated = [{ id: `book_${Date.now()}`, ...newBook, finishedDate: null }, ...books];
+                      }
+                      
                       saveBooksToDb(updated);
                       setShowAddBook(false);
                       setBookSearchQuery('');
-                    }} 
+                      setNewBook({ title: '', author: '', currentPage: 0, totalPages: 0 });
+                      setEditingBookId(null);
+                    }}
                     style={{ width: '100%', padding: '0.75rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', fontSize: '1rem' }}
                   >
                     <Save size={18} style={{ marginRight: '0.5rem' }}/> {editingBookId ? 'Salvar Alterações' : 'Guardar na Estante'}
