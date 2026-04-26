@@ -2809,16 +2809,7 @@ function App() {
                     </div>
                   )}
                   
-                  {/* DIAGNÓSTICO E ESTRATÉGIA */}
-                  <div style={{ background: isDark ? 'rgba(0,0,0,0.3)' : 'white', padding: '1rem', borderRadius: '8px', borderLeft: `3px solid ${isDark ? '#e74c3c' : '#c0392b'}` }}>
-                    <span style={{ fontSize: '0.75rem', color: isDark ? '#e74c3c' : '#c0392b', fontWeight: 'bold', textTransform: 'uppercase' }}>Análise do Campo:</span>
-                    <p style={{ margin: '0.2rem 0 0 0', color: isDark ? '#c8b896' : '#6b5744', fontSize: '0.95rem', lineHeight: '1.5' }}>{kuravaData.diagnostico}</p>
-                  </div>
-
-                  <div style={{ background: isDark ? 'rgba(212, 175, 55, 0.1)' : '#fffbf0', padding: '1rem', borderRadius: '8px', borderLeft: `3px solid ${isDark ? '#FFD700' : '#996515'}` }}>
-                    <span style={{ fontSize: '0.75rem', color: isDark ? '#FFD700' : '#996515', fontWeight: 'bold', textTransform: 'uppercase' }}>Estratégia do Dharma:</span>
-                    <p style={{ margin: '0.2rem 0 0 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem', lineHeight: '1.5', fontStyle: 'italic' }}>"{kuravaData.estrategia}"</p>
-                  </div>
+                  
                 </div>
               )}
             </div>
