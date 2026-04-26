@@ -1071,13 +1071,17 @@ function App() {
       const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=15&langRestrict=pt`);
       const data = await response.json();
       
-      const formattedResults = data.items?.map(item => ({
+      const formattedResults = data.items?.filter(item => {
+        const info = item.volumeInfo;
+        // SÓ ACEITA SE: Tiver título, Tiver autor, Tiver capa E Tiver mais de 0 páginas
+        return info.title && info.authors && info.imageLinks?.thumbnail && info.pageCount > 0;
+      }).map(item => ({
         id: item.id,
         title: item.volumeInfo.title,
         author: item.volumeInfo.authors?.join(', ') || 'Autor desconhecido',
         totalPages: item.volumeInfo.pageCount || 0,
         thumbnail: item.volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:'),
-        category: item.volumeInfo.categories?.[0] || 'Filosofia' // Categoria padrão se não houver
+        category: item.volumeInfo.categories?.[0] || 'Filosofia'
       })) || [];
       
       setBookSearchResults(formattedResults);
@@ -1115,14 +1119,22 @@ function App() {
       const data = await response.json();
       const rec = JSON.parse(data.candidates[0].content.parts[0].text);
 
-      // Agora buscamos a capa desse livro sugerido no Google Books para ficar bonito
-      const bookData = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(rec.title + ' ' + rec.author)}&maxResults=1`);
+// Buscamos a capa, mas agora com filtro de segurança
+      const bookData = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(rec.title + ' ' + rec.author)}&maxResults=5`);
       const bookInfo = await bookData.json();
-      const thumbnail = bookInfo.items?.[0]?.volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:');
-
-      // Se não houver capa no Google, forçamos 'null' para o Firebase não travar
-      const finalRec = { ...rec, thumbnail: thumbnail || null, generatedAt: new Date().toISOString() };
       
+      // Encontra o primeiro resultado que tenha capa e páginas válidas
+      const validBook = bookInfo.items?.find(item => item.volumeInfo.imageLinks?.thumbnail && item.volumeInfo.pageCount > 0);
+
+      if (!validBook) {
+        // Se a sugestão da IA não tem dados bons no Google, tentamos gerar outra ou limpamos
+        setBookRecommendation(null); 
+        return;
+      }
+
+      const thumbnail = validBook.volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:');
+      const finalRec = { ...rec, thumbnail, generatedAt: new Date().toISOString() };
+
       setBookRecommendation(finalRec);
       await setDoc(doc(db, 'userBooks', user.uid), { bookRecommendation: finalRec }, { merge: true });
 
