@@ -1033,7 +1033,7 @@ function App() {
     if (!query.trim()) return;
     setIsSearchingBooks(true);
     try {
-      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=5&langRestrict=pt`);
+      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=15&langRestrict=pt`);
       const data = await response.json();
       
       const formattedResults = data.items?.map(item => ({
@@ -3576,6 +3576,18 @@ function App() {
                     </div>
                   </div>
 
+                  {/* Atalho para Livro Já Lido */}
+                  {!editingBookId && newBook.totalPages > 0 && (
+                    <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <button 
+                        onClick={() => setNewBook({ ...newBook, currentPage: newBook.totalPages })}
+                        style={{ background: isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9', color: isDark ? '#81c784' : '#2e7d32', border: `1px solid ${isDark ? '#4caf50' : '#4caf50'}`, padding: '0.4rem 0.8rem', borderRadius: '6px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                      >
+                        <CheckCircle size={14} /> Marcar como livro já lido (Pág {newBook.totalPages}/{newBook.totalPages})
+                      </button>
+                    </div>
+                  )}
+
                   <button 
                     onClick={() => {
                       if(!newBook.title) return alert('Dê um título ao livro.');
@@ -3681,14 +3693,20 @@ function App() {
                             <div style={{ display: 'flex', gap: '0.4rem' }}>
                               <button 
                                 onClick={() => {
-                                const sum = prompt(`Quantas páginas você leu hoje? (Soma à pág. ${book.currentPage})`);
-                                const pagesReadToday = parseInt(sum);
+                                const inputPagina = prompt(`Livro: ${book.title}\nTotal de páginas: ${book.totalPages}\n\nEm qual página você parou hoje?`, book.currentPage);
                                 
-                                if (pagesReadToday && !isNaN(pagesReadToday) && pagesReadToday > 0) {
-                                  const novaPag = Math.min(book.totalPages, book.currentPage + pagesReadToday);
+                                if (inputPagina && !isNaN(inputPagina)) {
+                                  const novaPaginaInformada = parseInt(inputPagina);
+                                  
+                                  if (novaPaginaInformada <= book.currentPage) {
+                                    alert("A página informada é menor ou igual à atual. Nenhuma página nova forjada.");
+                                    return;
+                                  }
+
+                                  const novaPag = Math.min(book.totalPages, novaPaginaInformada);
                                   const acabouAgora = (novaPag >= book.totalPages);
                                   
-                                  // Calcula exatamente quantas páginas avançaram para não somar a mais se passar do limite do livro
+                                  // Calcula a diferença real para somar no placar global
                                   const paginasAvançadasReais = novaPag - book.currentPage;
                                   const novoTotalGlobal = totalForgedPages + paginasAvançadasReais;
 
