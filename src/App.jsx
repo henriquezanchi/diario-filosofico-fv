@@ -605,46 +605,256 @@ function App() {
 
   const virtues = [
     // --- VIRTUDES CLÁSSICAS ---
-    { name: "Paciência", shortDesc: "A ciência da paz", description: "Capacidade de suportar as adversidades sem se alterar, compreendendo os ritmos naturais do tempo e o processo das coisas.", practices: "• Não reagir à primeira provocação\n• Esperar 10 segundos antes de responder\n• Aceitar o ritmo das outras pessoas", quote: "A paciência não é a capacidade de esperar, mas como nos comportamos enquanto esperamos.", quoteAuthor: "J.A. Livraga", color: "#4A90E2" },
-    { name: "Coragem", shortDesc: "Agir corretamente além do medo", description: "Não é a ausência do medo, mas a ação decidida e reta, movida pelo dever, apesar da presença do medo.", practices: "• Fazer o que deve ser feito, mesmo com receio\n• Assumir a responsabilidade de um erro\n• Defender a verdade de forma justa", quote: "Coragem é a resistência ao medo, o domínio do medo, e não a ausência do medo.", quoteAuthor: "Mark Twain", color: "#E74C3C" },
-    { name: "Prudência", shortDesc: "Sabedoria prática em ação", description: "O discernimento que permite escolher os melhores caminhos e meios para alcançar um fim nobre.", practices: "• Avaliar consequências antes de agir\n• Buscar conselho dos mais sábios\n• Silenciar quando não se tem certeza", quote: "A prudência é a verdadeira mãe de todas as virtudes.", quoteAuthor: "Cícero", color: "#16A085" },
-    { name: "Justiça", shortDesc: "Dar a cada um o que é seu", description: "A busca pelo equilíbrio e equidade, não segundo a conveniência egoísta, mas segundo o Dharma e a Lei Universal.", practices: "• Não julgar por simpatias ou antipatias\n• Cumprir com as próprias obrigações\n• Reconhecer o mérito do outro", quote: "A justiça não é outra coisa senão a conveniência do homem em sociedade.", quoteAuthor: "Platão", color: "#C0392B" },
-    { name: "Disciplina", shortDesc: "O discipulado interior", description: "Não como castigo, mas como o método pelo qual o discípulo alinha sua personalidade inferior aos ditames de sua Alma.", practices: "• Cumprir o cronograma estabelecido\n• Fazer as práticas sem ceder à preguiça\n• Terminar o que se começou", quote: "A disciplina é a ponte entre as metas e as realizações.", quoteAuthor: "Jim Rohn", color: "#34495E" },
-    { name: "Devoção", shortDesc: "O Amor direcionado ao Alto", description: "O fogo interno (Bhakti) que move o ser humano a entregar-se a uma causa sagrada, a um ideal ou ao Mestre.", practices: "• Realizar ações cotidianas como oferenda\n• Manter o altar ou espaço de estudo sagrado\n• Estudar textos sagrados com reverência", quote: "Aquele que realiza todas as suas ações por Mim, e para quem Eu sou a meta suprema, esse chega a Mim.", quoteAuthor: "Bhagavad Gita", color: "#9B59B6" },
+    { 
+      name: "Paciência", 
+      shortDesc: "A ciência da paz", 
+      description: "Capacidade de suportar as adversidades sem se alterar, compreendendo os ritmos naturais do tempo e o processo das coisas.", 
+      practices: "• Não reagir à primeira provocação\n• Esperar 10 segundos antes de responder\n• Aceitar o ritmo das outras pessoas", 
+      internalPractices: "• Suportar as dificuldades da filiação sem críticas\n• Aguardar o ritmo natural da Escola\n• Exercer paciência com as falhas dos irmãos de ideal",
+      quote: "A paciência não é a capacidade de esperar, mas como nos comportamos enquanto esperamos.", quoteAuthor: "J.A. Livraga", color: "#4A90E2" 
+    },
+    { 
+      name: "Coragem", 
+      shortDesc: "Agir corretamente além do medo", 
+      description: "Não é a ausência do medo, mas a ação decidida e reta, movida pelo dever, apesar da presença do medo.", 
+      practices: "• Fazer o que deve ser feito, mesmo com receio\n• Assumir a responsabilidade de um erro\n• Defender a verdade de forma justa",
+      internalPractices: "• Assumir missões e responsabilidades no GDVE\n• Enfrentar o 'Kurava' dominante apontado pela IA\n• Defender os ideais acropolitanos perante o mundo", 
+      quote: "Coragem é a resistência ao medo, o domínio do medo, e não a ausência do medo.", quoteAuthor: "Mark Twain", color: "#E74C3C" 
+    },
+    { 
+      name: "Prudência", 
+      shortDesc: "Sabedoria prática em ação", 
+      description: "O discernimento que permite escolher os melhores caminhos e meios para alcançar um fim nobre.", 
+      practices: "• Avaliar consequências antes de agir\n• Buscar conselho de pessoas sábias\n• Silenciar quando não se tem certeza",
+      internalPractices: "• Consultar o Instrutor/Mestre antes de grandes decisões\n• Aplicar o discernimento (Viveka) nas ações\n• Preservar o silêncio e o mistério das práticas", 
+      quote: "A prudência é a verdadeira mãe de todas as virtudes.", quoteAuthor: "Cícero", color: "#16A085" 
+    },
+    { 
+      name: "Justiça", 
+      shortDesc: "Dar a cada um o que é seu", 
+      description: "A busca pelo equilíbrio e equidade, não segundo a conveniência egoísta, mas segundo a Lei Universal.", 
+      practices: "• Não julgar por simpatias ou antipatias\n• Cumprir com as próprias obrigações\n• Reconhecer o mérito do outro",
+      internalPractices: "• Agir de acordo com o Dharma\n• Cumprir rigorosamente suas escalas de serviço\n• Ser impecavelmente justo no trato com os companheiros", 
+      quote: "A justiça não é outra coisa senão a conveniência do homem em sociedade.", quoteAuthor: "Platão", color: "#C0392B" 
+    },
+    { 
+      name: "Disciplina", 
+      shortDesc: "O alinhamento interior", 
+      description: "O método pelo qual o ser humano alinha sua personalidade inferior aos propósitos de sua consciência superior.", 
+      practices: "• Cumprir o cronograma estabelecido para o dia\n• Não ceder à preguiça em tarefas diárias\n• Terminar rigorosamente o que se começou",
+      internalPractices: "• Fazer o Tratak e práticas diárias sem negociar\n• Assiduidade impecável nas atividades da filial\n• Cumprir os preceitos do Código de Honra", 
+      quote: "A disciplina é a ponte entre as metas e as realizações.", quoteAuthor: "Jim Rohn", color: "#34495E" 
+    },
+    { 
+      name: "Devoção", 
+      shortDesc: "O Amor direcionado ao Alto", 
+      description: "O amor profundo que move o ser humano a entregar-se a uma causa sagrada ou a um ideal nobre.", 
+      practices: "• Realizar ações cotidianas com elevado propósito\n• Manter o ambiente de estudo limpo e organizado\n• Ler textos atemporais com respeito e foco",
+      internalPractices: "• Cultivar Bhakti pelo Ideal e pelo Mestre\n• Realizar limpezas e serviços como oferenda\n• Reverenciar os Símbolos da Escola", 
+      quote: "Aquele que realiza todas as suas ações por Mim, e para quem Eu sou a meta suprema, esse chega a Mim.", quoteAuthor: "Bhagavad Gita", color: "#9B59B6" 
+    },
     
-    // --- PILARES DA NOVA ACRÓPOLE ---
-    { name: "Investigação", shortDesc: "A busca sincera pela Verdade", description: "O estudo comparado que não aceita dogmas cegos, mas busca as leis universais ocultas na Natureza e no homem.", practices: "• Questionar os porquês antes de aceitar\n• Ler uma página de filosofia profunda\n• Observar as leis da natureza no dia a dia", quote: "Não há religião superior à Verdade.", quoteAuthor: "H.P. Blavatsky", color: "#2980B9" },
-    { name: "Serviço", shortDesc: "Voluntariado ativo e consciente", description: "O ato de colocar as próprias mãos, mente e coração a serviço da humanidade e dos ideais de fraternidade, sem apego aos frutos.", practices: "• Fazer o trabalho invisível que ninguém quer fazer\n• Ajudar o grupo de trabalho (GDVE)\n• Renunciar ao conforto pelo dever", quote: "Dorme o homem que trabalha para si. Desperta o que trabalha para a humanidade.", quoteAuthor: "J.A. Livraga", color: "#F39C12" },
-    { name: "Generosidade", shortDesc: "Dar livremente sem esperar retorno", description: "Compartilhar tempo, atenção e sabedoria. Na via esotérica, a verdadeira generosidade é dar oportunidades ao outro.", practices: "• Ouvir ativamente sem interromper\n• Partilhar conhecimento sem vaidade\n• Doar tempo para a escola ou para alguém", quote: "O pouco que se dá com o coração vale muito; o muito que se dá sem ele, não vale nada.", quoteAuthor: "Délia Steinberg Guzmán", color: "#27AE60" },
-    { name: "Beleza", shortDesc: "O resplendor da Verdade", description: "A percepção estética e moral da harmonia em todas as coisas. A Beleza como a ponte que nos leva em direção a Deus.", practices: "• Ouvir música clássica com atenção\n• Arrumar-se com dignidade\n• Falar palavras limpas e elevadas", quote: "A beleza é o esplendor da verdade.", quoteAuthor: "Platão", color: "#E84393" },
-    { name: "Bondade", shortDesc: "A manifestação do Bem", description: "A inclinação natural e treinada da Vontade em direção à Luz, promovendo o bem, a compaixão e o amparo a todos os seres.", practices: "• Evitar a crítica destrutiva\n• Olhar o lado luminoso das pessoas\n• Agir para aliviar a carga do outro", quote: "A verdadeira bondade consiste não apenas em não fazer o mal, mas em nem sequer desejá-lo.", quoteAuthor: "Sêneca", color: "#FF69B4" },
-    { name: "Ordem", shortDesc: "A expressão da Lei Universal", description: "A capacidade de alinhar a própria vida, o espaço e a mente ao grande ritmo do Cosmos.", practices: "• Arrumar a própria cama pela manhã\n• Manter os apontamentos de estudo organizados\n• Fazer uma coisa de cada vez", quote: "A ordem é a primeira lei do céu.", quoteAuthor: "Alexander Pope", color: "#7B68EE" },
+    // --- PILARES FUNDAMENTAIS ---
+    { 
+      name: "Investigação", 
+      shortDesc: "A busca sincera pela Verdade", 
+      description: "O estudo que não aceita dogmas cegos, mas busca ativamente as leis universais na Natureza e no homem.", 
+      practices: "• Questionar os porquês antes de aceitar\n• Ler e meditar sobre uma página de filosofia profunda\n• Observar atentamente as leis da natureza",
+      internalPractices: "• Aprofundar-se nos ensinamentos do Módulo GDVE\n• Realizar o autoexame de Kurukshetra com rigor\n• Estudo comparado de Religiões, Ciências e Artes", 
+      quote: "Não há religião superior à Verdade.", quoteAuthor: "H.P. Blavatsky", color: "#2980B9" 
+    },
+    { 
+      name: "Serviço", 
+      shortDesc: "Voluntariado ativo e consciente", 
+      description: "O ato de colocar as próprias mãos e mente a serviço da humanidade, sem buscar recompensas.", 
+      practices: "• Fazer um trabalho invisível que ninguém quer fazer\n• Ajudar proativamente uma causa ou comunidade\n• Renunciar ao conforto pessoal por um dever",
+      internalPractices: "• Acumular horas reais de trabalho na Filial\n• Apoiar ativamente as demandas do GAF\n• Praticar o Karma Yoga: ação sem apego", 
+      quote: "Dorme o homem que trabalha para si. Desperta o que trabalha para a humanidade.", quoteAuthor: "J.A. Livraga", color: "#F39C12" 
+    },
+    { 
+      name: "Generosidade", 
+      shortDesc: "Dar livremente sem esperar retorno", 
+      description: "Compartilhar tempo, atenção e recursos de forma ampla, expandindo os próprios limites da bondade.", 
+      practices: "• Ouvir alguém ativamente sem interromper\n• Partilhar conhecimento sem vaidade intelectual\n• Doar tempo de qualidade para apoiar alguém",
+      internalPractices: "• Dar oportunidades de serviço e brilho ao outro\n• Compartilhar sabedoria fraterna nas reuniões\n• Apoiar financeiramente ou materialmente a Escola", 
+      quote: "O pouco que se dá com o coração vale muito; o muito que se dá sem ele, não vale nada.", quoteAuthor: "Délia Steinberg Guzmán", color: "#27AE60" 
+    },
+    { 
+      name: "Beleza", 
+      shortDesc: "O resplendor da Verdade", 
+      description: "A percepção estética e moral da harmonia em todas as coisas e ações do cotidiano.", 
+      practices: "• Ouvir música clássica ou elevada com atenção\n• Arrumar-se e vestir-se com dignidade\n• Falar palavras limpas, evitando a vulgaridade",
+      internalPractices: "• Cuidar da estética e limpeza do Templo/Filial\n• Contemplar a Arte como via de ascensão\n• Harmonizar o próprio discurso nas reuniões GDVE", 
+      quote: "A beleza é o esplendor da verdade.", quoteAuthor: "Platão", color: "#E84393" 
+    },
+    { 
+      name: "Bondade", 
+      shortDesc: "A manifestação do Bem", 
+      description: "A inclinação natural da Vontade em direção ao bem, promovendo a compaixão e o amparo.", 
+      practices: "• Evitar completamente a crítica destrutiva\n• Treinar o olhar para o lado luminoso das pessoas\n• Agir imediatamente para aliviar a carga do outro",
+      internalPractices: "• Ter compaixão estoica pelas falhas dos confrades\n• Fazer críticas apenas se forem construtivas e ao Diretor\n• Zelar ativamente pela fraternidade da filial", 
+      quote: "A verdadeira bondade consiste não apenas em não fazer o mal, mas em nem sequer desejá-lo.", quoteAuthor: "Sêneca", color: "#FF69B4" 
+    },
+    { 
+      name: "Ordem", 
+      shortDesc: "A expressão da harmonia", 
+      description: "A capacidade de alinhar a própria vida, o espaço ao redor e os pensamentos a um ritmo estruturado.", 
+      practices: "• Arrumar a própria cama logo pela manhã\n• Manter a mesa de trabalho e papéis organizados\n• Focar em fazer apenas uma coisa de cada vez",
+      internalPractices: "• Preencher a Carta de Degrau sem atrasos\n• Cumprir Item 3 e 4 (Trabalho Ordenado e Eficaz)\n• Alinhar o próprio ritmo ao ritmo das Forças da Natureza", 
+      quote: "A ordem é a primeira lei do céu.", quoteAuthor: "Alexander Pope", color: "#7B68EE" 
+    },
     
     // --- O FOGO E A MENTE ---
-    { name: "Entusiasmo", shortDesc: "Deus dentro de si", description: "O 'En Theos'. A energia ígnea e divina que contagia, que acorda almas adormecidas e nos dá força para continuar a marcha.", practices: "• Sorrir perante uma dificuldade\n• Transmitir força ao grupo de GDVE\n• Realizar uma tarefa mecânica com alegria", quote: "O entusiasmo é a força divina em movimento; é Deus no homem.", quoteAuthor: "Délia Steinberg Guzmán", color: "#FF5722" },
-    { name: "Vontade", shortDesc: "O motor do Espírito", description: "Não é o desejo fugaz, mas o Ícto. O raio de força espiritual que corta a inércia e realiza o plano mental na matéria.", practices: "• Fazer imediatamente algo que está adiando\n• Dominar o corpo (ficar imóvel em meditação)\n• Impor uma pequena renúncia física", quote: "Onde há Vontade, há um Caminho.", quoteAuthor: "Sri Ram", color: "#C0392B" },
-    { name: "Atenção", shortDesc: "A presença do Ser", description: "Estar plenamente presente. Onde está a atenção, está o Prana, a vida e a consciência humana.", practices: "• Escutar o outro sem formular respostas\n• Lavar a louça ou caminhar com atenção plena\n• Tratak e exercícios de fixação", quote: "Atenção é o caminho para a imortalidade; a desatenção é o caminho da morte.", quoteAuthor: "Dhammapada", color: "#3498DB" },
-    { name: "Memória", shortDesc: "O cofre do passado vivo", description: "O resgate consciente da tradição, do próprio caminho e das lições já aprendidas. Relembrar de si mesmo.", practices: "• Recordar o que estudou ontem (Exercício Pitagórico)\n• Lembrar por que começou no caminho\n• Fazer o Prólogo e o Epílogo com fidelidade", quote: "O homem é sua memória. A memória é a força da nossa identidade.", quoteAuthor: "J.A. Livraga", color: "#8E44AD" },
+    { 
+      name: "Entusiasmo", 
+      shortDesc: "A força que desperta", 
+      description: "A energia vibrante que contagia as pessoas, dando força para continuar a marcha perante os obstáculos.", 
+      practices: "• Sorrir intencionalmente perante uma dificuldade\n• Transmitir ânimo a quem está reclamando\n• Realizar uma tarefa monótona com alegria",
+      internalPractices: "• Cultivar o 'En Theos' (Deus dentro) diariamente\n• Ser um motor de ânimo dentro do grupo GAF\n• Acordar almas adormecidas pela ação e exemplo", 
+      quote: "O entusiasmo é a força divina em movimento; é Deus no homem.", quoteAuthor: "Délia Steinberg Guzmán", color: "#FF5722" 
+    },
+    { 
+      name: "Vontade", 
+      shortDesc: "O motor do Espírito", 
+      description: "Não o mero desejo, mas a força reta que corta a inércia e concretiza decisões na matéria.", 
+      practices: "• Fazer imediatamente algo que se está adiando\n• Controlar um pequeno impulso do corpo\n• Impor a si mesmo uma renúncia temporária",
+      internalPractices: "• Acionar o Ícto espiritual contra as desculpas\n• Ficar imóvel fisicamente nas práticas de câmara\n• Forjar o combate direto no diário do Kurukshetra", 
+      quote: "Onde há Vontade, há um Caminho.", quoteAuthor: "Sri Ram", color: "#C0392B" 
+    },
+    { 
+      name: "Atenção", 
+      shortDesc: "A presença no agora", 
+      description: "A capacidade de estar plenamente focado. Aonde vai a atenção, vai a energia e a vida.", 
+      practices: "• Escutar alguém sem formular respostas mentais\n• Fazer uma caminhada prestando atenção nos passos\n• Exercícios visuais de fixação e observação",
+      internalPractices: "• Praticar o Tratak Diário sem pestanejar\n• Otimizar Economia de Tempo e Energia (Item 5)\n• Manter o Prana ancorado no presente durante rituais", 
+      quote: "Atenção é o caminho para a imortalidade; a desatenção é o caminho da morte.", quoteAuthor: "Dhammapada", color: "#3498DB" 
+    },
+    { 
+      name: "Memória", 
+      shortDesc: "O cofre do passado vivo", 
+      description: "O resgate consciente das lições já aprendidas e da própria identidade e propósito de vida.", 
+      practices: "• Revisar mentalmente os eventos do dia anterior\n• Lembrar diariamente do porquê iniciou um projeto\n• Fazer um diário retrospectivo com fidelidade",
+      internalPractices: "• Executar o Exercício Pitagórico noturno\n• Recordar a Tradição e os Bastiões lidos\n• Preencher o Prólogo e Epílogo para fixar a mente", 
+      quote: "O homem é sua memória. A memória é a força da nossa identidade.", quoteAuthor: "J.A. Livraga", color: "#8E44AD" 
+    },
     
     // --- O GUERREIRO INTERIOR ---
-    { name: "Perseverança", shortDesc: "Continuar a despeito das quedas", description: "A força para levantar-se após a queda, retomar o passo e continuar a marchar, sem se deixar vencer pela frustração.", practices: "• Voltar a fazer a prática que abandonou\n• Tentar mais uma vez após falhar\n• Não usar o erro como desculpa", quote: "A perseverança é mãe da boa sorte.", quoteAuthor: "Miguel de Cervantes", color: "#D35400" },
-    { name: "Constância", shortDesc: "Estabilidade no esforço", description: "O nível superior da perseverança. É não apenas tentar, mas manter um ritmo constante, inalterado pelos humores ou pelo clima.", practices: "• Fazer o que planejou mesmo sem vontade\n• Manter o ritmo do Diário Filosófico\n• Assiduidade nas aulas e compromissos", quote: "A gota d'água perfura a rocha não pela sua força, mas pela sua constância.", quoteAuthor: "Ovídio", color: "#2ECC71" },
-    { name: "Intuição", shortDesc: "A voz silenciosa da Alma", description: "A percepção direta da Verdade, sem passar pela lógica mecânica (Kama-Manas). O clarão de Buddhi.", practices: "• Fazer 5 minutos de silêncio absoluto\n• Escutar o coração na tomada de decisão\n• Observar símbolos na natureza", quote: "A intuição não é a inimiga da razão, mas sua sucessora alada.", quoteAuthor: "J.A. Livraga", color: "#9B59B6" },
-    { name: "Ousadia", shortDesc: "A audácia para a Luz", description: "A coragem dinâmica. Lançar-se rumo ao ideal, romper a fronteira do conformismo e tentar o impossível.", practices: "• Dar o primeiro passo num grande projeto\n• Falar em público se tiver oportunidade\n• Romper uma rotina cômoda", quote: "Ousai, e vossas forças aumentarão.", quoteAuthor: "Joana d'Arc", color: "#E67E22" },
+    { 
+      name: "Perseverança", 
+      shortDesc: "Continuar após a queda", 
+      description: "A força para levantar-se após um erro, retomar o passo e continuar marchando sem ceder à frustração.", 
+      practices: "• Voltar a um hábito saudável que foi abandonado\n• Tentar resolver um problema mais uma vez\n• Eliminar completamente a auto-justificativa",
+      internalPractices: "• Preencher a cota de Item 7 (Virtudes) da Carta\n• Levantar-se rapidamente de falhas relatadas no GDVE\n• Não abandonar a Filial perante as crises de personalidade", 
+      quote: "A perseverança é mãe da boa sorte.", quoteAuthor: "Miguel de Cervantes", color: "#D35400" 
+    },
+    { 
+      name: "Constância", 
+      shortDesc: "Estabilidade no esforço", 
+      description: "O nível maduro da perseverança: manter um ritmo inalterado, que não depende de humores ou motivação passageira.", 
+      practices: "• Executar o planejamento do dia sem vontade\n• Manter a rotina de preenchimento do Diário\n• Cumprir horários com precisão absoluta",
+      internalPractices: "• Vencer as 'Leis da Matéria' e ciclicidades (Item 2)\n• Sustentar o 'Streak' ininterrupto de Práticas FV\n• Frequência impecável nas reuniões do Grupo", 
+      quote: "A gota d'água perfura a rocha não pela sua força, mas pela sua constância.", quoteAuthor: "Ovídio", color: "#2ECC71" 
+    },
+    { 
+      name: "Intuição", 
+      shortDesc: "A voz silenciosa", 
+      description: "A percepção direta de algo profundo, que ultrapassa a lógica mecânica e o raciocínio comum.", 
+      practices: "• Observar simbolismos nos acontecimentos do dia\n• Confiar na voz da consciência para escolhas morais\n• Desconectar das telas para ouvir o próprio silêncio",
+      internalPractices: "• Buscar o clarão de Buddhi além de Kama-Manas\n• Extrair o sentido real por trás dos mitos estudados\n• Escutar o Mestre Interior na Câmara de Purificação", 
+      quote: "A intuição não é a inimiga da razão, mas sua sucessora alada.", quoteAuthor: "J.A. Livraga", color: "#9B59B6" 
+    },
+    { 
+      name: "Ousadia", 
+      shortDesc: "Audácia para o bem", 
+      description: "A atitude de lançar-se rumo a um ideal, rompendo fronteiras de conformismo e timidez.", 
+      practices: "• Dar o primeiro passo prático em um projeto engavetado\n• Falar a verdade quando todos estão calados\n• Mudar intencionalmente uma rotina que traz muito conforto",
+      internalPractices: "• Assumir frentes de trabalho ou docência na Escola\n• Apresentar palestras e superar o medo do público\n• Assumir as Missões de Ciclo (IA) sem hesitar", 
+      quote: "Ousai, e vossas forças aumentarão.", quoteAuthor: "Joana d'Arc", color: "#E67E22" 
+    },
     
     // --- O CAMINHO ALQUÍMICO ---
-    { name: "Transmutar", shortDesc: "O chumbo em ouro", description: "A Alquimia interior: pegar a emoção densa (raiva, dor, medo) e elevá-la à sua oitava superior (ação reta, amor, sabedoria).", practices: "• Converter uma crítica recebida em ação de melhora\n• Responder à rispidez com amabilidade\n• Usar o cansaço como combustível de prova", quote: "O Universo é transformação; a nossa vida é o que os nossos pensamentos fazem dela.", quoteAuthor: "Marco Aurélio", color: "#F1C40F" },
-    { name: "Concórdia", shortDesc: "O coração unificado (Con-Cordis)", description: "A capacidade de unir os corações em torno de um Ideal, superando o atrito das personalidades na Escola ou GDVE.", practices: "• Ceder numa discussão onde só há vaidade em jogo\n• Fazer um elogio sincero a um companheiro\n• Buscar o ponto de união, não o de cisão", quote: "Se quereis que vosso coração encontre concórdia, ide ao centro, que é o Espírito.", quoteAuthor: "Sri Ram", color: "#1ABC9C" },
-    { name: "Fortaleza", shortDesc: "O pilar do templo", description: "A força para sustentar a si mesmo e aos outros nos momentos de crise. Ser um bastião da Lei.", practices: "• Não reclamar de dor física leve ou calor/frio\n• Sustentar moralmente alguém abatido\n• Ler os Bastiões com intenção guerreira", quote: "Sofre e suporta: não há homem forte sem o fogo da provação.", quoteAuthor: "Sêneca", color: "#7F8C8D" },
-    { name: "Nobreza", shortDesc: "A atitude do cavaleiro interior", description: "Viver acima da mediocridade. Não é um título de sangue, mas a qualidade de um caráter que não se curva à baixeza.", practices: "• Portar-se com elegância, inclusive a sós\n• Recusar fofocas ou palavras torpes\n• Defender a honra de quem não está presente", quote: "A verdadeira nobreza está em sermos superiores ao nosso antigo eu.", quoteAuthor: "Ernest Hemingway", color: "#FFD700" },
-    { name: "Integração", shortDesc: "A gota no oceano", description: "Compreender que o pequeno 'eu' faz parte de um Grande Corpo. Integrar-se à humanidade e à Hierarquia.", practices: "• Oferecer o trabalho pessoal ao Ideal Maior\n• Sincronizar-se com as necessidades da Escola\n• Sentir-se peça de uma grande máquina", quote: "O que não é útil ao enxame, não é útil à abelha.", quoteAuthor: "Marco Aurélio", color: "#3498DB" },
+    { 
+      name: "Transmutar", 
+      shortDesc: "O chumbo em ouro", 
+      description: "A arte interior de pegar emoções densas (raiva, medo, angústia) e elevá-las a qualidades superiores.", 
+      practices: "• Converter uma ofensa em uma resposta de amabilidade\n• Usar o cansaço como combustível para o dever\n• Calar-se quando a vontade mecânica é reclamar",
+      internalPractices: "• Varrer por Dentro (Item 1) para dissolver os nós psíquicos\n• Combater os Vícios e a negligência de frente (Item 6)\n• Aplicar a Alquimia ensinada no Módulo Avançado", 
+      quote: "O Universo é transformação; a nossa vida é o que os nossos pensamentos fazem dela.", quoteAuthor: "Marco Aurélio", color: "#F1C40F" 
+    },
+    { 
+      name: "Concórdia", 
+      shortDesc: "O coração unificado", 
+      description: "A capacidade humana de unir diferentes pessoas em torno de um Ideal único, ignorando vaidades.", 
+      practices: "• Ceder numa discussão onde o orgulho quer vencer\n• Evitar debates sobre futilidades divisivas\n• Unir pessoas que possuem habilidades complementares",
+      internalPractices: "• Manter o Corpo GDVE unido sob tensão\n• Trabalhar com confrades de temperamentos difíceis\n• Elevar a egrégora da filial de Barra do Garças", 
+      quote: "Se quereis que vosso coração encontre concórdia, ide ao centro, que é o Espírito.", quoteAuthor: "Sri Ram", color: "#1ABC9C" 
+    },
+    { 
+      name: "Fortaleza", 
+      shortDesc: "O pilar na tormenta", 
+      description: "A firmeza de caráter para não desmoronar perante o peso das crises externas e internas.", 
+      practices: "• Manter-se produtivo em dias de caos\n• Ser o apoio de amigos que estão desesperados\n• Enfrentar mudanças bruscas sem lamentação",
+      internalPractices: "• Agir como autêntico Bastião na defesa da Instituição\n• Blindar-se contra o falatório externo e as Leis da Matéria\n• Suportar o rito de passagem do Discipulado", 
+      quote: "Sofre e suporta: não há homem forte sem o fogo da provação.", quoteAuthor: "Sêneca", color: "#7F8C8D" 
+    },
+    { 
+      name: "Nobreza", 
+      shortDesc: "Elevação de caráter", 
+      description: "Viver e agir acima da mediocridade do mundo. Um estado de espírito que se recusa a ser vulgar.", 
+      practices: "• Portar-se com etiqueta e asseio mesmo quando sozinho\n• Recusar fazer comentários rasteiros ou fofocas\n• Tratar pessoas simples com extrema reverência",
+      internalPractices: "• Viver como as autênticas Damas e Cavalheiros\n• Jamais profanar os símbolos e ambientes da Ordem\n• Resgatar a moral clássica em pleno Século XXI", 
+      quote: "A verdadeira nobreza está em sermos superiores ao nosso antigo eu.", quoteAuthor: "Ernest Hemingway", color: "#FFD700" 
+    },
+    { 
+      name: "Integração", 
+      shortDesc: "A gota no oceano", 
+      description: "Compreender que não somos seres isolados, mas partes ativas de um Grande Corpo ou sistema.", 
+      practices: "• Pensar no bem de um grupo antes da conveniência pessoal\n• Somar esforços sem exigir os holofotes\n• Ver-se como um elo entre o passado e o futuro familiar",
+      internalPractices: "• Sincronizar as ações diárias com as metas da Filial\n• Operar como uma única mente no corpo do GDVE\n• Reconhecer-se como instrumento da Cadeia Hierárquica", 
+      quote: "O que não é útil ao enxame, não é útil à abelha.", quoteAuthor: "Marco Aurélio", color: "#3498DB" 
+    },
     
     // --- O COMPROMISSO ---
-    { name: "Dever", shortDesc: "A Vontade de Deus no homem", description: "Fazer o que tem de ser feito por puro amor à Lei (Dharma). Sem fugas, sem negociações.", practices: "• Fazer uma tarefa apenas porque é o certo\n• Dispensar a recompensa final\n• Analisar as omissões no Exame Noturno", quote: "Faça o seu dever, porque a ação é melhor do que a inação.", quoteAuthor: "Bhagavad Gita", color: "#C0392B" },
-    { name: "Dignidade", shortDesc: "O respeito ao ser humano", description: "Manter-se de pé internamente. Tratar a si mesmo e aos demais com a gravidade que a Alma exige.", practices: "• Cumprir com as próprias palavras\n• Recusar baixar o nível da conversa\n• Arrumar-se de forma asseada e polida", quote: "Nenhum homem é livre se não for senhor de si mesmo.", quoteAuthor: "Epicteto", color: "#8E44AD" },
-    { name: "Fidelidade", shortDesc: "Lealdade à Luz", description: "Fidelidade à promessa, à ideia, ao Mestre e ao próprio ser interior. Manter no escuro o que se jurou na luz.", practices: "• Não abandonar os preceitos quando ninguém vê\n• Cumprir a recitação diária do Código de Honra\n• Honrar os compromissos assumidos", quote: "O verdadeiro cavaleiro é aquele que se mantém fiel quando todos os outros fogem.", quoteAuthor: "J.A. Livraga", color: "#2980B9" },
-    { name: "Mística", shortDesc: "A união com o Sagrado", description: "A percepção de que a vida tem um fio condutor invisível e sagrado. Retirar o véu do tédio mecânico da existência.", practices: "• Realizar o Templo Interior (Câmara/Pátio/Santuário)\n• Ver Deus num detalhe da Natureza\n• Estudar os Mistérios com a mente aberta", quote: "Mística é ter sede de Deus.", quoteAuthor: "J.A. Livraga", color: "#6C3483" },
-    { name: "Discipulado", shortDesc: "A condição de quem aprende", description: "Colocar-se em posição de aluno do Universo e do Instrutor. Ter a taça vazia para receber a Água da Sabedoria.", practices: "• Aceitar uma correção sem se justificar\n• Copiar o exemplo dos maiores\n• Estudar ativamente os ensinamentos da Escola", quote: "Quando o discípulo está pronto, o Mestre aparece.", quoteAuthor: "O Caibalion", color: "#27AE60" }
+    { 
+      name: "Dever", 
+      shortDesc: "A ação reta essencial", 
+      description: "Fazer o que é certo puramente porque é o certo, dispensando cálculos de fuga ou recompensa.", 
+      practices: "• Executar tarefas pendentes sem hesitar\n• Não abandonar obrigações por capricho emocional\n• Fazer mais do que o estritamente cobrado",
+      internalPractices: "• O Dever como manifestação do Dharma\n• Cumprir as missões de IA sem negociação com o ego\n• Apresentar a Carta de Degrau impreterivelmente na data", 
+      quote: "Faça o seu dever, porque a ação é melhor do que a inação.", quoteAuthor: "Bhagavad Gita", color: "#C0392B" 
+    },
+    { 
+      name: "Dignidade", 
+      shortDesc: "O valor imutável do Ser", 
+      description: "Manter-se erguido internamente. Ter profundo respeito por si mesmo e pela condição humana.", 
+      practices: "• Cumprir todas as promessas que fez no dia\n• Não rir do que denigre outras pessoas\n• Manter o controle emocional em discussões",
+      internalPractices: "• Viver e respirar o Código de Honra diariamente\n• Proteger a Egrégora da Escola com a própria postura\n• Manter a coluna ereta, o símbolo da verticalidade interna", 
+      quote: "Nenhum homem é livre se não for senhor de si mesmo.", quoteAuthor: "Epicteto", color: "#8E44AD" 
+    },
+    { 
+      name: "Fidelidade", 
+      shortDesc: "Lealdade à Luz", 
+      description: "A firmeza de sustentar juramentos, ideias e vínculos mesmo nos momentos de distanciamento ou escuridão.", 
+      practices: "• Fazer a coisa certa quando ninguém está fiscalizando\n• Honrar compromissos feitos há muito tempo\n• Proteger segredos e confidências depositadas em você",
+      internalPractices: "• Cumprir os ritos e a Forja mesmo estando sozinho em casa\n• Honrar os compromissos assumidos perante o Mestre\n• Preservar e proteger os materiais internos da Ordem", 
+      quote: "O verdadeiro cavaleiro é aquele que se mantém fiel quando todos os outros fogem.", quoteAuthor: "J.A. Livraga", color: "#2980B9" 
+    },
+    { 
+      name: "Mística", 
+      shortDesc: "A ponte com o Sagrado", 
+      description: "O estado de espírito que permite enxergar a assinatura do Eterno por trás das formas da Natureza.", 
+      practices: "• Entrar em contato com o ar livre e a natureza com reverência\n• Refletir filosoficamente sobre a transitoriedade da vida\n• Purificar o ambiente antes de ler ou trabalhar",
+      internalPractices: "• Construção ativa das 4 fases do Templo Interior\n• Transformar as Aulas em Ritos de Conhecimento\n• Perceber o mistério nas diretrizes da Escola", 
+      quote: "Mística é ter sede de Deus.", quoteAuthor: "J.A. Livraga", color: "#6C3483" 
+    },
+    { 
+      name: "Discipulado", 
+      shortDesc: "O eterno aprendiz", 
+      description: "A postura de quem reconhece que nada sabe e se coloca disposto a aprender com a Vida e com os sábios.", 
+      practices: "• Receber correções e feedback sem justificativas na ponta da língua\n• Procurar o ensinamento oculto atrás de uma frustração\n• Imitar o exemplo ético das grandes figuras da história",
+      internalPractices: "• Ouvir o Instrutor da filial sem o ruído do intelecto\n• Transmitir fidedignamente o que recebeu, sem alterar a fonte\n• Compreender a obediência como liberdade estruturada", 
+      quote: "Quando o discípulo está pronto, o Mestre aparece.", quoteAuthor: "O Caibalion", color: "#27AE60" 
+    }
   ];
 
   const philosophicalQuotes = [
@@ -3266,7 +3476,7 @@ function App() {
                             <div style={{ padding: '0.75rem', background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'rgba(255, 255, 255, 0.5)', borderRadius: '8px' }}>
                               <h5 style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', color: isDark ? '#d4af37' : '#6b4423', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Práticas Sugeridas:</h5>
                               <p style={{ fontSize: '0.9rem', color: isDark ? '#c8b896' : '#6b5744', margin: 0, lineHeight: '1.6', whiteSpace: 'pre-line' }}>
-                                {virtues.find(v => v.name === selectedVirtue)?.practices}
+                                {fvUnlocked ? (virtues.find(v => v.name === selectedVirtue)?.internalPractices || virtues.find(v => v.name === selectedVirtue)?.practices) : virtues.find(v => v.name === selectedVirtue)?.practices}
                               </p>
                             </div>
                           </div>
@@ -4378,7 +4588,9 @@ function App() {
             <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
                 <Book size={32} color={isDark ? '#d4af37' : '#6b4423'} />
-                <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif" }}>Biblioteca de Virtudes</h2>
+                <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif" }}>
+                  {fvUnlocked ? "Virtudes Acropolitanas" : "Biblioteca de Virtudes"}
+                </h2>
               </div>
               <p style={{ color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2rem', fontSize: '1rem' }}>Conheça as virtudes que estamos estudando e suas práticas</p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
@@ -4391,7 +4603,9 @@ function App() {
                         <p style={{ fontSize: '1rem', color: isDark ? '#f0e6d2' : '#2c1810', marginBottom: '1rem', lineHeight: '1.7' }}>{virtue.description}</p>
                         <div style={{ padding: '1rem', background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'rgba(255, 255, 255, 0.5)', borderRadius: '8px' }}>
                           <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem', color: virtue.color, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Práticas Sugeridas:</h4>
-                          <p style={{ fontSize: '0.95rem', color: isDark ? '#c8b896' : '#6b5744', margin: 0, lineHeight: '1.8', whiteSpace: 'pre-line' }}>{virtue.practices}</p>
+                          <p style={{ fontSize: '0.95rem', color: isDark ? '#c8b896' : '#6b5744', margin: 0, lineHeight: '1.8', whiteSpace: 'pre-line' }}>
+                            {fvUnlocked ? (virtue.internalPractices || virtue.practices) : virtue.practices}
+                          </p>
                         </div>
                       </div>
                     )}
