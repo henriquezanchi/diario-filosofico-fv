@@ -607,7 +607,7 @@ function App() {
     // --- VIRTUDES CLÁSSICAS ---
     { 
       name: "Paciência", 
-      shortDesc: "A ciência da paz", 
+      shortDesc: "Uma forma de fé", 
       description: "Capacidade de suportar as adversidades sem se alterar, compreendendo os ritmos naturais do tempo e o processo das coisas.", 
       practices: "• Não reagir à primeira provocação\n• Esperar 10 segundos antes de responder\n• Aceitar o ritmo das outras pessoas", 
       internalPractices: "• Suportar as dificuldades da filiação sem críticas\n• Aguardar o ritmo natural da Escola\n• Exercer paciência com as falhas dos irmãos de ideal",
@@ -615,7 +615,7 @@ function App() {
     },
     { 
       name: "Coragem", 
-      shortDesc: "Agir corretamente além do medo", 
+      shortDesc: "Agir com o coração", 
       description: "Não é a ausência do medo, mas a ação decidida e reta, movida pelo dever, apesar da presença do medo.", 
       practices: "• Fazer o que deve ser feito, mesmo com receio\n• Assumir a responsabilidade de um erro\n• Defender a verdade de forma justa",
       internalPractices: "• Assumir missões e responsabilidades no GDVE\n• Enfrentar o 'Kurava' dominante apontado pela IA\n• Defender os ideais acropolitanos perante o mundo", 
@@ -631,7 +631,7 @@ function App() {
     },
     { 
       name: "Justiça", 
-      shortDesc: "Dar a cada um o que é seu", 
+      shortDesc: "Dar a cada um de acordo com sua natureza e seus atos", 
       description: "A busca pelo equilíbrio e equidade, não segundo a conveniência egoísta, mas segundo a Lei Universal.", 
       practices: "• Não julgar por simpatias ou antipatias\n• Cumprir com as próprias obrigações\n• Reconhecer o mérito do outro",
       internalPractices: "• Agir de acordo com o Dharma\n• Cumprir rigorosamente suas escalas de serviço\n• Ser impecavelmente justo no trato com os companheiros", 
@@ -647,7 +647,7 @@ function App() {
     },
     { 
       name: "Devoção", 
-      shortDesc: "O Amor direcionado ao Alto", 
+      shortDesc: "O Amor à verdade", 
       description: "O amor profundo que move o ser humano a entregar-se a uma causa sagrada ou a um ideal nobre.", 
       practices: "• Realizar ações cotidianas com elevado propósito\n• Manter o ambiente de estudo limpo e organizado\n• Ler textos atemporais com respeito e foco",
       internalPractices: "• Cultivar Bhakti pelo Ideal e pelo Mestre\n• Realizar limpezas e serviços como oferenda\n• Reverenciar os Símbolos da Escola", 
@@ -657,7 +657,7 @@ function App() {
     // --- PILARES FUNDAMENTAIS ---
     { 
       name: "Investigação", 
-      shortDesc: "A busca sincera pela Verdade", 
+      shortDesc: "A busca pela Verdade", 
       description: "O estudo que não aceita dogmas cegos, mas busca ativamente as leis universais na Natureza e no homem.", 
       practices: "• Questionar os porquês antes de aceitar\n• Ler e meditar sobre uma página de filosofia profunda\n• Observar atentamente as leis da natureza",
       internalPractices: "• Aprofundar-se nos ensinamentos do Módulo GDVE\n• Realizar o autoexame de Kurukshetra com rigor\n• Estudo comparado de Religiões, Ciências e Artes", 
@@ -665,7 +665,7 @@ function App() {
     },
     { 
       name: "Serviço", 
-      shortDesc: "Voluntariado ativo e consciente", 
+      shortDesc: "A Prática da Verdade", 
       description: "O ato de colocar as próprias mãos e mente a serviço da humanidade, sem buscar recompensas.", 
       practices: "• Fazer um trabalho invisível que ninguém quer fazer\n• Ajudar proativamente uma causa ou comunidade\n• Renunciar ao conforto pessoal por um dever",
       internalPractices: "• Acumular horas reais de trabalho na Filial\n• Apoiar ativamente as demandas do GAF\n• Praticar o Karma Yoga: ação sem apego", 
@@ -673,7 +673,7 @@ function App() {
     },
     { 
       name: "Generosidade", 
-      shortDesc: "Dar livremente sem esperar retorno", 
+      shortDesc: "Gerar para dar", 
       description: "Compartilhar tempo, atenção e recursos de forma ampla, expandindo os próprios limites da bondade.", 
       practices: "• Ouvir alguém ativamente sem interromper\n• Partilhar conhecimento sem vaidade intelectual\n• Doar tempo de qualidade para apoiar alguém",
       internalPractices: "• Dar oportunidades de serviço e brilho ao outro\n• Compartilhar sabedoria fraterna nas reuniões\n• Apoiar financeiramente ou materialmente a Escola", 
@@ -707,7 +707,7 @@ function App() {
     // --- O FOGO E A MENTE ---
     { 
       name: "Entusiasmo", 
-      shortDesc: "A força que desperta", 
+      shortDesc: "En Theos, com o Sagrado dentro", 
       description: "A energia vibrante que contagia as pessoas, dando força para continuar a marcha perante os obstáculos.", 
       practices: "• Sorrir intencionalmente perante uma dificuldade\n• Transmitir ânimo a quem está reclamando\n• Realizar uma tarefa monótona com alegria",
       internalPractices: "• Cultivar o 'En Theos' (Deus dentro) diariamente\n• Ser um motor de ânimo dentro do grupo GAF\n• Acordar almas adormecidas pela ação e exemplo", 
@@ -723,7 +723,7 @@ function App() {
     },
     { 
       name: "Atenção", 
-      shortDesc: "A presença no agora", 
+      shortDesc: "O Foco da Consciência", 
       description: "A capacidade de estar plenamente focado. Aonde vai a atenção, vai a energia e a vida.", 
       practices: "• Escutar alguém sem formular respostas mentais\n• Fazer uma caminhada prestando atenção nos passos\n• Exercícios visuais de fixação e observação",
       internalPractices: "• Praticar o Tratak Diário sem pestanejar\n• Otimizar Economia de Tempo e Energia (Item 5)\n• Manter o Prana ancorado no presente durante rituais", 
@@ -731,7 +731,7 @@ function App() {
     },
     { 
       name: "Memória", 
-      shortDesc: "O cofre do passado vivo", 
+      shortDesc: "Fidelidade a nós mesmos (nossa Alma)", 
       description: "O resgate consciente das lições já aprendidas e da própria identidade e propósito de vida.", 
       practices: "• Revisar mentalmente os eventos do dia anterior\n• Lembrar diariamente do porquê iniciou um projeto\n• Fazer um diário retrospectivo com fidelidade",
       internalPractices: "• Executar o Exercício Pitagórico noturno\n• Recordar a Tradição e os Bastiões lidos\n• Preencher o Prólogo e Epílogo para fixar a mente", 
@@ -741,7 +741,7 @@ function App() {
     // --- O GUERREIRO INTERIOR ---
     { 
       name: "Perseverança", 
-      shortDesc: "Continuar após a queda", 
+      shortDesc: "Repetir com Consciência, buscando Aperfeiçoamento", 
       description: "A força para levantar-se após um erro, retomar o passo e continuar marchando sem ceder à frustração.", 
       practices: "• Voltar a um hábito saudável que foi abandonado\n• Tentar resolver um problema mais uma vez\n• Eliminar completamente a auto-justificativa",
       internalPractices: "• Preencher a cota de Item 7 (Virtudes) da Carta\n• Levantar-se rapidamente de falhas relatadas no GDVE\n• Não abandonar a Filial perante as crises de personalidade", 
@@ -749,7 +749,7 @@ function App() {
     },
     { 
       name: "Constância", 
-      shortDesc: "Estabilidade no esforço", 
+      shortDesc: "Esperar enquanto Trabalha, sem cair no Desânimo", 
       description: "O nível maduro da perseverança: manter um ritmo inalterado, que não depende de humores ou motivação passageira.", 
       practices: "• Executar o planejamento do dia sem vontade\n• Manter a rotina de preenchimento do Diário\n• Cumprir horários com precisão absoluta",
       internalPractices: "• Vencer as 'Leis da Matéria' e ciclicidades (Item 2)\n• Sustentar o 'Streak' ininterrupto de Práticas FV\n• Frequência impecável nas reuniões do Grupo", 
@@ -757,7 +757,7 @@ function App() {
     },
     { 
       name: "Intuição", 
-      shortDesc: "A voz silenciosa", 
+      shortDesc: "Compreensão além da Mente", 
       description: "A percepção direta de algo profundo, que ultrapassa a lógica mecânica e o raciocínio comum.", 
       practices: "• Observar simbolismos nos acontecimentos do dia\n• Confiar na voz da consciência para escolhas morais\n• Desconectar das telas para ouvir o próprio silêncio",
       internalPractices: "• Buscar o clarão de Buddhi além de Kama-Manas\n• Extrair o sentido real por trás dos mitos estudados\n• Escutar o Mestre Interior na Câmara de Purificação", 
@@ -765,7 +765,7 @@ function App() {
     },
     { 
       name: "Ousadia", 
-      shortDesc: "Audácia para o bem", 
+      shortDesc: "Atrever-se a ser melhor", 
       description: "A atitude de lançar-se rumo a um ideal, rompendo fronteiras de conformismo e timidez.", 
       practices: "• Dar o primeiro passo prático em um projeto engavetado\n• Falar a verdade quando todos estão calados\n• Mudar intencionalmente uma rotina que traz muito conforto",
       internalPractices: "• Assumir frentes de trabalho ou docência na Escola\n• Apresentar palestras e superar o medo do público\n• Assumir as Missões de Ciclo (IA) sem hesitar", 
@@ -775,7 +775,7 @@ function App() {
     // --- O CAMINHO ALQUÍMICO ---
     { 
       name: "Transmutar", 
-      shortDesc: "O chumbo em ouro", 
+      shortDesc: "O chumbo em ouro - Mudar de dentro para fora", 
       description: "A arte interior de pegar emoções densas (raiva, medo, angústia) e elevá-las a qualidades superiores.", 
       practices: "• Converter uma ofensa em uma resposta de amabilidade\n• Usar o cansaço como combustível para o dever\n• Calar-se quando a vontade mecânica é reclamar",
       internalPractices: "• Varrer por Dentro (Item 1) para dissolver os nós psíquicos\n• Combater os Vícios e a negligência de frente (Item 6)\n• Aplicar a Alquimia ensinada no Módulo Avançado", 
@@ -783,7 +783,7 @@ function App() {
     },
     { 
       name: "Concórdia", 
-      shortDesc: "O coração unificado", 
+      shortDesc: "O corações unificados", 
       description: "A capacidade humana de unir diferentes pessoas em torno de um Ideal único, ignorando vaidades.", 
       practices: "• Ceder numa discussão onde o orgulho quer vencer\n• Evitar debates sobre futilidades divisivas\n• Unir pessoas que possuem habilidades complementares",
       internalPractices: "• Manter o Corpo GDVE unido sob tensão\n• Trabalhar com confrades de temperamentos difíceis\n• Elevar a egrégora da filial de Barra do Garças", 
@@ -807,7 +807,7 @@ function App() {
     },
     { 
       name: "Integração", 
-      shortDesc: "A gota no oceano", 
+      shortDesc: "Tornar completo", 
       description: "Compreender que não somos seres isolados, mas partes ativas de um Grande Corpo ou sistema.", 
       practices: "• Pensar no bem de um grupo antes da conveniência pessoal\n• Somar esforços sem exigir os holofotes\n• Ver-se como um elo entre o passado e o futuro familiar",
       internalPractices: "• Sincronizar as ações diárias com as metas da Filial\n• Operar como uma única mente no corpo do GDVE\n• Reconhecer-se como instrumento da Cadeia Hierárquica", 
@@ -817,7 +817,7 @@ function App() {
     // --- O COMPROMISSO ---
     { 
       name: "Dever", 
-      shortDesc: "A ação reta essencial", 
+      shortDesc: "Compromisso com a Finalidade", 
       description: "Fazer o que é certo puramente porque é o certo, dispensando cálculos de fuga ou recompensa.", 
       practices: "• Executar tarefas pendentes sem hesitar\n• Não abandonar obrigações por capricho emocional\n• Fazer mais do que o estritamente cobrado",
       internalPractices: "• O Dever como manifestação do Dharma\n• Cumprir as missões de IA sem negociação com o ego\n• Apresentar a Carta de Degrau impreterivelmente na data", 
@@ -833,7 +833,7 @@ function App() {
     },
     { 
       name: "Fidelidade", 
-      shortDesc: "Lealdade à Luz", 
+      shortDesc: "Lealdade ao que há de mais Elevado", 
       description: "A firmeza de sustentar juramentos, ideias e vínculos mesmo nos momentos de distanciamento ou escuridão.", 
       practices: "• Fazer a coisa certa quando ninguém está fiscalizando\n• Honrar compromissos feitos há muito tempo\n• Proteger segredos e confidências depositadas em você",
       internalPractices: "• Cumprir os ritos e a Forja mesmo estando sozinho em casa\n• Honrar os compromissos assumidos perante o Mestre\n• Preservar e proteger os materiais internos da Ordem", 
@@ -841,7 +841,7 @@ function App() {
     },
     { 
       name: "Mística", 
-      shortDesc: "A ponte com o Sagrado", 
+      shortDesc: "Boa Vontade e Eficácia", 
       description: "O estado de espírito que permite enxergar a assinatura do Eterno por trás das formas da Natureza.", 
       practices: "• Entrar em contato com o ar livre e a natureza com reverência\n• Refletir filosoficamente sobre a transitoriedade da vida\n• Purificar o ambiente antes de ler ou trabalhar",
       internalPractices: "• Construção ativa das 4 fases do Templo Interior\n• Transformar as Aulas em Ritos de Conhecimento\n• Perceber o mistério nas diretrizes da Escola", 
@@ -849,7 +849,7 @@ function App() {
     },
     { 
       name: "Discipulado", 
-      shortDesc: "O eterno aprendiz", 
+      shortDesc: "Viver o que se Aprende", 
       description: "A postura de quem reconhece que nada sabe e se coloca disposto a aprender com a Vida e com os sábios.", 
       practices: "• Receber correções e feedback sem justificativas na ponta da língua\n• Procurar o ensinamento oculto atrás de uma frustração\n• Imitar o exemplo ético das grandes figuras da história",
       internalPractices: "• Ouvir o Instrutor da filial sem o ruído do intelecto\n• Transmitir fidedignamente o que recebeu, sem alterar a fonte\n• Compreender a obediência como liberdade estruturada", 
