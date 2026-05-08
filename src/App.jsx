@@ -1034,7 +1034,7 @@ function App() {
     
     if (fvClickCount >= 6) {
       setFvUnlocked(true);
-      loadMod2Config();
+      loadMod2Config(uid);
       setFvClickCount(0);
       alert('🔓 Modo FV desbloqueado na sessão!');
     }
@@ -1247,7 +1247,7 @@ function App() {
         
         setFvAccessStatus(initialStatus);
         setFvUnlocked(isVip);
-        if (isVip) loadMod2Config();
+        if (isVip) loadMod2Config(uid);
       }
     } catch (error) { console.error('Erro ao carregar dados:', error); }
   };
