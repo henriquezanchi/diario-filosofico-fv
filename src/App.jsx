@@ -1226,7 +1226,7 @@ function App() {
         if (userData.fvStatus === 'approved') {
           setFvAccessStatus('approved');
           setFvUnlocked(true); // Destranca as portas do Templo
-          loadMod2Config();    // Inicia o motor GDVE
+          loadMod2Config(uid);    // Inicia o motor GDVE
         } else if (userData.fvStatus === 'pending') {
           setFvAccessStatus('pending');
           setFvUnlocked(false);
@@ -1741,18 +1741,19 @@ function App() {
   };
 
 
-  const loadMod2Config = async () => {
-    if (!user || fvConfig) return;
+  const loadMod2Config = async (currentUserUid = null) => {
+    // Usamos o UID passado ou o do state (para lidar com o assincronismo do Firebase)
+    const uidToUse = currentUserUid || (user ? user.uid : null);
+    if (!uidToUse) return; 
+
     setIsDownloadingConfig(true);
     try {
-      // Usa a pasta autorizada do Firebase (fvData) para guardar o motor
-      const docRef = doc(db, 'fvData', user.uid);
+      const docRef = doc(db, 'fvData', uidToUse);
       const docSnap = await getDoc(docRef);
       
       if (docSnap.exists() && docSnap.data().config) {
         setFvConfig(docSnap.data().config);
       } else {
-        // Textos completos originais restaurados
         const initialConfig = {
           tituloAba: "Registro de Ciclo",
           secaoReflexao: "A Escalada (Reflexões)",
