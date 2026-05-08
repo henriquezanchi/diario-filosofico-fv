@@ -59,6 +59,10 @@ function App() {
   const [kuravaEnabled, setKuravaEnabled] = useState(true);
   const [isCloudDataLoaded, setIsCloudDataLoaded] = useState(false);
   const [aiConsent, setAiConsent] = useState(false);
+  // --- ESTADOS DE SEGURANÇA FV (ANTE-SALA) ---
+  const [fvAccessStatus, setFvAccessStatus] = useState('checking'); // 'checking', 'approved', 'pending', 'unregistered'
+  const [requestName, setRequestName] = useState('');
+  const [requestUnit, setRequestUnit] = useState('');
 
   const toggleNotifications = async () => {
     if (notificationsActive) {
@@ -1188,8 +1192,6 @@ function App() {
         const data = userDoc.data();
         setTheme(data.theme || 'light');
         setLastDrawDate(data.lastDrawDate || null);
-        setFvUnlocked(false); 
-
         setMorningTime(data.morningTime || '06:00'); 
         setEveningTime(data.eveningTime || '22:00');
         
@@ -1198,12 +1200,45 @@ function App() {
         } else {
           setNotificationsActive(false);
         }
+
+        // LÓGICA DA ANTE-SALA FV
+        if (data.fvStatus === 'approved') {
+          setFvAccessStatus('approved');
+          setFvUnlocked(true); // Destranca as portas do Templo automaticamente!
+          loadMod2Config();    // Inicia o motor GDVE
+        } else if (data.fvStatus === 'pending') {
+          setFvAccessStatus('pending');
+          setFvUnlocked(false);
+        } else {
+          setFvAccessStatus('unregistered');
+          setFvUnlocked(false);
+        }
+
       } else {
+        // Usuário novo criando conta pela primeira vez
         await setDoc(doc(db, 'users', uid), {
-          createdAt: Timestamp.now(), theme: 'light', lastDrawDate: null, fvUnlocked: false
+          createdAt: Timestamp.now(), theme: 'light', lastDrawDate: null, fvUnlocked: false,
+          fvStatus: 'unregistered', email: user?.email || 'Sem e-mail'
         });
+        setFvAccessStatus('unregistered');
+        setFvUnlocked(false);
       }
     } catch (error) { console.error('Erro ao carregar dados:', error); }
+  };
+
+  const handleRequestAccess = async () => {
+    if (!requestName.trim() || !requestUnit.trim()) return alert("Por favor, preencha seu nome e a unidade.");
+    try {
+      await setDoc(doc(db, 'users', user.uid), {
+        fvStatus: 'pending',
+        requestName: requestName.trim(),
+        requestUnit: requestUnit.trim(),
+        requestDate: Timestamp.now()
+      }, { merge: true });
+      setFvAccessStatus('pending');
+    } catch (e) {
+      alert("Erro ao enviar a solicitação. Tente novamente.");
+    }
   };
 
   const loadTodayEntry = async (uid, dateToLoad = null) => {
@@ -3043,6 +3078,64 @@ function App() {
         </footer>
 
         
+      </div>
+    );
+  }
+
+  // --- A ANTE-SALA DE ESPERA (GUARDIÃO DA PORTA) ---
+  if (user && fvAccessStatus !== 'approved') {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: isDark ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)' : 'linear-gradient(135deg, #f0e6d2 0%, #e8dcc4 100%)', fontFamily: 'Georgia, serif', color: isDark ? '#f0e6d2' : '#2c1810' }}>
+        <header style={{ padding: '1.5rem 2rem', background: isDark ? 'rgba(26, 26, 46, 0.9)' : 'rgba(255, 255, 255, 0.5)', borderBottom: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <Shield size={32} color={isDark ? '#d4af37' : '#8b7355'} />
+            <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold', fontFamily: "'Cinzel', serif" }}>Acesso Restrito</h1>
+          </div>
+          <button onClick={handleLogout} style={{ padding: '0.5rem 1rem', background: 'transparent', border: `1px solid ${isDark ? '#d4af37' : '#8b7355'}`, color: isDark ? '#d4af37' : '#8b7355', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <LogOut size={16} /> Sair
+          </button>
+        </header>
+
+        <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem' }}>
+          <div className="animate-fadeIn" style={{ background: isDark ? 'rgba(0,0,0,0.4)' : 'white', padding: '2.5rem 2rem', borderRadius: '16px', maxWidth: '450px', width: '100%', border: `2px solid ${isDark ? '#d4af37' : '#8b7355'}`, textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.1)' }}>
+            
+            {fvAccessStatus === 'pending' ? (
+              <>
+                <Clock size={56} color={isDark ? '#FFD700' : '#996515'} style={{ margin: '0 auto 1.5rem' }} />
+                <h2 style={{ margin: '0 0 1rem 0', fontFamily: "'Cinzel', serif", fontSize: '1.6rem' }}>Em Análise</h2>
+                <p style={{ lineHeight: '1.6', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2rem' }}>
+                  Sua solicitação foi enviada. O instrutor responsável verificará seus dados e liberará o acesso à plataforma em breve.
+                </p>
+                <div style={{ padding: '1rem', background: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(139, 115, 85, 0.1)', borderRadius: '8px', fontStyle: 'italic', fontSize: '0.9rem' }}>
+                  Verifique novamente mais tarde.
+                </div>
+              </>
+            ) : (
+              <>
+                <Lock size={56} color={isDark ? '#d4af37' : '#8b7355'} style={{ margin: '0 auto 1.5rem' }} />
+                <h2 style={{ margin: '0 0 1rem 0', fontFamily: "'Cinzel', serif", fontSize: '1.6rem' }}>Identifique-se</h2>
+                <p style={{ lineHeight: '1.6', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2rem' }}>
+                  Esta é uma ferramenta de uso interno. Para solicitar a liberação do seu perfil, preencha os dados abaixo.
+                </p>
+
+                <div style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', fontSize: '0.9rem' }}>Nome Completo</label>
+                  <input type="text" value={requestName} onChange={(e) => setRequestName(e.target.value)} placeholder="Seu nome..." style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', border: `1px solid ${isDark ? '#555' : '#ccc'}`, background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
+                </div>
+
+                <div style={{ textAlign: 'left', marginBottom: '2rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', fontSize: '0.9rem' }}>Unidade (Sede/Filial)</label>
+                  <input type="text" value={requestUnit} onChange={(e) => setRequestUnit(e.target.value)} placeholder="Ex: Barra do Garças..." style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', border: `1px solid ${isDark ? '#555' : '#ccc'}`, background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
+                </div>
+
+                <button onClick={handleRequestAccess} style={{ width: '100%', padding: '1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
+                  Solicitar Acesso
+                </button>
+              </>
+            )}
+
+          </div>
+        </main>
       </div>
     );
   }
