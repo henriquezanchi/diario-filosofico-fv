@@ -1230,13 +1230,21 @@ function App() {
   const handleRequestAccess = async () => {
     if (!requestName.trim() || !requestUnit.trim()) return alert("Por favor, preencha seu nome e a unidade.");
     try {
+      // 1. Salva no banco de dados
       await setDoc(doc(db, 'users', user.uid), {
         fvStatus: 'pending',
         requestName: requestName.trim(),
         requestUnit: requestUnit.trim(),
         requestDate: Timestamp.now()
       }, { merge: true });
+      
       setFvAccessStatus('pending');
+
+      // 2. Dispara o aviso para o Diretor via WhatsApp
+      const adminPhone = "5562991729783"; // Seu número
+      const text = encodeURIComponent(`*Novo Pedido de Acesso - Diário FV* 🛡️\n\n*Nome:* ${requestName.trim()}\n*Unidade:* ${requestUnit.trim()}\n*E-mail:* ${user.email}\n\nPor favor, acesse o Firebase para liberar o meu perfil.`);
+      window.open(`https://wa.me/${adminPhone}?text=${text}`, '_blank');
+
     } catch (e) {
       alert("Erro ao enviar a solicitação. Tente novamente.");
     }
