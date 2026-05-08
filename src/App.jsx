@@ -3274,15 +3274,7 @@ function App() {
                 )}
               </div>
 
-              {/* BOTÃO MISSÕES */}
-              <button 
-                onClick={() => setView('tasks')} 
-                style={{ padding: '0.5rem 1rem', background: view === 'tasks' ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: view === 'tasks' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s' }}
-              >
-                <Swords size={16} /> Missões
-              </button>
-
-              {/* BOTÃO GDVE (Visível apenas para FV) */}
+              {/* BOTÃO GDVE*/}
               {fvUnlocked && (
                 <button 
                   onClick={() => setView('gdve')} 
@@ -5455,6 +5447,149 @@ function App() {
                 <p style={{ color: '#e74c3c', fontSize: '1.1rem' }}>Erro de Conexão com o Firebase. Dê os 7 cliques novamente para inicializar.</p>
               </div>
             )}
+          </div>
+        )}
+
+        {/* VIEW: GDVE (QUARTEL GENERAL) */}
+        {view === 'gdve' && fvUnlocked && (
+          <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            
+            {/* CABEÇALHO */}
+            <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'rgba(255, 255, 255, 0.9)', padding: '2rem', borderRadius: '16px', border: '1px solid #FFD700', boxShadow: '0 4px 15px rgba(255,215,0,0.1)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
+                <Shield size={32} color="#FFD700" />
+                <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif" }}>Quartel General GDVE</h2>
+              </div>
+              <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', marginBottom: '2rem' }}>O centro de comando da sua Forja Interior.</p>
+
+              {/* ACOMPANHAMENTO E DATAS */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Instrutor / Mestre</label>
+                  <input type="text" value={fvMasterName || ''} onChange={(e) => setFvMasterName(e.target.value)} placeholder="Com quem você se reporta..." style={{ width: '100%', padding: '0.75rem', border: '1px solid rgba(255, 215, 0, 0.3)', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.2)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Último Encontro</label>
+                  <input type="date" value={fvLastMeetingDate || ''} onChange={(e) => setFvLastMeetingDate(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: '1px solid rgba(255, 215, 0, 0.3)', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.2)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Próxima Carta (Previsão)</label>
+                  <input type="date" value={fvNextCartaDate || ''} onChange={(e) => setFvNextCartaDate(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: '1px solid rgba(255, 215, 0, 0.3)', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.2)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                </div>
+              </div>
+
+              <button onClick={saveFvPlanning} style={{ padding: '0.75rem 1.5rem', background: 'transparent', color: isDark ? '#FFD700' : '#996515', border: '2px solid #FFD700', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Save size={18} /> Salvar Organização
+              </button>
+            </div>
+
+            {/* MÓDULO GDVE - LEITURA E REUNIÃO */}
+            <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}` }}>
+              <h3 style={{ margin: '0 0 1.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.3rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}><BookOpen size={24} color={isDark ? '#d4af37' : '#6b4423'} /> Bastião do Ciclo</h3>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                <select value={fvGdveBastiaoName} onChange={(e) => { const val = e.target.value; setFvGdveBastiaoName(val); const found = fvConfig?.modulo2?.bancoTemas?.find(b => b.name === val); if (found) setFvGdveBastiaoLink(found.link); else if (val !== 'Outro') setFvGdveBastiaoLink(''); }} style={{ width: '100%', padding: '0.85rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810' }}>
+                  <option value="">Selecione a leitura...</option>
+                  {fvConfig?.modulo2?.bancoTemas?.map((b, idx) => <option key={idx} value={b.name}>{b.name}</option>)}
+                  <option value="Outro">Outro (Inserir Manualmente)</option>
+                </select>
+
+                {fvGdveBastiaoName === 'Outro' && (
+                  <input type="url" value={fvGdveBastiaoLink} onChange={(e) => setFvGdveBastiaoLink(e.target.value)} placeholder="Link do PDF..." style={{ width: '100%', padding: '0.85rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                )}
+              </div>
+
+              {fvGdveBastiaoLink && (
+                <a href={fvGdveBastiaoLink} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.8rem 1.5rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : '#fff', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold' }}>
+                  <BookOpen size={18} /> Abrir Material
+                </a>
+              )}
+
+              <div style={{ marginTop: '2rem', padding: '1.5rem', background: fvDaily.gdveAttendance ? (isDark ? 'rgba(76, 175, 80, 0.1)' : '#e8f5e9') : (isDark ? 'rgba(255, 152, 0, 0.05)' : '#fff3e0'), borderRadius: '8px', border: `1px solid ${fvDaily.gdveAttendance ? '#4caf50' : (isDark ? 'rgba(255, 152, 0, 0.3)' : '#ffb74d')}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                <div>
+                  <h4 style={{ margin: '0 0 0.25rem 0', color: fvDaily.gdveAttendance ? '#4caf50' : (isDark ? '#ffb74d' : '#e65100'), fontSize: '1.1rem' }}>Reunião GDVE</h4>
+                  <p style={{ margin: 0, fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744' }}>Confirme presença para fechar o ciclo e recalcular a próxima data.</p>
+                </div>
+                <button onClick={registerGdveAttendance} style={{ padding: '0.75rem 1.5rem', background: fvDaily.gdveAttendance ? '#4caf50' : 'transparent', color: fvDaily.gdveAttendance ? '#fff' : (isDark ? '#ffb74d' : '#e65100'), border: `2px solid ${fvDaily.gdveAttendance ? '#4caf50' : (isDark ? '#ffb74d' : '#e65100')}`, borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  {fvDaily.gdveAttendance ? <><CheckCircle size={18} /> Presença Confirmada</> : 'Marcar Presença'}
+                </button>
+              </div>
+            </div>
+
+            {/* MISSÕES DE CICLO E DESAFIOS PESSOAIS */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
+              
+              {/* Missões do Grupo / IA */}
+              <div style={{ background: isDark ? 'rgba(155, 89, 182, 0.05)' : '#fdf8ff', padding: '1.5rem', borderRadius: '16px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.3)' : 'rgba(155, 89, 182, 0.3)'}` }}>
+                <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#c39bd3' : '#8e44ad', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Star size={20} /> Missões do Ciclo</h3>
+                <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '1.5rem' }}>Diretrizes do grupo ou missões da IA em andamento.</p>
+                
+                {fvGdveTasks.map(task => {
+                  const currentCount = (typeof fvDaily.gdveTasksStatus?.[task.id] === 'boolean' ? (fvDaily.gdveTasksStatus[task.id] ? 1 : 0) : fvDaily.gdveTasksStatus?.[task.id]) || 0;
+                  const targetCount = task.target || 1;
+                  const isCompleted = task.isCycle ? !!fvGdveCycleStatus[task.id] : currentCount >= targetCount;
+                  const taskColor = getTaskColor(currentCount, targetCount, isDark);
+
+                  return (
+                    <div key={task.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', borderRadius: '8px', border: `1px solid ${taskColor}`, marginBottom: '0.75rem' }}>
+                      <div onClick={() => toggleGdveTask(task)} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
+                        <input type="checkbox" checked={isCompleted} readOnly style={{ width: '18px', height: '18px', accentColor: '#4caf50' }} />
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span style={{ color: isCompleted ? (isDark ? '#81c784' : '#2e7d32') : (isDark ? '#f0e6d2' : '#2c1810'), textDecoration: isCompleted ? 'line-through' : 'none' }}>{task.name}</span>
+                          {task.target > 1 && <span style={{ fontSize: '0.7rem', color: taskColor }}>{currentCount}/{targetCount} hoje</span>}
+                        </div>
+                      </div>
+                      <button onClick={() => { if(window.confirm('Excluir missão?')) removeGdveTask(task.id); }} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer' }}><Trash2 size={16} /></button>
+                    </div>
+                  );
+                })}
+
+                <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.5rem' }}>
+                  <input type="text" value={newGdveTaskName} onChange={(e) => setNewGdveTaskName(e.target.value)} placeholder="Nova missão..." style={{ flex: 1, padding: '0.7rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.3)' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                  <button onClick={addGdveTask} style={{ padding: '0 1rem', background: isDark ? '#c39bd3' : '#8e44ad', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer' }}><Plus size={20} /></button>
+                </div>
+                
+                <button onClick={generateAiGoals} disabled={isGeneratingGoals} style={{ marginTop: '1.5rem', width: '100%', padding: '0.8rem', background: 'transparent', color: isDark ? '#c39bd3' : '#8e44ad', border: `1px dashed ${isDark ? '#c39bd3' : '#8e44ad'}`, borderRadius: '8px', cursor: isGeneratingGoals ? 'wait' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                  {isGeneratingGoals ? <Sparkles className="animate-spin" size={16} /> : <Target size={16} />}
+                  {isGeneratingGoals ? 'O Oráculo está forjando...' : 'Pedir Missão ao Oráculo'}
+                </button>
+                
+                {aiSuggestedGoals && (
+                  <div className="animate-fadeIn" style={{ marginTop: '1rem', padding: '1rem', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', borderRadius: '8px', border: `1px solid ${isDark ? '#c39bd3' : '#e1bee7'}`, fontSize: '0.85rem' }}>
+                    <p style={{ margin: '0 0 1rem 0', fontStyle: 'italic', color: isDark ? '#f0e6d2' : '#2c1810' }}>"{aiSuggestedGoals.conselho}"</p>
+                    {aiSuggestedGoals.missoes.map((m, idx) => (
+                       <div key={idx} style={{ marginBottom: '0.5rem', paddingBottom: '0.5rem', borderBottom: '1px solid rgba(155,89,182,0.2)' }}>
+                         <strong style={{ color: isDark ? '#c39bd3' : '#8e44ad' }}>{m.titulo}</strong>
+                         <p style={{ margin: '0.2rem 0', color: isDark ? '#b8a88a' : '#6b5744' }}>{m.descricao}</p>
+                         <button onClick={() => { setNewGdveTaskName(m.titulo); setAiSuggestedGoals(null); }} style={{ background: isDark ? 'rgba(155, 89, 182, 0.2)' : '#f3e5f5', color: isDark ? '#c39bd3' : '#8e44ad', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}>+ Adicionar Missão</button>
+                       </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Desafios Pessoais (As antigas Tarefas) */}
+              <div style={{ background: isDark ? 'rgba(74, 144, 226, 0.05)' : '#f4f8ff', padding: '1.5rem', borderRadius: '16px', border: `1px solid ${isDark ? 'rgba(74, 144, 226, 0.2)' : 'rgba(74, 144, 226, 0.2)'}` }}>
+                <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#6cb2eb' : '#2980b9', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Swords size={20} /> Desafios Pessoais</h3>
+                <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '1.5rem' }}>Práticas diárias extras que você assumiu para si mesmo.</p>
+                
+                {customTasks.map(task => (
+                  <div key={task.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(74, 144, 226, 0.2)' : '#eee'}`, marginBottom: '0.75rem' }}>
+                    <div style={{ flex: 1 }}>
+                      <span style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem', fontWeight: 'bold' }}>{task.name}</span>
+                      <span style={{ display: 'block', fontSize: '0.7rem', color: isDark ? '#6cb2eb' : '#2980b9', marginTop: '0.2rem' }}>↻ Diário</span>
+                    </div>
+                    <button onClick={() => { if(window.confirm('Excluir desafio?')) removeCustomTask(task.id); }} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer' }}><Trash2 size={16} /></button>
+                  </div>
+                ))}
+
+                <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.5rem' }}>
+                  <input type="text" value={newTaskName} onChange={(e) => setNewTaskName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && saveCustomTask()} placeholder="Novo desafio diário..." style={{ flex: 1, padding: '0.7rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(74, 144, 226, 0.3)' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                  <button onClick={saveCustomTask} style={{ padding: '0 1rem', background: isDark ? '#6cb2eb' : '#2980b9', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer' }}><Plus size={20} /></button>
+                </div>
+              </div>
+
+            </div>
           </div>
         )}
 
