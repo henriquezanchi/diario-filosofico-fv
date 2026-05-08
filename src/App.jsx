@@ -3291,17 +3291,7 @@ function App() {
                   <Shield size={16} /> GDVE
                 </button>
               )}
-
-
-              {/* ATALHO RÁPIDO DO TRATAK (GLOBAL) */}
-              <button onClick={() => { setActivePracticeId('tratack'); setPracticePhase('intro'); setIsPracticeActive(true); }} style={{ padding: '0.5rem 1rem', background: isDark ? '#b8a88a' : '#8b7355', color: isDark ? '#1a1a2e' : '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem', marginLeft: '0.5rem' }}>
-                <Target size={16} /> Tratak
-              </button>
-
-              {fvUnlocked && (
-                <button onClick={handleFvTabClick} style={{ padding: '0.5rem 1rem', background: view === 'fv' ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'transparent', color: view === 'fv' ? '#000' : '#FFD700', border: '2px solid #FFD700', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, boxShadow: '0 0 10px rgba(255, 215, 0, 0.3)' }}>FV</button>
-              )}
-              
+            
               {/* MENU DE OPÇÕES (DROPDOWN) - CORRIGIDO */}
               <div 
                 style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }} 
