@@ -1283,7 +1283,7 @@ function App() {
     // Transforma o texto em uma lista limpa, removendo espaços e tratando vírgulas ou quebras de linha
     const emailList = rawText
       .split(/[\n,]+/)
-      .map(e => e.trim().toLowerCase())
+      .map(e => e.replace(/["']/g, "").trim().toLowerCase()) // Remove aspas simples e duplas
       .filter(e => e.includes('@'));
 
     if (emailList.length === 0) return alert("Nenhum e-mail válido encontrado.");
