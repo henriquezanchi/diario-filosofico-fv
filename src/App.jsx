@@ -3189,24 +3189,7 @@ function App() {
                   Solicitar Acesso
                 </button>
 
-             {/* PAINEL DE ADMINISTRAÇÃO TEMPORÁRIO (SÓ O HENRIQUE USA) */}
-            <div style={{ marginTop: '3rem', paddingTop: '2rem', borderTop: '1px dashed #888' }}>
-              <h4 style={{ fontSize: '0.9rem', color: '#888' }}>Carga de E-mails (Uso do Diretor)</h4>
-              <textarea 
-                id="bulkEmails"
-                placeholder="Cole os e-mails aqui na tela do navegador..."
-                rows={5}
-                style={{ width: '100%', marginTop: '1rem', padding: '0.5rem', borderRadius: '8px', border: '1px solid #ccc', fontSize: '0.8rem', background: 'rgba(0,0,0,0.1)', color: isDark ? '#fff' : '#000' }}
-              />
-              <button 
-                onClick={() => handleBulkAddWhitelist(document.getElementById('bulkEmails').value)}
-                style={{ marginTop: '0.5rem', width: '100%', padding: '0.6rem', background: '#2980b9', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.85rem' }}
-              >
-                Sincronizar Lista com Firebase
-              </button>
-            </div>
-
-              </>
+                           </>
             )}
 
           </div>
