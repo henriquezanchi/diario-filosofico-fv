@@ -1189,25 +1189,45 @@ function App() {
   const loadUserData = async (uid) => {
     try {
       const userDoc = await getDoc(doc(db, 'users', uid));
-      if (userDoc.exists()) {
-        const data = userDoc.data();
-        setTheme(data.theme || 'light');
-        setLastDrawDate(data.lastDrawDate || null);
-        setMorningTime(data.morningTime || '06:00'); 
-        setEveningTime(data.eveningTime || '22:00');
+      let userData = userDoc.exists() ? userDoc.data() : null;
+
+      // O LEÃO DE CHÁCARA: Verifica se o e-mail está na Lista VIP
+      let isVip = false;
+      if (user && user.email) {
+        const whitelistDoc = await getDoc(doc(db, 'admin', 'whitelist'));
+        if (whitelistDoc.exists()) {
+          const allowedEmails = whitelistDoc.data().emails || [];
+          // Converte tudo para minúsculo para evitar erros de digitação
+          if (allowedEmails.map(e => e.toLowerCase()).includes(user.email.toLowerCase())) {
+            isVip = true;
+          }
+        }
+      }
+
+      if (userData) {
+        setTheme(userData.theme || 'light');
+        setLastDrawDate(userData.lastDrawDate || null);
+        setMorningTime(userData.morningTime || '06:00'); 
+        setEveningTime(userData.eveningTime || '22:00');
         
         if ('Notification' in window && Notification.permission === 'granted') {
-          setNotificationsActive(!!data.fcmToken);
+          setNotificationsActive(!!userData.fcmToken);
         } else {
           setNotificationsActive(false);
         }
 
+        // Se o usuário está na lista VIP, mas o perfil dele ainda não sabe, aprovamos na marra!
+        if (isVip && userData.fvStatus !== 'approved') {
+          await updateDoc(doc(db, 'users', uid), { fvStatus: 'approved' });
+          userData.fvStatus = 'approved';
+        }
+
         // LÓGICA DA ANTE-SALA FV
-        if (data.fvStatus === 'approved') {
+        if (userData.fvStatus === 'approved') {
           setFvAccessStatus('approved');
-          setFvUnlocked(true); // Destranca as portas do Templo automaticamente!
+          setFvUnlocked(true); // Destranca as portas do Templo
           loadMod2Config();    // Inicia o motor GDVE
-        } else if (data.fvStatus === 'pending') {
+        } else if (userData.fvStatus === 'pending') {
           setFvAccessStatus('pending');
           setFvUnlocked(false);
         } else {
@@ -1216,17 +1236,22 @@ function App() {
         }
 
       } else {
-        // Usuário novo criando conta pela primeira vez
+        // Usuário totalmente novo criando conta
+        const initialStatus = isVip ? 'approved' : 'unregistered';
+        
         await setDoc(doc(db, 'users', uid), {
-          createdAt: Timestamp.now(), theme: 'light', lastDrawDate: null, fvUnlocked: false,
-          fvStatus: 'unregistered', email: user?.email || 'Sem e-mail'
+          createdAt: Timestamp.now(), theme: 'light', lastDrawDate: null, 
+          fvUnlocked: isVip,
+          fvStatus: initialStatus, email: user?.email || 'Sem e-mail'
         });
-        setFvAccessStatus('unregistered');
-        setFvUnlocked(false);
+        
+        setFvAccessStatus(initialStatus);
+        setFvUnlocked(isVip);
+        if (isVip) loadMod2Config();
       }
     } catch (error) { console.error('Erro ao carregar dados:', error); }
   };
-
+  
   const handleRequestAccess = async () => {
     if (!requestName.trim() || !requestUnit.trim()) return alert("Por favor, preencha seu nome e a unidade.");
     try {
@@ -3134,7 +3159,7 @@ function App() {
 
                 <div style={{ textAlign: 'left', marginBottom: '2rem' }}>
                   <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', fontSize: '0.9rem' }}>Unidade (Sede/Filial)</label>
-                  <input type="text" value={requestUnit} onChange={(e) => setRequestUnit(e.target.value)} placeholder="Ex: Barra do Garças..." style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', border: `1px solid ${isDark ? '#555' : '#ccc'}`, background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
+                  <input type="text" value={requestUnit} onChange={(e) => setRequestUnit(e.target.value)} placeholder="Ex: Sede Nacional..." style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', border: `1px solid ${isDark ? '#555' : '#ccc'}`, background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
                 </div>
 
                 <button onClick={handleRequestAccess} style={{ width: '100%', padding: '1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
