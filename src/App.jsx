@@ -275,6 +275,7 @@ function App() {
   const [newGdveTaskTarget, setNewGdveTaskTarget] = useState(1);
   const [newGdveTaskIsCycle, setNewGdveTaskIsCycle] = useState(false);
   const [fvGdveCycleStatus, setFvGdveCycleStatus] = useState({});
+  const [expandedCartaItems, setExpandedCartaItems] = useState({});
   
   // --- ESTADOS DE LEITURA E ESTUDOS ---
   const [books, setBooks] = useState([]);
@@ -1030,13 +1031,17 @@ function App() {
   };
 
   const handleLogoClick = () => {
+    // 1. Leva para a aba Diário e sobe a tela
+    setView('today');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // 2. Mantém a trava de segurança oculta dos cliques
     setFvClickCount(prev => prev + 1);
-    
     if (fvClickCount >= 6) {
       setFvUnlocked(true);
-      loadMod2Config(uid);
+      loadMod2Config(user?.uid);
       setFvClickCount(0);
-      alert('🔓 Modo FV desbloqueado na sessão!');
+      alert('🔓 Modo FV ativado na sessão!');
     }
     setTimeout(() => setFvClickCount(0), 3000);
   };
@@ -2844,12 +2849,11 @@ function App() {
   const StreakIcon = streakInfo.current.icon; 
   const getFvMonthlyTotals = () => {
     const hoje = new Date();
-    const trintaDiasAtras = new Date();
-    trintaDiasAtras.setDate(hoje.getDate() - 30);
+    const startOfMonth = new Date(hoje.getFullYear(), hoje.getMonth(), 1); // Dia 1 do mês atual
 
     const cicloEntries = entries.filter(e => {
       const d = new Date(e.date + 'T12:00:00');
-      return d >= trintaDiasAtras && d <= hoje;
+      return d >= startOfMonth && d <= hoje;
     });
 
     const sumMinutes = (key) => cicloEntries.reduce((acc, curr) => {
@@ -3270,20 +3274,16 @@ function App() {
                 )}
               </div>
 
-              {/* DROPDOWN 2: A FORJA */}
-              <div 
-                style={{ position: 'relative', display: 'flex', flexDirection: 'column' }} 
-                onMouseLeave={() => setShowPracticesMenu(false)}
+              {/* BOTÃO MISSÕES */}
+              <button 
+                onClick={() => setView('tasks')} 
+                style={{ padding: '0.5rem 1rem', background: view === 'tasks' ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: view === 'tasks' ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s' }}
               >
-                <button 
-                  onMouseEnter={() => setShowPracticesMenu(true)}
-                  onClick={() => setShowPracticesMenu(!showPracticesMenu)} 
-                  style={{ padding: '0.5rem 1rem', background: ['tasks'].includes(view) ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: ['tasks', 'goals', 'biblioteca'].includes(view) ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s' }}
-                >
-                  <Swords size={16} /> Missões {showPracticesMenu ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                </button>
+                <Swords size={16} /> Missões
+              </button>
 
-                {fvUnlocked && (
+              {/* BOTÃO GDVE (Visível apenas para FV) */}
+              {fvUnlocked && (
                 <button 
                   onClick={() => setView('gdve')} 
                   style={{ padding: '0.5rem 1rem', background: view === 'gdve' ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'transparent', color: view === 'gdve' ? '#000' : '#FFD700', border: '2px solid #FFD700', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: view === 'gdve' ? '0 0 15px rgba(255, 215, 0, 0.4)' : 'none', transition: 'all 0.2s' }}
@@ -3291,8 +3291,6 @@ function App() {
                   <Shield size={16} /> GDVE
                 </button>
               )}
-
-              </div>
 
 
               {/* ATALHO RÁPIDO DO TRATAK (GLOBAL) */}
@@ -3541,23 +3539,110 @@ function App() {
               </div>
             )}
 
-            {/* BLOCO 3: A ESCALADA (AS REFLEXÕES DO FV) */}
+            {/* O TOTALIZADOR MENSAL NO TOPO DO DIÁRIO */}
+            {fvUnlocked && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', background: isDark ? 'rgba(0,0,0,0.3)' : '#fdfbf7', padding: '1.2rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                {(() => {
+                  const totals = getFvMonthlyTotals();
+                  return (
+                    <>
+                      <div style={{ textAlign: 'center' }}>
+                        <span style={{ fontSize: '0.75rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', fontWeight: 'bold' }}>Voluntariado no Mês</span>
+                        <strong style={{ display: 'block', fontSize: '1.4rem', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif" }}>{totals.voluntariado}</strong>
+                      </div>
+                      <div style={{ textAlign: 'center', borderLeft: isMobile ? 'none' : `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`, borderTop: isMobile ? `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}` : 'none', paddingTop: isMobile ? '0.8rem' : '0' }}>
+                        <span style={{ fontSize: '0.75rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', fontWeight: 'bold' }}>Aulas Assistidas</span>
+                        <strong style={{ display: 'block', fontSize: '1.4rem', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif" }}>{totals.assistida}</strong>
+                      </div>
+                      <div style={{ textAlign: 'center', borderLeft: isMobile ? 'none' : `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`, borderTop: isMobile ? `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}` : 'none', paddingTop: isMobile ? '0.8rem' : '0' }}>
+                        <span style={{ fontSize: '0.75rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', fontWeight: 'bold' }}>Aulas Ministradas</span>
+                        <strong style={{ display: 'block', fontSize: '1.4rem', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif" }}>{totals.ministrada}</strong>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+
+            {/* BLOCO 3: A ESCALADA (CARTA DE DEGRAU INTELIGENTE) */}
             {fvUnlocked && fvConfig && (
-              <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'rgba(255, 255, 255, 0.9)', padding: '2rem', borderRadius: '16px', border: '1px solid rgba(255, 215, 0, 0.4)' }}>
-                <h3 style={{ margin: '0 0 1.5rem 0', color: isDark ? '#FFD700' : '#996515', fontSize: '1.4rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.75rem' }}><Mountain size={28} /> {fvConfig.secaoReflexao}</h3>
-                <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', marginBottom: '2rem' }}>O diário da Carta de Degrau. Responda com frieza técnica e clareza.</p>
+              <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'rgba(255, 255, 255, 0.9)', padding: '2rem', borderRadius: '16px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.4)' : '#FFD700'}`, boxShadow: '0 4px 15px rgba(255,215,0,0.1)' }}>
+                <h3 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#FFD700' : '#996515', fontSize: '1.4rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.75rem' }}><Mountain size={28} /> {fvConfig.secaoReflexao}</h3>
+                <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', marginBottom: '2rem', fontSize: '0.95rem' }}>Ao preencher, o bloco ficará cinza para descansar sua mente.</p>
 
-                {fvConfig.itensCarta.map(item => (
-                  <div key={item.id} style={{ marginBottom: '2rem' }}>
-                    <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '1.1rem', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif", textTransform: 'uppercase' }}>{item.label}</label>
-                    <p style={{ fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#888', marginBottom: '0.75rem', fontStyle: 'italic', borderLeft: `2px solid ${isDark ? 'rgba(212,175,55,0.3)' : 'rgba(139,115,85,0.3)'}`, paddingLeft: '0.8rem' }}>{item.desc}</p>
-                    <textarea value={fvDaily[item.id] || ''} onChange={(e) => handleFvDailyTextChange(item.id, e.target.value)} placeholder="Registro..." rows={3} style={{ width: '100%', padding: '1rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(0,0,0,0.2)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical' }} />
-                  </div>
-                ))}
+                {fvConfig.itensCarta.map(item => {
+                  const isItem2 = item.id === 'item2';
+                  const subKeys = ['instintos', 'idade', 'enfermidade', 'animo', 'humor', 'ideias', 'sentimentos', 'ambiente'];
+                  const subLabels = ['Instintos (Conserv. / Procriação)', 'Idade', 'Enfermidade', 'Ânimo', 'Humor', 'Ideias', 'Sentimentos', 'Ambiente'];
+                  
+                  // Lógica de Preenchimento: Se Item 2, olha os pedaços. Se os outros, olha o texto.
+                  const isFilled = isItem2 
+                    ? subKeys.some(k => (fvDaily[`item2_${k}`] || '').trim().length > 0)
+                    : (fvDaily[item.id] || '').trim().length > 0;
+                    
+                  // Lógica de Expansão: Se está preenchido, o Padrão é Fechado. Se está vazio, o Padrão é Aberto.
+                  const actuallyExpanded = expandedCartaItems[item.id] !== undefined ? expandedCartaItems[item.id] : !isFilled;
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.5rem', marginBottom: '2rem', padding: '1.5rem', background: isDark ? 'rgba(212,175,55,0.05)' : 'rgba(255,245,220,0.5)', borderRadius: '12px' }}>
+                  // Lógica de Cores Inteligentes
+                  const borderColor = isFilled ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)') : (isDark ? 'rgba(212, 175, 55, 0.5)' : '#996515');
+                  const headerColor = isFilled ? (isDark ? '#777' : '#aaa') : (isDark ? '#FFD700' : '#996515');
+                  const bgColor = isFilled ? (isDark ? 'rgba(0,0,0,0.1)' : '#f9f9f9') : (isDark ? 'rgba(212, 175, 55, 0.05)' : 'white');
+
+                  return (
+                    <div key={item.id} style={{ marginBottom: '1rem', background: bgColor, borderRadius: '8px', border: `1px solid ${borderColor}`, transition: 'all 0.3s ease', overflow: 'hidden' }}>
+                      
+                      {/* CABEÇALHO CLICÁVEL */}
+                      <div 
+                        onClick={() => setExpandedCartaItems(prev => ({ ...prev, [item.id]: !actuallyExpanded }))}
+                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', cursor: 'pointer', background: isFilled ? 'transparent' : (isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,245,220,0.3)') }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          {isFilled && <CheckCircle size={18} color={isDark ? '#555' : '#aaa'} />}
+                          <h4 style={{ margin: 0, fontWeight: 600, fontSize: '1.05rem', color: headerColor, fontFamily: "'Cinzel', serif", textTransform: 'uppercase', textDecoration: isFilled ? 'line-through' : 'none' }}>
+                            {item.label}
+                          </h4>
+                        </div>
+                        {actuallyExpanded ? <ChevronUp size={20} color={headerColor} /> : <ChevronDown size={20} color={headerColor} />}
+                      </div>
+
+                      {/* CORPO EXPANSÍVEL */}
+                      {actuallyExpanded && (
+                        <div className="animate-fadeIn" style={{ padding: '0 1.2rem 1.2rem 1.2rem' }}>
+                          <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#888', marginBottom: '1rem', fontStyle: 'italic' }}>{item.desc}</p>
+                          
+                          {isItem2 ? (
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+                              {subKeys.map((subK, i) => (
+                                <div key={subK}>
+                                  <label style={{ display: 'block', fontSize: '0.8rem', color: isDark ? '#d4af37' : '#996515', marginBottom: '0.4rem', fontWeight: 'bold' }}>{subLabels[i]}</label>
+                                  <textarea 
+                                    value={fvDaily[`item2_${subK}`] || ''} 
+                                    onChange={(e) => handleFvDailyTextChange(`item2_${subK}`, e.target.value)} 
+                                    placeholder="Análise..." 
+                                    rows={2} 
+                                    style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, borderRadius: '6px', fontSize: '0.9rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(0,0,0,0.3)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical' }} 
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <textarea 
+                              value={fvDaily[item.id] || ''} 
+                              onChange={(e) => handleFvDailyTextChange(item.id, e.target.value)} 
+                              placeholder="Registro..." 
+                              rows={3} 
+                              style={{ width: '100%', padding: '1rem', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(0,0,0,0.3)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical' }} 
+                            />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.5rem', margin: '2rem 0', padding: '1.5rem', background: isDark ? 'rgba(212,175,55,0.05)' : 'rgba(255,245,220,0.5)', borderRadius: '12px' }}>
                   <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.95rem', color: isDark ? '#FFD700' : '#996515' }}>Voluntariado Hoje</label>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.95rem', color: isDark ? '#FFD700' : '#996515' }}>Horas de Voluntariado</label>
                     <input type="time" value={fvDaily.horasVoluntariado || ''} onChange={(e) => handleFvDailyTextChange('horasVoluntariado', e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212,175,55,0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810' }} />
                   </div>
                   <div>
@@ -3575,6 +3660,7 @@ function App() {
                 </button>
               </div>
             )}
+            
 
             {/* BLOCO 4: EPÍLOGO NOTURNO (LIMPO) */}
             <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
