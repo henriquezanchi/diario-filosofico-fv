@@ -1771,7 +1771,7 @@ function App() {
       } else {
         const initialConfig = {
           tituloAba: "Registro de Ciclo",
-          secaoReflexao: "A Escalada (Reflexões - CD)",
+          secaoReflexao: "Degrau (A Escalada - Reflexões)",
           itensCarta: [
             { id: 'item1', label: '1 – VARRER POR DENTRO', desc: 'Exame da personalidade, descobrir os nós, buscar as causas que os geraram, encontrar a fórmula de limpeza (redenção) e aplicá-las.' },
             { id: 'item2', label: '2 – AS LEIS DA MATÉRIA', desc: 'Descobrir como atuam em nós os ciclos da matéria (para não nos afetarem): instintos de conservação/procriação, idade, enfermidade, ânimo, humor, ideias, sentimentos, ambiente.' },
@@ -3480,7 +3480,7 @@ function App() {
                       <div onClick={() => setIsPraticasOpen(!isPraticasOpen)} style={getHeaderStyle(isForjaFilled, isPraticasOpen)}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                           <Award size={28} color="#FFD700" />
-                          <h2 style={{ margin: 0, fontSize: 'clamp(1.2rem, 3vw, 1.5rem)', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif", textDecoration: isForjaFilled && !isPraticasOpen ? 'line-through' : 'none' }}>A Forja (Práticas)</h2>
+                          <h2 style={{ margin: 0, fontSize: 'clamp(1.2rem, 3vw, 1.5rem)', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif", textDecoration: isForjaFilled && !isPraticasOpen ? 'line-through' : 'none' }}> Práticas (A Forja)</h2>
                         </div>
                         {isPraticasOpen ? <ChevronUp size={24} color={isDark ? '#FFD700' : '#996515'} /> : <ChevronDown size={24} color={isDark ? '#FFD700' : '#996515'} />}
                       </div>
