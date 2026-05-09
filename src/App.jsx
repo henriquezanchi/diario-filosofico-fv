@@ -218,6 +218,28 @@ function App() {
   const [isGdveMóduloOpen, setIsGdveMóduloOpen] = useState(false);
   const [isGdveDesafiosOpen, setIsGdveDesafiosOpen] = useState(false);
 
+  // --- ESTADOS FIXOS (PERFIL FV - Preenchidos apenas uma vez) ---
+  const [fvUnidade, setFvUnidade] = useState('');
+  const [fvCondicao, setFvCondicao] = useState('');
+  const [fvDestinatarioCd, setFvDestinatarioCd] = useState('');
+
+  // --- ESTADOS DINÂMICOS DO RELATÓRIO MENSAL FV ---
+  const [isGdveRelatorioOpen, setIsGdveRelatorioOpen] = useState(false);
+  const [monthlyReport, setMonthlyReport] = useState({
+    // Ideológico
+    crmMensal: '', reunioesRaio: '', outrasCrm: '', bastioesLidos: '',
+    // Escolástica
+    diasAula: '', praticasPsicologia: '', estudandoMaterias: '', livroFilosofico: '',
+    // Voluntariado
+    frequenciaVoluntariado: '', fezGn: '', ministrouAulas: '', escalasLimpeza: '', propaganda: [],
+    // Financeiro
+    contribuicao: '', doacao: '',
+    // Secretarias
+    secretariaAtuacao: '', secretariaReuniao: '', secretariaMembros: '',
+    // Análise e Reflexão
+    pontosPositivos: '', desafioCrescimento: ''
+  });
+
   // Tarefas e Metas
   const [customTasks, setCustomTasks] = useState([]);
   const [newTaskName, setNewTaskName] = useState('');
@@ -1698,6 +1720,11 @@ function App() {
         setFvGdveReuniao(data.fvGdveReuniao || data.gdveReuniao || '');
         setFvMasterName(data.fvMasterName || data.masterName || '');
         setFvLastMeetingDate(data.fvLastMeetingDate || data.lastMeetingDate || '');
+        
+        // --- NOVOS DADOS FIXOS DO PERFIL ---
+        setFvUnidade(data.fvUnidade || '');
+        setFvCondicao(data.fvCondicao || '');
+        setFvDestinatarioCd(data.fvDestinatarioCd || '');
 
         setFvGdveTasks(data.gdveTasks || []);
         setFvGdveCycleStatus(data.gdveCycleStatus || {});
@@ -2227,11 +2254,13 @@ function App() {
       await setDoc(docRef, { 
         lastCartaDate: fvLastCartaDate, 
         nextCartaDate: fvNextCartaDate,
-        gdveReuniao: fvGdveReuniao,
         fvMasterName: fvMasterName,
-        fvLastMeetingDate: fvLastMeetingDate
+        fvLastMeetingDate: fvLastMeetingDate,
+        fvUnidade: fvUnidade,
+        fvCondicao: fvCondicao,
+        fvDestinatarioCd: fvDestinatarioCd
       }, { merge: true });
-      alert("Planejamento e dados do Instrutor salvos com sucesso!");
+      alert("✅ Acompanhamento Discipular salvo com sucesso!");
     } catch (error) { console.error("Erro ao salvar datas FV:", error); }
   };
 
@@ -4876,6 +4905,14 @@ function App() {
                     {isGdveMóduloOpen && (
                       <div className="animate-fadeIn" style={{ padding: '0 2rem 2rem 2rem' }}>
                         
+                        {/* Seção Reunião */}
+                        <div style={{ padding: '1rem', background: fvDaily.gdveAttendance ? 'rgba(76, 175, 80, 0.1)' : 'rgba(255, 215, 0, 0.05)', borderRadius: '12px', border: `1px solid ${fvDaily.gdveAttendance ? '#4caf50' : '#FFD700'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                           <span style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 'bold' }}>Reunião Quinzenal:</span>
+                           <button onClick={registerGdveAttendance} style={{ padding: '0.5rem 1rem', background: fvDaily.gdveAttendance ? '#4caf50' : 'transparent', color: fvDaily.gdveAttendance ? 'white' : '#FFD700', border: `1px solid ${fvDaily.gdveAttendance ? '#4caf50' : '#FFD700'}`, borderRadius: '6px', cursor: 'pointer' }}>
+                             {fvDaily.gdveAttendance ? '✓ Presença Confirmada' : 'Marcar Presença'}
+                           </button>
+                        </div>
+
                         {/* Seção Leitura */}
                         <div style={{ marginBottom: '2rem' }}>
                           <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Bastião / Leitura do Ciclo</label>
@@ -4884,14 +4921,6 @@ function App() {
                             {fvConfig?.modulo2?.bancoTemas?.map((b, idx) => <option key={idx} value={b.name}>{b.name}</option>)}
                           </select>
                           {fvGdveBastiaoLink && <a href={fvGdveBastiaoLink} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: '1rem', color: isDark ? '#FFD700' : '#996515', fontWeight: 'bold' }}>🔗 Abrir PDF do Bastião</a>}
-                        </div>
-
-                        {/* Seção Reunião */}
-                        <div style={{ padding: '1rem', background: fvDaily.gdveAttendance ? 'rgba(76, 175, 80, 0.1)' : 'rgba(255, 215, 0, 0.05)', borderRadius: '12px', border: `1px solid ${fvDaily.gdveAttendance ? '#4caf50' : '#FFD700'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                           <span style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 'bold' }}>Reunião Quinzenal:</span>
-                           <button onClick={registerGdveAttendance} style={{ padding: '0.5rem 1rem', background: fvDaily.gdveAttendance ? '#4caf50' : 'transparent', color: fvDaily.gdveAttendance ? 'white' : '#FFD700', border: `1px solid ${fvDaily.gdveAttendance ? '#4caf50' : '#FFD700'}`, borderRadius: '6px', cursor: 'pointer' }}>
-                             {fvDaily.gdveAttendance ? '✓ Presença Confirmada' : 'Marcar Presença'}
-                           </button>
                         </div>
 
                         {/* Seção Práticas do Grupo */}
