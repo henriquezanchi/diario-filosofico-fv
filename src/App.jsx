@@ -332,7 +332,6 @@ function App() {
   const [isPrologoOpen, setIsPrologoOpen] = useState(false);
   const [isPraticasOpen, setIsPraticasOpen] = useState(false);
   const [isEscaladaOpen, setIsEscaladaOpen] = useState(false);
-  const [isHorasOpen, setIsHorasOpen] = useState(false);
   const [isEpilogoOpen, setIsEpilogoOpen] = useState(false);
 
   // --- ESTADOS DE LEITURA E ESTUDOS ---
@@ -341,10 +340,6 @@ function App() {
   const [newBook, setNewBook] = useState({ title: '', author: '', currentPage: 0, totalPages: 0, link: '', notes: '' });
   const [shelfSearchTerm, setShelfSearchTerm] = useState(''); // Estado para busca na estante
   const [editingBookId, setEditingBookId] = useState(null);
-  const [activeBookForAi, setActiveBookForAi] = useState(null);
-  const [bookUserNote, setBookUserNote] = useState('');
-  const [bookAiInsight, setBookAiInsight] = useState(null);
-  const [isGeneratingBookAi, setIsGeneratingBookAi] = useState(false);
   const [bookSearchQuery, setBookSearchQuery] = useState('');
   const [bookSearchResults, setBookSearchResults] = useState([]);
   const [isSearchingBooks, setIsSearchingBooks] = useState(false);
@@ -357,8 +352,6 @@ function App() {
   const [discardedSuggestions, setDiscardedSuggestions] = useState([]); // Memória do Oráculo
   const [selectedForDeletion, setSelectedForDeletion] = useState([]); // Exclusão em lote
   const [showReadBooks, setShowReadBooks] = useState(false); // Gaveta sanfona de Lidos
-  const [socraticChat, setSocraticChat] = useState([]); // Histórico do chat
-  const [chatInput, setChatInput] = useState(''); // Digitação do chat
   const [isGeneratingRecommendation, setIsGeneratingRecommendation] = useState(false);
   const AMAZON_AFFILIATE_ID = 'filosofiae0a5-20'; // 👈 SUBSTITUA PELO SEU ID DE AFILIADO REAL
   const totalForgedPages = books.reduce((acc, book) => acc + (book.currentPage || 0), 0);
@@ -422,101 +415,63 @@ function App() {
   const favoriteTheme = getFavoriteTheme();
   const finishedBooksCount = books.filter(b => b.totalPages > 0 && b.currentPage >= b.totalPages).length;
   const getAuthorStats = () => {
+    // O Cânone: Obras Magnas de cada autor (Você pode adicionar mais nomes aqui no futuro se quiser)
+    const AUTHOR_CANON = {
+      'platão': 35, 'platao': 35,
+      'sêneca': 14, 'seneca': 14,
+      'helena petrovna blavatsky': 6, 'h. p. blavatsky': 6, 'blavatsky': 6,
+      'jorge ángel livraga': 15, 'j. a. livraga': 15, 'jorge angel livraga': 15,
+      'délia steinberg guzmán': 10, 'delia steinberg guzman': 10,
+      'marco aurélio': 1, 'marco aurelio': 1, // Meditações
+      'epicteto': 2, // Discursos e Enchiridion
+      'aristóteles': 30, 'aristoteles': 30,
+      'sri ram': 5,
+      'immanuel kant': 15,
+      'friedrich nietzsche': 10,
+      'carl jung': 12
+    };
+
     const stats = {};
     books.forEach(b => {
       if (!b.author || b.author === 'Autor desconhecido') return;
-      if (!stats[b.author]) stats[b.author] = { total: 0, read: 0, books: 0 };
-      stats[b.author].total += (b.totalPages || 0);
-      stats[b.author].read += (b.currentPage || 0);
-      stats[b.author].books += 1;
+      
+      const isFinished = b.status === 'lido' || b.finishedDate || (b.totalPages > 0 && b.currentPage >= b.totalPages);
+      const isReading = b.status === 'lendo' || (b.currentPage > 0 && b.currentPage < b.totalPages);
+      
+      if (!stats[b.author]) stats[b.author] = { totalPages: 0, readPages: 0, readBooks: 0 };
+      
+      stats[b.author].totalPages += (b.totalPages || 0);
+      stats[b.author].readPages += (b.currentPage || 0);
+      
+      // Conta como obra explorada se ele já leu ou está lendo
+      if (isFinished || isReading) {
+        stats[b.author].readBooks += 1;
+      }
     });
+
     return Object.entries(stats)
-      .filter(([_, data]) => data.total > 0)
-      .sort((a, b) => b[1].read - a[1].read)
-      .slice(0, 5); // Mostra o Top 5 autores
+      .filter(([_, data]) => data.readBooks > 0) // Só mostra quem você já começou a ler
+      .map(([author, data]) => {
+        const authorKey = author.toLowerCase().trim();
+        
+        // Busca no Cânone. Se o autor não estiver na lista (ex: William Buck), o "Total" é a quantidade que você tem na estante.
+        const totalWorks = AUTHOR_CANON[authorKey] || Math.max(data.readBooks, 1);
+        
+        let depthPerc = 0;
+        if (data.totalPages > 0) {
+           const pageCompletion = data.readPages / data.totalPages; 
+           depthPerc = Math.round((data.readBooks / totalWorks) * pageCompletion * 100);
+        }
+        
+        if (depthPerc > 100) depthPerc = 100;
+
+        return { author, ...data, totalWorks, depthPerc };
+      })
+      .sort((a, b) => b.depthPerc - a.depthPerc)
+      .slice(0, 6); // Mostra o Top 6 autores
   };
+ 
 
-// --- MOTOR DO CONVITE SOCRÁTICO PÓS-LEITURA ---
-  const [postReadInvite, setPostReadInvite] = useState(null);
-  const [inviteTopics, setInviteTopics] = useState(null);
-  const [isGeneratingTopics, setIsGeneratingTopics] = useState(false);
-
-  const generateTopicsForInvite = async (livro) => {
-    if (!user) return;
-    setIsGeneratingTopics(true);
-    setInviteTopics(null);
-    
-    const prompt = `Atue como um Tutor Socrático. O aluno está lendo "${livro.title}" de ${livro.author}. Ele acabou de ler até a página ${livro.currentPage} de ${livro.totalPages} (aprox. ${Math.round((livro.currentPage/livro.totalPages)*100)}% da obra). 
-    Sugira 3 tópicos, conceitos ou dúvidas muito breves (1 linha cada) que ele provavelmente encontrou APENAS nestas páginas lidas. 
-    AVISO ESTREITO: NÃO DÊ SPOILERS do final do livro ou de eventos futuros. Baseie-se apenas no arco inicial/médio até esta página.
-    Retorne ESTRITAMENTE um array JSON de strings. Exemplo: ["A atitude do personagem X", "O conceito de Y", "Uma frase que me marcou foi..."]`;
-    
-    try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, { 
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json" } }) 
-      });
-      const data = await response.json();
-      setInviteTopics(JSON.parse(data.candidates[0].content.parts[0].text));
-    } catch (e) {
-      setInviteTopics(["Qual foi a principal ideia destas páginas?", "Teve alguma frase que chamou sua atenção?", "Ficou alguma dúvida sobre o texto?"]);
-    } finally {
-      setIsGeneratingTopics(false);
-    }
-  };
-
-  // --- MOTOR DE CHAT SOCRÁTICO ---
-  const runSocraticTutor = async (livro, topic = '') => {
-    if(!aiConsent) return alert('Autorize a IA nas Configurações.');
-    setActiveBookForAi(livro);
-    setSocraticChat([]); 
-    setIsGeneratingBookAi(true);
-
-    const systemPrompt = `Atue como um Tutor Socrático. O aluno leu "${livro.title}" (Pág ${livro.currentPage}). ${topic ? `Ele quer debater sobre: ${topic}.` : 'Faça uma provocação inicial sobre a obra.'} NÃO dê respostas prontas. Termine SEMPRE com uma pergunta.`;
-
-    try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: systemPrompt }] }] })
-      });
-      const data = await response.json();
-      setSocraticChat([{ role: 'model', text: data.candidates[0].content.parts[0].text }]);
-    } catch(e) {
-      setSocraticChat([{ role: 'model', text: "O Oráculo está em silêncio. Verifique sua conexão." }]);
-    } finally {
-      setIsGeneratingBookAi(false);
-    }
-  };
-
-  const sendSocraticMessage = async () => {
-    if (!chatInput.trim() || isGeneratingBookAi) return;
-    
-    const newChat = [...socraticChat, { role: 'user', text: chatInput }];
-    setSocraticChat(newChat);
-    setChatInput('');
-    setIsGeneratingBookAi(true);
-
-    const history = newChat.map(msg => ({
-      role: msg.role === 'model' ? 'model' : 'user',
-      parts: [{ text: msg.text }]
-    }));
-    
-    // Injeção de regra
-    history[history.length - 1].parts[0].text += ` \n\n[Regra do Sistema: Mantenha o diálogo Socrático. Termine com uma pergunta.]`;
-
-    try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: history })
-      });
-      const data = await response.json();
-      setSocraticChat([...newChat, { role: 'model', text: data.candidates[0].content.parts[0].text }]);
-    } catch(e) {
-      setSocraticChat([...newChat, { role: 'model', text: "A conexão Socrática falhou. Tente novamente." }]);
-    } finally {
-      setIsGeneratingBookAi(false);
-    }
-  };
 
   // O Motor de Ranks Literários
   const getReadingRank = (pages) => {
@@ -1056,7 +1011,7 @@ function App() {
     setBooks([]); 
     setFvDaily({
       item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
-      horasVoluntariado: '', horasAula: '', gdveTasksStatus: {}, gdveAttendance: false,
+      horasVoluntariado: '', horasAulaAssistida: '', horasAulaMinistrada: '', gdveTasksStatus: {}, gdveAttendance: false,
       praticas: { tratak: false, recitarHonra: false, recitar7Fases: false, camara: false, templo: false, porta: false, patioAberto: false, patioColunas: false, santuario: false }
     });
   };
@@ -1399,7 +1354,7 @@ function App() {
         setTodayTasksStatus(data.tasksStatus || {});
         setFvDaily(data.fvDaily || {
           item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
-          horasVoluntariado: '', horasAula: '', gdveTasksStatus: {}, gdveAttendance: false,
+          horasVoluntariado: '', horasAulaAssistida: '', horasAulaMinistrada: '', gdveTasksStatus: {}, gdveAttendance: false,
           praticas: { tratak: false, recitarHonra: false, recitar7Fases: false, camara: false, templo: false, porta: false, patioAberto: false, patioColunas: false, santuario: false }
         });
       } else {
@@ -2448,23 +2403,6 @@ function App() {
     }
   };
 
-  const saveFvHours = async () => {
-    if (user) {
-      const todayKey = selectedDate;
-      try {
-        const payload = {
-          userId: user.uid,
-          date: todayKey,
-          fvDaily: fvDaily, 
-          fvHoursTimestamp: Timestamp.now()
-        };
-        await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), payload, { merge: true }); 
-        await loadAllEntries(user.uid); 
-        alert('✅ Balanço de horas e voluntariado salvo com sucesso!');
-      } catch (error) { console.error(error); alert('Erro ao salvar as horas.'); }
-    }
-  };
-
   const saveFvPractices = async () => {
     if (user) {
       const todayKey = selectedDate;
@@ -3398,13 +3336,6 @@ function App() {
               });
               const escaladaStatus = itensEscaladaFeitos === 0 ? 'empty' : (itensEscaladaFeitos === fvCartaItems.length ? 'full' : 'partial');
 
-              // Juiz das Horas
-              const h1 = (savedFvDaily.horasVoluntariado || '').trim().length > 0 ? 1 : 0;
-              const h2 = (savedFvDaily.horasAulaAssistida || '').trim().length > 0 ? 1 : 0;
-              const h3 = (savedFvDaily.horasAulaMinistrada || '').trim().length > 0 ? 1 : 0;
-              const horasFeitas = h1 + h2 + h3;
-              const horasStatus = horasFeitas === 0 ? 'empty' : 'full';
-
               const getHeaderStyle = (status, isOpen) => ({
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem 2rem', cursor: 'pointer', 
                 background: isOpen ? 'transparent' : (status === 'full' ? 'transparent' : (status === 'partial' ? (isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)') : (isDark ? 'rgba(0,0,0,0.2)' : '#fdfbf7')))
@@ -4209,22 +4140,23 @@ function App() {
                 );
               })()}
               
-              {/* ÍNDICE DE PROFUNDIDADE POR AUTOR */}
+                  {/* ÍNDICE DE PROFUNDIDADE POR AUTOR */}
                   <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : '#f9f9f9', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.1)' : '#eee'}`, marginBottom: '2.5rem' }}>
                     <h4 style={{ margin: '0 0 1.2rem 0', fontFamily: "'Cinzel', serif", color: isDark ? '#b8a88a' : '#6b5744', fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Índice de Profundidade por Autor</h4>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
-                      {getAuthorStats().map(([author, data]) => {
-                        const perc = Math.round((data.read / data.total) * 100);
+                      {getAuthorStats().map((stat) => {
                         return (
-                          <div key={author}>
+                          <div key={stat.author}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.4rem' }}>
-                              <strong style={{ color: isDark ? '#f0e6d2' : '#2c1810' }}>{author}</strong>
-                              <span style={{ color: isDark ? '#d4af37' : '#6b4423' }}>{perc}%</span>
+                              <strong style={{ color: isDark ? '#f0e6d2' : '#2c1810' }}>{stat.author}</strong>
+                              <span style={{ color: isDark ? '#d4af37' : '#6b4423' }}>{stat.depthPerc}%</span>
                             </div>
                             <div style={{ width: '100%', height: '4px', background: isDark ? 'rgba(255,255,255,0.05)' : '#e0e0e0', borderRadius: '2px' }}>
-                              <div style={{ width: `${perc}%`, height: '100%', background: isDark ? '#d4af37' : '#8b7355', borderRadius: '2px' }}></div>
+                              <div style={{ width: `${stat.depthPerc}%`, height: '100%', background: isDark ? '#d4af37' : '#8b7355', borderRadius: '2px', transition: 'width 1s ease-in-out' }}></div>
                             </div>
-                            <span style={{ fontSize: '0.7rem', color: '#888' }}>{data.books} {data.books === 1 ? 'obra' : 'obras'}</span>
+                            <span style={{ fontSize: '0.7rem', color: '#888', display: 'block', marginTop: '0.3rem' }}>
+                              {stat.readBooks} de {stat.totalWorks} {stat.totalWorks === 1 ? 'obra magna' : 'obras magnas'}
+                            </span>
                           </div>
                         );
                       })}
