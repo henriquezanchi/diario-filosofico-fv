@@ -3386,7 +3386,7 @@ function App() {
               const h2 = (savedFvDaily.horasAulaAssistida || '').trim().length > 0 ? 1 : 0;
               const h3 = (savedFvDaily.horasAulaMinistrada || '').trim().length > 0 ? 1 : 0;
               const horasFeitas = h1 + h2 + h3;
-              const horasStatus = horasFeitas === 0 ? 'empty' : (horasFeitas === 3 ? 'full' : 'partial');
+              const horasStatus = horasFeitas === 0 ? 'empty' : 'full';
 
               // 3. O Pincel Mágico: Transforma o Status em Design Visual
               const getBlockStyle = (status, isOpen, activeBorder) => {
@@ -3484,6 +3484,12 @@ function App() {
                                     <h4 style={{ margin: '0', color: isDark ? '#d4af37' : '#6b4423', fontSize: '1.1rem', fontFamily: "'Cinzel', serif" }}>{selectedVirtue}</h4>
                                     {isTodayVirtueExpanded ? <ChevronUp size={20} color={isDark ? '#d4af37' : '#6b4423'} /> : <ChevronDown size={20} color={isDark ? '#d4af37' : '#6b4423'} />}
                                   </div>
+                                  
+                                  {/* A DESCRIÇÃO CURTA DE VOLTA AQUI */}
+                                  <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.95rem', color: isDark ? '#c8b896' : '#6b5744', fontStyle: 'italic' }}>
+                                    {virtues.find(v => v.name === selectedVirtue)?.shortDesc}
+                                  </p>
+
                                   {isTodayVirtueExpanded && (
                                     <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}` }}>
                                       <p style={{ fontSize: '0.95rem', color: isDark ? '#f0e6d2' : '#2c1810', marginBottom: '1rem', lineHeight: '1.6' }}>{virtues.find(v => v.name === selectedVirtue)?.description}</p>
