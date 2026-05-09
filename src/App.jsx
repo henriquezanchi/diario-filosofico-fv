@@ -232,14 +232,26 @@ function App() {
     dataCrm: '', crmHora: '', crmFim: ''
   });
 
-  // Função auxiliar para marcar/desmarcar múltiplos dias de aula ministrada
+  // Função auxiliar para marcar/desmarcar múltiplos dias de aula ministrada e seus horários
   const handleDiasMinistradosToggle = (diaStr) => {
     setFvCalendar(prev => {
       const dias = prev.aulaMinistradaDias || [];
-      return {
-        ...prev,
-        aulaMinistradaDias: dias.includes(diaStr) ? dias.filter(d => d !== diaStr) : [...dias, diaStr]
-      };
+      const tempos = prev.aulaMinistradaTempos || {};
+      
+      if (dias.includes(diaStr)) {
+        // Se já estava marcado, remove o dia e apaga o horário dele
+        const newDias = dias.filter(d => d !== diaStr);
+        const newTempos = { ...tempos };
+        delete newTempos[diaStr];
+        return { ...prev, aulaMinistradaDias: newDias, aulaMinistradaTempos: newTempos };
+      } else {
+        // Se não estava marcado, adiciona o dia e cria um campo de horário vazio para ele
+        return { 
+          ...prev, 
+          aulaMinistradaDias: [...dias, diaStr],
+          aulaMinistradaTempos: { ...tempos, [diaStr]: { inicio: '', fim: '' } }
+        };
+      }
     });
   };
 
@@ -2871,9 +2883,16 @@ function App() {
       if (fv.aulaEdPresenca === 'Sim') totalAssistidaMin += calcDuration(fvCalendar.aulaEdHora, fvCalendar.aulaEdFim);
       if (fv.crmPresenca === 'Sim') totalAssistidaMin += calcDuration(fvCalendar.crmHora, fvCalendar.crmFim);
 
-      // 2. Soma Aulas Ministradas
-      if (fv.aulaMinistradaPresenca === 'Sim') totalMinistradaMin += calcDuration(fvCalendar.aulaMinistradaHora, fvCalendar.aulaMinistradaFim);
-
+      // 2. Soma Aulas Ministradas (Olha para o dia específico em que a aula ocorreu)
+      if (fv.aulaMinistradaPresenca === 'Sim') {
+        const entryDateObj = new Date(entry.date + 'T12:00:00');
+        const dayStr = String(entryDateObj.getDay());
+        const tempos = fvCalendar.aulaMinistradaTempos?.[dayStr];
+        if (tempos) {
+          totalMinistradaMin += calcDuration(tempos.inicio, tempos.fim);
+        }
+      }
+      
       // 3. Soma Voluntariado Manual (Para escalas extras que não são aulas)
       if (fv.horasVoluntariado) {
         const [h, m] = fv.horasVoluntariado.split(':').map(Number);
@@ -5176,22 +5195,43 @@ function App() {
                                </div>
                             </div>
 
-                            {/* Aulas Ministradas */}
+                            {/* Aulas Ministradas (Múltipla Seleção e Horários Individuais) */}
                             <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : '#f9f9f9', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem' }}>
-                               <label style={{ display: 'block', marginBottom: '0.6rem', fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#666', fontWeight: 'bold' }}>Dias em que Ministro Aula</label>
-                               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.8rem' }}>
+                               <label style={{ display: 'block', marginBottom: '0.6rem', fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#666', fontWeight: 'bold' }}>Dias em que Ministro Aula (Múltipla escolha)</label>
+                               
+                               {/* Botões dos Dias */}
+                               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
                                  {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((dia, index) => {
                                    const isSelected = (fvCalendar.aulaMinistradaDias || []).includes(String(index));
                                    return (
-                                     <button key={index} onClick={() => handleDiasMinistradosToggle(String(index))} style={{ padding: '0.5rem 0.8rem', background: isSelected ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: isSelected ? (isDark ? '#000' : '#fff') : (isDark ? '#b8a88a' : '#666'), border: `1px solid ${isSelected ? 'transparent' : '#ccc'}`, borderRadius: '6px', cursor: 'pointer' }}>{dia}</button>
+                                     <button 
+                                       key={index} 
+                                       onClick={() => handleDiasMinistradosToggle(String(index))}
+                                       style={{ padding: '0.5rem 0.8rem', background: isSelected ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: isSelected ? (isDark ? '#000' : '#fff') : (isDark ? '#b8a88a' : '#666'), border: `1px solid ${isSelected ? 'transparent' : '#ccc'}`, borderRadius: '6px', cursor: 'pointer', fontWeight: isSelected ? 'bold' : 'normal' }}
+                                     >
+                                       {dia}
+                                     </button>
                                    )
                                  })}
                                </div>
-                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                 <span style={{ fontSize: '0.85rem', color: isDark ? '#f0e6d2' : '#2c1810' }}>Horário:</span>
-                                 <input type="time" value={fvCalendar.aulaMinistradaHora} onChange={(e) => setFvCalendar({...fvCalendar, aulaMinistradaHora: e.target.value})} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #ccc' }} />
-                                 <span style={{ color: isDark ? '#f0e6d2' : '#2c1810' }}>até</span>
-                                 <input type="time" value={fvCalendar.aulaMinistradaFim} onChange={(e) => setFvCalendar({...fvCalendar, aulaMinistradaFim: e.target.value})} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #ccc' }} />
+
+                               {/* Linhas de Horário que aparecem dependendo do dia marcado */}
+                               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                 {['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'].map((nomeDia, index) => {
+                                    const diaStr = String(index);
+                                    if (!(fvCalendar.aulaMinistradaDias || []).includes(diaStr)) return null;
+                                    
+                                    const tempos = (fvCalendar.aulaMinistradaTempos || {})[diaStr] || { inicio: '', fim: '' };
+                                    
+                                    return (
+                                      <div key={diaStr} className="animate-fadeIn" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', background: isDark ? 'rgba(255,255,255,0.05)' : '#fff', padding: '0.5rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.3)' : '#ddd'}` }}>
+                                        <span style={{ fontSize: '0.85rem', color: isDark ? '#d4af37' : '#6b4423', width: '90px', fontWeight: 'bold' }}>{nomeDia}:</span>
+                                        <input type="time" title="Início" value={tempos.inicio} onChange={(e) => { setFvCalendar(prev => ({ ...prev, aulaMinistradaTempos: { ...prev.aulaMinistradaTempos, [diaStr]: { ...prev.aulaMinistradaTempos?.[diaStr], inicio: e.target.value } } })); }} style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', background: isDark ? 'rgba(26,26,46,0.8)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', border: '1px solid #ccc' }} />
+                                        <span style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.85rem' }}>até</span>
+                                        <input type="time" title="Fim" value={tempos.fim} onChange={(e) => { setFvCalendar(prev => ({ ...prev, aulaMinistradaTempos: { ...prev.aulaMinistradaTempos, [diaStr]: { ...prev.aulaMinistradaTempos?.[diaStr], fim: e.target.value } } })); }} style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', background: isDark ? 'rgba(26,26,46,0.8)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', border: '1px solid #ccc' }} />
+                                      </div>
+                                    )
+                                 })}
                                </div>
                             </div>
 
