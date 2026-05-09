@@ -4772,7 +4772,14 @@ function App() {
               // Juiz de Acompanhamento (Só fica full se salvar tudo)
               const savedEntry = entries.find(e => e.date === selectedDate) || {}; // Para checar cores via "Salvo"
               const planFilled = fvMasterName && fvLastMeetingDate && fvLastCartaDate && fvNextCartaDate;
-              const planStatus = !fvMasterName ? 'empty' : (planFilled ? 'full' : 'partial');
+              let planStatus = !fvMasterName ? 'empty' : (planFilled ? 'full' : 'partial');
+
+              if (fvNextCartaDate) {
+                const hojeStr = getTodayKey();
+                if (fvNextCartaDate < hojeStr) {
+                  planStatus = 'overdue'; // Aciona o alerta vermelho!
+                }
+              }
 
               // Juiz do Módulo GDVE (Bastião + Reunião + Práticas)
               const hasBastiao = fvGdveBastiaoName && fvGdveBastiaoName !== '';
