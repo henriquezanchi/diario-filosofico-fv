@@ -4800,13 +4800,18 @@ function App() {
 
               // Juiz do Módulo GDVE (Bastião + Reunião + Práticas)
               const hasBastiao = fvGdveBastiaoName && fvGdveBastiaoName !== '';
-              const hasReuniao = !!fvDaily.gdveAttendance;
               const hasMissoes = fvGdveTasks.length > 0;
               const missoesCompletas = fvGdveTasks.filter(t => t.isCycle ? fvGdveCycleStatus[t.id] : (fvDaily.gdveTasksStatus?.[t.id] >= t.target)).length;
               
               let gdveStatus = 'empty';
-              if (hasBastiao || hasReuniao || hasMissoes) {
-                gdveStatus = (hasBastiao && hasReuniao && (missoesCompletas === fvGdveTasks.length)) ? 'full' : 'partial';
+              if (hasBastiao || hasMissoes || fvDaily.gdveAttendance) {
+                // A reunião só acontece a cada 15 dias, não pode ser exigência diária!
+                if (hasMissoes) {
+                  gdveStatus = (missoesCompletas === fvGdveTasks.length) ? 'full' : 'partial';
+                } else {
+                  // Se não tem missões, mas escolheu o Bastião, consideramos concluído
+                  gdveStatus = hasBastiao ? 'full' : 'partial';
+                }
               }
 
               // Juiz de Desafios Pessoais
