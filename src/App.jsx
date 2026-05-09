@@ -2726,12 +2726,48 @@ function App() {
     };
   };
 
+    // --- PINCEL MÁGICO UNIVERSAL (Acessível por todas as abas) ---
+      const getBlockStyle = (status, isOpen, activeBorder) => {
+        const corPadrao = activeBorder || (isDark ? '#FFD700' : '#996515');
+        const corConcluido = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)';
 
+        let border = `2px solid ${corPadrao}`;
+        let filter = 'none';
+        let opacity = 1;
+
+        if (status === 'full' && !isOpen) {
+          border = `1px solid ${corConcluido}`;
+          filter = 'grayscale(100%)';
+          opacity = 0.45;
+        } else if (status === 'partial' && !isOpen) {
+          border = `2px dashed ${corPadrao}`;
+          opacity = 0.9;
+        }
+
+        return {
+          background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white',
+          borderRadius: '16px', border, overflow: 'hidden', transition: 'all 0.4s ease',
+          filter, opacity, boxShadow: (status === 'full' && !isOpen) ? 'none' : '0 4px 12px rgba(0,0,0,0.1)'
+        };
+      };
+
+      const getHeaderStyle = (status, isOpen) => ({
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem 2rem', cursor: 'pointer', 
+        background: isOpen ? 'transparent' : (status === 'full' ? 'transparent' : (status === 'partial' ? (isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)') : (isDark ? 'rgba(0,0,0,0.2)' : '#fdfbf7')))
+      });
+
+      const renderTitle = (text, status, isOpen, icon) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {icon}
+          <h2 style={{ margin: 0, fontSize: 'clamp(1.2rem, 3vw, 1.5rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif", textDecoration: status === 'full' && !isOpen ? 'line-through' : 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {text}
+            {status === 'partial' && !isOpen && <span style={{fontSize: '0.8rem', opacity: 0.8, fontStyle: 'italic', fontFamily: 'Georgia, serif'}}>(Em Andamento)</span>}
+          </h2>
+        </div>
+      );
+      // -------------------------------------------------------------
   
   if (!user) {
-
-    
-
     return (
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'linear-gradient(135deg, #f0e6d2 0%, #e8dcc4 100%)', fontFamily: 'Georgia, serif' }}>
         
@@ -3139,36 +3175,6 @@ function App() {
               const h3 = (savedFvDaily.horasAulaMinistrada || '').trim().length > 0 ? 1 : 0;
               const horasFeitas = h1 + h2 + h3;
               const horasStatus = horasFeitas === 0 ? 'empty' : 'full';
-
-              // --- PINCEL MÁGICO UNIVERSAL (Acessível por todas as abas) ---
-              const getBlockStyle = (status, isOpen, activeBorder) => {
-                const corPadrao = activeBorder || (isDark ? '#FFD700' : '#996515');
-                const corConcluido = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)';
-
-                let border = `2px solid ${corPadrao}`;
-                let filter = 'none';
-                let opacity = 1;
-
-                if (status === 'full' && !isOpen) {
-                  border = `1px solid ${corConcluido}`;
-                  filter = 'grayscale(100%)';
-                  opacity = 0.45;
-                } else if (status === 'partial' && !isOpen) {
-                  border = `2px dashed ${corPadrao}`;
-                  opacity = 0.9;
-                }
-
-                return {
-                  background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white',
-                  borderRadius: '16px', border, overflow: 'hidden', transition: 'all 0.4s ease',
-                  filter, opacity, boxShadow: (status === 'full' && !isOpen) ? 'none' : '0 4px 12px rgba(0,0,0,0.1)'
-                };
-              };
-
-              const getHeaderStyle = (status, isOpen) => ({
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem 2rem', cursor: 'pointer', 
-                background: isOpen ? 'transparent' : (status === 'full' ? 'transparent' : (status === 'partial' ? (isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)') : (isDark ? 'rgba(0,0,0,0.2)' : '#fdfbf7')))
-              });
 
               const getHeaderStyle = (status, isOpen) => ({
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem 2rem', cursor: 'pointer', 
