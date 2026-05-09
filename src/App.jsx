@@ -4816,7 +4816,7 @@ function App() {
             {/* 2. GAVETAS DO QUARTEL GENERAL */}
             {(() => {
               // Juiz de Acompanhamento (Checa também se a carta está atrasada)
-              const planFilled = fvMasterName && fvLastMeetingDate && fvLastCartaDate && fvNextCartaDate && fvUnidade && fvCondicao && fvDestinatarioCd;
+              const planFilled = fvMasterName && fvLastMeetingDate && fvLastCartaDate && fvNextCartaDate && fvUnidade && fvCondicao;
               let planStatus = (!fvMasterName && !fvUnidade) ? 'empty' : (planFilled ? 'full' : 'partial');
 
               if (fvNextCartaDate) {
@@ -4883,16 +4883,10 @@ function App() {
                             </div>
                          </div>
 
-                         {/* DADOS DOS INSTRUTORES */}
-                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                            <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Nome do Mestre / Instrutor</label>
-                              <input type="text" value={fvMasterName || ''} onChange={(e) => setFvMasterName(e.target.value)} placeholder="Com quem você se reporta..." style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
-                            </div>
-                            <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Destinatário da Carta (CD)</label>
-                              <input type="text" value={fvDestinatarioCd || ''} onChange={(e) => setFvDestinatarioCd(e.target.value)} placeholder="Para quem envia a CD..." style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
-                            </div>
+                         {/* DADOS DO INSTRUTOR */}
+                         <div style={{ marginBottom: '1.5rem' }}>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Nome do Mestre / Instrutor (Destinatário da CD)</label>
+                            <input type="text" value={fvMasterName || ''} onChange={(e) => setFvMasterName(e.target.value)} placeholder="Com quem você se reporta..." style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
                          </div>
 
                          {/* DATAS DE ENCONTRO E CARTA */}
@@ -4911,7 +4905,13 @@ function App() {
                             </div>
                          </div>
                          
-                         <button onClick={saveFvPlanning} style={{ padding: '0.8rem 1.5rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                         <button 
+                           onClick={() => {
+                             saveFvPlanning();
+                             setIsGdvePlanOpen(false); // Esta linha faz a gaveta fechar!
+                           }} 
+                           style={{ padding: '0.8rem 1.5rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                         >
                            <Save size={18} /> Salvar Dados do Perfil
                          </button>
                       </div>
