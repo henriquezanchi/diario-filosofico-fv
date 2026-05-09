@@ -225,11 +225,11 @@ function App() {
 
   // --- CALENDÁRIO FIXO DE ATIVIDADES ---
   const [fvCalendar, setFvCalendar] = useState({
-    aulaRegularDia: '', aulaRegularHora: '',
-    reuniaoRaioDia: '', reuniaoRaioHora: '',
-    aulaMinistradaDias: [], aulaMinistradaHora: '', // Array para múltiplos dias
-    dataAulaEd: '', // Agora é uma data exata
-    dataCrm: ''     // Agora é uma data exata
+    aulaRegularDia: '', aulaRegularHora: '', aulaRegularFim: '',
+    reuniaoRaioDia: '', reuniaoRaioHora: '', reuniaoRaioFim: '',
+    aulaMinistradaDias: [], aulaMinistradaHora: '', aulaMinistradaFim: '',
+    dataAulaEd: '', aulaEdHora: '', aulaEdFim: '',
+    dataCrm: '', crmHora: '', crmFim: ''
   });
 
   // Função auxiliar para marcar/desmarcar múltiplos dias de aula ministrada
@@ -1740,7 +1740,13 @@ function App() {
         setFvGdveReuniao(data.fvGdveReuniao || data.gdveReuniao || '');
         setFvMasterName(data.fvMasterName || data.masterName || '');
         setFvLastMeetingDate(data.fvLastMeetingDate || data.lastMeetingDate || '');
-        setFvCalendar(data.fvCalendar || { aulaRegularDia: '', aulaRegularHora: '', reuniaoRaioDia: '', reuniaoRaioHora: '', aulaMinistradaDias: [], aulaMinistradaHora: '', dataAulaEd: '', dataCrm: '' });
+        setFvCalendar(data.fvCalendar || { 
+          aulaRegularDia: '', aulaRegularHora: '', aulaRegularFim: '',
+          reuniaoRaioDia: '', reuniaoRaioHora: '', reuniaoRaioFim: '',
+          aulaMinistradaDias: [], aulaMinistradaHora: '', aulaMinistradaFim: '',
+          dataAulaEd: '', aulaEdHora: '', aulaEdFim: '',
+          dataCrm: '', crmHora: '', crmFim: '' 
+        });
         
         // --- NOVOS DADOS FIXOS DO PERFIL ---
         setFvUnidade(data.fvUnidade || '');
@@ -2280,7 +2286,7 @@ function App() {
         fvLastMeetingDate: fvLastMeetingDate,
         fvUnidade: fvUnidade,
         fvCondicao: fvCondicao,
-        fvCalendar: fvCalendar
+        fvCalendar: fvCalendar // <--- Esta linha salva o objeto inteiro com os novos horários
       }, { merge: true });
       alert("✅ Acompanhamento Discipular salvo com sucesso!");
     } catch (error) { console.error("Erro ao salvar datas FV:", error); }
@@ -2842,31 +2848,49 @@ function App() {
   const StreakIcon = streakInfo.current.icon; 
   const getFvMonthlyTotals = () => {
     const hoje = new Date();
-    const startOfMonth = new Date(hoje.getFullYear(), hoje.getMonth(), 1); // Dia 1 do mês atual
+    const startOfMonth = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+    const cicloEntries = entries.filter(e => new Date(e.date + 'T12:00:00') >= startOfMonth);
 
-    const cicloEntries = entries.filter(e => {
-      const d = new Date(e.date + 'T12:00:00');
-      return d >= startOfMonth && d <= hoje;
+    // Função auxiliar para calcular minutos entre dois horários "HH:MM"
+    const calcDuration = (inicio, fim) => {
+      if (!inicio || !fim) return 0;
+      const [h1, m1] = inicio.split(':').map(Number);
+      const [h2, m2] = fim.split(':').map(Number);
+      return (h2 * 60 + m2) - (h1 * 60 + m1);
+    };
+
+    let totalAssistidaMin = 0;
+    let totalMinistradaMin = 0;
+    let totalVoluntariadoMin = 0;
+
+    cicloEntries.forEach(entry => {
+      const fv = entry.fvDaily || {};
+      
+      // 1. Soma Aulas Assistidas (Regular + ED + CRM)
+      if (fv.aulaRegularPresenca === 'Sim') totalAssistidaMin += calcDuration(fvCalendar.aulaRegularHora, fvCalendar.aulaRegularFim);
+      if (fv.aulaEdPresenca === 'Sim') totalAssistidaMin += calcDuration(fvCalendar.aulaEdHora, fvCalendar.aulaEdFim);
+      if (fv.crmPresenca === 'Sim') totalAssistidaMin += calcDuration(fvCalendar.crmHora, fvCalendar.crmFim);
+
+      // 2. Soma Aulas Ministradas
+      if (fv.aulaMinistradaPresenca === 'Sim') totalMinistradaMin += calcDuration(fvCalendar.aulaMinistradaHora, fvCalendar.aulaMinistradaFim);
+
+      // 3. Soma Voluntariado Manual (Para escalas extras que não são aulas)
+      if (fv.horasVoluntariado) {
+        const [h, m] = fv.horasVoluntariado.split(':').map(Number);
+        totalVoluntariadoMin += (h * 60 + m);
+      }
     });
 
-    const sumMinutes = (key) => cicloEntries.reduce((acc, curr) => {
-      if (curr.fvDaily && curr.fvDaily[key]) {
-        const [h, m] = curr.fvDaily[key].split(':').map(Number);
-        return acc + (h * 60 + m);
-      }
-      return acc;
-    }, 0);
-
-    const formatTime = (totalMin) => {
-      const h = Math.floor(totalMin / 60);
-      const m = totalMin % 60;
+    const format = (min) => {
+      const h = Math.floor(min / 60);
+      const m = min % 60;
       return `${h}h ${String(m).padStart(2, '0')}m`;
     };
 
     return {
-      voluntariado: formatTime(sumMinutes('horasVoluntariado')),
-      assistida: formatTime(sumMinutes('horasAulaAssistida')),
-      ministrada: formatTime(sumMinutes('horasAulaMinistrada'))
+      voluntariado: format(totalVoluntariadoMin),
+      assistida: format(totalAssistidaMin),
+      ministrada: format(totalMinistradaMin)
     };
   };
 
@@ -5124,46 +5148,50 @@ function App() {
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
                                <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : '#f9f9f9', padding: '1rem', borderRadius: '8px' }}>
                                  <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#666', fontWeight: 'bold' }}>Aula Regular (Curso)</label>
-                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                    <select value={fvCalendar.aulaRegularDia} onChange={(e) => setFvCalendar({...fvCalendar, aulaRegularDia: e.target.value})} style={{ flex: 2, padding: '0.6rem', borderRadius: '6px', background: isDark ? 'rgba(26,26,46,0.8)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', border: '1px solid #ccc' }}>
+                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                    <select value={fvCalendar.aulaRegularDia} onChange={(e) => setFvCalendar({...fvCalendar, aulaRegularDia: e.target.value})} style={{ padding: '0.6rem', borderRadius: '6px', background: isDark ? 'rgba(26,26,46,0.8)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', border: '1px solid #ccc' }}>
                                       <option value="">Selecione o Dia...</option>
                                       {['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'].map((d, i) => <option key={i} value={String(i)}>{d}</option>)}
                                     </select>
-                                    <input type="time" value={fvCalendar.aulaRegularHora} onChange={(e) => setFvCalendar({...fvCalendar, aulaRegularHora: e.target.value})} style={{ flex: 1, padding: '0.6rem', borderRadius: '6px', background: isDark ? 'rgba(26,26,46,0.8)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', border: '1px solid #ccc' }} />
+                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                      <input type="time" title="Início" value={fvCalendar.aulaRegularHora} onChange={(e) => setFvCalendar({...fvCalendar, aulaRegularHora: e.target.value})} style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid #ccc' }} />
+                                      <span style={{ color: isDark ? '#f0e6d2' : '#2c1810' }}>até</span>
+                                      <input type="time" title="Fim" value={fvCalendar.aulaRegularFim} onChange={(e) => setFvCalendar({...fvCalendar, aulaRegularFim: e.target.value})} style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid #ccc' }} />
+                                    </div>
                                  </div>
                                </div>
                                <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : '#f9f9f9', padding: '1rem', borderRadius: '8px' }}>
                                  <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#666', fontWeight: 'bold' }}>Reunião de Raio</label>
-                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                    <select value={fvCalendar.reuniaoRaioDia} onChange={(e) => setFvCalendar({...fvCalendar, reuniaoRaioDia: e.target.value})} style={{ flex: 2, padding: '0.6rem', borderRadius: '6px', background: isDark ? 'rgba(26,26,46,0.8)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', border: '1px solid #ccc' }}>
+                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                    <select value={fvCalendar.reuniaoRaioDia} onChange={(e) => setFvCalendar({...fvCalendar, reuniaoRaioDia: e.target.value})} style={{ padding: '0.6rem', borderRadius: '6px', background: isDark ? 'rgba(26,26,46,0.8)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', border: '1px solid #ccc' }}>
                                       <option value="">Selecione o Dia...</option>
                                       {['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'].map((d, i) => <option key={i} value={String(i)}>{d}</option>)}
                                     </select>
-                                    <input type="time" value={fvCalendar.reuniaoRaioHora} onChange={(e) => setFvCalendar({...fvCalendar, reuniaoRaioHora: e.target.value})} style={{ flex: 1, padding: '0.6rem', borderRadius: '6px', background: isDark ? 'rgba(26,26,46,0.8)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', border: '1px solid #ccc' }} />
+                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                      <input type="time" title="Início" value={fvCalendar.reuniaoRaioHora} onChange={(e) => setFvCalendar({...fvCalendar, reuniaoRaioHora: e.target.value})} style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid #ccc' }} />
+                                      <span style={{ color: isDark ? '#f0e6d2' : '#2c1810' }}>até</span>
+                                      <input type="time" title="Fim" value={fvCalendar.reuniaoRaioFim} onChange={(e) => setFvCalendar({...fvCalendar, reuniaoRaioFim: e.target.value})} style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid #ccc' }} />
+                                    </div>
                                  </div>
                                </div>
                             </div>
 
-                            {/* Aulas Ministradas (Múltipla Seleção) */}
+                            {/* Aulas Ministradas */}
                             <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : '#f9f9f9', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem' }}>
-                               <label style={{ display: 'block', marginBottom: '0.6rem', fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#666', fontWeight: 'bold' }}>Dias em que Ministro Aula (Múltipla escolha)</label>
+                               <label style={{ display: 'block', marginBottom: '0.6rem', fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#666', fontWeight: 'bold' }}>Dias em que Ministro Aula</label>
                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.8rem' }}>
                                  {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((dia, index) => {
                                    const isSelected = (fvCalendar.aulaMinistradaDias || []).includes(String(index));
                                    return (
-                                     <button 
-                                       key={index} 
-                                       onClick={() => handleDiasMinistradosToggle(String(index))}
-                                       style={{ padding: '0.5rem 0.8rem', background: isSelected ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: isSelected ? (isDark ? '#000' : '#fff') : (isDark ? '#b8a88a' : '#666'), border: `1px solid ${isSelected ? 'transparent' : '#ccc'}`, borderRadius: '6px', cursor: 'pointer', fontWeight: isSelected ? 'bold' : 'normal' }}
-                                     >
-                                       {dia}
-                                     </button>
+                                     <button key={index} onClick={() => handleDiasMinistradosToggle(String(index))} style={{ padding: '0.5rem 0.8rem', background: isSelected ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: isSelected ? (isDark ? '#000' : '#fff') : (isDark ? '#b8a88a' : '#666'), border: `1px solid ${isSelected ? 'transparent' : '#ccc'}`, borderRadius: '6px', cursor: 'pointer' }}>{dia}</button>
                                    )
                                  })}
                                </div>
                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                 <span style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#666' }}>Horário Padrão:</span>
-                                 <input type="time" value={fvCalendar.aulaMinistradaHora} onChange={(e) => setFvCalendar({...fvCalendar, aulaMinistradaHora: e.target.value})} style={{ padding: '0.5rem', borderRadius: '6px', background: isDark ? 'rgba(26,26,46,0.8)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', border: '1px solid #ccc' }} />
+                                 <span style={{ fontSize: '0.85rem', color: isDark ? '#f0e6d2' : '#2c1810' }}>Horário:</span>
+                                 <input type="time" value={fvCalendar.aulaMinistradaHora} onChange={(e) => setFvCalendar({...fvCalendar, aulaMinistradaHora: e.target.value})} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #ccc' }} />
+                                 <span style={{ color: isDark ? '#f0e6d2' : '#2c1810' }}>até</span>
+                                 <input type="time" value={fvCalendar.aulaMinistradaFim} onChange={(e) => setFvCalendar({...fvCalendar, aulaMinistradaFim: e.target.value})} style={{ padding: '0.5rem', borderRadius: '6px', border: '1px solid #ccc' }} />
                                </div>
                             </div>
 
