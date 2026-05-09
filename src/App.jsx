@@ -3423,31 +3423,6 @@ function App() {
               </div>
             )}
 
-            {/* O TOTALIZADOR MENSAL NO TOPO DO DIÁRIO */}
-            {fvUnlocked && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', background: isDark ? 'rgba(0,0,0,0.3)' : '#fdfbf7', padding: '1.2rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-                {(() => {
-                  const totals = getFvMonthlyTotals();
-                  return (
-                    <>
-                      <div style={{ textAlign: 'center' }}>
-                        <span style={{ fontSize: '0.75rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', fontWeight: 'bold' }}>Voluntariado no Mês</span>
-                        <strong style={{ display: 'block', fontSize: '1.4rem', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif" }}>{totals.voluntariado}</strong>
-                      </div>
-                      <div style={{ textAlign: 'center', borderLeft: isMobile ? 'none' : `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`, borderTop: isMobile ? `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}` : 'none', paddingTop: isMobile ? '0.8rem' : '0' }}>
-                        <span style={{ fontSize: '0.75rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', fontWeight: 'bold' }}>Aulas Assistidas</span>
-                        <strong style={{ display: 'block', fontSize: '1.4rem', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif" }}>{totals.assistida}</strong>
-                      </div>
-                      <div style={{ textAlign: 'center', borderLeft: isMobile ? 'none' : `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`, borderTop: isMobile ? `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}` : 'none', paddingTop: isMobile ? '0.8rem' : '0' }}>
-                        <span style={{ fontSize: '0.75rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', fontWeight: 'bold' }}>Aulas Ministradas</span>
-                        <strong style={{ display: 'block', fontSize: '1.4rem', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif" }}>{totals.ministrada}</strong>
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
-            )}
-
             {/* BLOCO 3: A ESCALADA (CARTA DE DEGRAU INTELIGENTE) */}
             {fvUnlocked && fvConfig && (
               <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'rgba(255, 255, 255, 0.9)', padding: '2rem', borderRadius: '16px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.4)' : '#FFD700'}`, boxShadow: '0 4px 15px rgba(255,215,0,0.1)' }}>
@@ -3523,6 +3498,31 @@ function App() {
                     </div>
                   );
                 })}
+
+                {/* O TOTALIZADOR MENSAL NO TOPO DO DIÁRIO */}
+            {fvUnlocked && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', background: isDark ? 'rgba(0,0,0,0.3)' : '#fdfbf7', padding: '1.2rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                {(() => {
+                  const totals = getFvMonthlyTotals();
+                  return (
+                    <>
+                      <div style={{ textAlign: 'center' }}>
+                        <span style={{ fontSize: '0.75rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', fontWeight: 'bold' }}>Voluntariado no Mês</span>
+                        <strong style={{ display: 'block', fontSize: '1.4rem', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif" }}>{totals.voluntariado}</strong>
+                      </div>
+                      <div style={{ textAlign: 'center', borderLeft: isMobile ? 'none' : `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`, borderTop: isMobile ? `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}` : 'none', paddingTop: isMobile ? '0.8rem' : '0' }}>
+                        <span style={{ fontSize: '0.75rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', fontWeight: 'bold' }}>Aulas Assistidas</span>
+                        <strong style={{ display: 'block', fontSize: '1.4rem', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif" }}>{totals.assistida}</strong>
+                      </div>
+                      <div style={{ textAlign: 'center', borderLeft: isMobile ? 'none' : `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`, borderTop: isMobile ? `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}` : 'none', paddingTop: isMobile ? '0.8rem' : '0' }}>
+                        <span style={{ fontSize: '0.75rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', fontWeight: 'bold' }}>Aulas Ministradas</span>
+                        <strong style={{ display: 'block', fontSize: '1.4rem', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif" }}>{totals.ministrada}</strong>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.5rem', margin: '2rem 0', padding: '1.5rem', background: isDark ? 'rgba(212,175,55,0.05)' : 'rgba(255,245,220,0.5)', borderRadius: '12px' }}>
                   <div>
