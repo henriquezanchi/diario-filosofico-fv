@@ -1197,19 +1197,22 @@ function App() {
       let userData = userDoc.exists() ? userDoc.data() : null;
 
       // O LEÃO DE CHÁCARA: Verifica se o e-mail está na Lista VIP
-      let isVip = false;
-      if (user && user.email) {
-        const whitelistDoc = await getDoc(doc(db, 'admin', 'whitelist'));
-        if (whitelistDoc.exists()) {
-          const allowedEmails = whitelistDoc.data().emails || [];
-          // Converte tudo para minúsculo para evitar erros de digitação
-          if (allowedEmails.map(e => e.toLowerCase()).includes(user.email.toLowerCase())) {
-            isVip = true;
+        let isVip = false;
+        // Pega o usuário DIRETAMENTE da catraca de autenticação, evitando o atraso do React
+        const currentUserLogado = auth.currentUser; 
+        
+        if (currentUserLogado && currentUserLogado.email) {
+          const whitelistDoc = await getDoc(doc(db, 'admin', 'whitelist'));
+          if (whitelistDoc.exists()) {
+            const allowedEmails = whitelistDoc.data().emails || [];
+            // Converte tudo para minúsculo para evitar erros de digitação
+            if (allowedEmails.map(e => e.toLowerCase()).includes(currentUserLogado.email.toLowerCase())) {
+              isVip = true;
+            }
           }
         }
-      }
 
-      if (userData) {
+        if (userData) {
         setTheme(userData.theme || 'light');
         setLastDrawDate(userData.lastDrawDate || null);
         setMorningTime(userData.morningTime || '06:00'); 
