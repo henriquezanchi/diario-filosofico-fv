@@ -4098,21 +4098,29 @@ function App() {
         )}
 
         {/* VIEW: LEITURAS E ESTUDOS */}
-
-        {/* TÉCNICAS DE LEITURA (EPL2R) */}
-              <div style={{ background: isDark ? 'rgba(52, 152, 219, 0.1)' : '#ebf5ff', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? '#3498db' : '#3498db'}`, marginBottom: '2rem' }}>
-                <h3 style={{ margin: '0 0 1rem 0', color: '#3498db', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Book size={20} /> Método de Estudo EPL2R</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '1rem', fontSize: '0.85rem' }}>
-                  <div><strong>1. Examinar:</strong> Folheie, veja títulos e resumos.</div>
-                  <div><strong>2. Perguntar:</strong> O que este capítulo quer me ensinar?</div>
-                  <div><strong>3. Ler:</strong> Leia com atenção, buscando as respostas.</div>
-                  <div><strong>4. Rememorar:</strong> Feche o livro e explique para si mesmo.</div>
-                  <div><strong>5. Rever:</strong> Revise suas notas e os pontos principais.</div>
-                </div>
-              </div>
-
         {view === 'leituras' && (
           <div className="animate-fadeIn">
+            {/* TÉCNICAS DE LEITURA (EPL2R) - DESIGN REFINADO */}
+            <div style={{ background: isDark ? 'rgba(30, 41, 59, 0.5)' : '#fff', padding: '2rem', borderRadius: '16px', border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`, marginBottom: '2.5rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', borderLeft: '4px solid #4f46e5', paddingLeft: '1rem' }}>
+                    <h3 style={{ margin: 0, color: isDark ? '#f8fafc' : '#1e293b', fontFamily: "'Cinzel', serif", fontSize: '1.4rem' }}>Método de Estudo EPL2R</h3>
+                </div>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+                    {[
+                        { step: '1. Examinar', text: 'Folheie a obra, observe títulos, subtítulos e resumos para criar um mapa mental inicial.' },
+                        { step: '2. Perguntar', text: 'Transforme os títulos em perguntas. O que este capítulo pretende me ensinar de prático?' },
+                        { step: '3. Ler', text: 'Leia com atenção plena, buscando as respostas para as perguntas que você formulou.' },
+                        { step: '4. Rememorar', text: 'Feche o livro e explique o conceito para si mesmo em voz alta. Teste sua síntese.' },
+                        { step: '5. Rever', text: 'Revise suas anotações e conecte o aprendizado com sua vivência moral e filosófica.' }
+                    ].map((item, i) => (
+                        <div key={i} style={{ padding: '1rem', background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc', borderRadius: '8px' }}>
+                            <strong style={{ display: 'block', color: '#4f46e5', fontSize: '0.9rem', textTransform: 'uppercase', marginBottom: '0.5rem' }}>{item.step}</strong>
+                            <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#cbd5e1' : '#64748b', lineHeight: '1.5' }}>{item.text}</p>
+                        </div>
+                    ))}
+                </div>
+            </div>
             <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
               
                     <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', position: 'relative' }}>
