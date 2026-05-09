@@ -3358,52 +3358,87 @@ function App() {
               const savedEntryForToday = entries.find(e => e.date === selectedDate) || {};
               const savedFvDaily = savedEntryForToday.fvDaily || {};
 
-              // 2. Os Juízes: Avaliam se a gaveta foi concluída
-              const isPrologoFilled = morningDone;
-              
-              const isForjaFilled = savedFvDaily.praticas && Object.values(savedFvDaily.praticas).some(v => v === true);
-              
-              const isEscaladaFilled = fvConfig?.itensCarta?.some(item => {
+              // 2. Os Juízes (Calculam os 3 Estados: 'empty', 'partial' ou 'full')
+              const prologoStatus = morningDone ? 'full' : 'empty';
+              const epilogoStatus = eveningDone ? 'full' : 'empty';
+
+              // Juiz da Forja (Práticas)
+              const totalPraticas = (fvConfig?.praticas?.length || 4) + 4; // Práticas base + 4 do Templo
+              const praticasFeitas = savedFvDaily.praticas ? Object.values(savedFvDaily.praticas).filter(v => v === true).length : 0;
+              const forjaStatus = praticasFeitas === 0 ? 'empty' : (praticasFeitas === totalPraticas ? 'full' : 'partial');
+
+              // Juiz da Escalada (Reflexões)
+              const fvCartaItems = fvConfig?.itensCarta || [];
+              let itensEscaladaFeitos = 0;
+              fvCartaItems.forEach(item => {
                 if (item.id === 'item2') {
-                  const subKeys = ['instintos', 'idade', 'enfermidade', 'animo', 'humor', 'ideias', 'sentimentos', 'ambiente'];
-                  return subKeys.some(k => (savedFvDaily[`item2_${k}`] || '').trim().length > 0) || (savedFvDaily.item2 || '').trim().length > 0;
+                   const subKeys = ['instintos', 'idade', 'enfermidade', 'animo', 'humor', 'ideias', 'sentimentos', 'ambiente'];
+                   const hasSub = subKeys.some(k => (savedFvDaily[`item2_${k}`] || '').trim().length > 0) || (savedFvDaily.item2 || '').trim().length > 0;
+                   if (hasSub) itensEscaladaFeitos++;
+                } else {
+                   if ((savedFvDaily[item.id] || '').trim().length > 0) itensEscaladaFeitos++;
                 }
-                return (savedFvDaily[item.id] || '').trim().length > 0;
               });
-              
-              const isHorasFilled = (savedFvDaily.horasVoluntariado || '').trim().length > 0 || (savedFvDaily.horasAulaAssistida || '').trim().length > 0 || (savedFvDaily.horasAulaMinistrada || '').trim().length > 0;
-              
-              const isEpilogoFilled = eveningDone;
+              const escaladaStatus = itensEscaladaFeitos === 0 ? 'empty' : (itensEscaladaFeitos === fvCartaItems.length ? 'full' : 'partial');
 
-              // 3. O Pincel Mágico: Aplica o tom cinza e transparente se estiver salvo e fechado
-              const getBlockStyle = (isFilled, isOpen, activeBorder) => ({
-                background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white',
-                borderRadius: '16px',
-                border: isFilled ? `1px solid ${isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)'}` : `2px solid ${activeBorder}`,
-                boxShadow: isFilled ? 'none' : '0 4px 12px rgba(0,0,0,0.1)',
-                overflow: 'hidden',
-                transition: 'all 0.4s ease',
-                filter: isFilled && !isOpen ? 'grayscale(100%)' : 'none',
-                opacity: isFilled && !isOpen ? 0.45 : 1
-              });
+              // Juiz das Horas
+              const h1 = (savedFvDaily.horasVoluntariado || '').trim().length > 0 ? 1 : 0;
+              const h2 = (savedFvDaily.horasAulaAssistida || '').trim().length > 0 ? 1 : 0;
+              const h3 = (savedFvDaily.horasAulaMinistrada || '').trim().length > 0 ? 1 : 0;
+              const horasFeitas = h1 + h2 + h3;
+              const horasStatus = horasFeitas === 0 ? 'empty' : (horasFeitas === 3 ? 'full' : 'partial');
 
-              const getHeaderStyle = (isFilled, isOpen) => ({
+              // 3. O Pincel Mágico: Transforma o Status em Design Visual
+              const getBlockStyle = (status, isOpen, activeBorder) => {
+                let border = `2px solid ${activeBorder}`;
+                let filter = 'none';
+                let opacity = 1;
+
+                if (status === 'full' && !isOpen) {
+                  border = `1px solid ${isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)'}`;
+                  filter = 'grayscale(100%)';
+                  opacity = 0.45;
+                } else if (status === 'partial' && !isOpen) {
+                  // O Estado Intermediário
+                  border = `2px dashed ${activeBorder}`;
+                  opacity = 0.9;
+                }
+
+                return {
+                  background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white',
+                  borderRadius: '16px',
+                  border,
+                  boxShadow: (status === 'full' && !isOpen) ? 'none' : '0 4px 12px rgba(0,0,0,0.1)',
+                  overflow: 'hidden',
+                  transition: 'all 0.4s ease',
+                  filter,
+                  opacity
+                };
+              };
+
+              const getHeaderStyle = (status, isOpen) => ({
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem 2rem', cursor: 'pointer', 
-                background: isOpen ? 'transparent' : (isFilled ? 'transparent' : (isDark ? 'rgba(0,0,0,0.2)' : '#fdfbf7'))
+                background: isOpen ? 'transparent' : (status === 'full' ? 'transparent' : (status === 'partial' ? (isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)') : (isDark ? 'rgba(0,0,0,0.2)' : '#fdfbf7')))
               });
+
+              // Montador de Títulos Inteligentes
+              const renderTitle = (text, status, isOpen, icon) => (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  {icon}
+                  <h2 style={{ margin: 0, fontSize: 'clamp(1.2rem, 3vw, 1.5rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif", textDecoration: status === 'full' && !isOpen ? 'line-through' : 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    {text}
+                    {status === 'partial' && !isOpen && <span style={{fontSize: '0.8rem', opacity: 0.8, fontStyle: 'italic', fontFamily: 'Georgia, serif'}}>(Em Andamento)</span>}
+                  </h2>
+                </div>
+              );
 
               return (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                   
                   {/* BLOCO 1: PRÓLOGO MATINAL */}
-                  <div style={getBlockStyle(isPrologoFilled, isPrologoOpen, isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)')}>
-                    <div onClick={() => setIsPrologoOpen(!isPrologoOpen)} style={getHeaderStyle(isPrologoFilled, isPrologoOpen)}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <Sunrise size={28} color={isDark ? '#ffd966' : '#ff9800'} />
-                        <h2 style={{ margin: 0, fontSize: 'clamp(1.2rem, 3vw, 1.5rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif", textDecoration: isPrologoFilled && !isPrologoOpen ? 'line-through' : 'none' }}>
-                          Prólogo Matinal
-                        </h2>
-                      </div>
+                  <div style={getBlockStyle(prologoStatus, isPrologoOpen, isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)')}>
+                    <div onClick={() => setIsPrologoOpen(!isPrologoOpen)} style={getHeaderStyle(prologoStatus, isPrologoOpen)}>
+                      {renderTitle('Prólogo Matinal', prologoStatus, isPrologoOpen, <Sunrise size={28} color={isDark ? '#ffd966' : '#ff9800'} />)}
                       {isPrologoOpen ? <ChevronUp size={24} color={isDark ? '#f0e6d2' : '#2c1810'} /> : <ChevronDown size={24} color={isDark ? '#f0e6d2' : '#2c1810'} />}
                     </div>
 
@@ -3476,12 +3511,9 @@ function App() {
 
                   {/* BLOCO 2: AS PRÁTICAS DO TEMPLO (MÓDULO FV) */}
                   {fvUnlocked && fvConfig && (
-                    <div style={getBlockStyle(isForjaFilled, isPraticasOpen, '#FFD700')}>
-                      <div onClick={() => setIsPraticasOpen(!isPraticasOpen)} style={getHeaderStyle(isForjaFilled, isPraticasOpen)}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                          <Award size={28} color="#FFD700" />
-                          <h2 style={{ margin: 0, fontSize: 'clamp(1.2rem, 3vw, 1.5rem)', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif", textDecoration: isForjaFilled && !isPraticasOpen ? 'line-through' : 'none' }}> Práticas (A Forja)</h2>
-                        </div>
+                    <div style={getBlockStyle(forjaStatus, isPraticasOpen, '#FFD700')}>
+                      <div onClick={() => setIsPraticasOpen(!isPraticasOpen)} style={getHeaderStyle(forjaStatus, isPraticasOpen)}>
+                        {renderTitle('A Forja (Práticas)', forjaStatus, isPraticasOpen, <Award size={28} color="#FFD700" />)}
                         {isPraticasOpen ? <ChevronUp size={24} color={isDark ? '#FFD700' : '#996515'} /> : <ChevronDown size={24} color={isDark ? '#FFD700' : '#996515'} />}
                       </div>
                       
@@ -3489,7 +3521,7 @@ function App() {
                         <div className="animate-fadeIn" style={{ padding: '0 2rem 2rem 2rem' }}>
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
                             {fvConfig.praticas.map(prac => (
-                              <div key={prac.key} onClick={() => setActiveActionMenu({ key: prac.key, label: prac.label })} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '1rem', background: fvDaily.praticas?.[prac.key] ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.6)'), border: `1px solid ${fvDaily.praticas?.[prac.key] ? '#4caf50' : (isDark ? 'rgba(212, 175, 55, 0.3)' : '#ccc')}`, borderRadius: '8px', transition: 'all 0.2s' }}>
+                              <div key={prac.key} onClick={() => setActiveActionMenu({ key: prac.key, label: prac.label })} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '1rem', background: fvDaily.praticas?.[prac.key] ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.6)'), border: `1px solid ${fvDaily.praticas?.[prac.key] ? '#4caf50' : (isDark ? 'rgba(212, 175, 55, 0.3)' : '#ccc')}`, borderRadius: '8px', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
                                 {fvDaily.praticas?.[prac.key] ? <CheckCircle size={20} color="#4caf50" /> : <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: `2px solid ${isDark ? '#b8a88a' : '#999'}` }}></div>}
                                 <span style={{ color: fvDaily.praticas?.[prac.key] ? (isDark ? '#81c784' : '#2e7d32') : (isDark ? '#f0e6d2' : '#2c1810'), fontSize: '1.05rem', fontWeight: fvDaily.praticas?.[prac.key] ? 'bold' : 'normal' }}>{prac.label}</span>
                               </div>
@@ -3523,18 +3555,15 @@ function App() {
 
                   {/* BLOCO 3: A ESCALADA (AS REFLEXÕES DO FV) */}
                   {fvUnlocked && fvConfig && (
-                    <div style={getBlockStyle(isEscaladaFilled, isEscaladaOpen, '#FFD700')}>
-                      <div onClick={() => setIsEscaladaOpen(!isEscaladaOpen)} style={getHeaderStyle(isEscaladaFilled, isEscaladaOpen)}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                          <Mountain size={28} color={isDark ? '#FFD700' : '#996515'} />
-                          <h3 style={{ margin: 0, color: isDark ? '#FFD700' : '#996515', fontSize: '1.4rem', fontFamily: "'Cinzel', serif", textDecoration: isEscaladaFilled && !isEscaladaOpen ? 'line-through' : 'none' }}>{fvConfig.secaoReflexao}</h3>
-                        </div>
+                    <div style={getBlockStyle(escaladaStatus, isEscaladaOpen, '#FFD700')}>
+                      <div onClick={() => setIsEscaladaOpen(!isEscaladaOpen)} style={getHeaderStyle(escaladaStatus, isEscaladaOpen)}>
+                        {renderTitle(fvConfig.secaoReflexao, escaladaStatus, isEscaladaOpen, <Mountain size={28} color={isDark ? '#FFD700' : '#996515'} />)}
                         {isEscaladaOpen ? <ChevronUp size={24} color={isDark ? '#FFD700' : '#996515'} /> : <ChevronDown size={24} color={isDark ? '#FFD700' : '#996515'} />}
                       </div>
 
                       {isEscaladaOpen && (
                         <div className="animate-fadeIn" style={{ padding: '0 2rem 2rem 2rem' }}>
-                          <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', marginBottom: '2rem', fontSize: '0.95rem' }}>Ao salvar, este bloco inteiro ficará cinza para descansar sua mente.</p>
+                          <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', marginBottom: '2rem', fontSize: '0.95rem' }}>Ao salvar, os itens preenchidos ficarão cinzas para descansar sua mente.</p>
 
                           {fvConfig.itensCarta.map(item => {
                             const isItem2 = item.id === 'item2';
@@ -3608,14 +3637,11 @@ function App() {
                     </div>
                   )}
 
-                  {/* BLOCO EXTRA: BALANÇO DE HORAS (INDEPENDENTE) */}
+                  {/* BLOCO EXTRA: BALANÇO DE HORAS */}
                   {fvUnlocked && (
-                    <div style={getBlockStyle(isHorasFilled, isHorasOpen, '#FFD700')}>
-                      <div onClick={() => setIsHorasOpen(!isHorasOpen)} style={getHeaderStyle(isHorasFilled, isHorasOpen)}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                          <Clock size={28} color={isDark ? '#FFD700' : '#996515'} />
-                          <h3 style={{ margin: 0, color: isDark ? '#FFD700' : '#996515', fontSize: '1.4rem', fontFamily: "'Cinzel', serif", textDecoration: isHorasFilled && !isHorasOpen ? 'line-through' : 'none' }}>Balanço de Horas</h3>
-                        </div>
+                    <div style={getBlockStyle(horasStatus, isHorasOpen, '#FFD700')}>
+                      <div onClick={() => setIsHorasOpen(!isHorasOpen)} style={getHeaderStyle(horasStatus, isHorasOpen)}>
+                        {renderTitle('Balanço de Horas', horasStatus, isHorasOpen, <Clock size={28} color={isDark ? '#FFD700' : '#996515'} />)}
                         {isHorasOpen ? <ChevronUp size={24} color={isDark ? '#FFD700' : '#996515'} /> : <ChevronDown size={24} color={isDark ? '#FFD700' : '#996515'} />}
                       </div>
 
@@ -3644,15 +3670,10 @@ function App() {
                     </div>
                   )}
 
-                  {/* BLOCO 4: EPÍLOGO NOTURNO (LIMPO) */}
-                  <div style={getBlockStyle(isEpilogoFilled, isEpilogoOpen, isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)')}>
-                    <div onClick={() => setIsEpilogoOpen(!isEpilogoOpen)} style={getHeaderStyle(isEpilogoFilled, isEpilogoOpen)}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <Sunset size={28} color={isDark ? '#b19cd9' : '#9c27b0'} />
-                        <h2 style={{ margin: 0, fontSize: 'clamp(1.2rem, 3vw, 1.5rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif", textDecoration: isEpilogoFilled && !isEpilogoOpen ? 'line-through' : 'none' }}>
-                          Epílogo Noturno
-                        </h2>
-                      </div>
+                  {/* BLOCO 4: EPÍLOGO NOTURNO */}
+                  <div style={getBlockStyle(epilogoStatus, isEpilogoOpen, isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)')}>
+                    <div onClick={() => setIsEpilogoOpen(!isEpilogoOpen)} style={getHeaderStyle(epilogoStatus, isEpilogoOpen)}>
+                      {renderTitle('Epílogo Noturno', epilogoStatus, isEpilogoOpen, <Sunset size={28} color={isDark ? '#b19cd9' : '#9c27b0'} />)}
                       {isEpilogoOpen ? <ChevronUp size={24} color={isDark ? '#f0e6d2' : '#2c1810'} /> : <ChevronDown size={24} color={isDark ? '#f0e6d2' : '#2c1810'} />}
                     </div>
 
