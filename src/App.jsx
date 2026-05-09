@@ -1684,7 +1684,6 @@ function App() {
   };
 
   const loadFVData = async (uid) => {
-    
     if (!uid) return;
     try {
       const docRef = doc(db, 'fvData', uid);
@@ -1693,61 +1692,26 @@ function App() {
       if (docSnap.exists()) {
         const data = docSnap.data();
         
-        // Suas outras memórias sendo carregadas:
-        if (data.kuravaData) setKuravaData(data.kuravaData);
-        if (data.balloonActions) setBalloonActions(data.balloonActions);
-        
-        // COLE AQUI:
-        setKuravaEnabled(data.kuravaEnabled !== false);
-        setAiConsent(data.aiConsent || false);
+        // RELIGADOR: Puxa o dado independente se a etiqueta tem o prefixo 'fv' ou não
+        setFvLastCartaDate(data.fvLastCartaDate || data.lastCartaDate || '');
+        setFvNextCartaDate(data.fvNextCartaDate || data.nextCartaDate || '');
+        setFvGdveReuniao(data.fvGdveReuniao || data.gdveReuniao || '');
+        setFvMasterName(data.fvMasterName || data.masterName || '');
+        setFvLastMeetingDate(data.fvLastMeetingDate || data.lastMeetingDate || '');
 
-        // 1. Puxa as Datas e Planejamento
-        setFvLastCartaDate(data.lastCartaDate || '');
-        setFvNextCartaDate(data.nextCartaDate || '');
-        setFvGdveReuniao(data.gdveReuniao || '');
-        setFvMasterName(data.fvMasterName || '');
-        setFvLastMeetingDate(data.fvLastMeetingDate || '');
-
-        // 2. Puxa as Tarefas e Status do Grupo
         setFvGdveTasks(data.gdveTasks || []);
         setFvGdveCycleStatus(data.gdveCycleStatus || {});
-        setFvGdveBastiaoName(data.fvGdveBastiaoName || '');
-        setFvGdveBastiaoLink(data.fvGdveBastiaoLink || '');
-
-        // 3. Puxa os Relatórios da IA
+        setFvGdveBastiaoName(data.fvGdveBastiaoName || data.bastiaoName || '');
+        setFvGdveBastiaoLink(data.fvGdveBastiaoLink || data.bastiaoLink || '');
+        
+        setKuravaEnabled(data.kuravaEnabled !== false);
+        setAiConsent(data.aiConsent || false);
         setDiscipularSynthesis(data.discipularSynthesis || null);
-        setFvAiMetricas(data.fvAiMetricas || null);
-        setFvAiAuditoria(data.fvAiAuditoria || null);
-        setFvAiLexical(data.fvAiLexical || null);
-
-        // 4. Limpador Automático de 30 dias para a Síntese Aberta
-        if (data.technicalSynthesis && data.technicalSynthesisDate) {
-          const dataGeracao = new Date(data.technicalSynthesisDate);
-          const hoje = new Date();
-          const diferencaDias = (hoje - dataGeracao) / (1000 * 60 * 60 * 24);
-          
-          if (diferencaDias > 30) {
-            setTechnicalSynthesis(null);
-            setBalloonActions(data.balloonActions || null);
-            setAiGuarda(null); setAiConquistas(null); setAiInvestigacoes(null);
-          } else {
-            setTechnicalSynthesis(data.technicalSynthesis);
-            setAiGuarda(data.aiGuarda || null);
-            setAiConquistas(data.aiConquistas || null);
-            setAiInvestigacoes(data.aiInvestigacoes || null);
-          }
-        } else {
-          setTechnicalSynthesis(data.technicalSynthesis || null);
-          setBalloonActions(data.balloonActions || null);
-          setAiGuarda(data.aiGuarda || null);
-          setAiConquistas(data.aiConquistas || null);
-          setAiInvestigacoes(data.aiInvestigacoes || null);
-        }
+        setTechnicalSynthesis(data.technicalSynthesis || null);
       }
     } catch (error) {
       console.error("Erro ao carregar dados da nuvem:", error);
     } finally {
-      // ISSO AQUI AVISA O GATILHO QUE O FIREBASE TERMINOU DE ENTREGAR OS DADOS
       setIsCloudDataLoaded(true); 
     }
   };
@@ -4807,326 +4771,174 @@ function App() {
           </div>
         )}
 
-      
-
         {/* VIEW: DISCIPULADO */}
         {view === 'gdve' && fvUnlocked && (
           <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             
-            {/* CABEÇALHO */}
-            <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'rgba(255, 255, 255, 0.9)', padding: '2rem', borderRadius: '16px', border: '1px solid #FFD700', boxShadow: '0 4px 15px rgba(255,215,0,0.1)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <Shield size={32} color="#FFD700" />
-                <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif" }}>Discipulado</h2>
+            {/* 1. RESUMO FIXO NO TOPO (Estilo Dashboard) */}
+            <div style={{ background: isDark ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.05) 0%, rgba(255, 165, 0, 0.05) 100%)' : '#fffbf0', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255, 215, 0, 0.3)' : '#ffe082'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+              <h3 style={{ margin: '0 0 1.2rem 0', color: isDark ? '#ffd700' : '#d4af37', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.2rem' }}><Award size={20} /> Planejamento do Discipulado</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+                <div>
+                  <span style={{ fontSize: '0.75rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', fontWeight: 'bold', display: 'block', marginBottom: '0.2rem' }}>Mestre / Instrutor</span>
+                  <strong style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.1rem' }}>{fvMasterName || 'Não definido'}</strong>
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.75rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', fontWeight: 'bold', display: 'block', marginBottom: '0.2rem' }}>Próxima Entrega</span>
+                  <strong style={{ color: '#e74c3c', fontSize: '1.1rem' }}>{fvNextCartaDate ? new Date(fvNextCartaDate + 'T12:00:00').toLocaleDateString('pt-BR') : '--/--/--'}</strong>
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.75rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', fontWeight: 'bold', display: 'block', marginBottom: '0.2rem' }}>Próxima Reunião</span>
+                  <strong style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.1rem' }}>{fvGdveReuniao ? new Date(fvGdveReuniao).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '--/--/--'}</strong>
+                </div>
               </div>
-              <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', marginTop: '0.5rem', marginBottom: 0 }}>O centro de comando da sua Forja Interior.</p>
             </div>
 
-            {/* O RESUMO FIXO NO ALTO */}
-            {(fvLastCartaDate || fvGdveReuniao || fvNextCartaDate) && (
-              <div style={{ background: isDark ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.05) 0%, rgba(255, 165, 0, 0.05) 100%)' : '#fffbf0', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255, 215, 0, 0.3)' : '#ffe082'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-                <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#ffd700' : '#d4af37', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.2rem' }}><Award size={20} /> Planejamento FV</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                  {fvLastCartaDate && (<div><span style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', display: 'block' }}>Última Carta:</span><strong style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.1rem' }}>{new Date(fvLastCartaDate + 'T12:00:00').toLocaleDateString('pt-BR')}</strong></div>)}
-                  {fvNextCartaDate && (<div><span style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', display: 'block' }}>Próxima Entrega:</span><strong style={{ color: '#e74c3c', fontSize: '1.1rem' }}>{new Date(fvNextCartaDate + 'T12:00:00').toLocaleDateString('pt-BR')}</strong></div>)}
-                  {fvGdveReuniao && (<div><span style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', display: 'block' }}>Próx. Reunião GDVE:</span><strong style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.1rem' }}>{new Date(fvGdveReuniao).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</strong></div>)}
-                </div>
-              </div>
-            )}
-
-            {/* AS GAVETAS DO DISCIPULADO */}
+            {/* 2. GAVETAS DO QUARTEL GENERAL */}
             {(() => {
-              // 1. Os Juízes (Definem se está Vazio, Em Andamento ou Concluído)
+              // Juiz de Acompanhamento (Só fica full se salvar tudo)
+              const savedEntry = entries.find(e => e.date === selectedDate) || {}; // Para checar cores via "Salvo"
+              const planFilled = fvMasterName && fvLastMeetingDate && fvLastCartaDate && fvNextCartaDate;
+              const planStatus = !fvMasterName ? 'empty' : (planFilled ? 'full' : 'partial');
+
+              // Juiz do Módulo GDVE (Bastião + Reunião + Práticas)
+              const hasBastiao = fvGdveBastiaoName && fvGdveBastiaoName !== '';
+              const hasReuniao = !!fvDaily.gdveAttendance;
+              const hasMissoes = fvGdveTasks.length > 0;
+              const missoesCompletas = fvGdveTasks.filter(t => t.isCycle ? fvGdveCycleStatus[t.id] : (fvDaily.gdveTasksStatus?.[t.id] >= t.target)).length;
               
-              // Acompanhamento
-              const planFields = [fvMasterName, fvLastMeetingDate, fvLastCartaDate, fvNextCartaDate];
-              const planFilledCount = planFields.filter(f => f && f.trim().length > 0).length;
-              const planStatus = planFilledCount === 0 ? 'empty' : (planFilledCount === 4 ? 'full' : 'partial');
-
-              // Módulo GDVE (Bastião, Reunião e Práticas do Grupo)
-              const bastiaoFilled = fvGdveBastiaoName && fvGdveBastiaoName.trim().length > 0;
-              const reuniaoFilled = !!fvDaily.gdveAttendance;
-              const totalMissoes = fvGdveTasks.length;
-              const missoesCompletas = fvGdveTasks.filter(task => {
-                const currentCount = (typeof fvDaily.gdveTasksStatus?.[task.id] === 'boolean' ? (fvDaily.gdveTasksStatus[task.id] ? 1 : 0) : fvDaily.gdveTasksStatus?.[task.id]) || 0;
-                const targetCount = task.target || 1;
-                return task.isCycle ? !!fvGdveCycleStatus[task.id] : currentCount >= targetCount;
-              }).length;
-
-              let moduloStatus = 'empty';
-              if (bastiaoFilled || reuniaoFilled || totalMissoes > 0) {
-                 if (bastiaoFilled && reuniaoFilled && (totalMissoes === 0 || missoesCompletas === totalMissoes)) {
-                     moduloStatus = 'full';
-                 } else {
-                     moduloStatus = 'partial';
-                 }
+              let gdveStatus = 'empty';
+              if (hasBastiao || hasReuniao || hasMissoes) {
+                gdveStatus = (hasBastiao && hasReuniao && (missoesCompletas === fvGdveTasks.length)) ? 'full' : 'partial';
               }
 
-              // Desafios Pessoais
-              const totalDesafios = customTasks.length;
-              const desafiosCompletos = customTasks.filter(task => todayTasksStatus[task.id]).length;
-              const desafiosStatus = totalDesafios === 0 ? 'empty' : (desafiosCompletos === 0 ? 'empty' : (desafiosCompletos === totalDesafios ? 'full' : 'partial'));
-
-              // 2. O Pincel Mágico (O mesmo sistema elegante de cores)
-              const getBlockStyle = (status, isOpen) => {
-                const corPadrao = isDark ? '#FFD700' : '#996515'; 
-                const corConcluido = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)'; 
-
-                let border = `2px solid ${corPadrao}`;
-                let filter = 'none';
-                let opacity = 1;
-
-                if (status === 'full' && !isOpen) {
-                  border = `1px solid ${corConcluido}`;
-                  filter = 'grayscale(100%)';
-                  opacity = 0.45;
-                } else if (status === 'partial' && !isOpen) {
-                  border = `2px dashed ${corPadrao}`;
-                  opacity = 0.9;
-                }
-
-                return {
-                  background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white',
-                  borderRadius: '16px',
-                  border,
-                  boxShadow: (status === 'full' && !isOpen) ? 'none' : '0 4px 12px rgba(0,0,0,0.1)',
-                  overflow: 'hidden',
-                  transition: 'all 0.4s ease',
-                  filter,
-                  opacity
-                };
-              };
-
-              const getHeaderStyle = (status, isOpen) => ({
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem 2rem', cursor: 'pointer', 
-                background: isOpen ? 'transparent' : (status === 'full' ? 'transparent' : (status === 'partial' ? (isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)') : (isDark ? 'rgba(0,0,0,0.2)' : '#fdfbf7')))
-              });
-
-              const renderTitle = (text, status, isOpen, icon) => (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  {icon}
-                  <h2 style={{ margin: 0, fontSize: 'clamp(1.2rem, 3vw, 1.5rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif", textDecoration: status === 'full' && !isOpen ? 'line-through' : 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    {text}
-                    {status === 'partial' && !isOpen && <span style={{fontSize: '0.8rem', opacity: 0.8, fontStyle: 'italic', fontFamily: 'Georgia, serif'}}>(Em Andamento)</span>}
-                  </h2>
-                </div>
-              );
+              // Juiz de Desafios Pessoais
+              const totalD = customTasks.length;
+              const feitosD = customTasks.filter(t => todayTasksStatus[t.id]).length;
+              const desafiosStatus = totalD === 0 ? 'empty' : (feitosD === 0 ? 'empty' : (feitosD === totalD ? 'full' : 'partial'));
 
               return (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                   
-                  {/* GAVETA 1: ACOMPANHAMENTO DISCIPULAR */}
-                  <div style={getBlockStyle(planStatus, isGdvePlanOpen)}>
+                  {/* GAVETA: ACOMPANHAMENTO DISCIPULAR */}
+                  <div style={getBlockStyle(planStatus, isGdvePlanOpen, isDark ? '#FFD700' : '#996515')}>
                     <div onClick={() => setIsGdvePlanOpen(!isGdvePlanOpen)} style={getHeaderStyle(planStatus, isGdvePlanOpen)}>
-                      {renderTitle('Acompanhamento Discipular', planStatus, isGdvePlanOpen, <Shield size={28} color={isDark ? '#FFD700' : '#996515'} />)}
-                      {isGdvePlanOpen ? <ChevronUp size={24} color={isDark ? '#f0e6d2' : '#2c1810'} /> : <ChevronDown size={24} color={isDark ? '#f0e6d2' : '#2c1810'} />}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <Shield size={28} color={isDark ? '#FFD700' : '#996515'} />
+                        <h2 style={{ margin: 0, fontSize: 'clamp(1.1rem, 3vw, 1.4rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif", textDecoration: planStatus === 'full' && !isGdvePlanOpen ? 'line-through' : 'none' }}>
+                          Dados do Instrutor e Carta {planStatus === 'partial' && !isGdvePlanOpen && <span style={{fontSize: '0.8rem', opacity: 0.7}}> (Incompleto)</span>}
+                        </h2>
+                      </div>
+                      {isGdvePlanOpen ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
                     </div>
 
                     {isGdvePlanOpen && (
                       <div className="animate-fadeIn" style={{ padding: '0 2rem 2rem 2rem' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
-                          <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Nome do Mestre / Instrutor</label>
-                            <input type="text" value={fvMasterName || ''} onChange={(e) => setFvMasterName(e.target.value)} placeholder="Com quem você se reporta..." style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
-                          </div>
-                          <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Data do Último Encontro</label>
-                            <input type="date" value={fvLastMeetingDate || ''} onChange={(e) => setFvLastMeetingDate(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
-                          </div>
-                        </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginTop: '1.5rem' }}>
-                          <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Última Entrega de Carta</label>
-                            <input type="date" value={fvLastCartaDate || ''} onChange={(e) => { const novaData = e.target.value; setFvLastCartaDate(novaData); if (novaData) { const [ano, mes, dia] = novaData.split('-'); const dataCalculada = new Date(parseInt(ano, 10), parseInt(mes, 10) - 1 + 3, parseInt(dia, 10)); setFvNextCartaDate(`${dataCalculada.getFullYear()}-${String(dataCalculada.getMonth() + 1).padStart(2, '0')}-${String(dataCalculada.getDate()).padStart(2, '0')}`); } else { setFvNextCartaDate(''); } }} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
-                          </div>
-                          <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Próxima Entrega Prevista</label>
-                            <input type="date" value={fvNextCartaDate || ''} onChange={(e) => setFvNextCartaDate(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
-                          </div>
-                        </div>
-                        
-                        <button onClick={saveFvPlanning} style={{ marginTop: '1.5rem', padding: '0.75rem 1.5rem', background: 'transparent', color: isDark ? '#FFD700' : '#996515', border: '2px solid #FFD700', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontFamily: 'Georgia, serif' }}>
-                          <Save size={18} /> Salvar Planejamento
-                        </button>
+                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                            <div>
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Nome do Mestre / Instrutor</label>
+                              <input type="text" value={fvMasterName || ''} onChange={(e) => setFvMasterName(e.target.value)} placeholder="Com quem você se reporta..." style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                            </div>
+                            <div>
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Data do Último Encontro</label>
+                              <input type="date" value={fvLastMeetingDate || ''} onChange={(e) => setFvLastMeetingDate(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                            </div>
+                         </div>
+                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+                            <div>
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Última Entrega de Carta</label>
+                              <input type="date" value={fvLastCartaDate || ''} onChange={(e) => setFvLastCartaDate(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                            </div>
+                            <div>
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Próxima Entrega (Previsão)</label>
+                              <input type="date" value={fvNextCartaDate || ''} onChange={(e) => setFvNextCartaDate(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                            </div>
+                         </div>
+                         <button onClick={saveFvPlanning} style={{ padding: '0.8rem 1.5rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Salvar Acompanhamento</button>
                       </div>
                     )}
                   </div>
 
-                  {/* GAVETA 2: MÓDULO GDVE (BASTIÃO, REUNIÃO E MISSÕES) */}
-                  <div style={getBlockStyle(moduloStatus, isGdveMóduloOpen)}>
-                    <div onClick={() => setIsGdveMóduloOpen(!isGdveMóduloOpen)} style={getHeaderStyle(moduloStatus, isGdveMóduloOpen)}>
-                      {renderTitle('Módulo GDVE', moduloStatus, isGdveMóduloOpen, <BookOpen size={28} color={isDark ? '#FFD700' : '#996515'} />)}
-                      {isGdveMóduloOpen ? <ChevronUp size={24} color={isDark ? '#f0e6d2' : '#2c1810'} /> : <ChevronDown size={24} color={isDark ? '#f0e6d2' : '#2c1810'} />}
+                  {/* GAVETA: MÓDULO GDVE (A Grande Fusão) */}
+                  <div style={getBlockStyle(gdveStatus, isGdveMóduloOpen, isDark ? '#FFD700' : '#996515')}>
+                    <div onClick={() => setIsGdveMóduloOpen(!isGdveMóduloOpen)} style={getHeaderStyle(gdveStatus, isGdveMóduloOpen)}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <BookOpen size={28} color={isDark ? '#FFD700' : '#996515'} />
+                        <h2 style={{ margin: 0, fontSize: 'clamp(1.1rem, 3vw, 1.4rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif", textDecoration: gdveStatus === 'full' && !isGdveMóduloOpen ? 'line-through' : 'none' }}>
+                          Módulo GDVE {gdveStatus === 'partial' && !isGdveMóduloOpen && <span style={{fontSize: '0.8rem', opacity: 0.7}}> (Em Andamento)</span>}
+                        </h2>
+                      </div>
+                      {isGdveMóduloOpen ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
                     </div>
 
                     {isGdveMóduloOpen && (
                       <div className="animate-fadeIn" style={{ padding: '0 2rem 2rem 2rem' }}>
                         
-                        {/* 1. BASTIÃO E REUNIÃO */}
-                        <div style={{ marginBottom: '2.5rem' }}>
-                          <h4 style={{ margin: '0 0 1rem 0', color: isDark ? '#d4af37' : '#6b4423', fontSize: '1.1rem', fontFamily: "'Cinzel', serif" }}>Leitura e Encontro</h4>
-                          
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-                            <select value={fvGdveBastiaoName} onChange={(e) => { const val = e.target.value; setFvGdveBastiaoName(val); const found = fvConfig?.modulo2?.bancoTemas?.find(b => b.name === val); if (found) setFvGdveBastiaoLink(found.link); else if (val !== 'Outro') setFvGdveBastiaoLink(''); }} style={{ width: '100%', padding: '0.85rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810' }}>
-                              <option value="">Selecione a leitura...</option>
-                              {fvConfig?.modulo2?.bancoTemas?.map((b, idx) => <option key={idx} value={b.name}>{b.name}</option>)}
-                              <option value="Outro">Outro (Inserir Manualmente)</option>
-                            </select>
-
-                            {fvGdveBastiaoName === 'Outro' && (
-                              <input type="url" value={fvGdveBastiaoLink} onChange={(e) => setFvGdveBastiaoLink(e.target.value)} placeholder="Link do PDF..." style={{ width: '100%', padding: '0.85rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810' }} />
-                            )}
-                          </div>
-
-                          {fvGdveBastiaoLink && (
-                            <a href={fvGdveBastiaoLink} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.8rem 1.5rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : '#fff', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold' }}>
-                              <BookOpen size={18} /> Abrir Material
-                            </a>
-                          )}
-
-                          <div style={{ marginTop: '1.5rem', padding: '1.5rem', background: fvDaily.gdveAttendance ? (isDark ? 'rgba(76, 175, 80, 0.1)' : '#e8f5e9') : (isDark ? 'rgba(255, 152, 0, 0.05)' : '#fff3e0'), borderRadius: '8px', border: `1px solid ${fvDaily.gdveAttendance ? '#4caf50' : (isDark ? 'rgba(255, 152, 0, 0.3)' : '#ffb74d')}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-                            <div>
-                              <h4 style={{ margin: '0 0 0.25rem 0', color: fvDaily.gdveAttendance ? '#4caf50' : (isDark ? '#ffb74d' : '#e65100'), fontSize: '1.1rem' }}>Reunião GDVE</h4>
-                              <p style={{ margin: 0, fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744' }}>Confirme presença para fechar o ciclo e recalcular a próxima data.</p>
-                            </div>
-                            <button onClick={registerGdveAttendance} style={{ padding: '0.75rem 1.5rem', background: fvDaily.gdveAttendance ? '#4caf50' : 'transparent', color: fvDaily.gdveAttendance ? '#fff' : (isDark ? '#ffb74d' : '#e65100'), border: `2px solid ${fvDaily.gdveAttendance ? '#4caf50' : (isDark ? '#ffb74d' : '#e65100')}`, borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                              {fvDaily.gdveAttendance ? <><CheckCircle size={18} /> Presença Confirmada</> : 'Marcar Presença'}
-                            </button>
-                          </div>
+                        {/* Seção Leitura */}
+                        <div style={{ marginBottom: '2rem' }}>
+                          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Bastião / Leitura do Ciclo</label>
+                          <select value={fvGdveBastiaoName} onChange={async (e) => { const val = e.target.value; setFvGdveBastiaoName(val); const found = fvConfig?.modulo2?.bancoTemas?.find(b => b.name === val); const novoLink = found ? found.link : ''; setFvGdveBastiaoLink(novoLink); if (user) await setDoc(doc(db, 'fvData', user.uid), { fvGdveBastiaoName: val, fvGdveBastiaoLink: novoLink }, { merge: true }); }} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }}>
+                            <option value="">Selecione...</option>
+                            {fvConfig?.modulo2?.bancoTemas?.map((b, idx) => <option key={idx} value={b.name}>{b.name}</option>)}
+                          </select>
+                          {fvGdveBastiaoLink && <a href={fvGdveBastiaoLink} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: '1rem', color: isDark ? '#FFD700' : '#996515', fontWeight: 'bold' }}>🔗 Abrir PDF do Bastião</a>}
                         </div>
 
-                        <div style={{ height: '1px', background: isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)', margin: '2rem 0' }}></div>
+                        {/* Seção Reunião */}
+                        <div style={{ padding: '1rem', background: fvDaily.gdveAttendance ? 'rgba(76, 175, 80, 0.1)' : 'rgba(255, 215, 0, 0.05)', borderRadius: '12px', border: `1px solid ${fvDaily.gdveAttendance ? '#4caf50' : '#FFD700'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                           <span style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 'bold' }}>Reunião Quinzenal:</span>
+                           <button onClick={registerGdveAttendance} style={{ padding: '0.5rem 1rem', background: fvDaily.gdveAttendance ? '#4caf50' : 'transparent', color: fvDaily.gdveAttendance ? 'white' : '#FFD700', border: `1px solid ${fvDaily.gdveAttendance ? '#4caf50' : '#FFD700'}`, borderRadius: '6px', cursor: 'pointer' }}>
+                             {fvDaily.gdveAttendance ? '✓ Presença Confirmada' : 'Marcar Presença'}
+                           </button>
+                        </div>
 
-                        {/* 2. PRÁTICAS ESPECÍFICAS DO GRUPO & MISSÕES DA IA */}
-                        <div>
-                          <h4 style={{ margin: '0 0 1rem 0', color: isDark ? '#d4af37' : '#6b4423', fontSize: '1.1rem', fontFamily: "'Cinzel', serif" }}>Práticas do Grupo & Missões</h4>
-                          
-                          {/* Área de Inserção */}
-                          <div style={{ padding: '1rem', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.3)', borderRadius: '8px', border: `1px dashed ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`, marginBottom: '1.5rem' }}>
-                            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                              <input type="text" value={newGdveTaskName} onChange={(e) => setNewGdveTaskName(e.target.value)} placeholder="Ex: Dizer 'eu sou discípulo'..." style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
-                            </div>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
-                              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.9rem' }}>
-                                <input type="checkbox" checked={newGdveTaskIsCycle} onChange={(e) => { setNewGdveTaskIsCycle(e.target.checked); if(e.target.checked) setNewGdveTaskTarget(1); }} style={{ width: '18px', height: '18px', accentColor: '#d4af37' }} />
-                                <span>Missão de Ciclo (Não zera por dia)</span>
-                              </label>
-                              {!newGdveTaskIsCycle && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.9rem' }}>
-                                  <span>Vezes por dia:</span>
-                                  <input type="number" min="1" max="100" value={newGdveTaskTarget} onChange={(e) => setNewGdveTaskTarget(e.target.value)} style={{ width: '60px', padding: '0.4rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
-                                </div>
-                              )}
-                              <button onClick={addGdveTask} style={{ marginLeft: 'auto', padding: '0.6rem 1.2rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
-                                {editingGdveTaskId ? 'Salvar Edição' : 'Adicionar'}
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Lista de Missões Cadastradas */}
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '2rem' }}>
-                            {fvGdveTasks.length === 0 ? (
-                              <p style={{ margin: 0, fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#888', fontStyle: 'italic' }}>Nenhuma prática ou missão cadastrada.</p>
-                            ) : (
-                              fvGdveTasks.map(task => {
-                                const isCycle = task.isCycle;
-                                const isCounter = !isCycle && task.target > 1;
-                                let isCompleted = false;
-                                let displayValue = '';
-
-                                const currentCount = (typeof fvDaily.gdveTasksStatus?.[task.id] === 'boolean' ? (fvDaily.gdveTasksStatus[task.id] ? 1 : 0) : fvDaily.gdveTasksStatus?.[task.id]) || 0;
-                                const targetCount = task.target || 1;
-                                const taskColor = getTaskColor(currentCount, targetCount, isDark);
-
-                                if (isCycle) {
-                                   isCompleted = !!fvGdveCycleStatus[task.id];
-                                   displayValue = isCompleted ? 'Feito' : 'Pendente';
-                                } else if (isCounter) {
-                                   isCompleted = currentCount >= targetCount;
-                                   displayValue = `${currentCount}/${targetCount}`;
-                                } else {
-                                   isCompleted = !!fvDaily.gdveTasksStatus?.[task.id];
-                                }
-
-                                return (
-                                  <div key={task.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', borderRadius: '8px', border: `1px solid ${taskColor}`, transition: 'all 0.3s ease' }}>
-                                    <div onClick={() => toggleGdveTask(task)} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
-                                      {isCounter ? (
-                                        <div style={{ padding: '0.3rem 0.6rem', background: taskColor, border: `1px solid ${taskColor}`, borderRadius: '12px', color: '#fff', fontWeight: 'bold', fontSize: '0.8rem', minWidth: '40px', textAlign: 'center' }}>
-                                          {displayValue}
-                                        </div>
-                                      ) : (
-                                        <input type="checkbox" checked={isCompleted} readOnly style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#4caf50' }} />
-                                      )}
-                                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                        <span style={{ color: isCompleted ? (isDark ? '#81c784' : '#2e7d32') : (isDark ? '#f0e6d2' : '#2c1810'), textDecoration: isCompleted ? 'line-through' : 'none', fontWeight: isCompleted ? 'bold' : 'normal', fontSize: '0.95rem' }}>{task.name}</span>
-                                        <span style={{ fontSize: '0.7rem', color: isDark ? '#b8a88a' : '#888', marginTop: '0.1rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                          {isCycle ? '⏳ Missão de Ciclo' : (isCounter ? '📅 Meta Diária' : '📅 Diário')}
-                                        </span>
-                                      </div>
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                      <button onClick={() => startEditingGdveTask(task)} style={{ background: 'transparent', border: 'none', color: isDark ? '#d4af37' : '#6b4423', cursor: 'pointer', display: 'flex' }}><Edit size={16} /></button>
-                                      <button onClick={() => { if(window.confirm(`Excluir a missão "${task.name}"?`)) removeGdveTask(task.id); }} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer', display: 'flex' }}><Trash2 size={16} /></button>
-                                    </div>
-                                  </div>
-                                );
-                              })
-                            )}
-                          </div>
-
-                          {/* Oráculo de Missões */}
-                          <button onClick={generateAiGoals} disabled={isGeneratingGoals} style={{ width: '100%', padding: '0.8rem', background: 'transparent', color: isDark ? '#d4af37' : '#996515', border: `1px dashed ${isDark ? '#d4af37' : '#996515'}`, borderRadius: '8px', cursor: isGeneratingGoals ? 'wait' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                            {isGeneratingGoals ? <Sparkles className="animate-spin" size={16} /> : <Target size={16} />}
-                            {isGeneratingGoals ? 'O Oráculo está forjando...' : 'Pedir Missão ao Oráculo'}
-                          </button>
-                          
-                          {aiSuggestedGoals && (
-                            <div className="animate-fadeIn" style={{ marginTop: '1rem', padding: '1rem', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', borderRadius: '8px', border: `1px solid ${isDark ? '#FFD700' : '#e1bee7'}`, fontSize: '0.85rem' }}>
-                              <p style={{ margin: '0 0 1rem 0', fontStyle: 'italic', color: isDark ? '#f0e6d2' : '#2c1810' }}>"{aiSuggestedGoals.conselho}"</p>
-                              {aiSuggestedGoals.missoes.map((m, idx) => (
-                                 <div key={idx} style={{ marginBottom: '0.5rem', paddingBottom: '0.5rem', borderBottom: '1px solid rgba(212, 175, 55, 0.2)' }}>
-                                   <strong style={{ color: isDark ? '#FFD700' : '#996515' }}>{m.titulo}</strong>
-                                   <p style={{ margin: '0.2rem 0', color: isDark ? '#b8a88a' : '#6b5744' }}>{m.descricao}</p>
-                                   <button onClick={() => { setNewGdveTaskName(m.titulo); setNewGdveTaskIsCycle(true); setAiSuggestedGoals(null); }} style={{ background: isDark ? 'rgba(212, 175, 55, 0.2)' : '#fdfbf7', color: isDark ? '#FFD700' : '#996515', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}>+ Adicionar Missão</button>
-                                 </div>
-                              ))}
-                            </div>
-                          )}
-
+                        {/* Seção Práticas do Grupo */}
+                        <h4 style={{ color: isDark ? '#FFD700' : '#996515', fontSize: '1rem', fontFamily: "'Cinzel', serif", marginBottom: '1rem' }}>Práticas Específicas do Ciclo</h4>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                           {fvGdveTasks.map(task => (
+                             <div key={task.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: isDark ? 'rgba(0,0,0,0.2)' : '#f9f9f9', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#eee'}` }}>
+                               <div onClick={() => toggleGdveTask(task)} style={{ flex: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                 <input type="checkbox" checked={task.isCycle ? !!fvGdveCycleStatus[task.id] : (fvDaily.gdveTasksStatus?.[task.id] >= task.target)} readOnly style={{ width: '18px', height: '18px' }} />
+                                 <span style={{ color: isDark ? '#f0e6d2' : '#2c1810' }}>{task.name}</span>
+                               </div>
+                               <button onClick={() => removeGdveTask(task.id)} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer' }}><Trash2 size={16} /></button>
+                             </div>
+                           ))}
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                           <input type="text" value={newGdveTaskName} onChange={(e) => setNewGdveTaskName(e.target.value)} placeholder="Nova missão do grupo..." style={{ flex: 1, padding: '0.7rem', borderRadius: '8px', border: '1px solid #ccc', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                           <button onClick={addGdveTask} style={{ padding: '0 1rem', background: isDark ? '#FFD700' : '#996515', color: '#1a1a2e', border: 'none', borderRadius: '8px', fontWeight: 'bold' }}>+</button>
                         </div>
                       </div>
                     )}
                   </div>
 
-                  {/* GAVETA 3: DESAFIOS PESSOAIS */}
-                  <div style={getBlockStyle(desafiosStatus, isGdveDesafiosOpen)}>
+                  {/* GAVETA: DESAFIOS PESSOAIS */}
+                  <div style={getBlockStyle(desafiosStatus, isGdveDesafiosOpen, isDark ? '#6cb2eb' : '#2980b9')}>
                     <div onClick={() => setIsGdveDesafiosOpen(!isGdveDesafiosOpen)} style={getHeaderStyle(desafiosStatus, isGdveDesafiosOpen)}>
-                      {renderTitle('Desafios Pessoais', desafiosStatus, isGdveDesafiosOpen, <Swords size={28} color={isDark ? '#FFD700' : '#996515'} />)}
-                      {isGdveDesafiosOpen ? <ChevronUp size={24} color={isDark ? '#f0e6d2' : '#2c1810'} /> : <ChevronDown size={24} color={isDark ? '#f0e6d2' : '#2c1810'} />}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <Swords size={28} color={isDark ? '#6cb2eb' : '#2980b9'} />
+                        <h2 style={{ margin: 0, fontSize: 'clamp(1.1rem, 3vw, 1.4rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif", textDecoration: desafiosStatus === 'full' && !isGdveDesafiosOpen ? 'line-through' : 'none' }}>
+                          Desafios Pessoais
+                        </h2>
+                      </div>
+                      {isGdveDesafiosOpen ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
                     </div>
-
                     {isGdveDesafiosOpen && (
                       <div className="animate-fadeIn" style={{ padding: '0 2rem 2rem 2rem' }}>
-                        <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '1.5rem' }}>Práticas diárias extras que você assumiu para si mesmo.</p>
-                        
-                        {customTasks.map(task => (
-                          <div key={task.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', borderRadius: '8px', border: `1px solid ${todayTasksStatus[task.id] ? '#4caf50' : (isDark ? 'rgba(212, 175, 55, 0.2)' : '#eee')}`, marginBottom: '0.75rem' }}>
-                            <div onClick={() => toggleTaskStatus(task.id)} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
-                              <input type="checkbox" checked={todayTasksStatus[task.id] || false} readOnly style={{ width: '18px', height: '18px', accentColor: '#4caf50' }} />
-                              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                <span style={{ color: todayTasksStatus[task.id] ? (isDark ? '#81c784' : '#2e7d32') : (isDark ? '#f0e6d2' : '#2c1810'), textDecoration: todayTasksStatus[task.id] ? 'line-through' : 'none', fontWeight: todayTasksStatus[task.id] ? 'bold' : 'normal' }}>{task.name}</span>
+                         {customTasks.map(task => (
+                           <div key={task.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: isDark ? 'rgba(0,0,0,0.2)' : '#f9f9f9', borderRadius: '8px', border: `1px solid ${todayTasksStatus[task.id] ? '#4caf50' : '#eee'}`, marginBottom: '0.5rem' }}>
+                              <div onClick={() => toggleTaskStatus(task.id)} style={{ flex: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                 <input type="checkbox" checked={!!todayTasksStatus[task.id]} readOnly style={{ width: '18px', height: '18px' }} />
+                                 <span style={{ color: isDark ? '#f0e6d2' : '#2c1810' }}>{task.name}</span>
                               </div>
-                            </div>
-                            <button onClick={() => { if(window.confirm('Excluir desafio?')) removeCustomTask(task.id); }} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer' }}><Trash2 size={16} /></button>
-                          </div>
-                        ))}
-
-                        <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.5rem' }}>
-                          <input type="text" value={newTaskName} onChange={(e) => setNewTaskName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && saveCustomTask()} placeholder="Novo desafio diário..." style={{ flex: 1, padding: '0.7rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
-                          <button onClick={saveCustomTask} style={{ padding: '0 1rem', background: isDark ? '#d4af37' : '#6b4423', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer' }}><Plus size={20} /></button>
-                        </div>
+                              <button onClick={() => removeCustomTask(task.id)} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer' }}><Trash2 size={16} /></button>
+                           </div>
+                         ))}
+                         <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.5rem' }}>
+                            <input type="text" value={newTaskName} onChange={(e) => setNewTaskName(e.target.value)} placeholder="Novo desafio pessoal..." style={{ flex: 1, padding: '0.7rem', borderRadius: '8px', border: '1px solid #ccc', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                            <button onClick={saveCustomTask} style={{ padding: '0 1rem', background: isDark ? '#6cb2eb' : '#2980b9', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold' }}>+</button>
+                         </div>
                       </div>
                     )}
                   </div>
@@ -5135,7 +4947,8 @@ function App() {
               );
             })()}
           </div>
-        )}        
+        )}
+        
 
         {/* VIEW: HISTORY */}
         {view === 'history' && (
