@@ -3057,7 +3057,7 @@ function App() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
               {['today', 'history', 'tasks', 'gdve', 'analytics'].map((item) => {
-                  const labels = { today: '📖 Diário', history: '📚 Histórico', tasks: '⚔️ Missões', gdve: '🛡️ Discipulado', analytics: '📊 Métricas' };                return (
+                  const labels = { today: '📖 Diário', history: '📚 Histórico', tasks: '⚔️ Missões', gdve: '🛡️ Discipulado FV', analytics: '📊 Métricas' };                return (
                   <button 
                     key={item}
                     onClick={() => { setView(item); setIsMobileMenuOpen(false); }} 
@@ -4868,15 +4868,55 @@ function App() {
                         {/* Seção Práticas do Grupo */}
                         <h4 style={{ color: isDark ? '#FFD700' : '#996515', fontSize: '1rem', fontFamily: "'Cinzel', serif", marginBottom: '1rem' }}>Práticas Específicas do Ciclo</h4>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                           {fvGdveTasks.map(task => (
-                             <div key={task.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: isDark ? 'rgba(0,0,0,0.2)' : '#f9f9f9', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#eee'}` }}>
-                               <div onClick={() => toggleGdveTask(task)} style={{ flex: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                 <input type="checkbox" checked={task.isCycle ? !!fvGdveCycleStatus[task.id] : (fvDaily.gdveTasksStatus?.[task.id] >= task.target)} readOnly style={{ width: '18px', height: '18px' }} />
-                                 <span style={{ color: isDark ? '#f0e6d2' : '#2c1810' }}>{task.name}</span>
+                           {fvGdveTasks.map(task => {
+                             // Lógica para saber que tipo de tarefa é
+                             const isCycle = task.isCycle;
+                             const isCounter = !isCycle && task.target > 1;
+                             let isCompleted = false;
+                             let displayValue = '';
+
+                             // Puxa o valor do dia ou do ciclo global
+                             const currentCount = (typeof fvDaily.gdveTasksStatus?.[task.id] === 'boolean' ? (fvDaily.gdveTasksStatus[task.id] ? 1 : 0) : fvDaily.gdveTasksStatus?.[task.id]) || 0;
+                             const targetCount = task.target || 1;
+                             const taskColor = getTaskColor(currentCount, targetCount, isDark);
+
+                             if (isCycle) {
+                                isCompleted = !!fvGdveCycleStatus[task.id];
+                                displayValue = isCompleted ? 'Feito' : 'Pendente';
+                             } else if (isCounter) {
+                                isCompleted = currentCount >= targetCount;
+                                displayValue = `${currentCount}/${targetCount}`;
+                             } else {
+                                isCompleted = !!fvDaily.gdveTasksStatus?.[task.id];
+                             }
+
+                             return (
+                               <div key={task.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: isDark ? 'rgba(0,0,0,0.2)' : '#f9f9f9', borderRadius: '8px', border: `1px solid ${taskColor}`, transition: 'all 0.3s ease' }}>
+                                 <div onClick={() => toggleGdveTask(task)} style={{ flex: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                   
+                                   {/* Renderiza um Número se for meta diária, ou um Checkbox se for os outros */}
+                                   {isCounter ? (
+                                      <div style={{ padding: '0.3rem 0.6rem', background: taskColor, border: `1px solid ${taskColor}`, borderRadius: '12px', color: '#fff', fontWeight: 'bold', fontSize: '0.8rem', minWidth: '40px', textAlign: 'center' }}>
+                                        {displayValue}
+                                      </div>
+                                   ) : (
+                                      <input type="checkbox" checked={isCompleted} readOnly style={{ width: '18px', height: '18px', accentColor: '#4caf50' }} />
+                                   )}
+                                   
+                                   <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                     <span style={{ color: isCompleted ? (isDark ? '#81c784' : '#2e7d32') : (isDark ? '#f0e6d2' : '#2c1810'), textDecoration: isCompleted ? 'line-through' : 'none' }}>
+                                       {task.name}
+                                     </span>
+                                     <span style={{ fontSize: '0.7rem', color: isDark ? '#b8a88a' : '#888', marginTop: '0.2rem', textTransform: 'uppercase' }}>
+                                        {isCycle ? '⏳ Missão do Ciclo (Não zera)' : (isCounter ? '📅 Meta Diária' : '📅 Prática Diária')}
+                                     </span>
+                                   </div>
+
+                                 </div>
+                                 <button onClick={() => removeGdveTask(task.id)} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer' }}><Trash2 size={16} /></button>
                                </div>
-                               <button onClick={() => removeGdveTask(task.id)} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer' }}><Trash2 size={16} /></button>
-                             </div>
-                           ))}
+                             );
+                           })}
                         </div>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                            <input type="text" value={newGdveTaskName} onChange={(e) => setNewGdveTaskName(e.target.value)} placeholder="Nova missão do grupo..." style={{ flex: 1, padding: '0.7rem', borderRadius: '8px', border: '1px solid #ccc', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
