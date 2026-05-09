@@ -352,8 +352,17 @@ function App() {
   const [selectedForDeletion, setSelectedForDeletion] = useState([]); // Exclusão em lote
   const [showReadBooks, setShowReadBooks] = useState(false); // Gaveta sanfona de Lidos
   const [isGeneratingRecommendation, setIsGeneratingRecommendation] = useState(false);
-  const AMAZON_AFFILIATE_ID = 'filosofiae0a5-20'; // 👈 SUBSTITUA PELO SEU ID DE AFILIADO REAL
+  const AMAZON_AFFILIATE_ID = 'filosofiae0a5-20'; // 
   const totalForgedPages = books.reduce((acc, book) => acc + (book.currentPage || 0), 0);
+  const [taskReminderTime, setTaskReminderTime] = useState('10:00');
+  const getStalledBook = () => {
+    const thresholdDays = 3; // Considera estagnado após 3 dias sem mexer
+    return books.find(b => {
+      if (b.status !== 'lendo' || !b.updatedAt) return false;
+      const diff = (new Date() - new Date(b.updatedAt)) / (1000 * 60 * 60 * 24);
+      return diff >= thresholdDays;
+    });
+  };
 
   // --- O OPERÁRIO INVISÍVEL (BACKGROUND WORKER) ---
   useEffect(() => {
@@ -380,7 +389,13 @@ function App() {
               totalPages: info?.pageCount || b.totalPages,
               currentPage: b.status === 'lido' ? (info?.pageCount || 0) : b.currentPage,
               thumbnail: info?.imageLinks?.thumbnail?.replace('http:', 'https:') || b.thumbnail,
-              category: (info?.categories?.[0] || b.category).replace('Religion', 'Religião').replace('Fiction', 'Ficção').replace('Philosophy', 'Filosofia').replace('History', 'História').replace('Psychology', 'Psicologia').replace('Science', 'Ciência').replace('Self-Help', 'Autoajuda'),
+              category: (info?.categories?.[0] || b.category)
+                  .replace(/Religion/g, 'Religião').replace(/Philosophy/g, 'Filosofia')
+                  .replace(/Fiction/g, 'Ficção').replace(/History/g, 'História')
+                  .replace(/Psychology/g, 'Psicologia').replace(/Science/g, 'Ciência')
+                  .replace(/Self-Help/g, 'Autoajuda').replace(/Body, Mind & Spirit/g, 'Espiritualidade')
+                  .replace(/Biography & Autobiography/g, 'Biografia').replace(/Literary Collections/g, 'Literatura')
+                  .replace(/Poetry/g, 'Poesia').replace(/Social Science/g, 'Ciências Sociais'),
               isPendingEnrichment: false 
             };
           }
@@ -2441,19 +2456,53 @@ function App() {
     const hoje = new Date();
     const mesAno = hoje.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
     
-    // Calcula a frequência do Diário (Últimos 30 dias)
+    // Filtra as entradas dos últimos 30 dias
     const trintaDiasAtras = new Date(); trintaDiasAtras.setDate(hoje.getDate() - 30);
-    const diasFeitos = entries.filter(e => new Date(e.date + 'T12:00:00') >= trintaDiasAtras && e.morningDone).length;
+    const cicloEntries = entries.filter(e => new Date(e.date + 'T12:00:00') >= trintaDiasAtras);
+    
+    // 1. DADOS CALCULADOS MATEMATICAMENTE
+    const diasFeitos = cicloEntries.filter(e => e.morningDone).length;
     let freqDiario = "Nunca";
     if (diasFeitos >= 25) freqDiario = "Sempre - Fez todos os dias do mês";
     else if (diasFeitos >= 12) freqDiario = "Frequentemente - fez mais de 4 vezes por semana";
     else if (diasFeitos >= 8) freqDiario = "Às vezes - fez pelo menos três vezes por semana";
     else if (diasFeitos > 0) freqDiario = "Raramente - Fez menos de duas vezes por semana";
 
-    // Pega o livro atual
+    let countEd = 0; let countCrm = 0; let countRaio = 0; 
+    let countAulaRegular = 0; let countAulaMinistrada = 0; 
+    let diasVoluntariado = 0; let totalPraticasPsicologia = 0;
+
+    cicloEntries.forEach(entry => {
+      const fv = entry.fvDaily || {};
+      if (fv.aulaEdPresenca === 'Sim') countEd++;
+      if (fv.crmPresenca === 'Sim') countCrm++;
+      if (fv.reuniaoRaioPresenca === 'Sim') countRaio++;
+      if (fv.aulaRegularPresenca === 'Sim') countAulaRegular++;
+      if (fv.aulaMinistradaPresenca === 'Sim') countAulaMinistrada++;
+      if (fv.horasVoluntariado && fv.horasVoluntariado.trim() !== '') diasVoluntariado++;
+      
+      // Conta Práticas de Psicologia (Tratak, Câmara, Exercícios do App)
+      if (fv.praticas) {
+        totalPraticasPsicologia += Object.values(fv.praticas).filter(v => v === true).length;
+      }
+    });
+
+    // 2. TRADUÇÃO DOS DADOS PARA O FORMATO DO RELATÓRIO
+    let freqVoluntariadoCalc = "Não participou";
+    if (diasVoluntariado >= 12) freqVoluntariadoCalc = "Mais de três vezes por semana";
+    else if (diasVoluntariado >= 5) freqVoluntariadoCalc = "Duas a três vezes por semana";
+    else if (diasVoluntariado >= 1) freqVoluntariadoCalc = "Uma vez por semana";
+
+    let praticasPsicologiaCalc = "Nunca";
+    if (totalPraticasPsicologia >= 20) praticasPsicologiaCalc = "Sempre (Todo dia)";
+    else if (totalPraticasPsicologia >= 12) praticasPsicologiaCalc = "Frequentemente (mais de 4x/sem)";
+    else if (totalPraticasPsicologia >= 8) praticasPsicologiaCalc = "Às vezes (3x/sem)";
+    else if (totalPraticasPsicologia > 0) praticasPsicologiaCalc = "Raramente (menos de 2x/sem)";
+
     const livroAtual = books.filter(b => b.totalPages > 0 && b.currentPage < b.totalPages)[0];
     const nomeLivro = livroAtual ? `${livroAtual.title} (${livroAtual.author})` : 'Nenhum no momento';
 
+    // 3. MONTAGEM DO TEXTO FINAL
     const relatorio = `RELATÓRIO MENSAL - ${mesAno.toUpperCase()}
 
       [IDENTIFICAÇÃO]
@@ -2466,27 +2515,27 @@ function App() {
       Para quem envia CD? ${fvMasterName || 'Não informado'}
       Data do último encontro: ${fvLastMeetingDate ? new Date(fvLastMeetingDate + 'T12:00:00').toLocaleDateString('pt-BR') : 'Não informado'}
       Data da última entrega da CD: ${fvLastCartaDate ? new Date(fvLastCartaDate + 'T12:00:00').toLocaleDateString('pt-BR') : 'Não informado'}
-      Assistiu aula de ED esse mês? ${monthlyReport.assistiuEd || '-'}
+      Assistiu aula de ED esse mês? ${countEd > 0 ? `Sim (${countEd}x)` : 'Não'}
 
       [IDEOLÓGICO]
-      Participou da CRM Mensal? ${monthlyReport.crmMensal || '-'}
-      Reuniões por Raio? ${monthlyReport.reunioesRaio || '-'}
+      Participou da CRM Mensal? ${countCrm > 0 ? 'Sim' : 'Não'}
+      Reuniões por Raio? ${countRaio} reuniões registradas
       Outras CRM? ${monthlyReport.outrasCrm || '-'}
       Quantos bastiões leu esse mês? ${monthlyReport.bastioesLidos || '-'}
 
       [ESCOLÁSTICA]
-      Dias de aula do Curso de Filosofia assistidos: ${monthlyReport.diasAula || '-'}
-      Práticas de psicologia: ${monthlyReport.praticasPsicologia || '-'}
-      Horas Aula Assistidas (Calculado pelo App): ${totals.assistida}
+      Dias de aula do Curso de Filosofia assistidos: ${countAulaRegular} aulas
+      Práticas de psicologia (Tratak/Câmara/Atenção): ${praticasPsicologiaCalc} (${totalPraticasPsicologia} práticas feitas)
+      Horas Aula Assistidas: ${totals.assistida}
       Estudando para matérias? ${monthlyReport.estudandoMaterias || '-'}
-      Livro filosófico lendo (Puxado da Estante): ${monthlyReport.livroFilosofico || nomeLivro}
+      Livro filosófico lendo: ${monthlyReport.livroFilosofico || nomeLivro}
 
       [VOLUNTARIADO]
-      Frequência voluntariado: ${monthlyReport.frequenciaVoluntariado || '-'}
+      Frequência voluntariado: ${freqVoluntariadoCalc} (${diasVoluntariado} dias registrados)
       Fez GN esse mês? ${monthlyReport.fezGn || '-'}
-      Horas Voluntariado (Calculado pelo App): ${totals.voluntariado}
-      Ministrou aulas de filosofia? ${monthlyReport.ministrouAulas || '-'}
-      Horas Aula Ministradas (Calculado pelo App): ${totals.ministrada}
+      Horas Voluntariado Totais: ${totals.voluntariado}
+      Ministrou aulas de filosofia? ${countAulaMinistrada > 0 ? `Sim (${countAulaMinistrada} aulas)` : 'Não'}
+      Horas Aula Ministradas: ${totals.ministrada}
       Escalas de limpeza: ${monthlyReport.escalasLimpeza || '-'}
       Envolvimento propaganda: ${(monthlyReport.propaganda || []).join(', ') || '-'}
 
@@ -2501,19 +2550,19 @@ function App() {
 
       [ANÁLISE E REFLEXÃO]
       Pontos positivos/crescimento:
-      ${monthlyReport.pontosPositivos || '-'}
+      ${monthlyReport.pontosPositivos || aiConquistas || '-'}
 
       Desafio que está percebendo para crescer:
-      ${monthlyReport.desafioCrescimento || '-'}
+      ${monthlyReport.desafioCrescimento || aiGuarda || '-'}
       `;
 
-          navigator.clipboard.writeText(relatorio).then(() => {
-            alert("✅ Relatório copiado para a Área de Transferência! Agora é só colar no formulário oficial.");
-          }).catch(err => {
-            console.error('Falha ao copiar:', err);
-            alert("Erro ao copiar. Seu navegador pode ter bloqueado a ação.");
-          });
-    };
+      navigator.clipboard.writeText(relatorio).then(() => {
+        alert("✅ Relatório gerado com sucesso! Os dados foram calculados automaticamente baseados nos seus registros diários e copiados para a Área de Transferência.");
+      }).catch(err => {
+        console.error('Falha ao copiar:', err);
+        alert("Erro ao copiar. Seu navegador pode ter bloqueado a ação.");
+      });
+  };
 
   const handleFvDailyTextChange = (key, value) => {
     setFvDaily(prev => ({ ...prev, [key]: value }));
@@ -3291,6 +3340,31 @@ function App() {
               </div>
             )}
 
+            {/* MURAL DO ORÁCULO: ESTAGNAÇÃO OU NOVAS JORNADAS */}
+            {fvUnlocked && aiConsent && (
+              (() => {
+                const stalled = getStalledBook();
+                if (stalled || finishedBooksCount > 0) {
+                  return (
+                    <div className="animate-fadeIn" style={{ background: isDark ? 'rgba(212, 175, 55, 0.05)' : '#fffbf0', padding: '1.2rem', borderRadius: '12px', border: `2px solid ${isDark ? '#d4af37' : '#ffe082'}`, marginBottom: '1rem', position: 'relative' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <Sparkles size={24} color="#d4af37" className={stalled ? "animate-pulse" : ""} />
+                        <div>
+                          <h4 style={{ margin: 0, fontSize: '0.9rem', color: '#d4af37', textTransform: 'uppercase' }}>Conselho do Oráculo</h4>
+                          <p style={{ margin: '0.3rem 0 0 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem', fontStyle: 'italic' }}>
+                            {stalled 
+                              ? `O tempo urge, Henrique. Você parou na página ${stalled.currentPage} de "${stalled.title}". Sabia que nas próximas páginas o autor aprofunda o conceito de dever? Retome a forja hoje.`
+                              : "Uma jornada concluída abre espaço para um novo sol. O Oráculo sugere uma nova obra na sua estante de estudos."}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()
+            )}
+
             {/* PRÁTICAS DE HOJE (Tarefas extras) */}
             {getTasksForToday().length > 0 && (
               <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '1.5rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}` }}>
@@ -4024,6 +4098,19 @@ function App() {
         )}
 
         {/* VIEW: LEITURAS E ESTUDOS */}
+
+        {/* TÉCNICAS DE LEITURA (EPL2R) */}
+              <div style={{ background: isDark ? 'rgba(52, 152, 219, 0.1)' : '#ebf5ff', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? '#3498db' : '#3498db'}`, marginBottom: '2rem' }}>
+                <h3 style={{ margin: '0 0 1rem 0', color: '#3498db', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Book size={20} /> Método de Estudo EPL2R</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '1rem', fontSize: '0.85rem' }}>
+                  <div><strong>1. Examinar:</strong> Folheie, veja títulos e resumos.</div>
+                  <div><strong>2. Perguntar:</strong> O que este capítulo quer me ensinar?</div>
+                  <div><strong>3. Ler:</strong> Leia com atenção, buscando as respostas.</div>
+                  <div><strong>4. Rememorar:</strong> Feche o livro e explique para si mesmo.</div>
+                  <div><strong>5. Rever:</strong> Revise suas notas e os pontos principais.</div>
+                </div>
+              </div>
+
         {view === 'leituras' && (
           <div className="animate-fadeIn">
             <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
@@ -4138,30 +4225,6 @@ function App() {
                   </div>
                 );
               })()}
-              
-                  {/* ÍNDICE DE PROFUNDIDADE POR AUTOR */}
-                  <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : '#f9f9f9', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.1)' : '#eee'}`, marginBottom: '2.5rem' }}>
-                    <h4 style={{ margin: '0 0 1.2rem 0', fontFamily: "'Cinzel', serif", color: isDark ? '#b8a88a' : '#6b5744', fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Índice de Profundidade por Autor</h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
-                      {getAuthorStats().map((stat) => {
-                        return (
-                          <div key={stat.author}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.4rem' }}>
-                              <strong style={{ color: isDark ? '#f0e6d2' : '#2c1810' }}>{stat.author}</strong>
-                              <span style={{ color: isDark ? '#d4af37' : '#6b4423' }}>{stat.depthPerc}%</span>
-                            </div>
-                            <div style={{ width: '100%', height: '4px', background: isDark ? 'rgba(255,255,255,0.05)' : '#e0e0e0', borderRadius: '2px' }}>
-                              <div style={{ width: `${stat.depthPerc}%`, height: '100%', background: isDark ? '#d4af37' : '#8b7355', borderRadius: '2px', transition: 'width 1s ease-in-out' }}></div>
-                            </div>
-                            <span style={{ fontSize: '0.7rem', color: '#888', display: 'block', marginTop: '0.3rem' }}>
-                              {stat.readBooks} de {stat.totalWorks} {stat.totalWorks === 1 ? 'obra magna' : 'obras magnas'}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
 
               {/* FORMULÁRIO DE ADICIONAR/EDITAR LIVRO (COM BUSCA GOOGLE) */}
               {showAddBook && (
@@ -5316,31 +5379,18 @@ function App() {
                           {/* ACOMPANHAMENTO INTERNO & IDEOLÓGICO */}
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
                             <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Assistiu aula de ED esse mês?</label>
-                              <select value={monthlyReport.assistiuEd} onChange={(e) => handleMonthlyReportChange('assistiuEd', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
-                                <option value="">Selecione...</option><option value="Sim">Sim</option><option value="Não">Não</option>
-                              </select>
-                            </div>
-                            <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Participou da CRM Mensal?</label>
-                              <select value={monthlyReport.crmMensal} onChange={(e) => handleMonthlyReportChange('crmMensal', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
-                                <option value="">Selecione...</option><option value="Sim">Sim</option><option value="Não">Não</option><option value="Não ocorreu CRM">Não ocorreu CRM</option>
-                              </select>
-                            </div>
-                            <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Participou de quantas reuniões por Raio?</label>
-                              <select value={monthlyReport.reunioesRaio} onChange={(e) => handleMonthlyReportChange('reunioesRaio', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
-                                <option value="">Selecione...</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="Nenhuma">Nenhuma</option>
-                              </select>
-                            </div>
-                            <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Participou das outras CRM?</label>
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Participou das outras CRM (Extras)?</label>
                               <select value={monthlyReport.outrasCrm} onChange={(e) => handleMonthlyReportChange('outrasCrm', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
-                                <option value="">Selecione...</option><option value="Sim">Sim</option><option value="Não">Não</option><option value="Não teve CRM">Não teve CRM</option>
+                                <option value="">Selecione...</option><option value="Sim">Sim</option><option value="Não">Não</option><option value="Não teve CRM extra">Não teve CRM extra</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Quantos bastiões leu esse mês?</label>
+                              <select value={monthlyReport.bastioesLidos} onChange={(e) => handleMonthlyReportChange('bastioesLidos', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
+                                <option value="">Selecione...</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5 ou mais">5 ou mais</option><option value="Nenhum">Nenhum</option>
                               </select>
                             </div>
                           </div>
-
                           <div style={{ height: '1px', background: isDark ? 'rgba(155, 89, 182, 0.2)' : 'rgba(142, 68, 173, 0.2)' }}></div>
 
                           {/* ESCOLÁSTICA */}
@@ -5381,22 +5431,6 @@ function App() {
                           {/* VOLUNTARIADO E FINANCEIRO */}
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
                             <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Frequência no voluntariado (escalas/secretarias)?</label>
-                              <select value={monthlyReport.frequenciaVoluntariado} onChange={(e) => handleMonthlyReportChange('frequenciaVoluntariado', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
-                                <option value="">Selecione...</option>
-                                <option value="Uma vez por semana">Uma vez por semana</option>
-                                <option value="Duas a três vezes semana">Duas a três vezes semana</option>
-                                <option value="Mais de três vezes por semana">Mais de três vezes por semana</option>
-                                <option value="Não estou participando de nenhuma atividade">Não estou participando de nenhuma atividade</option>
-                              </select>
-                            </div>
-                            <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Ministrou aulas de filosofia esse mês?</label>
-                              <select value={monthlyReport.ministrouAulas} onChange={(e) => handleMonthlyReportChange('ministrouAulas', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
-                                <option value="">Selecione...</option><option value="Sim">Sim</option><option value="Não">Não</option>
-                              </select>
-                            </div>
-                            <div>
                               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Fez GN esse mês (somente CG)?</label>
                               <select value={monthlyReport.fezGn} onChange={(e) => handleMonthlyReportChange('fezGn', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
                                 <option value="">Selecione...</option><option value="Sim">Sim</option><option value="Não">Não</option>
@@ -5406,12 +5440,7 @@ function App() {
                               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Quantas escalas de limpeza participou?</label>
                               <select value={monthlyReport.escalasLimpeza} onChange={(e) => handleMonthlyReportChange('escalasLimpeza', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
                                 <option value="">Selecione...</option>
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="5">5</option>
-                                <option value="Nenhuma">Nenhuma</option>
+                                <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="Nenhuma">Nenhuma</option>
                               </select>
                             </div>
                           </div>
@@ -6251,6 +6280,11 @@ function App() {
                 <p style={{ marginTop: '0.5rem', marginBottom: 0, fontSize: '0.8rem', color: isDark ? '#b8a88a' : '#888', fontStyle: 'italic', lineHeight: '1.4' }}>
                   * Estes horários apenas organizam as janelas do seu diário. As notificações de lembrete no seu dispositivo estão atualmente <strong style={{ color: notificationsActive ? '#4caf50' : '#e74c3c' }}>{notificationsActive ? 'ATIVADAS' : 'DESATIVADAS'}</strong>.
                 </p>
+              </div>
+
+              <div style={{ textAlign: 'left', marginBottom: '2rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', color: isDark ? '#d4af37' : '#6b4423', fontWeight: 'bold' }}>⚔️ Lembrete de Missões e Práticas</label>
+                <input type="time" value={taskReminderTime} onChange={(e) => setTaskReminderTime(e.target.value)} style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: `1px solid ${isDark ? '#d4af37' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.1rem' }} />
               </div>
 
               {/* Termo de Consentimento da IA */}
