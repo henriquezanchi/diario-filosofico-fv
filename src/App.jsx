@@ -3192,6 +3192,14 @@ function App() {
                 )}
               </div>
 
+              {/* BOTÃO DE ESTUDOS */}
+              <button 
+                onClick={() => setView('leituras')} 
+                style={{ padding: '0.5rem 1rem', background: view === 'leituras' ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: view === 'leituras' ? (isDark ? '#1a1a2e' : 'white') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s', marginRight: '0.5rem' }}
+              >
+                <Library size={16} /> Estudos
+              </button>
+
               {/* BOTÃO GDVE*/}
               {fvUnlocked && (
                 <button 
@@ -3260,8 +3268,9 @@ function App() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
-              {['today', 'history', 'tasks', 'gdve', 'analytics'].map((item) => {
-                  const labels = { today: '📖 Diário', history: '📚 Histórico', tasks: '⚔️ Missões', gdve: '🛡️ Discipulado FV', analytics: '📊 Métricas' };                return (
+              {['today', 'history', 'leituras', 'tasks', 'gdve', 'analytics'].map((item) => {
+                const labels = { today: '📖 Diário', history: '📜 Histórico', leituras: '📚 Estudos e Virtudes', tasks: '⚔️ Missões', gdve: '🛡️ Discipulado FV', analytics: '📊 Métricas' };
+            return (
                   <button 
                     key={item}
                     onClick={() => { setView(item); setIsMobileMenuOpen(false); }} 
@@ -4770,9 +4779,9 @@ function App() {
                 </div>
               )}
 
-        {/* VIEW: BIBLIOTECA */}
-        {view === 'biblioteca' && (
-          <div className="animate-fadeIn">
+        {/* SEÇÃO DA BIBLIOTECA DE VIRTUDES (AGORA FUNDIDA COM LEITURAS) */}
+        {view === 'leituras' && (
+          <div className="animate-fadeIn" style={{ marginTop: '2rem' }}>
             <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
                 <Book size={32} color={isDark ? '#d4af37' : '#6b4423'} />
