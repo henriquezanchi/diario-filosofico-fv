@@ -2429,6 +2429,99 @@ function App() {
     }
   };
 
+  const handleMonthlyReportChange = (field, value) => {
+    setMonthlyReport(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handlePropagandaToggle = (value) => {
+    setMonthlyReport(prev => {
+      const current = prev.propaganda || [];
+      return {
+        ...prev,
+        propaganda: current.includes(value) ? current.filter(item => item !== value) : [...current, value]
+      };
+    });
+  };
+
+  const generateMonthlyReportText = () => {
+    const totals = getFvMonthlyTotals();
+    const hoje = new Date();
+    const mesAno = hoje.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    
+    // Calcula a frequência do Diário (Últimos 30 dias)
+    const trintaDiasAtras = new Date(); trintaDiasAtras.setDate(hoje.getDate() - 30);
+    const diasFeitos = entries.filter(e => new Date(e.date + 'T12:00:00') >= trintaDiasAtras && e.morningDone).length;
+    let freqDiario = "Nunca";
+    if (diasFeitos >= 25) freqDiario = "Sempre - Fez todos os dias do mês";
+    else if (diasFeitos >= 12) freqDiario = "Frequentemente - fez mais de 4 vezes por semana";
+    else if (diasFeitos >= 8) freqDiario = "Às vezes - fez pelo menos três vezes por semana";
+    else if (diasFeitos > 0) freqDiario = "Raramente - Fez menos de duas vezes por semana";
+
+    // Pega o livro atual
+    const livroAtual = books.filter(b => b.totalPages > 0 && b.currentPage < b.totalPages)[0];
+    const nomeLivro = livroAtual ? `${livroAtual.title} (${livroAtual.author})` : 'Nenhum no momento';
+
+    const relatorio = `RELATÓRIO MENSAL - ${mesAno.toUpperCase()}
+
+      [IDENTIFICAÇÃO]
+      Nome: ${getUserFirstName()}
+      Unidade: ${fvUnidade || 'Não informada'}
+      Condição: ${fvCondicao || 'Não informada'}
+
+      [ACOMPANHAMENTO INTERNO]
+      Tem feito o diário? ${freqDiario} (App registrou ${diasFeitos} dias)
+      Para quem envia CD? ${fvMasterName || 'Não informado'}
+      Data do último encontro: ${fvLastMeetingDate ? new Date(fvLastMeetingDate + 'T12:00:00').toLocaleDateString('pt-BR') : 'Não informado'}
+      Data da última entrega da CD: ${fvLastCartaDate ? new Date(fvLastCartaDate + 'T12:00:00').toLocaleDateString('pt-BR') : 'Não informado'}
+      Assistiu aula de ED esse mês? ${monthlyReport.assistiuEd || '-'}
+
+      [IDEOLÓGICO]
+      Participou da CRM Mensal? ${monthlyReport.crmMensal || '-'}
+      Reuniões por Raio? ${monthlyReport.reunioesRaio || '-'}
+      Outras CRM? ${monthlyReport.outrasCrm || '-'}
+      Quantos bastiões leu esse mês? ${monthlyReport.bastioesLidos || '-'}
+
+      [ESCOLÁSTICA]
+      Dias de aula do Curso de Filosofia assistidos: ${monthlyReport.diasAula || '-'}
+      Práticas de psicologia: ${monthlyReport.praticasPsicologia || '-'}
+      Horas Aula Assistidas (Calculado pelo App): ${totals.assistida}
+      Estudando para matérias? ${monthlyReport.estudandoMaterias || '-'}
+      Livro filosófico lendo (Puxado da Estante): ${monthlyReport.livroFilosofico || nomeLivro}
+
+      [VOLUNTARIADO]
+      Frequência voluntariado: ${monthlyReport.frequenciaVoluntariado || '-'}
+      Fez GN esse mês? ${monthlyReport.fezGn || '-'}
+      Horas Voluntariado (Calculado pelo App): ${totals.voluntariado}
+      Ministrou aulas de filosofia? ${monthlyReport.ministrouAulas || '-'}
+      Horas Aula Ministradas (Calculado pelo App): ${totals.ministrada}
+      Escalas de limpeza: ${monthlyReport.escalasLimpeza || '-'}
+      Envolvimento propaganda: ${(monthlyReport.propaganda || []).join(', ') || '-'}
+
+      [FINANCEIRO]
+      Contribuição mensal: ${monthlyReport.contribuicao || '-'}
+      Doação para a escola: ${monthlyReport.doacao || '-'}
+
+      [SECRETARIAS]
+      Secretaria / Área: ${monthlyReport.secretariaAtuacao || '-'}
+      Trabalho junto/reunião: ${monthlyReport.secretariaReuniao || '-'}
+      Membros participando / Destaques: ${monthlyReport.secretariaMembros || '-'}
+
+      [ANÁLISE E REFLEXÃO]
+      Pontos positivos/crescimento:
+      ${monthlyReport.pontosPositivos || '-'}
+
+      Desafio que está percebendo para crescer:
+      ${monthlyReport.desafioCrescimento || '-'}
+      `;
+
+          navigator.clipboard.writeText(relatorio).then(() => {
+            alert("✅ Relatório copiado para a Área de Transferência! Agora é só colar no formulário oficial.");
+          }).catch(err => {
+            console.error('Falha ao copiar:', err);
+            alert("Erro ao copiar. Seu navegador pode ter bloqueado a ação.");
+          });
+    };
+
   const handleFvDailyTextChange = (key, value) => {
     setFvDaily(prev => ({ ...prev, [key]: value }));
   };
@@ -4896,7 +4989,7 @@ function App() {
                          {/* DATAS DE ENCONTRO E CARTA */}
                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
                             <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Data do Último Encontro</label>
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Data do Último Encontro com o Mestre</label>
                               <input type="date" value={fvLastMeetingDate || ''} onChange={(e) => setFvLastMeetingDate(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
                             </div>
                             <div>
@@ -4904,7 +4997,7 @@ function App() {
                               <input type="date" value={fvLastCartaDate || ''} onChange={(e) => { const novaData = e.target.value; setFvLastCartaDate(novaData); if (novaData) { const [ano, mes, dia] = novaData.split('-'); const dataCalculada = new Date(parseInt(ano, 10), parseInt(mes, 10) - 1 + 3, parseInt(dia, 10)); setFvNextCartaDate(`${dataCalculada.getFullYear()}-${String(dataCalculada.getMonth() + 1).padStart(2, '0')}-${String(dataCalculada.getDate()).padStart(2, '0')}`); } else { setFvNextCartaDate(''); } }} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
                             </div>
                             <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Próxima Entrega (Previsão)</label>
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Próxima Entrega de Carta (Previsão)</label>
                               <input type="date" value={fvNextCartaDate || ''} onChange={(e) => setFvNextCartaDate(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
                             </div>
                          </div>
@@ -5052,6 +5145,189 @@ function App() {
                             <input type="text" value={newTaskName} onChange={(e) => setNewTaskName(e.target.value)} placeholder="Novo desafio pessoal..." style={{ flex: 1, padding: '0.7rem', borderRadius: '8px', border: '1px solid #ccc', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
                             <button onClick={saveCustomTask} style={{ padding: '0 1rem', background: isDark ? '#6cb2eb' : '#2980b9', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold' }}>+</button>
                          </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* GAVETA: RELATÓRIO MENSAL FV */}
+                  <div style={getBlockStyle('partial', isGdveRelatorioOpen, isDark ? '#9B59B6' : '#8E44AD')}>
+                    <div onClick={() => setIsGdveRelatorioOpen(!isGdveRelatorioOpen)} style={getHeaderStyle('partial', isGdveRelatorioOpen)}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <FileText size={28} color={isDark ? '#c39bd3' : '#8e44ad'} />
+                        <h2 style={{ margin: 0, fontSize: 'clamp(1.1rem, 3vw, 1.4rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif" }}>
+                          Relatório Mensal do Ciclo
+                        </h2>
+                      </div>
+                      {isGdveRelatorioOpen ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
+                    </div>
+
+                    {isGdveRelatorioOpen && (
+                      <div className="animate-fadeIn" style={{ padding: '0 2rem 2rem 2rem' }}>
+                        <div style={{ background: isDark ? 'rgba(155, 89, 182, 0.1)' : 'rgba(142, 68, 173, 0.05)', padding: '1rem', borderRadius: '8px', borderLeft: `4px solid ${isDark ? '#c39bd3' : '#8e44ad'}`, marginBottom: '2rem' }}>
+                          <p style={{ margin: 0, fontSize: '0.9rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.5' }}><strong>Nota:</strong> As Horas de Voluntariado, Aulas Assistidas, Aulas Ministradas e a Frequência do Diário já são calculadas automaticamente pelo aplicativo com base nos seus preenchimentos de "Balanço de Horas". Não se preocupe em somá-las aqui!</p>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                          
+                          {/* ACOMPANHAMENTO INTERNO & IDEOLÓGICO */}
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                            <div>
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Assistiu aula de ED esse mês?</label>
+                              <select value={monthlyReport.assistiuEd} onChange={(e) => handleMonthlyReportChange('assistiuEd', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
+                                <option value="">Selecione...</option><option value="Sim">Sim</option><option value="Não">Não</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Participou da CRM Mensal?</label>
+                              <select value={monthlyReport.crmMensal} onChange={(e) => handleMonthlyReportChange('crmMensal', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
+                                <option value="">Selecione...</option><option value="Sim">Sim</option><option value="Não">Não</option><option value="Não ocorreu CRM">Não ocorreu CRM</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Participou de quantas reuniões por Raio?</label>
+                              <select value={monthlyReport.reunioesRaio} onChange={(e) => handleMonthlyReportChange('reunioesRaio', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
+                                <option value="">Selecione...</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="Nenhuma">Nenhuma</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Participou das outras CRM?</label>
+                              <select value={monthlyReport.outrasCrm} onChange={(e) => handleMonthlyReportChange('outrasCrm', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
+                                <option value="">Selecione...</option><option value="Sim">Sim</option><option value="Não">Não</option><option value="Não teve CRM">Não teve CRM</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div style={{ height: '1px', background: isDark ? 'rgba(155, 89, 182, 0.2)' : 'rgba(142, 68, 173, 0.2)' }}></div>
+
+                          {/* ESCOLÁSTICA */}
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                            <div>
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Quantos bastiões leu esse mês?</label>
+                              <select value={monthlyReport.bastioesLidos} onChange={(e) => handleMonthlyReportChange('bastioesLidos', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
+                                <option value="">Selecione...</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5 ou mais">5 ou mais</option><option value="Nenhum">Nenhum</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Dias de aula do Curso Regular assistidos?</label>
+                              <select value={monthlyReport.diasAula} onChange={(e) => handleMonthlyReportChange('diasAula', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
+                                <option value="">Selecione...</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="Nenhum">Nenhum</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Práticas de psicologia?</label>
+                              <select value={monthlyReport.praticasPsicologia} onChange={(e) => handleMonthlyReportChange('praticasPsicologia', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
+                                <option value="">Selecione...</option>
+                                <option value="Nunca">Nunca (0 dias)</option>
+                                <option value="Raramente">Raramente (menos de 2x/sem)</option>
+                                <option value="Às vezes">Às vezes (3x/sem)</option>
+                                <option value="Frequentemente">Freq. (mais de 4x/sem)</option>
+                                <option value="Sempre">Sempre (Todo dia)</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Estudando matérias do curso de filosofia?</label>
+                              <select value={monthlyReport.estudandoMaterias} onChange={(e) => handleMonthlyReportChange('estudandoMaterias', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
+                                <option value="">Selecione...</option><option value="Sim">Sim</option><option value="Não">Não</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div style={{ height: '1px', background: isDark ? 'rgba(155, 89, 182, 0.2)' : 'rgba(142, 68, 173, 0.2)' }}></div>
+
+                          {/* VOLUNTARIADO E FINANCEIRO */}
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                            <div>
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Frequência no voluntariado (escalas/secretarias)?</label>
+                              <input type="text" value={monthlyReport.frequenciaVoluntariado} onChange={(e) => handleMonthlyReportChange('frequenciaVoluntariado', e.target.value)} placeholder="Ex: Diariamente, 2x por semana..." style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}`, fontFamily: 'Georgia, serif' }} />
+                            </div>
+                            <div>
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Ministrou aulas de filosofia esse mês?</label>
+                              <select value={monthlyReport.ministrouAulas} onChange={(e) => handleMonthlyReportChange('ministrouAulas', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
+                                <option value="">Selecione...</option><option value="Sim">Sim</option><option value="Não">Não</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Fez GN esse mês (somente CG)?</label>
+                              <select value={monthlyReport.fezGn} onChange={(e) => handleMonthlyReportChange('fezGn', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
+                                <option value="">Selecione...</option><option value="Sim">Sim</option><option value="Não">Não</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Quantas escalas de limpeza participou?</label>
+                              <input type="text" value={monthlyReport.escalasLimpeza} onChange={(e) => handleMonthlyReportChange('escalasLimpeza', e.target.value)} placeholder="Número de escalas..." style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}`, fontFamily: 'Georgia, serif' }} />
+                            </div>
+                          </div>
+
+                          <div style={{ marginBottom: '1rem' }}>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Envolvimento com a Propaganda (Múltipla escolha)</label>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.5rem' }}>
+                              {['Contato Pessoal', 'Divulgação WhatsApp', 'Redes Sociais (Insta/Face)', 'Cartazes/Folhetos', 'Não tenho me envolvido'].map(op => (
+                                <label key={op} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', padding: '0.5rem', background: isDark ? 'rgba(255,255,255,0.05)' : '#f0f0f0', borderRadius: '6px' }}>
+                                  <input type="checkbox" checked={(monthlyReport.propaganda || []).includes(op)} onChange={() => handlePropagandaToggle(op)} style={{ width: '18px', height: '18px', accentColor: '#8e44ad' }} />
+                                  <span style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.9rem' }}>{op}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                            <div>
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Pagou contribuição mensal?</label>
+                              <select value={monthlyReport.contribuicao} onChange={(e) => handleMonthlyReportChange('contribuicao', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
+                                <option value="">Selecione...</option><option value="Sim, estou em dias">Sim, em dias</option><option value="Sim, mas com atraso">Sim, mas com atraso</option><option value="Não">Não</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Fez alguma doação extra?</label>
+                              <select value={monthlyReport.doacao} onChange={(e) => handleMonthlyReportChange('doacao', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
+                                <option value="">Selecione...</option><option value="Em espécie">Sim, em espécie</option><option value="Objeto que necessitavam">Objeto necessitado</option><option value="Espécie e Objeto">Ambos</option><option value="Não tive condições/Lembrei">Não</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div style={{ height: '1px', background: isDark ? 'rgba(155, 89, 182, 0.2)' : 'rgba(142, 68, 173, 0.2)' }}></div>
+
+                          {/* SECRETARIAS */}
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                             <div>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Secretaria de Atuação (Se for secretário)</label>
+                                <select value={monthlyReport.secretariaAtuacao} onChange={(e) => handleMonthlyReportChange('secretariaAtuacao', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
+                                  <option value="">Nenhuma / Selecione...</option>
+                                  {['Abertura de Turma', 'Artes', 'Biblioteca', 'Café Artemis', 'Difusão', 'Economia', 'Escolástica', 'GGFF', 'GGMM', 'GGSS', 'Integração', 'Livraria', 'Manutenção', 'Programa Janos', 'Programa Merlin', 'Escola do Esporte', 'Círculo de Amigos', 'Assuntos Legais', 'GEA', 'Assistência Social'].map(s => <option key={s} value={s}>{s}</option>)}
+                                </select>
+                             </div>
+                             <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                               <div>
+                                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Trabalhou/reuniu com os membros da sec.?</label>
+                                  <input type="text" value={monthlyReport.secretariaReuniao} onChange={(e) => handleMonthlyReportChange('secretariaReuniao', e.target.value)} placeholder="Breve relato..." style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}`, fontFamily: 'Georgia, serif' }} />
+                               </div>
+                               <div>
+                                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Quantos membros? Algum destaque?</label>
+                                  <input type="text" value={monthlyReport.secretariaMembros} onChange={(e) => handleMonthlyReportChange('secretariaMembros', e.target.value)} placeholder="Quantidade e destaques..." style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}`, fontFamily: 'Georgia, serif' }} />
+                               </div>
+                             </div>
+                          </div>
+
+                          <div style={{ height: '1px', background: isDark ? 'rgba(155, 89, 182, 0.2)' : 'rgba(142, 68, 173, 0.2)' }}></div>
+
+                          {/* ANÁLISE E REFLEXÃO */}
+                          <div style={{ marginBottom: '1rem' }}>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Indique 1 ou 2 pontos positivos/crescimento deste mês</label>
+                            <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#888', marginTop: '-0.3rem', marginBottom: '0.5rem', fontStyle: 'italic' }}>Faça uma pequena reflexão de um desafio superado.</p>
+                            <textarea value={monthlyReport.pontosPositivos} onChange={(e) => handleMonthlyReportChange('pontosPositivos', e.target.value)} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}`, fontFamily: 'Georgia, serif', resize: 'vertical' }} />
+                          </div>
+
+                          <div style={{ marginBottom: '1.5rem' }}>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Indique um desafio que você está percebendo para crescer</label>
+                            <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#888', marginTop: '-0.3rem', marginBottom: '0.5rem', fontStyle: 'italic' }}>Aponte um elemento que pretende começar a trabalhar/desenvolver.</p>
+                            <textarea value={monthlyReport.desafioCrescimento} onChange={(e) => handleMonthlyReportChange('desafioCrescimento', e.target.value)} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}`, fontFamily: 'Georgia, serif', resize: 'vertical' }} />
+                          </div>
+
+                          <button onClick={generateMonthlyReportText} style={{ width: '100%', padding: '1.2rem', background: 'linear-gradient(135deg, #9B59B6 0%, #8E44AD 100%)', color: 'white', border: 'none', borderRadius: '12px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', boxShadow: '0 6px 15px rgba(155, 89, 182, 0.3)', transition: 'transform 0.2s' }} onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'} onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}>
+                            <FileText size={22} /> Gerar Relatório e Copiar
+                          </button>
+
+                        </div>
                       </div>
                     )}
                   </div>
