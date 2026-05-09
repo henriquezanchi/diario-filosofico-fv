@@ -2615,11 +2615,24 @@ function App() {
   };
 
   const deleteEntry = async (dateKey) => {
-    if (!window.confirm('Deseja realmente excluir este dia?')) return;
+    // Fricção cognitiva: obriga a digitar para evitar exclusão acidental
+    const dataFormatada = dateKey.split('-').reverse().join('/');
+    const confirmacao = window.prompt(`A exclusão é permanente e quebrará sua corrente de constância (Streak) se for um dia passado.\n\nPara excluir o registro do dia ${dataFormatada}, digite a palavra exata: APAGAR`);
+    
+    if (confirmacao !== 'APAGAR') {
+      if (confirmacao !== null) {
+        alert('❌ Exclusão cancelada. A palavra foi digitada incorretamente.');
+      }
+      return; // Aborta a exclusão
+    }
+
     try {
       await deleteDoc(doc(db, 'entries', `${user.uid}_${dateKey}`));
       setEntries(entries.filter(e => e.date !== dateKey));
-    } catch (error) { alert('Erro ao excluir entrada.'); }
+      alert('🗑️ Registro excluído com sucesso.');
+    } catch (error) { 
+      alert('Erro ao excluir a entrada. Verifique sua conexão.'); 
+    }
   };
 
   const exportToCSV = () => {
