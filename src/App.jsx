@@ -5238,7 +5238,13 @@ function App() {
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
                             <div>
                               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Frequência no voluntariado (escalas/secretarias)?</label>
-                              <input type="text" value={monthlyReport.frequenciaVoluntariado} onChange={(e) => handleMonthlyReportChange('frequenciaVoluntariado', e.target.value)} placeholder="Ex: Diariamente, 2x por semana..." style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}`, fontFamily: 'Georgia, serif' }} />
+                              <select value={monthlyReport.frequenciaVoluntariado} onChange={(e) => handleMonthlyReportChange('frequenciaVoluntariado', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
+                                <option value="">Selecione...</option>
+                                <option value="Uma vez por semana">Uma vez por semana</option>
+                                <option value="Duas a três vezes semana">Duas a três vezes semana</option>
+                                <option value="Mais de três vezes por semana">Mais de três vezes por semana</option>
+                                <option value="Não estou participando de nenhuma atividade">Não estou participando de nenhuma atividade</option>
+                              </select>
                             </div>
                             <div>
                               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Ministrou aulas de filosofia esse mês?</label>
@@ -5254,7 +5260,15 @@ function App() {
                             </div>
                             <div>
                               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Quantas escalas de limpeza participou?</label>
-                              <input type="text" value={monthlyReport.escalasLimpeza} onChange={(e) => handleMonthlyReportChange('escalasLimpeza', e.target.value)} placeholder="Número de escalas..." style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}`, fontFamily: 'Georgia, serif' }} />
+                              <select value={monthlyReport.escalasLimpeza} onChange={(e) => handleMonthlyReportChange('escalasLimpeza', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
+                                <option value="">Selecione...</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                                <option value="Nenhuma">Nenhuma</option>
+                              </select>
                             </div>
                           </div>
 
