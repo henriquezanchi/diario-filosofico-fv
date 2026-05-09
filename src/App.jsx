@@ -276,6 +276,13 @@ function App() {
   const [newGdveTaskIsCycle, setNewGdveTaskIsCycle] = useState(false);
   const [fvGdveCycleStatus, setFvGdveCycleStatus] = useState({});
   const [expandedCartaItems, setExpandedCartaItems] = useState({});
+
+  // Controles de Expansão dos Blocos do Diário (Iniciam Fechados)
+  const [isPrologoOpen, setIsPrologoOpen] = useState(false);
+  const [isPraticasOpen, setIsPraticasOpen] = useState(false);
+  const [isEscaladaOpen, setIsEscaladaOpen] = useState(false);
+  const [isHorasOpen, setIsHorasOpen] = useState(false);
+  const [isEpilogoOpen, setIsEpilogoOpen] = useState(false);
   
   // --- ESTADOS DE LEITURA E ESTUDOS ---
   const [books, setBooks] = useState([]);
@@ -2433,6 +2440,23 @@ function App() {
     }
   };
 
+  const saveFvHours = async () => {
+    if (user) {
+      const todayKey = selectedDate;
+      try {
+        const payload = {
+          userId: user.uid,
+          date: todayKey,
+          fvDaily: fvDaily, 
+          fvHoursTimestamp: Timestamp.now()
+        };
+        await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), payload, { merge: true }); 
+        await loadAllEntries(user.uid); 
+        alert('✅ Balanço de horas e voluntariado salvo com sucesso!');
+      } catch (error) { console.error(error); alert('Erro ao salvar as horas.'); }
+    }
+  };
+
   const saveFvPractices = async () => {
     if (user) {
       const todayKey = selectedDate;
@@ -3280,9 +3304,10 @@ function App() {
       )}
 
       <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem 1rem' }}>
+        
         {/* VIEW: DIÁRIO (FUNDIDA COM FV) */}
         {view === 'today' && (
-          <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             
             {/* CABEÇALHO DO DIA */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', padding: '1.5rem', background: selectedDate !== getTodayKey() ? (isDark ? 'rgba(231, 76, 60, 0.15)' : 'rgba(231, 76, 60, 0.1)') : (isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.4)'), borderRadius: '12px', border: `2px solid ${selectedDate !== getTodayKey() ? '#e74c3c' : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)')}` }}>
@@ -3312,280 +3337,341 @@ function App() {
               </div>
             )}
 
+            {/* PRÁTICAS DE HOJE (Tarefas extras) */}
+            {getTasksForToday().length > 0 && (
+              <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '1.5rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}` }}>
+                <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', color: isDark ? '#f0e6d2' : '#2c1810' }}>✓ Desafios Diários</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {getTasksForToday().map(task => (
+                    <label key={task.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(255, 245, 220, 0.3)', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s' }}>
+                      <input type="checkbox" checked={todayTasksStatus[task.id] || false} onChange={() => toggleTaskStatus(task.id)} style={{ width: '20px', height: '20px', cursor: 'pointer' }} />
+                      <span style={{ color: isDark ? '#f0e6d2' : '#2c1810', textDecoration: todayTasksStatus[task.id] ? 'line-through' : 'none', opacity: todayTasksStatus[task.id] ? 0.6 : 1 }}>{task.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* BLOCO 1: PRÓLOGO MATINAL */}
-            <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                <Sunrise size={28} color={isDark ? '#ffd966' : '#ff9800'} />
-                <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif" }}>Prólogo Matinal</h2>
+            <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
+              <div onClick={() => setIsPrologoOpen(!isPrologoOpen)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem 2rem', cursor: 'pointer', background: isPrologoOpen ? 'transparent' : (isDark ? 'rgba(0,0,0,0.2)' : '#fdfbf7') }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <Sunrise size={28} color={isDark ? '#ffd966' : '#ff9800'} />
+                  <h2 style={{ margin: 0, fontSize: 'clamp(1.2rem, 3vw, 1.5rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif" }}>Prólogo Matinal</h2>
+                </div>
+                {isPrologoOpen ? <ChevronUp size={24} color={isDark ? '#f0e6d2' : '#2c1810'} /> : <ChevronDown size={24} color={isDark ? '#f0e6d2' : '#2c1810'} />}
               </div>
 
-              {morningDone ? (
-                <div style={{ padding: '1.5rem', background: isDark ? 'rgba(76, 175, 80, 0.1)' : '#e8f5e9', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(76, 175, 80, 0.3)' : '#4caf50'}` }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <CheckCircle size={24} color={isDark ? '#81c784' : '#4caf50'} />
-                      <h3 style={{ margin: 0, color: isDark ? '#81c784' : '#2e7d32' }}>Armadura Colocada!</h3>
-                    </div>
-                    <button onClick={() => setMorningDone(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: isDark ? '#81c784' : '#2e7d32', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.9rem', fontWeight: 'bold' }}><Edit size={16} /> Editar</button>
-                  </div>
-                  <p style={{ margin: '0.5rem 0', color: isDark ? '#c8e6c9' : '#1b5e20' }}><strong>Virtude do dia:</strong> {selectedVirtue || customVirtue}</p>
-                  {dailyIntention && <p style={{ margin: '0.5rem 0', color: isDark ? '#c8e6c9' : '#1b5e20' }}><strong>Compromisso:</strong> {dailyIntention}</p>}
-                </div>
-              ) : (
-                <div>
-                  <div style={{ marginBottom: '1.5rem' }}>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#f0e6d2' : '#2c1810' }}>Virtude do Dia:</label>
-                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-                      <button onClick={selectRandomVirtue} disabled={!canDrawToday()} style={{ padding: '0.75rem 1.5rem', background: canDrawToday() ? (isDark ? '#d4af37' : '#6b4423') : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'), color: canDrawToday() ? 'white' : (isDark ? '#888' : '#999'), border: 'none', borderRadius: '8px', cursor: canDrawToday() ? 'pointer' : 'not-allowed', fontFamily: 'Georgia, serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: 'clamp(0.85rem, 2vw, 1rem)' }}>
-                        <Shuffle size={18} /> {canDrawToday() ? 'Sortear Virtude' : 'Já sorteou hoje'}
-                      </button>
-                      <button onClick={() => setShowCustomVirtue(!showCustomVirtue)} style={{ padding: '0.75rem 1.5rem', background: 'transparent', color: isDark ? '#d4af37' : '#6b4423', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 600, fontSize: 'clamp(0.85rem, 2vw, 1rem)' }}>
-                        {showCustomVirtue ? 'Escolher da Lista' : 'Escrever Própria'}
-                      </button>
-                    </div>
-
-                    {showCustomVirtue ? (
-                      <input type="text" placeholder="Digite sua virtude..." value={customVirtue} onChange={(e) => setCustomVirtue(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
-                    ) : (
-                      <select value={selectedVirtue} onChange={(e) => setSelectedVirtue(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }}>
-                        <option value="">Selecione uma virtude...</option>
-                        {virtues.map((v, idx) => <option key={idx} value={v.name}>{v.name}</option>)}
-                      </select>
-                    )}
-
-                    {selectedVirtue && !showCustomVirtue && (
-                      <div onClick={() => setIsTodayVirtueExpanded(!isTodayVirtueExpanded)} style={{ marginTop: '1rem', padding: '1rem', background: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(255, 245, 220, 0.5)', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`, cursor: 'pointer' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <h4 style={{ margin: '0', color: isDark ? '#d4af37' : '#6b4423', fontSize: '1.1rem', fontFamily: "'Cinzel', serif" }}>{selectedVirtue}</h4>
-                          {isTodayVirtueExpanded ? <ChevronUp size={20} color={isDark ? '#d4af37' : '#6b4423'} /> : <ChevronDown size={20} color={isDark ? '#d4af37' : '#6b4423'} />}
+              {isPrologoOpen && (
+                <div className="animate-fadeIn" style={{ padding: '0 2rem 2rem 2rem' }}>
+                  {morningDone ? (
+                    <div style={{ padding: '1.5rem', background: isDark ? 'rgba(76, 175, 80, 0.1)' : '#e8f5e9', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(76, 175, 80, 0.3)' : '#4caf50'}` }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <CheckCircle size={24} color={isDark ? '#81c784' : '#4caf50'} />
+                          <h3 style={{ margin: 0, color: isDark ? '#81c784' : '#2e7d32' }}>Armadura Colocada!</h3>
                         </div>
-                        {isTodayVirtueExpanded && (
-                          <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}` }}>
-                            <p style={{ fontSize: '0.95rem', color: isDark ? '#f0e6d2' : '#2c1810', marginBottom: '1rem', lineHeight: '1.6' }}>{virtues.find(v => v.name === selectedVirtue)?.description}</p>
-                            <h5 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#d4af37' : '#6b4423' }}>Práticas Sugeridas:</h5>
-                            <p style={{ fontSize: '0.9rem', color: isDark ? '#c8b896' : '#6b5744', margin: 0, whiteSpace: 'pre-line' }}>{virtues.find(v => v.name === selectedVirtue)?.practices}</p>
+                        <button onClick={() => setMorningDone(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: isDark ? '#81c784' : '#2e7d32', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.9rem', fontWeight: 'bold' }}><Edit size={16} /> Editar</button>
+                      </div>
+                      <p style={{ margin: '0.5rem 0', color: isDark ? '#c8e6c9' : '#1b5e20' }}><strong>Virtude do dia:</strong> {selectedVirtue || customVirtue}</p>
+                      {dailyIntention && <p style={{ margin: '0.5rem 0', color: isDark ? '#c8e6c9' : '#1b5e20' }}><strong>Compromisso:</strong> {dailyIntention}</p>}
+                    </div>
+                  ) : (
+                    <div>
+                      <div style={{ marginBottom: '1.5rem' }}>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#f0e6d2' : '#2c1810' }}>Virtude do Dia:</label>
+                        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+                          <button onClick={selectRandomVirtue} disabled={!canDrawToday()} style={{ padding: '0.75rem 1.5rem', background: canDrawToday() ? (isDark ? '#d4af37' : '#6b4423') : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'), color: canDrawToday() ? 'white' : (isDark ? '#888' : '#999'), border: 'none', borderRadius: '8px', cursor: canDrawToday() ? 'pointer' : 'not-allowed', fontFamily: 'Georgia, serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: 'clamp(0.85rem, 2vw, 1rem)' }}>
+                            <Shuffle size={18} /> {canDrawToday() ? 'Sortear Virtude' : 'Já sorteou hoje'}
+                          </button>
+                          <button onClick={() => setShowCustomVirtue(!showCustomVirtue)} style={{ padding: '0.75rem 1.5rem', background: 'transparent', color: isDark ? '#d4af37' : '#6b4423', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 600, fontSize: 'clamp(0.85rem, 2vw, 1rem)' }}>
+                            {showCustomVirtue ? 'Escolher da Lista' : 'Escrever Própria'}
+                          </button>
+                        </div>
+
+                        {showCustomVirtue ? (
+                          <input type="text" placeholder="Digite sua virtude..." value={customVirtue} onChange={(e) => setCustomVirtue(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                        ) : (
+                          <select value={selectedVirtue} onChange={(e) => setSelectedVirtue(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }}>
+                            <option value="">Selecione uma virtude...</option>
+                            {virtues.map((v, idx) => <option key={idx} value={v.name}>{v.name}</option>)}
+                          </select>
+                        )}
+
+                        {selectedVirtue && !showCustomVirtue && (
+                          <div onClick={() => setIsTodayVirtueExpanded(!isTodayVirtueExpanded)} style={{ marginTop: '1rem', padding: '1rem', background: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(255, 245, 220, 0.5)', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`, cursor: 'pointer' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <h4 style={{ margin: '0', color: isDark ? '#d4af37' : '#6b4423', fontSize: '1.1rem', fontFamily: "'Cinzel', serif" }}>{selectedVirtue}</h4>
+                              {isTodayVirtueExpanded ? <ChevronUp size={20} color={isDark ? '#d4af37' : '#6b4423'} /> : <ChevronDown size={20} color={isDark ? '#d4af37' : '#6b4423'} />}
+                            </div>
+                            {isTodayVirtueExpanded && (
+                              <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}` }}>
+                                <p style={{ fontSize: '0.95rem', color: isDark ? '#f0e6d2' : '#2c1810', marginBottom: '1rem', lineHeight: '1.6' }}>{virtues.find(v => v.name === selectedVirtue)?.description}</p>
+                                <h5 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#d4af37' : '#6b4423' }}>Práticas Sugeridas:</h5>
+                                <p style={{ fontSize: '0.9rem', color: isDark ? '#c8b896' : '#6b5744', margin: 0, whiteSpace: 'pre-line' }}>{virtues.find(v => v.name === selectedVirtue)?.practices}</p>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
-                    )}
-                  </div>
 
-                  <div style={{ marginBottom: '1.5rem' }}>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#f0e6d2' : '#2c1810' }}>Meu compromisso prático para hoje:</label>
-                    <textarea value={dailyIntention} onChange={(e) => setDailyIntention(e.target.value)} placeholder="Como e quando exatamente eu vou praticar isso hoje?" rows={3} style={{ width: '100%', padding: '0.75rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical' }} />
-                  </div>
+                      <div style={{ marginBottom: '1.5rem' }}>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#f0e6d2' : '#2c1810' }}>Meu compromisso prático para hoje:</label>
+                        <textarea value={dailyIntention} onChange={(e) => setDailyIntention(e.target.value)} placeholder="Como e quando exatamente eu vou praticar isso hoje?" rows={3} style={{ width: '100%', padding: '0.75rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical' }} />
+                      </div>
 
-                  <button onClick={saveMorning} style={{ width: '100%', padding: '1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                    <CheckCircle size={20} /> Firmar Compromisso
-                  </button>
+                      <button onClick={saveMorning} style={{ width: '100%', padding: '1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                        <CheckCircle size={20} /> Firmar Compromisso
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
 
             {/* BLOCO 2: AS PRÁTICAS DO TEMPLO (MÓDULO FV) */}
             {fvUnlocked && fvConfig && (
-              <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'rgba(255, 255, 255, 0.9)', padding: '2rem', borderRadius: '16px', border: '2px solid #FFD700', boxShadow: '0 0 20px rgba(255, 215, 0, 0.15)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                  <Award size={28} color="#FFD700" />
-                  <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif" }}>A Forja (Práticas)</h2>
-                </div>
-                <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', marginBottom: '1.5rem' }}>Realize suas disciplinas interiores no decorrer do dia.</p>
-                
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-                  {fvConfig.praticas.map(prac => (
-                    <div key={prac.key} onClick={() => setActiveActionMenu({ key: prac.key, label: prac.label })} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '1rem', background: fvDaily.praticas?.[prac.key] ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.6)'), border: `1px solid ${fvDaily.praticas?.[prac.key] ? '#4caf50' : (isDark ? 'rgba(212, 175, 55, 0.3)' : '#ccc')}`, borderRadius: '8px', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                      {fvDaily.praticas?.[prac.key] ? <CheckCircle size={20} color="#4caf50" /> : <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: `2px solid ${isDark ? '#b8a88a' : '#999'}` }}></div>}
-                      <span style={{ color: fvDaily.praticas?.[prac.key] ? (isDark ? '#81c784' : '#2e7d32') : (isDark ? '#f0e6d2' : '#2c1810'), fontSize: '1.05rem', fontWeight: fvDaily.praticas?.[prac.key] ? 'bold' : 'normal' }}>{prac.label}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.4)', padding: '1.5rem', borderRadius: '12px', borderLeft: '4px solid #FFD700', marginBottom: '1.5rem' }}>
-                  <h4 style={{ margin: '0 0 1rem 0', color: isDark ? '#d4af37' : '#6b4423', fontSize: '1.1rem', fontFamily: "'Cinzel', serif" }}>Templo Interior</h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-                    {[
-                      { key: 'porta', label: '1. Porta' },
-                      { key: 'patioAberto', label: '2. Pátio Aberto' },
-                      { key: 'patioColunas', label: '3. Pátio de Colunas' },
-                      { key: 'santuario', label: '4. Santuário' }
-                    ].map(prac => (
-                      <div key={prac.key} onClick={() => setActiveActionMenu({ key: prac.key, label: prac.label })} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '0.8rem', background: fvDaily.praticas?.[prac.key] ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : 'transparent', border: `1px solid ${fvDaily.praticas?.[prac.key] ? '#4caf50' : (isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)')}`, borderRadius: '8px', transition: 'all 0.2s' }}>
-                        {fvDaily.praticas?.[prac.key] ? <CheckCircle size={18} color="#4caf50" /> : <div style={{ width: '18px', height: '18px', borderRadius: '50%', border: `2px solid ${isDark ? '#b8a88a' : '#999'}` }}></div>}
-                        <span style={{ color: fvDaily.praticas?.[prac.key] ? (isDark ? '#81c784' : '#2e7d32') : (isDark ? '#c8b896' : '#6b5744'), fontSize: '1rem', fontWeight: fvDaily.praticas?.[prac.key] ? 'bold' : 'normal' }}>{prac.label}</span>
-                      </div>
-                    ))}
+              <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'rgba(255, 255, 255, 0.9)', borderRadius: '16px', border: '2px solid #FFD700', boxShadow: '0 0 20px rgba(255, 215, 0, 0.15)', overflow: 'hidden' }}>
+                <div onClick={() => setIsPraticasOpen(!isPraticasOpen)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem 2rem', cursor: 'pointer', background: isPraticasOpen ? 'transparent' : (isDark ? 'rgba(0,0,0,0.2)' : '#fdfbf7') }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <Award size={28} color="#FFD700" />
+                    <h2 style={{ margin: 0, fontSize: 'clamp(1.2rem, 3vw, 1.5rem)', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif" }}>A Forja (Práticas)</h2>
                   </div>
+                  {isPraticasOpen ? <ChevronUp size={24} color={isDark ? '#FFD700' : '#996515'} /> : <ChevronDown size={24} color={isDark ? '#FFD700' : '#996515'} />}
                 </div>
                 
-                <button onClick={saveFvPractices} style={{ width: '100%', padding: '1rem', background: 'transparent', color: isDark ? '#FFD700' : '#996515', border: '2px solid #FFD700', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                  <Save size={20} /> Salvar Práticas Realizadas
-                </button>
+                {isPraticasOpen && (
+                  <div className="animate-fadeIn" style={{ padding: '0 2rem 2rem 2rem' }}>
+                    <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', marginBottom: '1.5rem' }}>Realize suas disciplinas interiores no decorrer do dia.</p>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+                      {fvConfig.praticas.map(prac => (
+                        <div key={prac.key} onClick={() => setActiveActionMenu({ key: prac.key, label: prac.label })} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '1rem', background: fvDaily.praticas?.[prac.key] ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.6)'), border: `1px solid ${fvDaily.praticas?.[prac.key] ? '#4caf50' : (isDark ? 'rgba(212, 175, 55, 0.3)' : '#ccc')}`, borderRadius: '8px', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                          {fvDaily.praticas?.[prac.key] ? <CheckCircle size={20} color="#4caf50" /> : <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: `2px solid ${isDark ? '#b8a88a' : '#999'}` }}></div>}
+                          <span style={{ color: fvDaily.praticas?.[prac.key] ? (isDark ? '#81c784' : '#2e7d32') : (isDark ? '#f0e6d2' : '#2c1810'), fontSize: '1.05rem', fontWeight: fvDaily.praticas?.[prac.key] ? 'bold' : 'normal' }}>{prac.label}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.4)', padding: '1.5rem', borderRadius: '12px', borderLeft: '4px solid #FFD700', marginBottom: '1.5rem' }}>
+                      <h4 style={{ margin: '0 0 1rem 0', color: isDark ? '#d4af37' : '#6b4423', fontSize: '1.1rem', fontFamily: "'Cinzel', serif" }}>Templo Interior</h4>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+                        {[
+                          { key: 'porta', label: '1. Porta' },
+                          { key: 'patioAberto', label: '2. Pátio Aberto' },
+                          { key: 'patioColunas', label: '3. Pátio de Colunas' },
+                          { key: 'santuario', label: '4. Santuário' }
+                        ].map(prac => (
+                          <div key={prac.key} onClick={() => setActiveActionMenu({ key: prac.key, label: prac.label })} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '0.8rem', background: fvDaily.praticas?.[prac.key] ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : 'transparent', border: `1px solid ${fvDaily.praticas?.[prac.key] ? '#4caf50' : (isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)')}`, borderRadius: '8px', transition: 'all 0.2s' }}>
+                            {fvDaily.praticas?.[prac.key] ? <CheckCircle size={18} color="#4caf50" /> : <div style={{ width: '18px', height: '18px', borderRadius: '50%', border: `2px solid ${isDark ? '#b8a88a' : '#999'}` }}></div>}
+                            <span style={{ color: fvDaily.praticas?.[prac.key] ? (isDark ? '#81c784' : '#2e7d32') : (isDark ? '#c8b896' : '#6b5744'), fontSize: '1rem', fontWeight: fvDaily.praticas?.[prac.key] ? 'bold' : 'normal' }}>{prac.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    
+                    <button onClick={saveFvPractices} style={{ width: '100%', padding: '1rem', background: 'transparent', color: isDark ? '#FFD700' : '#996515', border: '2px solid #FFD700', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                      <Save size={20} /> Salvar Práticas Realizadas
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* BLOCO 3: A ESCALADA (CARTA DE DEGRAU INTELIGENTE) */}
+            {/* BLOCO 3: A ESCALADA (AS REFLEXÕES DO FV) */}
             {fvUnlocked && fvConfig && (
-              <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'rgba(255, 255, 255, 0.9)', padding: '2rem', borderRadius: '16px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.4)' : '#FFD700'}`, boxShadow: '0 4px 15px rgba(255,215,0,0.1)' }}>
-                <h3 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#FFD700' : '#996515', fontSize: '1.4rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.75rem' }}><Mountain size={28} /> {fvConfig.secaoReflexao}</h3>
-                <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', marginBottom: '2rem', fontSize: '0.95rem' }}>Ao preencher, o bloco ficará cinza para descansar sua mente.</p>
+              <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'rgba(255, 255, 255, 0.9)', borderRadius: '16px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.4)' : '#FFD700'}`, boxShadow: '0 4px 15px rgba(255,215,0,0.1)', overflow: 'hidden' }}>
+                <div onClick={() => setIsEscaladaOpen(!isEscaladaOpen)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem 2rem', cursor: 'pointer', background: isEscaladaOpen ? 'transparent' : (isDark ? 'rgba(0,0,0,0.2)' : '#fdfbf7') }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <Mountain size={28} color={isDark ? '#FFD700' : '#996515'} />
+                    <h3 style={{ margin: 0, color: isDark ? '#FFD700' : '#996515', fontSize: '1.4rem', fontFamily: "'Cinzel', serif" }}>{fvConfig.secaoReflexao}</h3>
+                  </div>
+                  {isEscaladaOpen ? <ChevronUp size={24} color={isDark ? '#FFD700' : '#996515'} /> : <ChevronDown size={24} color={isDark ? '#FFD700' : '#996515'} />}
+                </div>
 
-                {fvConfig.itensCarta.map(item => {
-                  const isItem2 = item.id === 'item2';
-                  const subKeys = ['instintos', 'idade', 'enfermidade', 'animo', 'humor', 'ideias', 'sentimentos', 'ambiente'];
-                  const subLabels = ['Instintos (Conserv. / Procriação)', 'Idade', 'Enfermidade', 'Ânimo', 'Humor', 'Ideias', 'Sentimentos', 'Ambiente'];
-                  
-                  // Lógica de Preenchimento: Se Item 2, olha os pedaços. Se os outros, olha o texto.
-                  const isFilled = isItem2 
-                    ? subKeys.some(k => (fvDaily[`item2_${k}`] || '').trim().length > 0)
-                    : (fvDaily[item.id] || '').trim().length > 0;
-                    
-                  // Lógica de Expansão: Se está preenchido, o Padrão é Fechado. Se está vazio, o Padrão é Aberto.
-                  const actuallyExpanded = expandedCartaItems[item.id] !== undefined ? expandedCartaItems[item.id] : !isFilled;
+                {isEscaladaOpen && (
+                  <div className="animate-fadeIn" style={{ padding: '0 2rem 2rem 2rem' }}>
+                    <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', marginBottom: '2rem', fontSize: '0.95rem' }}>Ao salvar, os itens preenchidos ficarão cinzas para descansar sua mente.</p>
 
-                  // Lógica de Cores Inteligentes
-                  const borderColor = isFilled ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)') : (isDark ? 'rgba(212, 175, 55, 0.5)' : '#996515');
-                  const headerColor = isFilled ? (isDark ? '#777' : '#aaa') : (isDark ? '#FFD700' : '#996515');
-                  const bgColor = isFilled ? (isDark ? 'rgba(0,0,0,0.1)' : '#f9f9f9') : (isDark ? 'rgba(212, 175, 55, 0.05)' : 'white');
+                    {fvConfig.itensCarta.map(item => {
+                      // O SEGREDO: Avalia o que está SALVO no Firebase para mudar de cor, não o que está sendo digitado.
+                      const savedEntryForToday = entries.find(e => e.date === selectedDate) || {};
+                      const savedFvDaily = savedEntryForToday.fvDaily || {};
 
-                  return (
-                    <div key={item.id} style={{ marginBottom: '1rem', background: bgColor, borderRadius: '8px', border: `1px solid ${borderColor}`, transition: 'all 0.3s ease', overflow: 'hidden' }}>
+                      const isItem2 = item.id === 'item2';
+                      const subKeys = ['instintos', 'idade', 'enfermidade', 'animo', 'humor', 'ideias', 'sentimentos', 'ambiente'];
+                      const subLabels = ['Instintos (Conserv. / Procriação)', 'Idade', 'Enfermidade', 'Ânimo', 'Humor', 'Ideias', 'Sentimentos', 'Ambiente'];
                       
-                      {/* CABEÇALHO CLICÁVEL */}
-                      <div 
-                        onClick={() => setExpandedCartaItems(prev => ({ ...prev, [item.id]: !actuallyExpanded }))}
-                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', cursor: 'pointer', background: isFilled ? 'transparent' : (isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,245,220,0.3)') }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                          {isFilled && <CheckCircle size={18} color={isDark ? '#555' : '#aaa'} />}
-                          <h4 style={{ margin: 0, fontWeight: 600, fontSize: '1.05rem', color: headerColor, fontFamily: "'Cinzel', serif", textTransform: 'uppercase', textDecoration: isFilled ? 'line-through' : 'none' }}>
-                            {item.label}
-                          </h4>
-                        </div>
-                        {actuallyExpanded ? <ChevronUp size={20} color={headerColor} /> : <ChevronDown size={20} color={headerColor} />}
-                      </div>
+                      const isFilled = isItem2 
+                        ? subKeys.some(k => (savedFvDaily[`item2_${k}`] || '').trim().length > 0)
+                        : (savedFvDaily[item.id] || '').trim().length > 0;
+                        
+                      const actuallyExpanded = expandedCartaItems[item.id] !== undefined ? expandedCartaItems[item.id] : !isFilled;
 
-                      {/* CORPO EXPANSÍVEL */}
-                      {actuallyExpanded && (
-                        <div className="animate-fadeIn" style={{ padding: '0 1.2rem 1.2rem 1.2rem' }}>
-                          <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#888', marginBottom: '1rem', fontStyle: 'italic' }}>{item.desc}</p>
-                          
-                          {isItem2 ? (
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-                              {subKeys.map((subK, i) => (
-                                <div key={subK}>
-                                  <label style={{ display: 'block', fontSize: '0.8rem', color: isDark ? '#d4af37' : '#996515', marginBottom: '0.4rem', fontWeight: 'bold' }}>{subLabels[i]}</label>
-                                  <textarea 
-                                    value={fvDaily[`item2_${subK}`] || ''} 
-                                    onChange={(e) => handleFvDailyTextChange(`item2_${subK}`, e.target.value)} 
-                                    placeholder="Análise..." 
-                                    rows={2} 
-                                    style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, borderRadius: '6px', fontSize: '0.9rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(0,0,0,0.3)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical' }} 
-                                  />
-                                </div>
-                              ))}
+                      const borderColor = isFilled ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)') : (isDark ? 'rgba(212, 175, 55, 0.5)' : '#996515');
+                      const headerColor = isFilled ? (isDark ? '#777' : '#aaa') : (isDark ? '#FFD700' : '#996515');
+                      const bgColor = isFilled ? (isDark ? 'rgba(0,0,0,0.1)' : '#f9f9f9') : (isDark ? 'rgba(212, 175, 55, 0.05)' : 'white');
+
+                      return (
+                        <div key={item.id} style={{ marginBottom: '1rem', background: bgColor, borderRadius: '8px', border: `1px solid ${borderColor}`, transition: 'all 0.3s ease', overflow: 'hidden' }}>
+                          <div 
+                            onClick={() => setExpandedCartaItems(prev => ({ ...prev, [item.id]: !actuallyExpanded }))}
+                            style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', cursor: 'pointer', background: isFilled ? 'transparent' : (isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,245,220,0.3)') }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                              {isFilled && <CheckCircle size={18} color={isDark ? '#555' : '#aaa'} />}
+                              <h4 style={{ margin: 0, fontWeight: 600, fontSize: '1.05rem', color: headerColor, fontFamily: "'Cinzel', serif", textTransform: 'uppercase', textDecoration: isFilled ? 'line-through' : 'none' }}>
+                                {item.label}
+                              </h4>
                             </div>
-                          ) : (
-                            <textarea 
-                              value={fvDaily[item.id] || ''} 
-                              onChange={(e) => handleFvDailyTextChange(item.id, e.target.value)} 
-                              placeholder="Registro..." 
-                              rows={3} 
-                              style={{ width: '100%', padding: '1rem', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(0,0,0,0.3)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical' }} 
-                            />
+                            {actuallyExpanded ? <ChevronUp size={20} color={headerColor} /> : <ChevronDown size={20} color={headerColor} />}
+                          </div>
+
+                          {actuallyExpanded && (
+                            <div className="animate-fadeIn" style={{ padding: '0 1.2rem 1.2rem 1.2rem' }}>
+                              <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#888', marginBottom: '1rem', fontStyle: 'italic' }}>{item.desc}</p>
+                              
+                              {isItem2 ? (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+                                  {subKeys.map((subK, i) => (
+                                    <div key={subK}>
+                                      <label style={{ display: 'block', fontSize: '0.8rem', color: isDark ? '#d4af37' : '#996515', marginBottom: '0.4rem', fontWeight: 'bold' }}>{subLabels[i]}</label>
+                                      <textarea 
+                                        value={fvDaily[`item2_${subK}`] || ''} 
+                                        onChange={(e) => handleFvDailyTextChange(`item2_${subK}`, e.target.value)} 
+                                        placeholder="Análise..." 
+                                        rows={2} 
+                                        style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, borderRadius: '6px', fontSize: '0.9rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(0,0,0,0.3)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical' }} 
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <textarea 
+                                  value={fvDaily[item.id] || ''} 
+                                  onChange={(e) => handleFvDailyTextChange(item.id, e.target.value)} 
+                                  placeholder="Registro..." 
+                                  rows={3} 
+                                  style={{ width: '100%', padding: '1rem', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(0,0,0,0.3)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical' }} 
+                                />
+                              )}
+                            </div>
                           )}
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
+                      );
+                    })}
 
-                {/* O TOTALIZADOR MENSAL NO TOPO DO DIÁRIO */}
-            {fvUnlocked && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', background: isDark ? 'rgba(0,0,0,0.3)' : '#fdfbf7', padding: '1.2rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-                {(() => {
-                  const totals = getFvMonthlyTotals();
-                  return (
-                    <>
-                      <div style={{ textAlign: 'center' }}>
-                        <span style={{ fontSize: '0.75rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', fontWeight: 'bold' }}>Voluntariado no Mês</span>
-                        <strong style={{ display: 'block', fontSize: '1.4rem', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif" }}>{totals.voluntariado}</strong>
-                      </div>
-                      <div style={{ textAlign: 'center', borderLeft: isMobile ? 'none' : `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`, borderTop: isMobile ? `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}` : 'none', paddingTop: isMobile ? '0.8rem' : '0' }}>
-                        <span style={{ fontSize: '0.75rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', fontWeight: 'bold' }}>Aulas Assistidas</span>
-                        <strong style={{ display: 'block', fontSize: '1.4rem', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif" }}>{totals.assistida}</strong>
-                      </div>
-                      <div style={{ textAlign: 'center', borderLeft: isMobile ? 'none' : `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`, borderTop: isMobile ? `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}` : 'none', paddingTop: isMobile ? '0.8rem' : '0' }}>
-                        <span style={{ fontSize: '0.75rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', fontWeight: 'bold' }}>Aulas Ministradas</span>
-                        <strong style={{ display: 'block', fontSize: '1.4rem', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif" }}>{totals.ministrada}</strong>
-                      </div>
-                    </>
-                  );
-                })()}
+                    <button onClick={saveFvTexts} style={{ width: '100%', padding: '1rem', background: 'rgba(255, 215, 0, 0.1)', color: isDark ? '#FFD700' : '#996515', border: '1px solid #FFD700', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', transition: 'all 0.2s', marginTop: '1rem' }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,215,0,0.2)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255, 215, 0, 0.1)'}>
+                      <Save size={20} /> Salvar Relatos da Escalada
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.5rem', margin: '2rem 0', padding: '1.5rem', background: isDark ? 'rgba(212,175,55,0.05)' : 'rgba(255,245,220,0.5)', borderRadius: '12px' }}>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.95rem', color: isDark ? '#FFD700' : '#996515' }}>Horas de Voluntariado</label>
-                    <input type="time" value={fvDaily.horasVoluntariado || ''} onChange={(e) => handleFvDailyTextChange('horasVoluntariado', e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212,175,55,0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+            {/* BLOCO EXTRA: BALANÇO DE HORAS (INDEPENDENTE) */}
+            {fvUnlocked && (
+              <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'rgba(255, 255, 255, 0.9)', borderRadius: '16px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.4)' : '#FFD700'}`, boxShadow: '0 4px 15px rgba(255,215,0,0.1)', overflow: 'hidden' }}>
+                <div onClick={() => setIsHorasOpen(!isHorasOpen)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem 2rem', cursor: 'pointer', background: isHorasOpen ? 'transparent' : (isDark ? 'rgba(0,0,0,0.2)' : '#fdfbf7') }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <Clock size={28} color={isDark ? '#FFD700' : '#996515'} />
+                    <h3 style={{ margin: 0, color: isDark ? '#FFD700' : '#996515', fontSize: '1.4rem', fontFamily: "'Cinzel', serif" }}>Balanço de Horas</h3>
                   </div>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.95rem', color: isDark ? '#FFD700' : '#996515' }}>Aulas Assistidas</label>
-                    <input type="time" value={fvDaily.horasAulaAssistida || ''} onChange={(e) => handleFvDailyTextChange('horasAulaAssistida', e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212,175,55,0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810' }} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.95rem', color: isDark ? '#FFD700' : '#996515' }}>Aulas Ministradas</label>
-                    <input type="time" value={fvDaily.horasAulaMinistrada || ''} onChange={(e) => handleFvDailyTextChange('horasAulaMinistrada', e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212,175,55,0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810' }} />
-                  </div>
+                  {isHorasOpen ? <ChevronUp size={24} color={isDark ? '#FFD700' : '#996515'} /> : <ChevronDown size={24} color={isDark ? '#FFD700' : '#996515'} />}
                 </div>
 
-                <button onClick={saveFvTexts} style={{ width: '100%', padding: '1rem', background: 'rgba(255, 215, 0, 0.1)', color: isDark ? '#FFD700' : '#996515', border: '1px solid #FFD700', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', transition: 'all 0.2s' }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,215,0,0.2)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255, 215, 0, 0.1)'}>
-                  <Save size={20} /> Salvar Relatos da Escalada
-                </button>
+                {isHorasOpen && (
+                  <div className="animate-fadeIn" style={{ padding: '0 2rem 2rem 2rem' }}>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', background: isDark ? 'rgba(0,0,0,0.3)' : '#fdfbf7', padding: '1.2rem', borderRadius: '12px', border: `1px dashed ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, marginBottom: '2rem' }}>
+                      {(() => {
+                        const totals = getFvMonthlyTotals();
+                        return (
+                          <>
+                            <div style={{ textAlign: 'center' }}>
+                              <span style={{ fontSize: '0.75rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', fontWeight: 'bold' }}>Voluntariado no Mês</span>
+                              <strong style={{ display: 'block', fontSize: '1.4rem', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif" }}>{totals.voluntariado}</strong>
+                            </div>
+                            <div style={{ textAlign: 'center', borderLeft: isMobile ? 'none' : `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`, borderTop: isMobile ? `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}` : 'none', paddingTop: isMobile ? '0.8rem' : '0' }}>
+                              <span style={{ fontSize: '0.75rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', fontWeight: 'bold' }}>Aulas Assistidas</span>
+                              <strong style={{ display: 'block', fontSize: '1.4rem', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif" }}>{totals.assistida}</strong>
+                            </div>
+                            <div style={{ textAlign: 'center', borderLeft: isMobile ? 'none' : `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`, borderTop: isMobile ? `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}` : 'none', paddingTop: isMobile ? '0.8rem' : '0' }}>
+                              <span style={{ fontSize: '0.75rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', fontWeight: 'bold' }}>Aulas Ministradas</span>
+                              <strong style={{ display: 'block', fontSize: '1.4rem', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif" }}>{totals.ministrada}</strong>
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.95rem', color: isDark ? '#FFD700' : '#996515' }}>Voluntariado Hoje</label>
+                        <input type="time" value={fvDaily.horasVoluntariado || ''} onChange={(e) => handleFvDailyTextChange('horasVoluntariado', e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212,175,55,0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.95rem', color: isDark ? '#FFD700' : '#996515' }}>Aulas Assistidas</label>
+                        <input type="time" value={fvDaily.horasAulaAssistida || ''} onChange={(e) => handleFvDailyTextChange('horasAulaAssistida', e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212,175,55,0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                      </div>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.95rem', color: isDark ? '#FFD700' : '#996515' }}>Aulas Ministradas</label>
+                        <input type="time" value={fvDaily.horasAulaMinistrada || ''} onChange={(e) => handleFvDailyTextChange('horasAulaMinistrada', e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212,175,55,0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                      </div>
+                    </div>
+
+                    <button onClick={saveFvHours} style={{ width: '100%', padding: '1rem', background: 'transparent', color: isDark ? '#FFD700' : '#996515', border: '2px solid #FFD700', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', transition: 'all 0.2s' }}>
+                      <Save size={20} /> Registrar Serviço
+                    </button>
+                  </div>
+                )}
               </div>
             )}
-            
 
             {/* BLOCO 4: EPÍLOGO NOTURNO (LIMPO) */}
-            <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                <Sunset size={28} color={isDark ? '#b19cd9' : '#9c27b0'} />
-                <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif" }}>Epílogo Noturno</h2>
+            <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
+              <div onClick={() => setIsEpilogoOpen(!isEpilogoOpen)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem 2rem', cursor: 'pointer', background: isEpilogoOpen ? 'transparent' : (isDark ? 'rgba(0,0,0,0.2)' : '#fdfbf7') }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <Sunset size={28} color={isDark ? '#b19cd9' : '#9c27b0'} />
+                  <h2 style={{ margin: 0, fontSize: 'clamp(1.2rem, 3vw, 1.5rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif" }}>Epílogo Noturno</h2>
+                </div>
+                {isEpilogoOpen ? <ChevronUp size={24} color={isDark ? '#f0e6d2' : '#2c1810'} /> : <ChevronDown size={24} color={isDark ? '#f0e6d2' : '#2c1810'} />}
               </div>
 
-              {eveningDone ? (
-                <div style={{ padding: '1.5rem', background: isDark ? 'rgba(76, 175, 80, 0.1)' : '#e8f5e9', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(76, 175, 80, 0.3)' : '#4caf50'}` }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <CheckCircle size={24} color={isDark ? '#81c784' : '#4caf50'} />
-                      <h3 style={{ margin: 0, color: isDark ? '#81c784' : '#2e7d32' }}>Paz Conquistada!</h3>
+              {isEpilogoOpen && (
+                <div className="animate-fadeIn" style={{ padding: '0 2rem 2rem 2rem' }}>
+                  {eveningDone ? (
+                    <div style={{ padding: '1.5rem', background: isDark ? 'rgba(76, 175, 80, 0.1)' : '#e8f5e9', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(76, 175, 80, 0.3)' : '#4caf50'}` }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <CheckCircle size={24} color={isDark ? '#81c784' : '#4caf50'} />
+                          <h3 style={{ margin: 0, color: isDark ? '#81c784' : '#2e7d32' }}>Paz Conquistada!</h3>
+                        </div>
+                        <button onClick={() => setEveningDone(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: isDark ? '#81c784' : '#2e7d32', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.9rem', fontWeight: 'bold' }}><Edit size={16} /> Editar</button>
+                      </div>
+                      <p style={{ margin: 0, color: isDark ? '#c8e6c9' : '#1b5e20' }}>Exame noturno encerrado. Descanse com dignidade. 🌙</p>
                     </div>
-                    <button onClick={() => setEveningDone(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: isDark ? '#81c784' : '#2e7d32', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.9rem', fontWeight: 'bold' }}><Edit size={16} /> Editar</button>
-                  </div>
-                  <p style={{ margin: 0, color: isDark ? '#c8e6c9' : '#1b5e20' }}>Exame noturno encerrado. Descanse com dignidade. 🌙</p>
-                </div>
-              ) : (
-                <div>
-                  <p style={{ marginBottom: '1.5rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', fontSize: '1.05rem', borderLeft: `3px solid ${isDark ? '#b19cd9' : '#9c27b0'}`, paddingLeft: '1rem' }}>"Que ninguém durma sem antes examinar as ações do dia" — Versos de Ouro de Pitágoras</p>
+                  ) : (
+                    <div>
+                      <p style={{ marginBottom: '1.5rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', fontSize: '1.05rem', borderLeft: `3px solid ${isDark ? '#b19cd9' : '#9c27b0'}`, paddingLeft: '1rem' }}>"Que ninguém durma sem antes examinar as ações do dia" — Versos de Ouro de Pitágoras</p>
 
-                  <div style={{ marginBottom: '2rem' }}>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.1rem' }}>Reflexão Final:</label>
-                    <p style={{ fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#888', marginBottom: '1rem' }}>Escreva livremente sobre as vitórias, derrotas e percepções de hoje antes de dormir.</p>
-                    <textarea value={freeEpilogue} onChange={(e) => setFreeEpilogue(e.target.value)} placeholder="Ao olhar para o dia de hoje, percebo que..." rows={6} style={{ width: '100%', padding: '1rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', fontSize: '1.05rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(0,0,0,0.2)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical', lineHeight: '1.6' }} />
-                  </div>
+                      <div style={{ marginBottom: '2rem' }}>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.1rem' }}>Reflexão Final:</label>
+                        <p style={{ fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#888', marginBottom: '1rem' }}>Escreva livremente sobre as vitórias, derrotas e percepções de hoje antes de dormir.</p>
+                        <textarea value={freeEpilogue} onChange={(e) => setFreeEpilogue(e.target.value)} placeholder="Ao olhar para o dia de hoje, percebo que..." rows={6} style={{ width: '100%', padding: '1rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', fontSize: '1.05rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(0,0,0,0.2)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical', lineHeight: '1.6' }} />
+                      </div>
 
-                  <button onClick={saveEvening} style={{ width: '100%', padding: '1.2rem', background: isDark ? '#b19cd9' : '#9c27b0', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', boxShadow: '0 4px 15px rgba(156, 39, 176, 0.3)', transition: 'transform 0.2s' }} onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'} onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}>
-                    <Moon size={20} /> Encerrar o Dia (Salvar)
-                  </button>
+                      <button onClick={saveEvening} style={{ width: '100%', padding: '1.2rem', background: isDark ? '#b19cd9' : '#9c27b0', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', boxShadow: '0 4px 15px rgba(156, 39, 176, 0.3)', transition: 'transform 0.2s' }} onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'} onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}>
+                        <Moon size={20} /> Encerrar o Dia (Salvar)
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
 
           </div>
-        )}
-        
-
-          
+        )}  
 
         {/* VIEW: TASKS */}
         
