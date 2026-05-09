@@ -3513,7 +3513,7 @@ function App() {
                   {fvUnlocked && fvConfig && (
                     <div style={getBlockStyle(forjaStatus, isPraticasOpen, '#FFD700')}>
                       <div onClick={() => setIsPraticasOpen(!isPraticasOpen)} style={getHeaderStyle(forjaStatus, isPraticasOpen)}>
-                        {renderTitle('A Forja (Práticas)', forjaStatus, isPraticasOpen, <Award size={28} color="#FFD700" />)}
+                        {renderTitle('Práticas (A Forja do Caráter)', forjaStatus, isPraticasOpen, <Award size={28} color="#FFD700" />)}
                         {isPraticasOpen ? <ChevronUp size={24} color={isDark ? '#FFD700' : '#996515'} /> : <ChevronDown size={24} color={isDark ? '#FFD700' : '#996515'} />}
                       </div>
                       
@@ -3557,7 +3557,7 @@ function App() {
                   {fvUnlocked && fvConfig && (
                     <div style={getBlockStyle(escaladaStatus, isEscaladaOpen, '#FFD700')}>
                       <div onClick={() => setIsEscaladaOpen(!isEscaladaOpen)} style={getHeaderStyle(escaladaStatus, isEscaladaOpen)}>
-                        {renderTitle(fvConfig.secaoReflexao, escaladaStatus, isEscaladaOpen, <Mountain size={28} color={isDark ? '#FFD700' : '#996515'} />)}
+                        {renderTitle('Degrau (A Escalada)', escaladaStatus, isEscaladaOpen, <Mountain size={28} color={isDark ? '#FFD700' : '#996515'} />)}
                         {isEscaladaOpen ? <ChevronUp size={24} color={isDark ? '#FFD700' : '#996515'} /> : <ChevronDown size={24} color={isDark ? '#FFD700' : '#996515'} />}
                       </div>
 
