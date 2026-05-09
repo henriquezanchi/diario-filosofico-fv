@@ -281,12 +281,6 @@ function App() {
   const [isHorasOpen, setIsHorasOpen] = useState(false);
   const [isEpilogoOpen, setIsEpilogoOpen] = useState(false);
 
-  // Controles de Expansão dos Blocos do GDVE (Iniciam Fechados)
-  const [isGdvePlanOpen, setIsGdvePlanOpen] = useState(false);
-  const [isGdveBastiaoOpen, setIsGdveBastiaoOpen] = useState(false);
-  const [isGdveMissoesOpen, setIsGdveMissoesOpen] = useState(false);
-  const [isGdveDesafiosOpen, setIsGdveDesafiosOpen] = useState(false);
-  
   // --- ESTADOS DE LEITURA E ESTUDOS ---
   const [books, setBooks] = useState([]);
   const [showAddBook, setShowAddBook] = useState(false);
