@@ -202,6 +202,7 @@ function App() {
   const [customVirtue, setCustomVirtue] = useState('');
   const [showCustomVirtue, setShowCustomVirtue] = useState(false);
   const [dailyQuote, setDailyQuote] = useState(null);
+  const [dailyStudyTip, setDailyStudyTip] = useState(null);
   const [dailyIntention, setDailyIntention] = useState('');
   const [morningChallenges, setMorningChallenges] = useState(''); 
   const [morningVehicles, setMorningVehicles] = useState(''); 
@@ -941,6 +942,21 @@ function App() {
     { text: "A verdadeira medida de um homem não se vê nos momentos de conforto, mas nos de desafio e controvérsia.", author: "Martin Luther King Jr." }
   ];
 
+  const studyTips = [
+    { phase: "E - Examinar", text: "Antes de iniciar a leitura, reserve 5 minutos para examinar o índice, os títulos e os resumos. Crie um mapa mental do que o autor pretende explorar." },
+    { phase: "E - Examinar", text: "Leia o prefácio e a conclusão antes do primeiro capítulo. Entender o destino final facilita a jornada pela obra." },
+    { phase: "P - Perguntar", text: "Transforme o título do capítulo em uma pergunta. O que você espera que o texto responda? Leia ativamente buscando essa resposta." },
+    { phase: "P - Perguntar", text: "Um livro de sabedoria não é um monólogo. Faça perguntas ao texto enquanto lê: 'Como posso aplicar isso na minha vida amanhã?'" },
+    { phase: "L - Ler", text: "Leia com um lápis em mãos. Sublinhe não apenas frases bonitas, mas os eixos centrais do pensamento lógico do autor." },
+    { phase: "L - Ler", text: "Se a leitura estiver muito densa, diminua o ritmo. Livros clássicos devem ser mastigados, não engolidos." },
+    { phase: "R - Rememorar", text: "Ao terminar um capítulo, feche o livro e tente explicar o que leu em voz alta, como se ensinasse a um amigo. Teste sua síntese." },
+    { phase: "R - Rememorar", text: "Se você não consegue resumir a ideia principal da página que acabou de ler, volte. A retenção real exige atenção e repetição." },
+    { phase: "R - Rever", text: "Reserve um dia da semana apenas para rever suas anotações e fichamentos. O ouro da leitura filosófica está na revisão." },
+    { phase: "R - Rever", text: "Conecte o novo aprendizado com o que você já sabe. A sabedoria é uma teia viva, não uma gaveta de informações isoladas." },
+    { phase: "Prática Geral", text: "Não meça seu avanço pela quantidade de páginas viradas, mas pela quantidade de ideias que você transformou em ação." },
+    { phase: "Prática Geral", text: "É preferível ler poucos livros bons muitas vezes, do que muitos livros ruins uma só vez." }
+  ];
+
   const getTodayKey = () => {
     const today = new Date();
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -1394,6 +1410,11 @@ function App() {
         const randomQuote = philosophicalQuotes[Math.floor(Math.random() * philosophicalQuotes.length)];
         setDailyQuote(randomQuote);
       }
+      if (!dailyStudyTip) {
+        const randomTip = studyTips[Math.floor(Math.random() * studyTips.length)];
+        setDailyStudyTip(randomTip);
+      }
+
     } catch (error) {
       console.error('Erro ao carregar entrada:', error);
     }
@@ -4100,27 +4121,22 @@ function App() {
         {/* VIEW: LEITURAS E ESTUDOS */}
         {view === 'leituras' && (
           <div className="animate-fadeIn">
-            {/* TÉCNICAS DE LEITURA (EPL2R) - DESIGN REFINADO */}
-            <div style={{ background: isDark ? 'rgba(30, 41, 59, 0.5)' : '#fff', padding: '2rem', borderRadius: '16px', border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`, marginBottom: '2.5rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', borderLeft: '4px solid #4f46e5', paddingLeft: '1rem' }}>
-                    <h3 style={{ margin: 0, color: isDark ? '#f8fafc' : '#1e293b', fontFamily: "'Cinzel', serif", fontSize: '1.4rem' }}>Método de Estudo EPL2R</h3>
+            {/* DICA DINÂMICA DE LEITURA (EPL2R) */}
+            {dailyStudyTip && (
+              <div style={{ padding: '1.5rem 2rem', background: isDark ? 'rgba(52, 152, 219, 0.05)' : '#f0f7ff', borderRadius: '12px', borderLeft: `4px solid ${isDark ? '#3498db' : '#2980b9'}`, marginBottom: '2rem', display: 'flex', gap: '1.5rem', alignItems: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                <div style={{ background: isDark ? 'rgba(52, 152, 219, 0.1)' : '#e0f0ff', padding: '1rem', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <BookOpen size={28} color={isDark ? '#3498db' : '#2980b9'} />
                 </div>
-                
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
-                    {[
-                        { step: '1. Examinar', text: 'Folheie a obra, observe títulos, subtítulos e resumos para criar um mapa mental inicial.' },
-                        { step: '2. Perguntar', text: 'Transforme os títulos em perguntas. O que este capítulo pretende me ensinar de prático?' },
-                        { step: '3. Ler', text: 'Leia com atenção plena, buscando as respostas para as perguntas que você formulou.' },
-                        { step: '4. Rememorar', text: 'Feche o livro e explique o conceito para si mesmo em voz alta. Teste sua síntese.' },
-                        { step: '5. Rever', text: 'Revise suas anotações e conecte o aprendizado com sua vivência moral e filosófica.' }
-                    ].map((item, i) => (
-                        <div key={i} style={{ padding: '1rem', background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc', borderRadius: '8px' }}>
-                            <strong style={{ display: 'block', color: '#4f46e5', fontSize: '0.9rem', textTransform: 'uppercase', marginBottom: '0.5rem' }}>{item.step}</strong>
-                            <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#cbd5e1' : '#64748b', lineHeight: '1.5' }}>{item.text}</p>
-                        </div>
-                    ))}
+                <div>
+                  <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', color: isDark ? '#3498db' : '#2980b9', display: 'block', marginBottom: '0.4rem' }}>
+                    Técnica Recomendada: {dailyStudyTip.phase}
+                  </span>
+                  <p style={{ margin: 0, fontSize: '1.1rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.6', fontStyle: 'italic' }}>
+                    "{dailyStudyTip.text}"
+                  </p>
                 </div>
-            </div>
+              </div>
+            )}
             <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
               
                     <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', position: 'relative' }}>
