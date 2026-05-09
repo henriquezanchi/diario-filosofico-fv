@@ -338,7 +338,8 @@ function App() {
   // --- ESTADOS DE LEITURA E ESTUDOS ---
   const [books, setBooks] = useState([]);
   const [showAddBook, setShowAddBook] = useState(false);
-  const [newBook, setNewBook] = useState({ title: '', author: '', currentPage: 0, totalPages: 0 });
+  const [newBook, setNewBook] = useState({ title: '', author: '', currentPage: 0, totalPages: 0, link: '', notes: '' });
+  const [shelfSearchTerm, setShelfSearchTerm] = useState(''); // Estado para busca na estante
   const [editingBookId, setEditingBookId] = useState(null);
   const [activeBookForAi, setActiveBookForAi] = useState(null);
   const [bookUserNote, setBookUserNote] = useState('');
@@ -420,6 +421,20 @@ function App() {
   
   const favoriteTheme = getFavoriteTheme();
   const finishedBooksCount = books.filter(b => b.totalPages > 0 && b.currentPage >= b.totalPages).length;
+  const getAuthorStats = () => {
+    const stats = {};
+    books.forEach(b => {
+      if (!b.author || b.author === 'Autor desconhecido') return;
+      if (!stats[b.author]) stats[b.author] = { total: 0, read: 0, books: 0 };
+      stats[b.author].total += (b.totalPages || 0);
+      stats[b.author].read += (b.currentPage || 0);
+      stats[b.author].books += 1;
+    });
+    return Object.entries(stats)
+      .filter(([_, data]) => data.total > 0)
+      .sort((a, b) => b[1].read - a[1].read)
+      .slice(0, 5); // Mostra o Top 5 autores
+  };
 
 // --- MOTOR DO CONVITE SOCRÁTICO PÓS-LEITURA ---
   const [postReadInvite, setPostReadInvite] = useState(null);
@@ -1529,6 +1544,7 @@ function App() {
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         setBooks(docSnap.data().books || []);
+        setDiscardedSuggestions(docSnap.data().discardedSuggestions || []);
         const savedRec = docSnap.data().bookRecommendation;
         if (savedRec && savedRec.generatedAt) {
           const ageInDays = (new Date() - new Date(savedRec.generatedAt)) / (1000 * 60 * 60 * 24);
@@ -4193,7 +4209,27 @@ function App() {
                 );
               })()}
               
-
+              {/* ÍNDICE DE PROFUNDIDADE POR AUTOR */}
+                  <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : '#f9f9f9', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.1)' : '#eee'}`, marginBottom: '2.5rem' }}>
+                    <h4 style={{ margin: '0 0 1.2rem 0', fontFamily: "'Cinzel', serif", color: isDark ? '#b8a88a' : '#6b5744', fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Índice de Profundidade por Autor</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+                      {getAuthorStats().map(([author, data]) => {
+                        const perc = Math.round((data.read / data.total) * 100);
+                        return (
+                          <div key={author}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.4rem' }}>
+                              <strong style={{ color: isDark ? '#f0e6d2' : '#2c1810' }}>{author}</strong>
+                              <span style={{ color: isDark ? '#d4af37' : '#6b4423' }}>{perc}%</span>
+                            </div>
+                            <div style={{ width: '100%', height: '4px', background: isDark ? 'rgba(255,255,255,0.05)' : '#e0e0e0', borderRadius: '2px' }}>
+                              <div style={{ width: `${perc}%`, height: '100%', background: isDark ? '#d4af37' : '#8b7355', borderRadius: '2px' }}></div>
+                            </div>
+                            <span style={{ fontSize: '0.7rem', color: '#888' }}>{data.books} {data.books === 1 ? 'obra' : 'obras'}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
 
 
               {/* FORMULÁRIO DE ADICIONAR/EDITAR LIVRO (COM BUSCA GOOGLE) */}
@@ -4295,8 +4331,8 @@ function App() {
                           <input type="number" value={newBook.totalPages} onChange={(e) => setNewBook({...newBook, totalPages: parseInt(e.target.value) || 0})} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
                         </div>
                         <div style={{ flex: 1 }}>
-                          <label style={{ fontSize: '0.8rem', color: '#888' }}>Tema/Categoria</label>
-                          <input type="text" value={newBook.category || ''} onChange={(e) => setNewBook({...newBook, category: e.target.value})} placeholder="Ex: Estoicismo" style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                          <label style={{ fontSize: '0.8rem', color: '#888' }}>Link do PDF (Drive/Dropbox)</label>
+                          <input type="text" value={newBook.link || ''} onChange={(e) => setNewBook({...newBook, link: e.target.value})} placeholder="https://..." style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
                         </div>
                       </div>
                     </>
@@ -4387,20 +4423,27 @@ function App() {
                         </a>
                         <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
                           <button 
-                            onClick={() => {
-                              // Adiciona na estante direto!
-                              const newBook = { id: `book_${Date.now()}`, title: bookRecommendation.title, author: bookRecommendation.author, totalPages: 0, currentPage: 0, thumbnail: bookRecommendation.thumbnail, category: 'Filosofia', isPendingEnrichment: true, status: 'lido', finishedDate: new Date().toISOString() };
+                            onClick={async () => {
+                              // Cria o livro já marcando com 1 página para o sistema entender que está concluído enquanto o Oráculo busca o real
+                              const newBook = { id: `book_${Date.now()}`, title: bookRecommendation.title, author: bookRecommendation.author, totalPages: 1, currentPage: 1, thumbnail: bookRecommendation.thumbnail, category: 'Filosofia', isPendingEnrichment: true, status: 'lido', finishedDate: new Date().toISOString() };
                               saveBooksToDb([newBook, ...books]);
+                              
+                              // Adiciona aos descartes para o Oráculo nunca mais sugerir ele
+                              const novaLista = [...discardedSuggestions, bookRecommendation.title];
+                              setDiscardedSuggestions(novaLista);
+                              if (user) await setDoc(doc(db, 'userBooks', user.uid), { discardedSuggestions: novaLista }, { merge: true });
+
                               generateBookRecommendation();
-                            }} 
+                            }}
                             disabled={isGeneratingRecommendation} style={{ flex: 1, background: 'transparent', border: `1px solid ${isDark ? '#555' : '#ccc'}`, color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.75rem', cursor: 'pointer', borderRadius: '4px', padding: '0.4rem', transition: 'all 0.2s' }}>{isGeneratingRecommendation ? 'Gerando...' : 'Já Li (Adicionar e Gerar)'}</button>
                           
                           <button 
-                            onClick={() => {
-                              // Guarda na memória de descartes para não repetir
-                              setDiscardedSuggestions([...discardedSuggestions, bookRecommendation.title]);
+                            onClick={async () => {
+                              const novaLista = [...discardedSuggestions, bookRecommendation.title];
+                              setDiscardedSuggestions(novaLista);
+                              if (user) await setDoc(doc(db, 'userBooks', user.uid), { discardedSuggestions: novaLista }, { merge: true });
                               generateBookRecommendation();
-                            }} 
+                            }}
                             disabled={isGeneratingRecommendation} style={{ flex: 1, background: 'transparent', border: `1px solid ${isDark ? '#555' : '#ccc'}`, color: '#e74c3c', fontSize: '0.75rem', cursor: 'pointer', borderRadius: '4px', padding: '0.4rem', transition: 'all 0.2s' }}>{isGeneratingRecommendation ? 'Gerando...' : 'Descartar Sugestão'}</button>
                         </div>
                       </div>
@@ -4410,6 +4453,19 @@ function App() {
               )}
 
               {/* A ESTANTE DE LIVROS E SEÇÃO COMPLETAR */}
+              {/* BARRA DE PESQUISA NA ESTANTE */}
+              {books.length > 0 && (
+                <div style={{ position: 'relative', marginBottom: '1.5rem' }}>
+                  <Search size={18} color={isDark ? '#b8a88a' : '#6b5744'} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
+                  <input 
+                    type="text" 
+                    placeholder="Filtrar livros por título ou autor..." 
+                    value={shelfSearchTerm} 
+                    onChange={(e) => setShelfSearchTerm(e.target.value)} 
+                    style={{ width: '100%', padding: '0.6rem 0.6rem 0.6rem 2.8rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.2)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} 
+                  />
+                </div>
+              )}
               {books.length === 0 && !showAddBook ? (
                 <div style={{ textAlign: 'center', padding: '3rem', color: isDark ? '#b8a88a' : '#6b5744' }}>
                   <Bookmark size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
@@ -4419,11 +4475,18 @@ function App() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                   {(() => {
                     // A NOVA HIERARQUIA DAS ESTANTES
-                    const attentionBooks = books.filter(b => !b.isPendingEnrichment && b.totalPages === 0);
-                    const readBooks = books.filter(b => b.status === 'lido' || b.finishedDate || (b.totalPages > 0 && b.currentPage >= b.totalPages));
-                    const ownedBooks = books.filter(b => b.status === 'juro' && !attentionBooks.includes(b) && !readBooks.includes(b));
-                    const wishBooks = books.filter(b => b.status === 'desejo' && !attentionBooks.includes(b) && !readBooks.includes(b));
-                    const readingBooks = books.filter(b => !attentionBooks.includes(b) && !readBooks.includes(b) && !ownedBooks.includes(b) && !wishBooks.includes(b));
+
+                    // Listas agora respeitam o termo de busca
+                    const filteredBooks = books.filter(b => 
+                      b.title.toLowerCase().includes(shelfSearchTerm.toLowerCase()) || 
+                      b.author.toLowerCase().includes(shelfSearchTerm.toLowerCase())
+                    );
+
+                    const attentionBooks = filteredBooks.filter(b => !b.isPendingEnrichment && b.totalPages === 0);
+                    const readBooks = filteredBooks.filter(b => b.status === 'lido' || b.finishedDate || (b.totalPages > 0 && b.currentPage >= b.totalPages));
+                    const ownedBooks = filteredBooks.filter(b => b.status === 'juro' && !attentionBooks.includes(b) && !readBooks.includes(b));
+                    const wishBooks = filteredBooks.filter(b => b.status === 'desejo' && !attentionBooks.includes(b) && !readBooks.includes(b));
+                    const readingBooks = filteredBooks.filter(b => !attentionBooks.includes(b) && !readBooks.includes(b) && !ownedBooks.includes(b) && !wishBooks.includes(b));
 
                     const toggleDeleteSelection = (id) => {
                       if (selectedForDeletion.includes(id)) setSelectedForDeletion(prev => prev.filter(item => item !== id));
@@ -4533,13 +4596,7 @@ function App() {
                                       style={{ flex: 1, padding: '0.5rem', background: 'transparent', color: isDark ? '#d4af37' : '#6b4423', border: `1px solid ${isDark ? 'rgba(212,175,55,0.4)' : '#ccc'}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}
                                     >
                                       + Atualizar
-                                    </button>
-                                    <button 
-                                      onClick={() => runSocraticTutor(book)}
-                                      style={{ flex: 1, padding: '0.5rem', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: '#000', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.8rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.3rem' }}
-                                    >
-                                      <Sparkles size={12} /> Socrático
-                                    </button>
+                                    </button>                                    
                                   </div>
                                 ) : (
                                   <div style={{ textAlign: 'center', color: '#4caf50', fontSize: '0.8rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', border: '1px solid #4caf50', borderRadius: '6px', padding: '0.4rem' }}>
@@ -4548,11 +4605,32 @@ function App() {
                                 )}
                               </>
                             )}
+                            
+                            {/* NOVOS BOTÕES: PDF E NOTAS (Colei Aqui!) */}
+                            <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.75rem' }}>
+                              {book.link && (
+                                <a href={book.link} target="_blank" rel="noopener noreferrer" style={{ flex: 1, padding: '0.5rem', background: '#3498DB', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold', textDecoration: 'none', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}>
+                                  <FileText size={12} /> Abrir PDF
+                                </a>
+                              )}
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const note = prompt(`Anotações para "${book.title}":`, book.notes || "");
+                                  if (note !== null) {
+                                    saveBooksToDb(books.map(b => b.id === book.id ? { ...b, notes: note } : b));
+                                  }
+                                }}
+                                style={{ flex: 1, padding: '0.5rem', background: isDark ? 'rgba(255,255,255,0.1)' : '#f0f0f0', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? '#555' : '#ccc'}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', transition: 'background 0.2s' }}
+                              >
+                                <Edit size={12} /> {book.notes ? 'Ver Notas' : '+ Notas'}
+                              </button>
+                            </div>
                           </div>
                         </div>
                       );
                     };
-
+                            
                     return (
                       <>
                         {/* 1. SEÇÃO ESTOU LENDO */}
@@ -4621,111 +4699,10 @@ function App() {
                     );
                   })()}
                 </div>
-              )}
-
-              {/* MODAL DO TUTOR SOCRÁTICO (CHAT) */}
-              {activeBookForAi && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(5px)' }}>
-                  <div className="animate-fadeIn" style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '1.5rem', borderRadius: '16px', maxWidth: '500px', width: '100%', border: `2px solid ${isDark ? '#FFD700' : '#996515'}`, position: 'relative', boxShadow: '0 10px 40px rgba(0,0,0,0.5)', height: '80vh', display: 'flex', flexDirection: 'column' }}>
-                    <button onClick={() => setActiveBookForAi(null)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}><X size={24} /></button>
-                    
-                    <div style={{ textAlign: 'center', paddingBottom: '1rem', borderBottom: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`, marginBottom: '1rem', flexShrink: 0 }}>
-                      <h3 style={{ margin: '0 0 0.2rem 0', fontFamily: "'Cinzel', serif", color: isDark ? '#FFD700' : '#996515', fontSize: '1.4rem' }}>Tutor Socrático</h3>
-                      <p style={{ margin: 0, color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.85rem', fontStyle: 'italic' }}>Discutindo: {activeBookForAi.title}</p>
-                    </div>
-
-                    {/* ÁREA DE MENSAGENS (SCROLL) */}
-                    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem', paddingRight: '0.5rem', paddingBottom: '1rem' }}>
-                      {socraticChat.map((msg, idx) => (
-                        <div key={idx} style={{ alignSelf: msg.role === 'model' ? 'flex-start' : 'flex-end', maxWidth: '85%', background: msg.role === 'model' ? (isDark ? 'rgba(212, 175, 55, 0.1)' : '#fffbf0') : (isDark ? 'rgba(74, 144, 226, 0.15)' : '#e3f2fd'), padding: '1rem', borderRadius: msg.role === 'model' ? '12px 12px 12px 0' : '12px 12px 0 12px', border: `1px solid ${msg.role === 'model' ? (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)') : (isDark ? 'rgba(74, 144, 226, 0.3)' : '#90caf9')}`, color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem', lineHeight: '1.5', fontFamily: 'Georgia, serif' }}>
-                          {msg.role === 'model' && <div style={{ fontSize: '0.7rem', fontWeight: 'bold', color: isDark ? '#FFD700' : '#996515', marginBottom: '0.3rem', textTransform: 'uppercase' }}><Sparkles size={10} style={{display:'inline'}}/> Tutor</div>}
-                          <span dangerouslySetInnerHTML={{ __html: msg.text }}></span>
-                        </div>
-                      ))}
-                      {isGeneratingBookAi && socraticChat.length > 0 && (
-                        <div style={{ alignSelf: 'flex-start', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', fontSize: '0.85rem' }}>O Tutor está refletindo...</div>
-                      )}
-                    </div>
-
-                    {/* BARRA DE DIGITAÇÃO */}
-                    <div style={{ flexShrink: 0, display: 'flex', gap: '0.5rem', paddingTop: '1rem', borderTop: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}` }}>
-                      <input 
-                        type="text" 
-                        value={chatInput} 
-                        onChange={(e) => setChatInput(e.target.value)} 
-                        onKeyDown={(e) => e.key === 'Enter' && sendSocraticMessage()}
-                        placeholder="Responda ao tutor..." 
-                        style={{ flex: 1, padding: '0.8rem', borderRadius: '8px', border: `1px solid ${isDark ? '#555' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} 
-                      />
-                      <button onClick={sendSocraticMessage} disabled={isGeneratingBookAi || !chatInput.trim()} style={{ background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', padding: '0 1rem', cursor: isGeneratingBookAi ? 'not-allowed' : 'pointer' }}>
-                        Enviar
-                      </button>
-                    </div>
-
-                  </div>
-                </div>
-              )}
+              )}             
             </div>
           </div>
         )}
-
-        {/* MODAL DE CONVITE PÓS-LEITURA (REQ 6) */}
-              {postReadInvite && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 10001, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(5px)' }}>
-                  <div className="animate-fadeIn" style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '2rem', borderRadius: '16px', maxWidth: '450px', width: '100%', border: `2px solid ${isDark ? '#FFD700' : '#996515'}`, textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }}>
-                    <MessageCircle size={48} color={isDark ? '#FFD700' : '#996515'} style={{ margin: '0 auto 1rem' }} />
-                    <h3 style={{ margin: '0 0 0.5rem 0', fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.4rem' }}>Páginas Forjadas!</h3>
-                    <p style={{ margin: '0 0 1.5rem 0', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.95rem', lineHeight: '1.5' }}>
-                      Você avançou na leitura de "{postReadInvite.title}". Deseja solidificar o que aprendeu conversando com o Tutor Socrático?
-                    </p>
-
-                    {!aiConsent ? (
-                      <p style={{ color: '#e74c3c', fontSize: '0.85rem', fontStyle: 'italic', marginBottom: '1.5rem' }}>Autorize a IA nas configurações para receber sugestões de reflexão.</p>
-                    ) : isGeneratingTopics ? (
-                      <div style={{ padding: '1.5rem', background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)', borderRadius: '8px', marginBottom: '1.5rem' }}>
-                        <Sparkles className="animate-spin" size={24} color={isDark ? '#FFD700' : '#996515'} style={{ margin: '0 auto 0.5rem' }} />
-                        <span style={{ fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic' }}>O Tutor está folheando as páginas que você leu...</span>
-                      </div>
-                    ) : inviteTopics ? (
-                      <div style={{ marginBottom: '1.5rem', textAlign: 'left' }}>
-                        <p style={{ fontSize: '0.85rem', color: isDark ? '#d4af37' : '#996515', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Tópicos sugeridos das suas páginas:</p>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                          {inviteTopics.map((topic, idx) => (
-                            <button 
-                              key={idx}
-                              onClick={() => {
-                                setBookUserNote(topic); // Pré-preenche a dúvida
-                                setActiveBookForAi(postReadInvite); // Abre o Socrático
-                                setPostReadInvite(null); // Fecha o convite
-                              }}
-                              style={{ textAlign: 'left', padding: '0.75rem', background: isDark ? 'rgba(212, 175, 55, 0.1)' : '#fffbf0', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`, borderRadius: '8px', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer', fontSize: '0.9rem', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                              onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.1)'}
-                              onMouseOut={(e) => e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.1)' : '#fffbf0'}
-                            >
-                              <Target size={14} color={isDark ? '#FFD700' : '#996515'} style={{ flexShrink: 0 }} /> {topic}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    ) : null}
-
-                    <div style={{ display: 'flex', gap: '1rem' }}>
-                      <button onClick={() => setPostReadInvite(null)} style={{ flex: 1, padding: '0.8rem', background: 'transparent', color: isDark ? '#b8a88a' : '#6b4423', border: `1px solid ${isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)'}`, borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
-                        Apenas Guardar
-                      </button>
-                      <button 
-                        onClick={() => { 
-                          setPostReadInvite(null); 
-                          runSocraticTutor(postReadInvite); 
-                        }} 
-                        style={{ flex: 1, padding: '0.8rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
-                      >
-                        Refletir Livremente
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* MODAL DO ESCANER DE ESTANTE (FASE 4) */}
               {showScannerModal && (
