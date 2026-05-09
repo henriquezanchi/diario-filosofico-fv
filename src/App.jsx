@@ -2056,44 +2056,6 @@ function App() {
     }
   };
 
-  // --- GATILHO AUTOMÁTICO DO KURUKSCHETRA (CICLO DE 7 DIAS) ---
-  useEffect(() => {
-    // A MÁGICA ESTÁ AQUI: isCloudDataLoaded impede que ele dispare antes do Firebase!
-    if (user && !loading && isCloudDataLoaded && entries.length >= 3 && kuravaEnabled) {
-      
-      const verificarEGerarKurava = async () => {
-        // COMEÇA FALSO! A IA é proibida de rodar, a menos que as regras de tempo mudem isso.
-        let precisaAtualizar = false; 
-
-        if (!kuravaData) {
-          // O Firebase terminou de buscar. Se REALMENTE vier vazio, aí sim geramos.
-          precisaAtualizar = true;
-        } else if (kuravaData.lastUpdate) {
-          // Se já existe, calculamos a idade matemática
-          const dataUltimoUpdate = new Date(kuravaData.lastUpdate);
-          const hoje = new Date();
-          
-          const diffEmMilissegundos = hoje - dataUltimoUpdate;
-          const diffEmDias = diffEmMilissegundos / (1000 * 60 * 60 * 24);
-
-          // Venceu o prazo de 7 dias?
-          if (diffEmDias >= 7) {
-            precisaAtualizar = true;
-          }
-        }
-
-        // Trava de segurança dupla para não rodar duas vezes seguidas
-        if (precisaAtualizar && !isGeneratingKurava) {
-          console.log("Invocando Oráculo: Novo ciclo semanal do Kurava iniciado...");
-          await generateKuravaAnalysis();
-        }
-      };
-
-      verificarEGerarKurava();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, loading, isCloudDataLoaded, entries.length, kuravaEnabled]);
-
   const generateAiGoals = async () => {
     if (!user) return;
     if (!aiConsent) { alert("Para gerar missões, autorize o uso da IA no menu de 'Opções > Configurações'."); return; }
