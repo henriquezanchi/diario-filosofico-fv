@@ -4951,6 +4951,16 @@ function App() {
                            <input type="text" value={newGdveTaskName} onChange={(e) => setNewGdveTaskName(e.target.value)} placeholder="Nova missão do grupo..." style={{ flex: 1, padding: '0.7rem', borderRadius: '8px', border: '1px solid #ccc', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
                            <button onClick={addGdveTask} style={{ padding: '0 1rem', background: isDark ? '#FFD700' : '#996515', color: '#1a1a2e', border: 'none', borderRadius: '8px', fontWeight: 'bold' }}>+</button>
                         </div>
+                        
+                        <button 
+                          onClick={() => {
+                            setIsGdveMóduloOpen(false); // Fecha a gaveta
+                            alert('✅ Módulo GDVE atualizado com sucesso!');
+                          }} 
+                          style={{ marginTop: '2rem', width: '100%', padding: '0.8rem 1.5rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+                          <CheckCircle size={18} /> Salvar Módulo GDVE
+                        </button>
+
                       </div>
                     )}
                   </div>
