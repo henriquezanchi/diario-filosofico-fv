@@ -3358,8 +3358,8 @@ function App() {
               const savedEntryForToday = entries.find(e => e.date === selectedDate) || {};
               const savedFvDaily = savedEntryForToday.fvDaily || {};
 
-              // 2. Os Juízes (Calculam os 3 Estados: 'empty', 'partial' ou 'full')
-              const prologoStatus = morningDone ? 'full' : 'empty';
+              // Juiz do Prólogo: Exige o preenchimento do compromisso prático para "fechar" visualmente a gaveta.
+              const prologoStatus = morningDone ? (dailyIntention.trim().length > 0 ? 'full' : 'partial') : 'empty';
               const epilogoStatus = eveningDone ? 'full' : 'empty';
 
               // Juiz da Forja (Práticas)
