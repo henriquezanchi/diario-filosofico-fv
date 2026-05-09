@@ -295,7 +295,6 @@ function App() {
   // Estados FV
   const [fvUnlocked, setFvUnlocked] = useState(false);
   const [fvClickCount, setFvClickCount] = useState(0);
-  const [fvLockClickCount, setFvLockClickCount] = useState(0);
   const [fvLastCartaDate, setFvLastCartaDate] = useState('');
   const [fvNextCartaDate, setFvNextCartaDate] = useState('');
   const [fvMasterName, setFvMasterName] = useState('');
