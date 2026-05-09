@@ -4815,10 +4815,9 @@ function App() {
 
             {/* 2. GAVETAS DO QUARTEL GENERAL */}
             {(() => {
-              // Juiz de Acompanhamento (Só fica full se salvar tudo)
-              const savedEntry = entries.find(e => e.date === selectedDate) || {}; // Para checar cores via "Salvo"
-              const planFilled = fvMasterName && fvLastMeetingDate && fvLastCartaDate && fvNextCartaDate;
-              let planStatus = !fvMasterName ? 'empty' : (planFilled ? 'full' : 'partial');
+              // Juiz de Acompanhamento (Checa também se a carta está atrasada)
+              const planFilled = fvMasterName && fvLastMeetingDate && fvLastCartaDate && fvNextCartaDate && fvUnidade && fvCondicao && fvDestinatarioCd;
+              let planStatus = (!fvMasterName && !fvUnidade) ? 'empty' : (planFilled ? 'full' : 'partial');
 
               if (fvNextCartaDate) {
                 const hojeStr = getTodayKey();
@@ -4865,27 +4864,56 @@ function App() {
 
                     {isGdvePlanOpen && (
                       <div className="animate-fadeIn" style={{ padding: '0 2rem 2rem 2rem' }}>
-                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                         
+                         {/* DADOS FIXOS: UNIDADE E CONDIÇÃO */}
+                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
                             <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Nome do Mestre / Instrutor</label>
-                              <input type="text" value={fvMasterName || ''} onChange={(e) => setFvMasterName(e.target.value)} placeholder="Com quem você se reporta..." style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Unidade</label>
+                              <select value={fvUnidade || ''} onChange={(e) => setFvUnidade(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }}>
+                                <option value="">Selecione...</option>
+                                {['ACROPOLEPLAY', 'AGORA', 'ÁGUAS CLARAS', 'ALTIPLANO', 'ALTO DA GLORIA', 'ANANINDEUA', 'ANÁPOLIS', 'ARAGUAINA', 'ASA NORTE', 'ASA SUL', 'BARRA DO GARÇAS', 'BELÉM', 'BOA VISTA', 'BODHIDHARMA', 'BRASÍLIA', 'BRASILIA SAMAMBAIA', 'CAMPINA GRANDE', 'CAMPO NOVO DO PARECIS', 'CARUARU', 'CATALÃO', 'CEILÂNDIA', 'CUIABÁ', 'FAZENDA NOVA ACRÓPOLE', 'FORMOSA', 'FORTALEZA DIONISIO TORRES', 'FORTALEZA FÁTIMA', 'FORTALEZA MEIRELES', 'FORTALEZA MESSEJANA', 'FORTALEZA SUL', 'GAMA', 'GOIANIA CIDADE JARDIM', 'GOIÂNIA ELDORADO', 'GOIANIA GARAVELO', 'GOIANIA II', 'GOIANIA ITUMBIARA', 'GOIANIA JARDIM AMÉRICA', 'GOIANIA SETOR OESTE', 'GOIÂNIA UNIVERSITARIO', 'GUARÁ', 'ITACA', 'JOÃO PESSOA', 'JUAZEIRO DO NORTE', 'LAGO SUL', 'MACAPÁ', 'MANAUS', 'MÓDULO SÃO JORGE', 'MOSSORÓ', 'MOSSORÓ ASSU', 'NATAL CANDELARIA', 'NATAL MORRO BRANCO', 'NATAL PONTA NEGRA', 'NATAL TIROL', 'NATAL ZONA NORTE', 'NOVA PARNAMIRIM', 'PALMAS', 'PALMAS AURENY', 'PETROLINA', 'PLANALTINA', 'PORTO VELHO', 'RECIFE BOA VIAGEM', 'RECIFE DERBY', 'RIO VERDE', 'RONDONÓPOLIS', 'SANTA MARIA', 'SÃO LUIS', 'SAO LUIS VINHAIS', 'SENADOR CANEDO', 'SERAPHIS', 'SINOP', 'SOBRADINHO', 'SOBRAL', 'SORRISO', 'SUDOESTE', 'TAGUATINGA', 'TERESINA', 'VALPARAISO', 'Outra'].map(u => <option key={u} value={u}>{u}</option>)}
+                              </select>
                             </div>
                             <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Data do Último Encontro</label>
-                              <input type="date" value={fvLastMeetingDate || ''} onChange={(e) => setFvLastMeetingDate(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Condição</label>
+                              <select value={fvCondicao || ''} onChange={(e) => setFvCondicao(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }}>
+                                <option value="">Selecione...</option>
+                                {['GS', 'GF', 'GM', 'Prov GS', 'Prov GF', 'Prov GM'].map(c => <option key={c} value={c}>{c}</option>)}
+                              </select>
                             </div>
                          </div>
-                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+
+                         {/* DADOS DOS INSTRUTORES */}
+                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                            <div>
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Nome do Mestre / Instrutor</label>
+                              <input type="text" value={fvMasterName || ''} onChange={(e) => setFvMasterName(e.target.value)} placeholder="Com quem você se reporta..." style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
+                            </div>
+                            <div>
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Destinatário da Carta (CD)</label>
+                              <input type="text" value={fvDestinatarioCd || ''} onChange={(e) => setFvDestinatarioCd(e.target.value)} placeholder="Para quem envia a CD..." style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
+                            </div>
+                         </div>
+
+                         {/* DATAS DE ENCONTRO E CARTA */}
+                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+                            <div>
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Data do Último Encontro</label>
+                              <input type="date" value={fvLastMeetingDate || ''} onChange={(e) => setFvLastMeetingDate(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
+                            </div>
                             <div>
                               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Última Entrega de Carta</label>
-                              <input type="date" value={fvLastCartaDate || ''} onChange={(e) => setFvLastCartaDate(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                              <input type="date" value={fvLastCartaDate || ''} onChange={(e) => { const novaData = e.target.value; setFvLastCartaDate(novaData); if (novaData) { const [ano, mes, dia] = novaData.split('-'); const dataCalculada = new Date(parseInt(ano, 10), parseInt(mes, 10) - 1 + 3, parseInt(dia, 10)); setFvNextCartaDate(`${dataCalculada.getFullYear()}-${String(dataCalculada.getMonth() + 1).padStart(2, '0')}-${String(dataCalculada.getDate()).padStart(2, '0')}`); } else { setFvNextCartaDate(''); } }} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
                             </div>
                             <div>
                               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Próxima Entrega (Previsão)</label>
-                              <input type="date" value={fvNextCartaDate || ''} onChange={(e) => setFvNextCartaDate(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                              <input type="date" value={fvNextCartaDate || ''} onChange={(e) => setFvNextCartaDate(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
                             </div>
                          </div>
-                         <button onClick={saveFvPlanning} style={{ padding: '0.8rem 1.5rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Salvar Acompanhamento</button>
+                         
+                         <button onClick={saveFvPlanning} style={{ padding: '0.8rem 1.5rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                           <Save size={18} /> Salvar Dados do Perfil
+                         </button>
                       </div>
                     )}
                   </div>
