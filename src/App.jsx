@@ -2892,7 +2892,7 @@ function App() {
           totalMinistradaMin += calcDuration(tempos.inicio, tempos.fim);
         }
       }
-      
+
       // 3. Soma Voluntariado Manual (Para escalas extras que não são aulas)
       if (fv.horasVoluntariado) {
         const [h, m] = fv.horasVoluntariado.split(':').map(Number);
@@ -3607,39 +3607,6 @@ function App() {
                     </div>
                   )}
 
-                  {/* BLOCO EXTRA: BALANÇO DE HORAS */}
-                  {fvUnlocked && (
-                    <div style={getBlockStyle(horasStatus, isHorasOpen, '#FFD700')}>
-                      <div onClick={() => setIsHorasOpen(!isHorasOpen)} style={getHeaderStyle(horasStatus, isHorasOpen)}>
-                        {renderTitle('Balanço de Horas', horasStatus, isHorasOpen, <Clock size={28} color={isDark ? '#FFD700' : '#996515'} />)}
-                        {isHorasOpen ? <ChevronUp size={24} color={isDark ? '#FFD700' : '#996515'} /> : <ChevronDown size={24} color={isDark ? '#FFD700' : '#996515'} />}
-                      </div>
-
-                      {isHorasOpen && (
-                        <div className="animate-fadeIn" style={{ padding: '0 2rem 2rem 2rem' }}>
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                            <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.95rem', color: isDark ? '#FFD700' : '#996515' }}>Voluntariado Hoje</label>
-                              <input type="time" value={fvDaily.horasVoluntariado || ''} onChange={(e) => handleFvDailyTextChange('horasVoluntariado', e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212,175,55,0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810' }} />
-                            </div>
-                            <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.95rem', color: isDark ? '#FFD700' : '#996515' }}>Aulas Assistidas</label>
-                              <input type="time" value={fvDaily.horasAulaAssistida || ''} onChange={(e) => handleFvDailyTextChange('horasAulaAssistida', e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212,175,55,0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810' }} />
-                            </div>
-                            <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.95rem', color: isDark ? '#FFD700' : '#996515' }}>Aulas Ministradas</label>
-                              <input type="time" value={fvDaily.horasAulaMinistrada || ''} onChange={(e) => handleFvDailyTextChange('horasAulaMinistrada', e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212,175,55,0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810' }} />
-                            </div>
-                          </div>
-
-                          <button onClick={saveFvHours} style={{ width: '100%', padding: '1rem', background: 'transparent', color: isDark ? '#FFD700' : '#996515', border: '2px solid #FFD700', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', transition: 'all 0.2s' }}>
-                            <Save size={20} /> Registrar Serviço
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
                   {/* BLOCO 4: EPÍLOGO NOTURNO */}
                   <div style={getBlockStyle(epilogoStatus, isEpilogoOpen, isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)')}>
                     <div onClick={() => setIsEpilogoOpen(!isEpilogoOpen)} style={getHeaderStyle(epilogoStatus, isEpilogoOpen)}>
@@ -3674,73 +3641,87 @@ function App() {
 
                           
                           <div>
-                            {/* GATILHO INTELIGENTE: ATIVIDADES AGENDADAS DO DIA */}
+                            {/* GATILHO INTELIGENTE E BALANÇO DE HORAS UNIFICADO */}
                             {fvUnlocked && fvCalendar && (
                               (() => {
                                 const todayDateObj = new Date(selectedDate + 'T12:00:00');
                                 const dayOfWeek = String(todayDateObj.getDay());
-                                const todayStr = selectedDate; // O Formato "YYYY-MM-DD" que o input date salva
+                                const todayStr = selectedDate; 
                                 
-                                // Checagem segura dos dias
                                 const showAulaRegular = fvCalendar.aulaRegularDia === dayOfWeek;
                                 const showReuniaoRaio = fvCalendar.reuniaoRaioDia === dayOfWeek || fvCalendar.reunioesRaioDia === dayOfWeek; 
                                 const showAulaMinistrada = (fvCalendar.aulaMinistradaDias || []).includes(dayOfWeek);
-                                
-                                // Checagem de Datas Exatas
                                 const showCrm = fvCalendar.dataCrm === todayStr;
                                 const showEd = fvCalendar.dataAulaEd === todayStr;
                                 
-                                // Se nenhuma atividade coincidir com hoje, não mostra nada
-                                if (!showAulaRegular && !showReuniaoRaio && !showAulaMinistrada && !showCrm && !showEd) return null;
+                                const temAulaHoje = showAulaRegular || showReuniaoRaio || showAulaMinistrada || showCrm || showEd;
 
                                 return (
-                                  <div className="animate-fadeIn" style={{ background: isDark ? 'rgba(155, 89, 182, 0.1)' : '#fdf8ff', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#e1bee7'}`, marginBottom: '2rem' }}>
+                                  <div className="animate-fadeIn" style={{ background: isDark ? 'rgba(155, 89, 182, 0.05)' : '#fdf8ff', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.3)' : '#e1bee7'}`, marginBottom: '2rem' }}>
                                     <h4 style={{ margin: '0 0 1rem 0', color: isDark ? '#c39bd3' : '#8e44ad', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                      <Calendar size={18} /> Atividades Programadas para Hoje
+                                      <Clock size={18} /> Balanço de Serviço e Atividades
                                     </h4>
                                     
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                                      {showAulaRegular && (
-                                        <div>
-                                          <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 'bold' }}>Assistiu à Aula Regular?</label>
-                                          <select value={fvDaily.aulaRegularPresenca || ''} onChange={(e) => handleFvDailyTextChange('aulaRegularPresenca', e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }}>
-                                            <option value="">Selecione...</option><option value="Sim">Sim, assisti</option><option value="Não">Não (Faltei)</option>
-                                          </select>
-                                        </div>
-                                      )}
-                                      {showReuniaoRaio && (
-                                        <div>
-                                          <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 'bold' }}>Participou da Reunião de Raio?</label>
-                                          <select value={fvDaily.reuniaoRaioPresenca || ''} onChange={(e) => handleFvDailyTextChange('reuniaoRaioPresenca', e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }}>
-                                            <option value="">Selecione...</option><option value="Sim">Sim, participei</option><option value="Não">Não (Faltei)</option>
-                                          </select>
-                                        </div>
-                                      )}
-                                      {showAulaMinistrada && (
-                                        <div>
-                                          <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 'bold' }}>Ministrou sua Aula hoje?</label>
-                                          <select value={fvDaily.aulaMinistradaPresenca || ''} onChange={(e) => handleFvDailyTextChange('aulaMinistradaPresenca', e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }}>
-                                            <option value="">Selecione...</option><option value="Sim">Sim, ministrei</option><option value="Não">Não</option>
-                                          </select>
-                                        </div>
-                                      )}
-                                      {showCrm && (
-                                        <div>
-                                          <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: isDark ? '#c39bd3' : '#8e44ad', fontWeight: 'bold' }}>Esteve presente na CRM Mensal?</label>
-                                          <select value={fvDaily.crmPresenca || ''} onChange={(e) => handleFvDailyTextChange('crmPresenca', e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }}>
-                                            <option value="">Selecione...</option><option value="Sim">Sim, estive</option><option value="Não">Não (Faltei)</option>
-                                          </select>
-                                        </div>
-                                      )}
-                                      {showEd && (
-                                        <div>
-                                          <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#3498DB', fontWeight: 'bold' }}>Assistiu à Aula de ED Mensal?</label>
-                                          <select value={fvDaily.aulaEdPresenca || ''} onChange={(e) => handleFvDailyTextChange('aulaEdPresenca', e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(74, 144, 226, 0.4)' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }}>
-                                            <option value="">Selecione...</option><option value="Sim">Sim, assisti</option><option value="Não">Não (Faltei)</option>
-                                          </select>
-                                        </div>
-                                      )}
+                                    {/* Perguntas Dinâmicas de Aula (Só aparecem se for o dia certo) */}
+                                    {temAulaHoje && (
+                                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem', paddingBottom: '1.5rem', borderBottom: `1px dashed ${isDark ? 'rgba(155, 89, 182, 0.3)' : '#e1bee7'}` }}>
+                                        {showAulaRegular && (
+                                          <div>
+                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 'bold' }}>Assistiu à Aula Regular?</label>
+                                            <select value={fvDaily.aulaRegularPresenca || ''} onChange={(e) => handleFvDailyTextChange('aulaRegularPresenca', e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }}>
+                                              <option value="">Selecione...</option><option value="Sim">Sim, assisti</option><option value="Não">Não (Faltei)</option>
+                                            </select>
+                                          </div>
+                                        )}
+                                        {showReuniaoRaio && (
+                                          <div>
+                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 'bold' }}>Participou da Reunião de Raio?</label>
+                                            <select value={fvDaily.reuniaoRaioPresenca || ''} onChange={(e) => handleFvDailyTextChange('reuniaoRaioPresenca', e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }}>
+                                              <option value="">Selecione...</option><option value="Sim">Sim, participei</option><option value="Não">Não (Faltei)</option>
+                                            </select>
+                                          </div>
+                                        )}
+                                        {showAulaMinistrada && (
+                                          <div>
+                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 'bold' }}>Ministrou sua Aula hoje?</label>
+                                            <select value={fvDaily.aulaMinistradaPresenca || ''} onChange={(e) => handleFvDailyTextChange('aulaMinistradaPresenca', e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }}>
+                                              <option value="">Selecione...</option><option value="Sim">Sim, ministrei</option><option value="Não">Não</option>
+                                            </select>
+                                          </div>
+                                        )}
+                                        {showCrm && (
+                                          <div>
+                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: isDark ? '#c39bd3' : '#8e44ad', fontWeight: 'bold' }}>Esteve na CRM Mensal?</label>
+                                            <select value={fvDaily.crmPresenca || ''} onChange={(e) => handleFvDailyTextChange('crmPresenca', e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }}>
+                                              <option value="">Selecione...</option><option value="Sim">Sim, estive</option><option value="Não">Não (Faltei)</option>
+                                            </select>
+                                          </div>
+                                        )}
+                                        {showEd && (
+                                          <div>
+                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#3498DB', fontWeight: 'bold' }}>Assistiu à Aula de ED?</label>
+                                            <select value={fvDaily.aulaEdPresenca || ''} onChange={(e) => handleFvDailyTextChange('aulaEdPresenca', e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(74, 144, 226, 0.4)' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }}>
+                                              <option value="">Selecione...</option><option value="Sim">Sim, assisti</option><option value="Não">Não (Faltei)</option>
+                                            </select>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+
+                                    {/* Voluntariado Extra Livre (Sempre Visível) */}
+                                    <div style={{ padding: '1rem', background: isDark ? 'rgba(0,0,0,0.2)' : 'white', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.2)' : '#e1bee7'}` }}>
+                                      <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 'bold' }}>Serviço / Voluntariado Extra Hoje?</label>
+                                      <p style={{ fontSize: '0.8rem', color: isDark ? '#b8a88a' : '#888', marginTop: '-0.3rem', marginBottom: '0.8rem', fontStyle: 'italic' }}>
+                                        {temAulaHoje ? "As horas das aulas acima já são calculadas sozinhas. Informe aqui apenas horários avulsos (limpezas, manutenções, etc)." : "Informe aqui o tempo dedicado a serviços avulsos pela Escola hoje (limpeza, manutenções, secretaria, etc)."}
+                                      </p>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <input type="time" value={fvDaily.horasVoluntariado || ''} onChange={(e) => handleFvDailyTextChange('horasVoluntariado', e.target.value)} style={{ width: '120px', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
+                                        {(fvDaily.horasVoluntariado && fvDaily.horasVoluntariado !== '') && (
+                                           <span style={{ color: '#4caf50', fontSize: '0.8rem', fontWeight: 'bold' }}>✓ Registrado</span>
+                                        )}
+                                      </div>
                                     </div>
+
                                   </div>
                                 );
                               })()
