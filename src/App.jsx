@@ -2319,29 +2319,54 @@ function App() {
       const evasaoVazia = epilogosAtual.filter(e => !e.whereIFailed && !e.whatIDidWell && !e.whatILeftUndone && !e.freeEpilogue).length;
       const evasaoParcial = epilogosAtual.filter(e => (e.whereIFailed || e.whatIDidWell || e.whatILeftUndone) && (!e.whereIFailed || !e.whatIDidWell || !e.whatILeftUndone)).length;
 
+      // Conta as práticas silenciosas do FV
+      const countPractices = (ciclo) => { let total = 0; ciclo.forEach(e => { if(e.fvDaily && e.fvDaily.praticas) { total += Object.values(e.fvDaily.praticas).filter(v => v === true).length; } }); return total; };
+
       let dossie = `DADOS ESTATÍSTICOS DO USUÁRIO:\n\n`;
-      dossie += `[CICLO ANTERIOR: Dias -60 a -31]\n- Preenchimentos: ${cicloAnterior.length}\n\n`;
+      dossie += `[CICLO ANTERIOR: Dias -60 a -31]\n- Preenchimentos Diário: ${cicloAnterior.length}\n- Práticas FV: ${countPractices(cicloAnterior)}\n\n`;
 
-      dossie += `[CICLO ATUAL: Últimos 30 dias]\n- Preenchimentos: ${cicloAtual.length}\n`;
+      dossie += `[CICLO ATUAL: Últimos 30 dias]\n- Preenchimentos Diário: ${cicloAtual.length}\n- Práticas FV: ${countPractices(cicloAtual)}\n`;
       dossie += `- COMPORTAMENTO DE AUTOEXAME: Dos ${epilogosAtual.length} epílogos, ${evasaoVazia} foram deixados em branco e ${evasaoParcial} foram parciais.\n`;
-      dossie += `- ONDE FALHOU: ${cicloAtual.filter(e => e.whereIFailed).map(e => e.whereIFailed).join(' | ')}\n`;
-      dossie += `- O QUE FEZ BEM: ${cicloAtual.filter(e => e.whatIDidWell).map(e => e.whatIDidWell).join(' | ')}\n`;
-      dossie += `- O QUE DEIXOU DE FAZER: ${cicloAtual.filter(e => e.whatILeftUndone).map(e => e.whatILeftUndone).join(' | ')}\n`;
-      dossie += `- TEXTO LIVRE: ${cicloAtual.filter(e => e.freeEpilogue).map(e => e.freeEpilogue).join(' | ')}\n`;
+      
+      dossie += `- ONDE FALHOU (Diário comum): ${cicloAtual.filter(e => e.whereIFailed).map(e => e.whereIFailed).join(' | ')}\n`;
+      dossie += `- TEXTO LIVRE (Epílogo): ${cicloAtual.filter(e => e.freeEpilogue).map(e => e.freeEpilogue).join(' | ')}\n`;
 
-      const prompt = `Você é um Analista de Dados. Retorne ESTRITAMENTE um objeto JSON válido (sem formatação Markdown e sem blocos de código).
+      // INJETANDO O OURO ALQUÍMICO (DADOS FV)
+      const fvItem1 = cicloAtual.filter(e => e.fvDaily && e.fvDaily.item1).map(e => e.fvDaily.item1).join(' | ');
+      const fvItem6 = cicloAtual.filter(e => e.fvDaily && e.fvDaily.item6).map(e => e.fvDaily.item6).join(' | ');
+      
+      // Coletando as Leis da Matéria divididas
+      let fvItem2Materia = '';
+      cicloAtual.forEach(e => {
+          if(e.fvDaily) {
+              const subKeys = ['instintos', 'idade', 'enfermidade', 'animo', 'humor', 'ideias', 'sentimentos', 'ambiente'];
+              subKeys.forEach(k => {
+                 if(e.fvDaily[`item2_${k}`]) fvItem2Materia += `(${k}): ${e.fvDaily[`item2_${k}`]} | `;
+              });
+              if(e.fvDaily.item2) fvItem2Materia += e.fvDaily.item2 + ' | '; // Pega textos antigos se houver
+          }
+      });
+
+      dossie += `- FV VARRER POR DENTRO (Item 1): ${fvItem1}\n`;
+      dossie += `- FV VÍCIOS E NEGLIGÊNCIAS (Item 6): ${fvItem6}\n`;
+      dossie += `- FV LEIS DA MATÉRIA (Item 2): ${fvItem2Materia}\n`;
+
+      const termoMestre = fvMasterName ? `o seu Instrutor (${fvMasterName})` : "o seu Instrutor";
+
+      const prompt = `Você é um Analista de Dados e Mentor Filosófico. Retorne ESTRITAMENTE um objeto JSON válido (sem formatação Markdown e sem blocos de código).
 
       REGRAS DE CONTEÚDO:
-      - NÃO dê conselhos. Aja como um auditor imparcial.
-      - Analise simultaneamente os campos estruturados (Falhas, Acertos, Omissões) e cruze-os com as informações contidas no "TEXTO LIVRE".
+      - NÃO dê conselhos morais clichês. Aja como um auditor imparcial e cirúrgico.
+      - Analise os DADOS ESTATÍSTICOS cruzando-os com os textos densos das Práticas FV ("Varrer por Dentro", "Vícios", "Leis da Matéria").
+      - O objetivo é extrair o ouro alquímico: os padrões de queda e ascensão da consciência do aluno neste ciclo.
 
       O JSON deve conter EXATAMENTE as seguintes chaves:
-      "guardaBaixou": Uma síntese fria dos padrões onde o usuário falhou ou demonstrou fraqueza (máximo 3 linhas).
-      "conquistas": Uma síntese técnica dos padrões de acerto, virtudes executadas e sucessos mapeados (máximo 3 linhas).
-      "investigacoes": Um mapeamento de hipóteses, percepções, suspeitas e dúvidas que o usuário expressou predominantemente no Texto Livre (máximo 4 linhas).
-      "sinteseGeral": Um relatório de 2 parágrafos: O primeiro avaliando o comportamento de evasão/completude do preenchimento e comparando com o ciclo anterior; o segundo sugerindo 2 perguntas técnicas para auditoria com um instrutor presencial.
+      "guardaBaixou": Uma síntese fria dos padrões recorrentes onde o usuário falhou, cedeu aos vícios (Item 6) ou foi dominado pelas Leis da Matéria (Item 2). (Máximo 4 linhas).
+      "conquistas": Uma síntese técnica dos padrões de acerto, virtudes executadas e aumento da Vontade/Práticas FV (Máximo 4 linhas).
+      "investigacoes": Um mapeamento de hipóteses, causas e "nós psíquicos" que o usuário expressou predominantemente no "Varrer por Dentro" (Item 1) e no Texto Livre (Máximo 4 linhas).
+      "sinteseGeral": Um relatório de 2 parágrafos: O primeiro avaliando o comportamento de preenchimento, evasão e constância comparando o ciclo atual com o anterior. O segundo sugerindo 2 perguntas técnicas precisas e desconfortáveis para ele levar para a reunião de acompanhamento com ${termoMestre}.
 
-      DADOS:
+      DADOS DO CICLO:
       ${dossie}`;
 
       // Configuração forçando o Gemini a cuspir JSON puro
@@ -2382,145 +2407,6 @@ function App() {
       alert("Erro ao gerar síntese estruturada. Tente novamente."); 
     } finally { 
       setIsGeneratingSynthesis(false); 
-    }
-  };
-
-  const generateDiscipularSynthesis = async () => {
-    if (!user) return;
-    if (!aiConsent) { alert("Para gerar relatórios avançados, autorize o uso da IA no menu de 'Opções > Configurações'."); return; }
-    setIsGeneratingDiscSync(true);
-
-    // ==========================================
-  // FUNÇÃO MESTRE: FEEDBACK DA IA
-  // ==========================================
-  const submitSynthesisFeedback = async (tipoRelatorio) => {
-    if (feedbackRating === 0) return alert("Por favor, selecione uma nota de 1 a 5 estrelas.");
-    setIsSubmittingFeedback(true); // LIGA O MODO ENVIANDO
-    
-    try {
-      const feedbackRef = doc(collection(db, 'synthesisFeedback')); 
-      await setDoc(feedbackRef, {
-        tipo: tipoRelatorio,
-        nota: feedbackRating,
-        comentario: feedbackText || "Sem comentário escrito.",
-        data: new Date().toISOString(),
-        userId: "Anônimo" 
-      });
-      
-      setFeedbackSubmitted(true);
-      setTimeout(() => {
-        setFeedbackRating(0);
-        setFeedbackText('');
-        setFeedbackSubmitted(false);
-      }, 5000); 
-      
-    } catch (error) {
-      console.error("Erro ao enviar avaliação:", error);
-      alert("Erro ao enviar avaliação. Verifique as permissões do Firebase.");
-    } finally {
-      setIsSubmittingFeedback(false); // DESLIGA O MODO ENVIANDO
-    }
-  };
-  
-
-    try {
-      // 1. Coleta e Divisão do Tempo (60 dias)
-      const hoje = new Date();
-      const trintaDiasAtras = new Date(); 
-      trintaDiasAtras.setDate(hoje.getDate() - 30);
-      const sessentaDiasAtras = new Date(); 
-      sessentaDiasAtras.setDate(hoje.getDate() - 60);
-
-      const cicloAtual = entries.filter(e => {
-        const d = new Date(e.date + 'T12:00:00');
-        return d >= trintaDiasAtras && d <= hoje;
-      });
-      const cicloAnterior = entries.filter(e => {
-        const d = new Date(e.date + 'T12:00:00');
-        return d >= sessentaDiasAtras && d < trintaDiasAtras;
-      });
-
-      // Função auxiliar para somar práticas FV realizadas
-      const countPractices = (ciclo) => {
-        let total = 0;
-        ciclo.forEach(e => {
-          if(e.fvDaily && e.fvDaily.praticas) {
-            total += Object.values(e.fvDaily.praticas).filter(v => v === true).length;
-          }
-        });
-        return total;
-      };
-      
-      // 2. Monta o Dossiê Estatístico Profundo (FV)
-      let dossie = `DADOS ESTATÍSTICOS DO DISCIPULADO (FV):\n\n`;
-      dossie += `[CICLO ANTERIOR: Dias -60 a -31]\n`;
-      dossie += `- Preenchimentos do diário geral: ${cicloAnterior.length}\n`;
-      dossie += `- Total de Práticas FV realizadas: ${countPractices(cicloAnterior)}\n`;
-      dossie += `- Falhas relatadas: ${cicloAnterior.filter(e => e.whereIFailed).map(e => e.whereIFailed).join(' | ')}\n\n`;
-
-      dossie += `[CICLO ATUAL: Últimos 30 dias]\n`;
-      dossie += `- Preenchimentos do diário geral: ${cicloAtual.length}\n`;
-      dossie += `- Total de Práticas FV realizadas: ${countPractices(cicloAtual)}\n`;
-      dossie += `- Streak ininterrupto atual de práticas ocultas: ${fvTasksStreak} dias\n`;
-      dossie += `- Falhas relatadas: ${cicloAtual.filter(e => e.whereIFailed).map(e => e.whereIFailed).join(' | ')}\n`;
-
-      const fvTextsItem1 = cicloAtual.filter(e => e.fvDaily && e.fvDaily.item1).map(e => e.fvDaily.item1).join(' | ');
-      const fvTextsItem6 = cicloAtual.filter(e => e.fvDaily && e.fvDaily.item6).map(e => e.fvDaily.item6).join(' | ');
-      dossie += `- Relatos FV de "Varrer por Dentro" (Item 1): ${fvTextsItem1}\n`;
-      dossie += `- Relatos FV de "Vícios" (Item 6): ${fvTextsItem6}\n`;
-
-      const termoMestre = fvMasterName ? `seu Mestre/Instrutor (${fvMasterName})` : "seu Mestre/Instrutor";
-
-      // 3. O Prompt Profundo (Cruzamento de Dados)
-      const prompt = `Você é um Analista de Dados e Auditor comportamental avançado. Retorne ESTRITAMENTE um objeto JSON válido (sem formatação Markdown e sem blocos de código).
-      
-      REGRAS DE CONTEÚDO:
-      - NÃO dê conselhos. Seja frio, analítico e imparcial.
-      - Seu principal objetivo é o CRUZAMENTO DE DADOS. Não apenas liste falhas, mas cruze-as com o comportamento prático. Exemplo: "A queda nas práticas de meditação acompanhou o aumento de relatos de irritabilidade".
-
-      O JSON deve conter EXATAMENTE as seguintes chaves:
-      "metricas": Uma síntese técnica cruzando a variação das "Práticas FV" com a variação dos "Preenchimentos" do Ciclo Atual vs Anterior. Comente também sobre o nível de engajamento oculto (Streak) (máximo 3 linhas).
-      "auditoria": O mapeamento de "Onde a Guarda Baixou" vs "Conquistas Forjadas". Identifique os gatilhos recorrentes de falha e os padrões de êxito (máximo 4 linhas).
-      "lexical": A varredura profunda dos "Itens 1 e 6" (Varrer por Dentro e Vícios) cruzada com o Texto Livre. Isole padrões de causalidade e hipóteses de auto-investigação do usuário (máximo 4 linhas).
-      "sinteseGeral": Um relatório final dividido em dois parágrafos. O primeiro com a conclusão técnica sobre a 'Completude do Autoexame' do aluno. O segundo formulando 2 perguntas cirúrgicas e baseadas estritamente em dados (sem tom de conselho) para o encontro presencial com ${termoMestre}.
-
-      DADOS DESTE CICLO:
-      ${dossie}`;
-
-      // 4. Chamada da API forçando JSON
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ 
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { responseMimeType: "application/json" }
-        })
-      });
-      const data = await response.json();
-      if (data.error) throw new Error(data.error.message);
-
-      // 5. Salvar resultado nas 4 gavetas
-      const rawText = data.candidates[0].content.parts[0].text;
-      const parsedData = JSON.parse(rawText);
-      const dataAtual = new Date().toISOString();
-
-      setFvAiMetricas(parsedData.metricas);
-      setFvAiAuditoria(parsedData.auditoria);
-      setFvAiLexical(parsedData.lexical);
-      setDiscipularSynthesis(parsedData.sinteseGeral);
-
-      const docRef = doc(db, 'fvData', user.uid);
-      await setDoc(docRef, { 
-        discipularSynthesis: parsedData.sinteseGeral,
-        fvAiMetricas: parsedData.metricas,
-        fvAiAuditoria: parsedData.auditoria,
-        fvAiLexical: parsedData.lexical,
-        technicalSynthesisDate: dataAtual
-      }, { merge: true });
-
-    } catch (error) { 
-      console.error("Erro no Relatório Discipular:", error); 
-      alert("Erro ao gerar relatório discipular."); 
-    } finally { 
-      setIsGeneratingDiscSync(false); 
     }
   };
 
@@ -6453,191 +6339,7 @@ function App() {
         </div>
       )}
       
-      
-
-      {/* O EIXO DE KURUKSHETRA (TERMÔMETRO VISUAL DE CONSCIÊNCIA) */}
-      {user && view === 'today' && (
-        <>
-          {/* WIDGET FLUTUANTE GRÁFICO (Responsivo: Celular vs PC) */}
-          {isMobile ? (
-            /* VERSÃO CELULAR: Botão Discreto no canto inferior esquerdo */
-            <div 
-              onClick={() => setShowConsciousnessModal(true)}
-              style={{ position: 'fixed', left: '20px', bottom: '20px', zIndex: 9997, display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', transition: 'transform 0.2s' }}
-              onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.9)'} 
-              onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
-            >
-              <div style={{ width: '50px', height: '50px', borderRadius: '50%', background: altitude >= 70 ? (isDark ? '#FFD700' : '#FFB300') : (altitude <= 30 ? '#e74c3c' : (isDark ? '#b8a88a' : '#8b7355')), display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 4px 15px ${altitude >= 70 ? 'rgba(255,215,0,0.4)' : (altitude <= 30 ? 'rgba(231,76,60,0.4)' : 'rgba(0,0,0,0.3)')}`, border: `2px solid ${isDark ? '#1a1a2e' : '#fff'}` }}>
-                <Flame size={24} color={altitude >= 70 ? '#000' : '#fff'} />
-              </div>
-              <div style={{ background: isDark ? 'rgba(0,0,0,0.8)' : 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 'bold', color: altitude >= 70 ? (isDark ? '#FFD700' : '#d4af37') : (altitude <= 30 ? '#e74c3c' : (isDark ? '#f0e6d2' : '#2c1810')), marginTop: '-10px', zIndex: 2, border: `1px solid ${isDark ? 'rgba(255,215,0,0.3)' : 'rgba(139,115,85,0.2)'}`, boxShadow: '0 2px 4px rgba(0,0,0,0.2)' }}>
-                {altitude}%
-              </div>
-            </div>
-          ) : (
-            /* VERSÃO COMPUTADOR: O Eixo Vertical Completo */
-            <div style={{ position: 'fixed', left: '20px', top: '150px', bottom: '100px', width: '60px', zIndex: 9997, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', background: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)', borderRadius: '30px', padding: '10px 0', border: `1px solid ${isDark ? 'rgba(255,215,0,0.1)' : 'rgba(139,115,85,0.1)'}` }}>
-              
-              {/* O Topo: Krishna (Sattva / Sabedoria) */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem', opacity: altitude >= 80 ? 1 : 0.4, transition: 'opacity 0.5s' }}>
-                <Sun size={28} color={isDark ? '#FFD700' : '#f39c12'} style={{ filter: altitude >= 80 ? 'drop-shadow(0 0 10px rgba(255,215,0,0.8))' : 'none' }} />
-              </div>
-
-              {/* O Eixo Invisível por onde o balão corre */}
-              <div style={{ position: 'relative', width: '4px', flex: 1, background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)', margin: '10px 0', borderRadius: '2px' }}>
-                
-                {/* Arjuna (O Balão) Subindo e Descendo */}
-                <div 
-                  onClick={() => setShowConsciousnessModal(true)}
-                  title="Elevar Consciência"
-                  style={{ position: 'absolute', left: '50%', bottom: `${altitude}%`, transform: 'translate(-50%, 50%)', cursor: 'pointer', transition: 'bottom 1.5s cubic-bezier(0.25, 1, 0.5, 1)', zIndex: 9998, display: 'flex', flexDirection: 'column', alignItems: 'center' }}
-                >
-                  <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: altitude >= 70 ? (isDark ? '#FFD700' : '#FFB300') : (altitude <= 30 ? '#e74c3c' : (isDark ? '#b8a88a' : '#8b7355')), display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 ${altitude >= 70 ? '20px' : '10px'} ${altitude >= 70 ? 'rgba(255,215,0,0.6)' : (altitude <= 30 ? 'rgba(231,76,60,0.6)' : 'rgba(0,0,0,0.2)')}`, transition: 'all 0.5s' }}>
-                    <Flame size={20} color={altitude >= 70 ? '#000' : '#fff'} />
-                  </div>
-                  <div style={{ width: '12px', height: '10px', background: isDark ? '#f0e6d2' : '#2c1810', borderRadius: '0 0 4px 4px', marginTop: '2px' }}></div>
-                  <div style={{ background: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.9)', padding: '2px 6px', borderRadius: '10px', fontSize: '0.7rem', fontWeight: 'bold', color: isDark ? '#f0e6d2' : '#2c1810', marginTop: '4px', border: `1px solid ${isDark ? 'rgba(255,215,0,0.3)' : 'rgba(0,0,0,0.1)'}` }}>
-                    {altitude}%
-                  </div>
-                </div>
-              </div>
-
-              {/* O Chão: Kuravas (Tamas / Inércia) */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.2rem', opacity: altitude <= 30 ? 1 : 0.4, transition: 'opacity 0.5s' }}>
-                <Swords size={28} color="#e74c3c" style={{ filter: altitude <= 30 ? 'drop-shadow(0 0 10px rgba(231,76,60,0.8))' : 'none' }} />
-              </div>
-            </div>
-          )}
-
-          {/* O MODAL INTERATIVO (A LISTA RENOVÁVEL) */}
-          {showConsciousnessModal && (
-            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(8px)' }} onClick={closeConsciousnessModal}>
-              
-              <div className="animate-fadeIn" style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '0', borderRadius: '16px', maxWidth: '500px', width: '100%', maxHeight: '90dvh', display: 'flex', flexDirection: 'column', border: `2px solid ${altitude >= 70 ? '#FFD700' : (altitude <= 30 ? '#e74c3c' : '#8b7355')}`, overflow: 'hidden', boxShadow: '0 10px 50px rgba(0,0,0,0.5)' }} onClick={(e) => e.stopPropagation()}>
-                
-                {/* CABEÇALHO GRÁFICO (Sem Placar) */}
-                <div style={{ flexShrink: 0, background: altitude >= 70 ? 'linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,165,0,0.2))' : (altitude <= 30 ? 'linear-gradient(135deg, rgba(231,76,60,0.2), rgba(192,57,43,0.2))' : 'linear-gradient(135deg, rgba(139,115,85,0.1), rgba(107,68,35,0.1))'), padding: isMobile ? '1.5rem 1rem' : '2rem 1.5rem', textAlign: 'center', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, position: 'relative' }}>
-                  <button onClick={closeConsciousnessModal} style={{ position: 'absolute', top: isMobile ? '0.75rem' : '1rem', right: isMobile ? '0.75rem' : '1rem', background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}><X size={isMobile ? 20 : 24} /></button>
-                  
-                  {altitude >= 70 ? <Sun size={isMobile ? 36 : 48} color="#FFD700" style={{ margin: '0 auto 0.5rem' }} /> : (altitude <= 30 ? <Swords size={isMobile ? 36 : 48} color="#e74c3c" style={{ margin: '0 auto 0.5rem' }} /> : <Mountain size={isMobile ? 36 : 48} color="#8b7355" style={{ margin: '0 auto 0.5rem' }} />)}
-                  
-                  <h2 style={{ margin: '0', fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: isMobile ? '1.3rem' : '1.6rem' }}>
-                    Estado de Consciência
-                  </h2>
-                </div>
-
-                {/* ÁREA DE ROLAGEM INDEPENDENTE */}
-                <div style={{ padding: isMobile ? '1rem' : '1.5rem', overflowY: 'auto', flex: 1 }}>
-                  
-                  {/* O DIÁLOGO ARQUETÍPICO */}
-                  <div style={{ background: isDark ? 'rgba(255, 255, 255, 0.03)' : '#f5f5f5', padding: isMobile ? '0.8rem' : '1.2rem', borderRadius: '12px', borderLeft: `4px solid ${altitude >= 70 ? '#FFD700' : (altitude <= 30 ? '#e74c3c' : '#8b7355')}`, marginBottom: isMobile ? '1rem' : '1.5rem' }}>
-                    {altitude <= 30 ? (
-                      <p style={{ margin: 0, fontStyle: 'italic', fontSize: isMobile ? '0.85rem' : '1rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.5' }}><strong>Kuravas:</strong> "Sim... continue reagindo e ignorando suas práticas. A gravidade é o nosso domínio. Deixe a mente afundar na matéria."</p>
-                    ) : altitude >= 70 ? (
-                      <p style={{ margin: 0, fontStyle: 'italic', fontSize: isMobile ? '0.85rem' : '1rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.5' }}><strong>Krishna:</strong> "Sua mente repousa no alto, firme como chama sem vento. Mantenha a vigília."</p>
-                    ) : (
-                      <p style={{ margin: 0, fontStyle: 'italic', fontSize: isMobile ? '0.85rem' : '1rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.5' }}><strong>A Voz da Consciência:</strong> "A batalha está empatada. Você não caiu, mas não se ergueu à luz. Qual a próxima ação?"</p>
-                    )}
-                  </div>
-
-                  {/* CONEXÃO COM O ORÁCULO OU LISTA DE AÇÕES */}
-                  {!balloonActions ? (
-                    <div style={{ textAlign: 'center', padding: isMobile ? '1rem' : '1.5rem', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.4)', borderRadius: '12px', border: `1px dashed ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`, marginBottom: isMobile ? '1rem' : '1.5rem' }}>
-                      <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontSize: isMobile ? '0.85rem' : '0.95rem', marginBottom: '1rem', fontStyle: 'italic', lineHeight: '1.4' }}>
-                        A máquina precisa auditar suas entrelinhas para extrair as reflexões de hoje.
-                      </p>
-                      <button 
-                        onClick={generateBalloonActions} 
-                        disabled={isGeneratingBalloon}
-                        style={{ padding: '0.8rem 1rem', background: isGeneratingBalloon ? 'transparent' : (isDark ? '#d4af37' : '#6b4423'), color: isGeneratingBalloon ? (isDark ? '#d4af37' : '#6b4423') : (isDark ? '#1a1a2e' : 'white'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: isGeneratingBalloon ? 'wait' : 'pointer', fontWeight: 'bold', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%', transition: 'all 0.3s ease', fontSize: isMobile ? '0.85rem' : '0.95rem' }}
-                      >
-                        {isGeneratingBalloon ? <Sparkles className="animate-spin" size={18} /> : <Target size={18} />}
-                        {isGeneratingBalloon ? 'Lendo a sua Alma...' : 'Conectar ao Oráculo (IA)'}
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      {displayedActions.length > 0 && (
-                        <div style={{ marginBottom: '1.2rem' }}>
-                          <p style={{ margin: '0 0 0.3rem 0', fontSize: isMobile ? '0.85rem' : '0.95rem', color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 'bold' }}>Confesse as ações de hoje:</p>
-                          <p style={{ margin: 0, fontSize: isMobile ? '0.75rem' : '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic' }}>Analise a afirmação e declare o que de fato aconteceu no seu dia.</p>
-                        </div>
-                      )}
-                      
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '0.8rem' : '1rem', marginBottom: isMobile ? '1rem' : '1.5rem' }}>
-                        {displayedActions.map(action => {
-                          const isAnimating = animatingActionId === action.id;
-                          const currentType = isAnimating ? animatingType : null;
-                          
-                          return (
-                            <div key={action.id} style={{ 
-                              background: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)', 
-                              border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, 
-                              borderRadius: '10px', padding: isMobile ? '0.8rem' : '1rem', 
-                              display: 'flex', flexDirection: 'column', gap: '0.8rem',
-                              transform: isAnimating ? 'scale(0.98)' : 'scale(1)',
-                              transition: 'all 0.3s ease',
-                              boxShadow: isAnimating ? '0 0 15px rgba(212, 175, 55, 0.2)' : 'none'
-                            }}>
-                              
-                              <span style={{ fontSize: isMobile ? '0.85rem' : '0.95rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.4', fontStyle: 'italic', textAlign: 'center' }}>
-                                "{action.text}"
-                              </span>
-                              
-                              {/* OS TRÊS CAMINHOS DA AÇÃO */}
-                              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'space-between' }}>
-                                
-                                <button 
-                                  onClick={() => handleInteraction(action, 1, 'sim')}
-                                  disabled={animatingActionId !== null}
-                                  style={{ flex: 1, padding: '0.5rem', background: currentType === 'sim' ? (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)') : 'transparent', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.4)' : 'rgba(139, 115, 85, 0.4)'}`, borderRadius: '6px', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: isMobile ? '0.7rem' : '0.8rem', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.3rem' }}
-                                >
-                                  <CheckCircle size={16} /> Sim
-                                </button>
-                                
-                                <button 
-                                  onClick={() => handleInteraction(action, -1, 'oposto')}
-                                  disabled={animatingActionId !== null}
-                                  style={{ flex: 1, padding: '0.5rem', background: currentType === 'oposto' ? (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)') : 'transparent', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.4)' : 'rgba(139, 115, 85, 0.4)'}`, borderRadius: '6px', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: isMobile ? '0.7rem' : '0.8rem', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.3rem' }}
-                                >
-                                  <Swords size={16} /> Agi Diferente
-                                </button>
-                                
-                                <button 
-                                  onClick={() => handleInteraction(action, 0, 'pular')}
-                                  disabled={animatingActionId !== null}
-                                  style={{ flex: 1, padding: '0.5rem', background: currentType === 'pular' ? 'rgba(150, 150, 150, 0.2)' : 'transparent', border: `1px dashed ${isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)'}`, borderRadius: '6px', color: isDark ? '#b8a88a' : '#6b5744', fontSize: isMobile ? '0.7rem' : '0.8rem', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.3rem' }}
-                                >
-                                  <X size={16} /> Não Ocorreu
-                                </button>
-
-                              </div>
-                            </div>
-                          );
-                        })}
-
-                        {displayedActions.length === 0 && (
-                          <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '1.5rem 1rem', background: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)', borderRadius: '8px', border: `1px dashed ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}` }}>
-                            <CheckCircle size={24} color={isDark ? '#d4af37' : '#6b4423'} style={{ margin: '0 auto 0.5rem', opacity: 0.5 }} />
-                            <p style={{ margin: 0, color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', fontSize: isMobile ? '0.8rem' : '0.9rem' }}>
-                              O poço de reflexões esgotou. Retorne à batalha para revelar as consequências dos seus atos.
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </>
-                  )}
-                  
-                  <button onClick={closeConsciousnessModal} style={{ width: '100%', padding: isMobile ? '0.75rem' : '1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: isMobile ? '0.9rem' : '1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
-                    Retornar à Batalha
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </>
-      )}
-
+           
       {/* BANNER DE INSTALAÇÃO DO PWA (ALTO CONTRASTE) */}
       {showInstallBanner && (
         <div className="animate-fadeIn" style={{ 
