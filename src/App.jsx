@@ -6339,10 +6339,10 @@ ${monthlyReport.desafioCrescimento || aiGuarda || '-'}
                 <button onClick={() => setShowQuickFv(false)} style={{ background: 'transparent', border: 'none', color: isDark ? '#aaa' : '#777', cursor: 'pointer' }}><X size={18} /></button>
               </div>
               
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {fvGdveTasks.filter(t => !t.isCycle).length === 0 ? (
-                   <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#888', fontStyle: 'italic' }}>Nenhuma prática diária pendente.</p>
-                ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '60vh', overflowY: 'auto', paddingRight: '0.2rem' }}>
+                
+                {/* 1. TAREFAS DO GRUPO (MISSÕES DIÁRIAS) */}
+                {fvGdveTasks.filter(t => !t.isCycle).length > 0 && (
                   fvGdveTasks.filter(t => !t.isCycle).map(task => {
                     const currentCount = (typeof fvDaily.gdveTasksStatus?.[task.id] === 'boolean' ? (fvDaily.gdveTasksStatus[task.id] ? 1 : 0) : fvDaily.gdveTasksStatus?.[task.id]) || 0;
                     const targetCount = task.target || 1;
@@ -6357,6 +6357,26 @@ ${monthlyReport.desafioCrescimento || aiGuarda || '-'}
                       </div>
                     );
                   })
+                )}
+
+                {/* DIVISOR SUTIL (Se houver Missões E Práticas) */}
+                {fvGdveTasks.filter(t => !t.isCycle).length > 0 && fvConfig?.praticas && (
+                  <div style={{ height: '1px', background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)', margin: '0.2rem 0' }}></div>
+                )}
+
+                {/* 2. PRÁTICAS FIXAS DA ESCOLA */}
+                {fvConfig?.praticas?.map(prac => {
+                  const isCompleted = !!fvDaily.praticas?.[prac.key];
+                  return (
+                    <div key={prac.key} onClick={() => setActiveActionMenu({ key: prac.key, label: prac.label })} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 1rem', background: isCompleted ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(0,0,0,0.3)' : '#fff'), borderRadius: '8px', border: `1px solid ${isCompleted ? '#4caf50' : (isDark ? 'rgba(212,175,55,0.3)' : '#ccc')}`, cursor: 'pointer', transition: 'all 0.2s', gap: '1rem' }}>
+                      <span style={{ color: isCompleted ? (isDark ? '#81c784' : '#2e7d32') : (isDark ? '#f0e6d2' : '#2c1810'), fontSize: '0.95rem', fontWeight: isCompleted ? 'bold' : 'normal', textDecoration: isCompleted ? 'line-through' : 'none' }}>{prac.label}</span>
+                      {isCompleted ? <CheckCircle size={16} color="#4caf50" /> : <Zap size={16} color={isDark ? '#b8a88a' : '#ccc'} />}
+                    </div>
+                  );
+                })}
+                
+                {(fvGdveTasks.filter(t => !t.isCycle).length === 0 && (!fvConfig?.praticas || fvConfig.praticas.length === 0)) && (
+                   <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#888', fontStyle: 'italic', textAlign: 'center' }}>Nenhuma prática pendente.</p>
                 )}
               </div>
             </div>
