@@ -340,6 +340,7 @@ function App() {
   const [newBook, setNewBook] = useState({ title: '', author: '', currentPage: 0, totalPages: 0, link: '', notes: '' });
   const [shelfSearchTerm, setShelfSearchTerm] = useState(''); // Estado para busca na estante
   const [editingBookId, setEditingBookId] = useState(null);
+  const [expandedNotesId, setExpandedNotesId] = useState(null);
   const [bookSearchQuery, setBookSearchQuery] = useState('');
   const [bookSearchResults, setBookSearchResults] = useState([]);
   const [isSearchingBooks, setIsSearchingBooks] = useState(false);
@@ -4490,7 +4491,7 @@ ${monthlyReport.desafioCrescimento || aiGuarda || '-'}
 
                               generateBookRecommendation();
                             }}
-                            disabled={isGeneratingRecommendation} style={{ flex: 1, background: 'transparent', border: `1px solid ${isDark ? '#555' : '#ccc'}`, color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.75rem', cursor: 'pointer', borderRadius: '4px', padding: '0.4rem', transition: 'all 0.2s' }}>{isGeneratingRecommendation ? 'Gerando...' : 'Já Li (Adicionar e Gerar)'}</button>
+                            disabled={isGeneratingRecommendation} style={{ flex: 1, background: 'transparent', border: `1px solid ${isDark ? '#555' : '#ccc'}`, color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.75rem', cursor: 'pointer', borderRadius: '4px', padding: '0.4rem', transition: 'all 0.2s' }}>{isGeneratingRecommendation ? 'Gerando...' : 'Já Li (Adicionar a Estante)'}</button>
                           
                           <button 
                             onClick={async () => {
@@ -4661,7 +4662,6 @@ ${monthlyReport.desafioCrescimento || aiGuarda || '-'}
                               </>
                             )}
                             
-                            {/* NOVOS BOTÕES: PDF E NOTAS (Colei Aqui!) */}
                             <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.75rem' }}>
                               {book.link && (
                                 <a href={book.link} target="_blank" rel="noopener noreferrer" style={{ flex: 1, padding: '0.5rem', background: '#3498DB', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold', textDecoration: 'none', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}>
@@ -4671,16 +4671,41 @@ ${monthlyReport.desafioCrescimento || aiGuarda || '-'}
                               <button 
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  const note = prompt(`Anotações para "${book.title}":`, book.notes || "");
-                                  if (note !== null) {
-                                    saveBooksToDb(books.map(b => b.id === book.id ? { ...b, notes: note } : b));
-                                  }
+                                  // Abre ou fecha a gaveta do livro atual
+                                  setExpandedNotesId(prev => prev === book.id ? null : book.id);
                                 }}
-                                style={{ flex: 1, padding: '0.5rem', background: isDark ? 'rgba(255,255,255,0.1)' : '#f0f0f0', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? '#555' : '#ccc'}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', transition: 'background 0.2s' }}
+                                style={{ flex: 1, padding: '0.5rem', background: expandedNotesId === book.id ? (isDark ? '#d4af37' : '#6b4423') : (isDark ? 'rgba(255,255,255,0.1)' : '#f0f0f0'), color: expandedNotesId === book.id ? (isDark ? '#1a1a2e' : 'white') : (isDark ? '#f0e6d2' : '#2c1810'), border: `1px solid ${expandedNotesId === book.id ? 'transparent' : (isDark ? '#555' : '#ccc')}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', transition: 'all 0.2s' }}
                               >
                                 <Edit size={12} /> {book.notes ? 'Ver Notas' : '+ Notas'}
                               </button>
                             </div>
+
+                            {/* A GAVETA DE NOTAS EXPANSÍVEL */}
+                            {expandedNotesId === book.id && (
+                              <div className="animate-fadeIn" style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }} onClick={(e) => e.stopPropagation()}>
+                                <textarea 
+                                  value={book.notes || ''} 
+                                  onChange={(e) => {
+                                    // Atualiza a memória local enquanto você digita
+                                    setBooks(books.map(b => b.id === book.id ? { ...b, notes: e.target.value } : b));
+                                  }}
+                                  placeholder="Suas reflexões, trechos marcantes, resumos de capítulos..."
+                                  rows={5}
+                                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.4)' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.4)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.9rem', fontFamily: 'Georgia, serif', resize: 'vertical' }}
+                                />
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    // Salva no banco de dados e fecha a gaveta
+                                    saveBooksToDb(books);
+                                    setExpandedNotesId(null);
+                                  }}
+                                  style={{ alignSelf: 'flex-end', padding: '0.5rem 1.5rem', background: '#4caf50', color: 'white', border: 'none', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 2px 8px rgba(76,175,80,0.3)' }}
+                                >
+                                  <Save size={14} /> Salvar Fichamento
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
