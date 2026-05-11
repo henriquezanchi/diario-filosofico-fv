@@ -2493,6 +2493,9 @@ function App() {
     let countEd = 0; let countCrm = 0; let countRaio = 0; 
     let countAulaRegular = 0; let countAulaMinistrada = 0; 
     let diasVoluntariado = 0; let totalPraticasPsicologia = 0;
+    
+    // Novos contadores de Missões (Tarefas Pessoais)
+    let countLimpeza = 0; let countGN = 0; let countEstudos = 0; let countBastiao = 0;
 
     cicloEntries.forEach(entry => {
       const fv = entry.fvDaily || {};
@@ -2506,6 +2509,19 @@ function App() {
       // Conta Práticas de Psicologia (Tratak, Câmara, Exercícios do App)
       if (fv.praticas) {
         totalPraticasPsicologia += Object.values(fv.praticas).filter(v => v === true).length;
+      }
+
+      // A MÁGICA: O app lê o nome das tarefas que você marcou como concluídas nos dias
+      if (entry.tasksSnapshot) {
+        entry.tasksSnapshot.forEach(task => {
+           if (task.completed) {
+             const tName = task.name.toLowerCase();
+             if (tName.includes('limpeza') || tName.includes('faxina') || tName.includes('mutirão')) countLimpeza++;
+             if (tName.includes('gn') || tName.includes('guarda noturna')) countGN++;
+             if (tName.includes('estudar') || tName.includes('matéria') || tName.includes('curso') || tName.includes('resumo')) countEstudos++;
+             if (tName.includes('bastião') || tName.includes('bastiao') || tName.includes('leitura do ciclo')) countBastiao++;
+           }
+        });
       }
     });
 
@@ -2521,69 +2537,74 @@ function App() {
     else if (totalPraticasPsicologia >= 8) praticasPsicologiaCalc = "Às vezes (3x/sem)";
     else if (totalPraticasPsicologia > 0) praticasPsicologiaCalc = "Raramente (menos de 2x/sem)";
 
+    const estudandoMateriasCalc = countEstudos > 0 ? `Sim (${countEstudos} sessões de estudo na Missão)` : 'Não registrado';
+    const fezGnCalc = countGN > 0 ? `Sim (${countGN}x)` : 'Não';
+    const limpezaCalc = countLimpeza > 0 ? `${countLimpeza}` : 'Nenhuma';
+    const bastioesCalc = monthlyReport.bastioesLidos || (countBastiao > 0 ? `${countBastiao} sessões de leitura` : 'Não registrado');
+
     const livroAtual = books.filter(b => b.totalPages > 0 && b.currentPage < b.totalPages)[0];
     const nomeLivro = livroAtual ? `${livroAtual.title} (${livroAtual.author})` : 'Nenhum no momento';
 
     // 3. MONTAGEM DO TEXTO FINAL
     const relatorio = `RELATÓRIO MENSAL - ${mesAno.toUpperCase()}
 
-      [IDENTIFICAÇÃO]
-      Nome: ${getUserFirstName()}
-      Unidade: ${fvUnidade || 'Não informada'}
-      Condição: ${fvCondicao || 'Não informada'}
+[IDENTIFICAÇÃO]
+Nome: ${getUserFirstName()}
+Unidade: ${fvUnidade || 'Não informada'}
+Condição: ${fvCondicao || 'Não informada'}
 
-      [ACOMPANHAMENTO INTERNO]
-      Tem feito o diário? ${freqDiario} (App registrou ${diasFeitos} dias)
-      Para quem envia CD? ${fvMasterName || 'Não informado'}
-      Data do último encontro: ${fvLastMeetingDate ? new Date(fvLastMeetingDate + 'T12:00:00').toLocaleDateString('pt-BR') : 'Não informado'}
-      Data da última entrega da CD: ${fvLastCartaDate ? new Date(fvLastCartaDate + 'T12:00:00').toLocaleDateString('pt-BR') : 'Não informado'}
-      Assistiu aula de ED esse mês? ${countEd > 0 ? `Sim (${countEd}x)` : 'Não'}
+[ACOMPANHAMENTO INTERNO]
+Tem feito o diário? ${freqDiario} (App registrou ${diasFeitos} dias)
+Para quem envia CD? ${fvMasterName || 'Não informado'}
+Data do último encontro: ${fvLastMeetingDate ? new Date(fvLastMeetingDate + 'T12:00:00').toLocaleDateString('pt-BR') : 'Não informado'}
+Data da última entrega da CD: ${fvLastCartaDate ? new Date(fvLastCartaDate + 'T12:00:00').toLocaleDateString('pt-BR') : 'Não informado'}
+Assistiu aula de ED esse mês? ${countEd > 0 ? `Sim (${countEd}x)` : 'Não'}
 
-      [IDEOLÓGICO]
-      Participou da CRM Mensal? ${countCrm > 0 ? 'Sim' : 'Não'}
-      Reuniões por Raio? ${countRaio} reuniões registradas
-      Outras CRM? ${monthlyReport.outrasCrm || '-'}
-      Quantos bastiões leu esse mês? ${monthlyReport.bastioesLidos || '-'}
+[IDEOLÓGICO]
+Participou da CRM Mensal? ${countCrm > 0 ? 'Sim' : 'Não'}
+Reuniões por Raio? ${countRaio} reuniões registradas
+Outras CRM? ${monthlyReport.outrasCrm || '-'}
+Quantos bastiões leu esse mês? ${bastioesCalc}
 
-      [ESCOLÁSTICA]
-      Dias de aula do Curso de Filosofia assistidos: ${countAulaRegular} aulas
-      Práticas de psicologia (Tratak/Câmara/Atenção): ${praticasPsicologiaCalc} (${totalPraticasPsicologia} práticas feitas)
-      Horas Aula Assistidas: ${totals.assistida}
-      Estudando para matérias? ${monthlyReport.estudandoMaterias || '-'}
-      Livro filosófico lendo: ${monthlyReport.livroFilosofico || nomeLivro}
+[ESCOLÁSTICA]
+Dias de aula do Curso de Filosofia assistidos: ${countAulaRegular} aulas
+Práticas de psicologia (Tratak/Câmara/Atenção): ${praticasPsicologiaCalc} (${totalPraticasPsicologia} práticas feitas)
+Horas Aula Assistidas (Calculadas): ${totals.assistida}
+Estudando para matérias? ${estudandoMateriasCalc}
+Livro filosófico lendo: ${monthlyReport.livroFilosofico || nomeLivro}
 
-      [VOLUNTARIADO]
-      Frequência voluntariado: ${freqVoluntariadoCalc} (${diasVoluntariado} dias registrados)
-      Fez GN esse mês? ${monthlyReport.fezGn || '-'}
-      Horas Voluntariado Totais: ${totals.voluntariado}
-      Ministrou aulas de filosofia? ${countAulaMinistrada > 0 ? `Sim (${countAulaMinistrada} aulas)` : 'Não'}
-      Horas Aula Ministradas: ${totals.ministrada}
-      Escalas de limpeza: ${monthlyReport.escalasLimpeza || '-'}
-      Envolvimento propaganda: ${(monthlyReport.propaganda || []).join(', ') || '-'}
+[VOLUNTARIADO]
+Frequência voluntariado (Calculada): ${freqVoluntariadoCalc} (${diasVoluntariado} dias com serviço registrado)
+Fez GN esse mês? ${fezGnCalc}
+Horas Voluntariado Totais: ${totals.voluntariado}
+Ministrou aulas de filosofia? ${countAulaMinistrada > 0 ? `Sim (${countAulaMinistrada} aulas)` : 'Não'}
+Horas Aula Ministradas (Calculadas): ${totals.ministrada}
+Escalas de limpeza: ${limpezaCalc}
+Envolvimento propaganda: ${(monthlyReport.propaganda || []).join(', ') || '-'}
 
-      [FINANCEIRO]
-      Contribuição mensal: ${monthlyReport.contribuicao || '-'}
-      Doação para a escola: ${monthlyReport.doacao || '-'}
+[FINANCEIRO]
+Contribuição mensal: ${monthlyReport.contribuicao || '-'}
+Doação para a escola: ${monthlyReport.doacao || '-'}
 
-      [SECRETARIAS]
-      Secretaria / Área: ${monthlyReport.secretariaAtuacao || '-'}
-      Trabalho junto/reunião: ${monthlyReport.secretariaReuniao || '-'}
-      Membros participando / Destaques: ${monthlyReport.secretariaMembros || '-'}
+[SECRETARIAS]
+Secretaria / Área: ${monthlyReport.secretariaAtuacao || '-'}
+Trabalho junto/reunião: ${monthlyReport.secretariaReuniao || '-'}
+Membros participando / Destaques: ${monthlyReport.secretariaMembros || '-'}
 
-      [ANÁLISE E REFLEXÃO]
-      Pontos positivos/crescimento:
-      ${monthlyReport.pontosPositivos || aiConquistas || '-'}
+[ANÁLISE E REFLEXÃO]
+Pontos positivos/crescimento:
+${monthlyReport.pontosPositivos || aiConquistas || '-'}
 
-      Desafio que está percebendo para crescer:
-      ${monthlyReport.desafioCrescimento || aiGuarda || '-'}
-      `;
+Desafio que está percebendo para crescer:
+${monthlyReport.desafioCrescimento || aiGuarda || '-'}
+`;
 
-      navigator.clipboard.writeText(relatorio).then(() => {
-        alert("✅ Relatório gerado com sucesso! Os dados foram calculados automaticamente baseados nos seus registros diários e copiados para a Área de Transferência.");
-      }).catch(err => {
-        console.error('Falha ao copiar:', err);
-        alert("Erro ao copiar. Seu navegador pode ter bloqueado a ação.");
-      });
+    navigator.clipboard.writeText(relatorio).then(() => {
+      alert("✅ Relatório gerado com sucesso! A IA cruzou seus dados do diário e suas tarefas do mês. O texto já está copiado na sua Área de Transferência.");
+    }).catch(err => {
+      console.error('Falha ao copiar:', err);
+      alert("Erro ao copiar. Seu navegador pode ter bloqueado a ação.");
+    });
   };
 
   const handleFvDailyTextChange = (key, value) => {
@@ -3340,7 +3361,7 @@ function App() {
                 <Calendar size={28} color={isDark ? '#d4af37' : '#6b4423'} />
                 <div>
                   <h2 style={{ margin: 0, fontWeight: 'bold', color: isDark ? '#d4af37' : '#6b4423', fontFamily: "'Cinzel', serif", fontSize: '1.4rem' }}>
-                    {selectedDate === getTodayKey() ? "O Campo de Hoje" : "Registro Histórico"}
+                    {selectedDate === getTodayKey() ? "Hoje" : "Registro Histórico"}
                   </h2>
                   <p style={{ margin: '0.2rem 0 0 0', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.9rem' }}>{new Date(selectedDate + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
                 </div>
@@ -5370,80 +5391,62 @@ function App() {
 
                     {isGdveRelatorioOpen && (
                       <div className="animate-fadeIn" style={{ padding: '0 2rem 2rem 2rem' }}>
-                        <div style={{ background: isDark ? 'rgba(155, 89, 182, 0.1)' : 'rgba(142, 68, 173, 0.05)', padding: '1rem', borderRadius: '8px', borderLeft: `4px solid ${isDark ? '#c39bd3' : '#8e44ad'}`, marginBottom: '2rem' }}>
-                          <p style={{ margin: 0, fontSize: '0.9rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.5' }}><strong>Nota:</strong> As Horas de Voluntariado, Aulas Assistidas, Aulas Ministradas e a Frequência do Diário já são calculadas automaticamente pelo aplicativo com base nos seus preenchimentos de "Balanço de Horas". Não se preocupe em somá-las aqui!</p>
-                        </div>
+                        {/* NOTA E CÁLCULO AUTOMÁTICO DE HORAS (VISUAL) */}
+                        {(() => {
+                          const totals = getFvMonthlyTotals();
+                          return (
+                            <div style={{ marginBottom: '2rem' }}>
+                              <div style={{ background: isDark ? 'rgba(155, 89, 182, 0.1)' : 'rgba(142, 68, 173, 0.05)', padding: '1rem', borderRadius: '8px', borderLeft: `4px solid ${isDark ? '#c39bd3' : '#8e44ad'}`, marginBottom: '1.5rem' }}>
+                                <p style={{ margin: 0, fontSize: '0.9rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.5' }}>
+                                  <strong>Balanço do Ciclo:</strong> As horas abaixo estão sendo calculadas automaticamente pelo aplicativo, somando todos os seus registros diários deste mês.
+                                </p>
+                              </div>
+                              
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                                <div>
+                                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad', fontSize: '0.85rem', textTransform: 'uppercase' }}>Voluntariado</label>
+                                  <div style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.4)' : '#f3f4f6', color: isDark ? '#b8a88a' : '#64748b', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.3)' : '#cbd5e1'}`, cursor: 'not-allowed', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <Clock size={16} /> {totals.voluntariado}
+                                  </div>
+                                </div>
+                                <div>
+                                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad', fontSize: '0.85rem', textTransform: 'uppercase' }}>Aulas Assistidas</label>
+                                  <div style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.4)' : '#f3f4f6', color: isDark ? '#b8a88a' : '#64748b', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.3)' : '#cbd5e1'}`, cursor: 'not-allowed', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <BookOpen size={16} /> {totals.assistida}
+                                  </div>
+                                </div>
+                                <div>
+                                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad', fontSize: '0.85rem', textTransform: 'uppercase' }}>Aulas Ministradas</label>
+                                  <div style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.4)' : '#f3f4f6', color: isDark ? '#b8a88a' : '#64748b', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.3)' : '#cbd5e1'}`, cursor: 'not-allowed', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <Target size={16} /> {totals.ministrada}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                           
-                          {/* ACOMPANHAMENTO INTERNO & IDEOLÓGICO */}
+                          {/* INFORMAÇÕES QUE O APP NÃO PODE ADIVINHAR */}
+                          
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
                             <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Participou das outras CRM (Extras)?</label>
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Participou das outras CRM (Extras/Especiais)?</label>
                               <select value={monthlyReport.outrasCrm} onChange={(e) => handleMonthlyReportChange('outrasCrm', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
                                 <option value="">Selecione...</option><option value="Sim">Sim</option><option value="Não">Não</option><option value="Não teve CRM extra">Não teve CRM extra</option>
                               </select>
                             </div>
                             <div>
                               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Quantos bastiões leu esse mês?</label>
+                              <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '-0.3rem', marginBottom: '0.5rem', fontStyle: 'italic' }}>*Se você tiver uma Tarefa chamada "Bastião", o app calculará sozinho.</p>
                               <select value={monthlyReport.bastioesLidos} onChange={(e) => handleMonthlyReportChange('bastioesLidos', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
-                                <option value="">Selecione...</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5 ou mais">5 ou mais</option><option value="Nenhum">Nenhum</option>
-                              </select>
-                            </div>
-                          </div>
-                          <div style={{ height: '1px', background: isDark ? 'rgba(155, 89, 182, 0.2)' : 'rgba(142, 68, 173, 0.2)' }}></div>
-
-                          {/* ESCOLÁSTICA */}
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
-                            <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Quantos bastiões leu esse mês?</label>
-                              <select value={monthlyReport.bastioesLidos} onChange={(e) => handleMonthlyReportChange('bastioesLidos', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
-                                <option value="">Selecione...</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5 ou mais">5 ou mais</option><option value="Nenhum">Nenhum</option>
-                              </select>
-                            </div>
-                            <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Dias de aula do Curso Regular assistidos?</label>
-                              <select value={monthlyReport.diasAula} onChange={(e) => handleMonthlyReportChange('diasAula', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
-                                <option value="">Selecione...</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="Nenhum">Nenhum</option>
-                              </select>
-                            </div>
-                            <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Práticas de psicologia?</label>
-                              <select value={monthlyReport.praticasPsicologia} onChange={(e) => handleMonthlyReportChange('praticasPsicologia', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
-                                <option value="">Selecione...</option>
-                                <option value="Nunca">Nunca (0 dias)</option>
-                                <option value="Raramente">Raramente (menos de 2x/sem)</option>
-                                <option value="Às vezes">Às vezes (3x/sem)</option>
-                                <option value="Frequentemente">Freq. (mais de 4x/sem)</option>
-                                <option value="Sempre">Sempre (Todo dia)</option>
-                              </select>
-                            </div>
-                            <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Estudando matérias do curso de filosofia?</label>
-                              <select value={monthlyReport.estudandoMaterias} onChange={(e) => handleMonthlyReportChange('estudandoMaterias', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
-                                <option value="">Selecione...</option><option value="Sim">Sim</option><option value="Não">Não</option>
+                                <option value="">Automático pelo App (ou Selecione)</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5 ou mais">5 ou mais</option><option value="Nenhum">Nenhum</option>
                               </select>
                             </div>
                           </div>
 
                           <div style={{ height: '1px', background: isDark ? 'rgba(155, 89, 182, 0.2)' : 'rgba(142, 68, 173, 0.2)' }}></div>
-
-                          {/* VOLUNTARIADO E FINANCEIRO */}
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
-                            <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Fez GN esse mês (somente CG)?</label>
-                              <select value={monthlyReport.fezGn} onChange={(e) => handleMonthlyReportChange('fezGn', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
-                                <option value="">Selecione...</option><option value="Sim">Sim</option><option value="Não">Não</option>
-                              </select>
-                            </div>
-                            <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Quantas escalas de limpeza participou?</label>
-                              <select value={monthlyReport.escalasLimpeza} onChange={(e) => handleMonthlyReportChange('escalasLimpeza', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
-                                <option value="">Selecione...</option>
-                                <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="Nenhuma">Nenhuma</option>
-                              </select>
-                            </div>
-                          </div>
 
                           <div style={{ marginBottom: '1rem' }}>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Envolvimento com a Propaganda (Múltipla escolha)</label>
@@ -5474,10 +5477,9 @@ function App() {
 
                           <div style={{ height: '1px', background: isDark ? 'rgba(155, 89, 182, 0.2)' : 'rgba(142, 68, 173, 0.2)' }}></div>
 
-                          {/* SECRETARIAS */}
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
                              <div>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Secretaria de Atuação (Se for secretário)</label>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Secretaria de Atuação</label>
                                 <select value={monthlyReport.secretariaAtuacao} onChange={(e) => handleMonthlyReportChange('secretariaAtuacao', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
                                   <option value="">Nenhuma / Selecione...</option>
                                   {['Abertura de Turma', 'Artes', 'Biblioteca', 'Café Artemis', 'Difusão', 'Economia', 'Escolástica', 'GGFF', 'GGMM', 'GGSS', 'Integração', 'Livraria', 'Manutenção', 'Programa Janos', 'Programa Merlin', 'Escola do Esporte', 'Círculo de Amigos', 'Assuntos Legais', 'GEA', 'Assistência Social'].map(s => <option key={s} value={s}>{s}</option>)}
@@ -5497,16 +5499,15 @@ function App() {
 
                           <div style={{ height: '1px', background: isDark ? 'rgba(155, 89, 182, 0.2)' : 'rgba(142, 68, 173, 0.2)' }}></div>
 
-                          {/* ANÁLISE E REFLEXÃO */}
                           <div style={{ marginBottom: '1rem' }}>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Indique 1 ou 2 pontos positivos/crescimento deste mês</label>
-                            <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#888', marginTop: '-0.3rem', marginBottom: '0.5rem', fontStyle: 'italic' }}>Faça uma pequena reflexão de um desafio superado.</p>
+                            <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#888', marginTop: '-0.3rem', marginBottom: '0.5rem', fontStyle: 'italic' }}>A IA já preenche isso com base na sua Auditoria, mas você pode escrever algo extra.</p>
                             <textarea value={monthlyReport.pontosPositivos} onChange={(e) => handleMonthlyReportChange('pontosPositivos', e.target.value)} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}`, fontFamily: 'Georgia, serif', resize: 'vertical' }} />
                           </div>
 
                           <div style={{ marginBottom: '1.5rem' }}>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Indique um desafio que você está percebendo para crescer</label>
-                            <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#888', marginTop: '-0.3rem', marginBottom: '0.5rem', fontStyle: 'italic' }}>Aponte um elemento que pretende começar a trabalhar/desenvolver.</p>
+                            <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#888', marginTop: '-0.3rem', marginBottom: '0.5rem', fontStyle: 'italic' }}>A IA já preenche isso (Onde a Guarda Baixou), mas você pode escrever algo extra.</p>
                             <textarea value={monthlyReport.desafioCrescimento} onChange={(e) => handleMonthlyReportChange('desafioCrescimento', e.target.value)} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}`, fontFamily: 'Georgia, serif', resize: 'vertical' }} />
                           </div>
 
