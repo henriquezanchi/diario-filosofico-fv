@@ -2475,7 +2475,8 @@ function App() {
   };
 
   const generateMonthlyReportText = () => {
-    const totals = getFvMonthlyTotals();
+    // CORREÇÃO: Agora ele chama o motor novo (Stats) em vez do antigo (Totals)
+    const stats = getFvMonthlyStats(); 
     const hoje = new Date();
     const mesAno = hoje.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
     
@@ -2546,7 +2547,7 @@ function App() {
     const livroAtual = books.filter(b => b.totalPages > 0 && b.currentPage < b.totalPages)[0];
     const nomeLivro = livroAtual ? `${livroAtual.title} (${livroAtual.author})` : 'Nenhum no momento';
 
-    // 3. MONTAGEM DO TEXTO FINAL
+    // 3. MONTAGEM DO TEXTO FINAL (Puxando de stats.hAs, stats.hVol, stats.hMin)
     const relatorio = `RELATÓRIO MENSAL - ${mesAno.toUpperCase()}
 
 [IDENTIFICAÇÃO]
@@ -2570,16 +2571,16 @@ Quantos bastiões leu esse mês? ${bastioesCalc}
 [ESCOLÁSTICA]
 Dias de aula do Curso de Filosofia assistidos: ${countAulaRegular} aulas
 Práticas de psicologia (Tratak/Câmara/Atenção): ${praticasPsicologiaCalc} (${totalPraticasPsicologia} práticas feitas)
-Horas Aula Assistidas (Calculadas): ${totals.assistida}
+Horas Aula Assistidas (Calculadas): ${stats.hAs}
 Estudando para matérias? ${estudandoMateriasCalc}
 Livro filosófico lendo: ${monthlyReport.livroFilosofico || nomeLivro}
 
 [VOLUNTARIADO]
 Frequência voluntariado (Calculada): ${freqVoluntariadoCalc} (${diasVoluntariado} dias com serviço registrado)
 Fez GN esse mês? ${fezGnCalc}
-Horas Voluntariado Totais: ${totals.voluntariado}
+Horas Voluntariado Totais: ${stats.hVol}
 Ministrou aulas de filosofia? ${countAulaMinistrada > 0 ? `Sim (${countAulaMinistrada} aulas)` : 'Não'}
-Horas Aula Ministradas (Calculadas): ${totals.ministrada}
+Horas Aula Ministradas (Calculadas): ${stats.hMin}
 Escalas de limpeza: ${limpezaCalc}
 Envolvimento propaganda: ${(monthlyReport.propaganda || []).join(', ') || '-'}
 
@@ -2594,10 +2595,10 @@ Membros participando / Destaques: ${monthlyReport.secretariaMembros || '-'}
 
 [ANÁLISE E REFLEXÃO]
 Pontos positivos/crescimento:
-${monthlyReport.pontosPositivos || aiConquistas || '-'}
+${monthlyReport.pontosPositivos || '-'}
 
 Desafio que está percebendo para crescer:
-${monthlyReport.desafioCrescimento || aiGuarda || '-'}
+${monthlyReport.desafioCrescimento || '-'}
 `;
 
     navigator.clipboard.writeText(relatorio).then(() => {
@@ -5389,14 +5390,45 @@ ${monthlyReport.desafioCrescimento || aiGuarda || '-'}
                                    </div>
 
                                  </div>
-                                 <button onClick={() => removeGdveTask(task.id)} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer' }}><Trash2 size={16} /></button>
+                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                   <button onClick={(e) => { e.stopPropagation(); startEditingGdveTask(task); }} style={{ background: 'transparent', border: 'none', color: isDark ? '#d4af37' : '#996515', cursor: 'pointer' }} title="Editar"><Edit size={16} /></button>
+                                   <button onClick={(e) => { e.stopPropagation(); if(window.confirm('Deseja excluir esta prática?')) removeGdveTask(task.id); }} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer' }} title="Excluir"><Trash2 size={16} /></button>
+                                 </div>
                                </div>
                              );
                            })}
                         </div>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                           <input type="text" value={newGdveTaskName} onChange={(e) => setNewGdveTaskName(e.target.value)} placeholder="Nova missão do grupo..." style={{ flex: 1, padding: '0.7rem', borderRadius: '8px', border: '1px solid #ccc', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
-                           <button onClick={addGdveTask} style={{ padding: '0 1rem', background: isDark ? '#FFD700' : '#996515', color: '#1a1a2e', border: 'none', borderRadius: '8px', fontWeight: 'bold' }}>+</button>
+                        <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', padding: '1rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : '#ccc'}` }}>
+                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                             <h5 style={{ margin: 0, color: isDark ? '#FFD700' : '#996515', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                               {editingGdveTaskId ? 'Editar Prática' : 'Adicionar Nova Prática'}
+                             </h5>
+                             {editingGdveTaskId && (
+                               <button onClick={() => { setEditingGdveTaskId(null); setNewGdveTaskName(''); setNewGdveTaskTarget(1); setNewGdveTaskIsCycle(false); }} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer' }}>
+                                 <X size={16}/>
+                               </button>
+                             )}
+                           </div>
+                           
+                           <input type="text" value={newGdveTaskName} onChange={(e) => setNewGdveTaskName(e.target.value)} placeholder="Ex: Ler Bastião / Eu sou Discípulo..." style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.4)' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
+                           
+                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', marginTop: '0.5rem' }}>
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#666' }}>
+                                 <input type="checkbox" checked={newGdveTaskIsCycle} onChange={(e) => { setNewGdveTaskIsCycle(e.target.checked); if(e.target.checked) setNewGdveTaskTarget(1); }} style={{ width: '16px', height: '16px', accentColor: '#FFD700', cursor: 'pointer' }} />
+                                 Missão Única do Ciclo (Não zera diariamente)
+                              </label>
+                              
+                              {!newGdveTaskIsCycle && (
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#666' }}>
+                                   Vezes por dia:
+                                   <input type="number" min="1" max="10" value={newGdveTaskTarget} onChange={(e) => setNewGdveTaskTarget(parseInt(e.target.value) || 1)} style={{ width: '60px', padding: '0.4rem', borderRadius: '4px', border: `1px solid ${isDark ? '#555' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'center' }} />
+                                </label>
+                              )}
+
+                              <button onClick={addGdveTask} style={{ marginLeft: 'auto', padding: '0.6rem 1.5rem', background: isDark ? '#FFD700' : '#996515', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', transition: 'all 0.2s' }}>
+                                 {editingGdveTaskId ? 'Salvar Alteração' : '+ Adicionar'}
+                              </button>
+                           </div>
                         </div>
                         
                         <button 
@@ -5482,7 +5514,7 @@ ${monthlyReport.desafioCrescimento || aiGuarda || '-'}
                                 <Badge icon={Clock} label="Voluntariado" value={s.hVol} color="#8e44ad" />
                                 <Badge icon={BookOpen} label="Aulas Assistidas" value={s.hAs} color="#3498db" />
                                 <Badge icon={Target} label="Aulas Ministradas" value={s.hMin} color="#e67e22" />
-                                <Badge icon={Zap} label="Práticas Realizadas" value={`${s.totalPraticas} práticas`} color="#f1c40f" />
+                                <Badge icon={Zap} label="Freq. de Práticas" value={s.totalPraticas >= 20 ? 'Sempre' : s.totalPraticas >= 12 ? 'Frequentemente' : s.totalPraticas >= 8 ? 'Às vezes' : s.totalPraticas > 0 ? 'Raramente' : 'Nunca'} color="#f1c40f" />
                                 <Badge icon={CheckCircle} label="Aulas de Curso" value={`${s.countAulaRegular} presenças`} />
                                 <Badge icon={Award} label="Aulas de ED" value={`${s.countEd} presenças`} />
                                 <Badge icon={Shield} label="CRM Mensal" value={s.countCrm > 0 ? 'Participou' : 'Não registrada'} />
@@ -5569,13 +5601,13 @@ ${monthlyReport.desafioCrescimento || aiGuarda || '-'}
 
                           <div style={{ marginBottom: '1rem' }}>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Indique 1 ou 2 pontos positivos/crescimento deste mês</label>
-                            <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#888', marginTop: '-0.3rem', marginBottom: '0.5rem', fontStyle: 'italic' }}>A IA já preenche isso com base na sua Auditoria, mas você pode escrever algo extra.</p>
+                            <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#888', marginTop: '-0.3rem', marginBottom: '0.5rem', fontStyle: 'italic' }}>Momento de síntese pessoal: extraia suas vitórias com suas próprias palavras.</p>
                             <textarea value={monthlyReport.pontosPositivos} onChange={(e) => handleMonthlyReportChange('pontosPositivos', e.target.value)} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}`, fontFamily: 'Georgia, serif', resize: 'vertical' }} />
                           </div>
 
                           <div style={{ marginBottom: '1.5rem' }}>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Indique um desafio que você está percebendo para crescer</label>
-                            <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#888', marginTop: '-0.3rem', marginBottom: '0.5rem', fontStyle: 'italic' }}>A IA já preenche isso (Onde a Guarda Baixou), mas você pode escrever algo extra.</p>
+                            <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#888', marginTop: '-0.3rem', marginBottom: '0.5rem', fontStyle: 'italic' }}>Olhe para si mesmo e defina com clareza o seu principal obstáculo (Kurava) atual.</p>
                             <textarea value={monthlyReport.desafioCrescimento} onChange={(e) => handleMonthlyReportChange('desafioCrescimento', e.target.value)} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}`, fontFamily: 'Georgia, serif', resize: 'vertical' }} />
                           </div>
 
