@@ -2956,37 +2956,8 @@ ${monthlyReport.desafioCrescimento || aiGuarda || '-'}
 
     const fmt = (m) => `${Math.floor(m/60)}h ${String(m%60).padStart(2,'0')}m`;
     return { ...stats, hVol: fmt(stats.horasVoluntariadoMin), hAs: fmt(stats.horasAssistidaMin), hMin: fmt(stats.horasMinistradaMin) };
-  };
+  }; // <- Fim da função getFvMonthlyStats (mantenha este fechamento)
 
-  const getHeaderStyle = (status, isOpen) => {
-    let bg = isOpen ? 'transparent' : (isDark ? 'rgba(0,0,0,0.2)' : '#fdfbf7');
-    if (status === 'full' && !isOpen) bg = 'transparent';
-    if (status === 'partial' && !isOpen) bg = isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)';
-    if (status === 'overdue' && !isOpen) bg = isDark ? 'rgba(231, 76, 60, 0.1)' : 'rgba(231, 76, 60, 0.05)';
-    
-    return {
-      display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem 2rem', cursor: 'pointer', 
-      background: bg
-    };
-  };
-
-  const renderTitle = (text, status, isOpen, icon) => {
-    let titleColor = isDark ? '#f0e6d2' : '#2c1810';
-    if (status === 'overdue') titleColor = '#e74c3c';
-    
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-        {icon}
-        <h2 style={{ margin: 0, fontSize: 'clamp(1.2rem, 3vw, 1.5rem)', color: titleColor, fontFamily: "'Cinzel', serif", textDecoration: status === 'full' && !isOpen ? 'line-through' : 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          {text}
-          {status === 'partial' && !isOpen && <span style={{fontSize: '0.8rem', opacity: 0.8, fontStyle: 'italic', fontFamily: 'Georgia, serif'}}>(Em Andamento)</span>}
-          {status === 'overdue' && <span style={{fontSize: '0.8rem', color: '#e74c3c', fontStyle: 'italic', fontFamily: 'Georgia, serif'}}>(Atrasada!)</span>}
-        </h2>
-      </div>
-    );
-  };
-  // -------------------------------------------------------------
-  
   // --- PINCEL MÁGICO UNIVERSAL (Acessível por todas as abas) ---
   const getBlockStyle = (status, isOpen, activeBorder) => {
     const corPadrao = activeBorder || (isDark ? '#FFD700' : '#996515');
@@ -3043,6 +3014,8 @@ ${monthlyReport.desafioCrescimento || aiGuarda || '-'}
       </div>
     );
   };
+
+  // -------------------------------------------------------------
 
   if (!user) {
     return (
