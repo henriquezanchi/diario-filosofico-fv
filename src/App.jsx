@@ -341,6 +341,7 @@ function App() {
   const [shelfSearchTerm, setShelfSearchTerm] = useState(''); // Estado para busca na estante
   const [editingBookId, setEditingBookId] = useState(null);
   const [expandedNotesId, setExpandedNotesId] = useState(null);
+  const [isVirtuesOpen, setIsVirtuesOpen] = useState(false);
   const [bookSearchQuery, setBookSearchQuery] = useState('');
   const [bookSearchResults, setBookSearchResults] = useState([]);
   const [isSearchingBooks, setIsSearchingBooks] = useState(false);
@@ -2486,15 +2487,15 @@ function App() {
     
     // 1. DADOS CALCULADOS MATEMATICAMENTE
     const diasFeitos = cicloEntries.filter(e => e.morningDone).length;
-    let freqDiario = "Nunca";
-    if (diasFeitos >= 25) freqDiario = "Sempre - Fez todos os dias do mês";
-    else if (diasFeitos >= 12) freqDiario = "Frequentemente - fez mais de 4 vezes por semana";
-    else if (diasFeitos >= 8) freqDiario = "Às vezes - fez pelo menos três vezes por semana";
+    let freqDiario = "Nunca - Não fez nenhum dia do mês";
+    if (diasFeitos >= 28) freqDiario = "Sempre - Fez todos os dias do mês";
+    else if (diasFeitos >= 20) freqDiario = "Frequentemente - fez mais de 4 vezes por semana";
+    else if (diasFeitos >= 12) freqDiario = "Às vezes - fez pelo menos três vezes por semana";
     else if (diasFeitos > 0) freqDiario = "Raramente - Fez menos de duas vezes por semana";
 
     let countEd = 0; let countCrm = 0; let countRaio = 0; 
     let countAulaRegular = 0; let countAulaMinistrada = 0; 
-    let diasVoluntariado = 0; let totalPraticasPsicologia = 0;
+    let diasVoluntariado = 0; let diasPraticasPsicologia = 0;
     
     // Novos contadores de Missões (Tarefas Pessoais)
     let countLimpeza = 0; let countGN = 0; let countEstudos = 0; let countBastiao = 0;
@@ -2508,9 +2509,9 @@ function App() {
       if (fv.aulaMinistradaPresenca === 'Sim') countAulaMinistrada++;
       if (fv.horasVoluntariado && fv.horasVoluntariado.trim() !== '') diasVoluntariado++;
       
-      // Conta Práticas de Psicologia (Tratak, Câmara, Exercícios do App)
-      if (fv.praticas) {
-        totalPraticasPsicologia += Object.values(fv.praticas).filter(v => v === true).length;
+      // Conta DIAS em que fez pelo menos uma prática, não a soma de tudo!
+      if (fv.praticas && Object.values(fv.praticas).some(v => v === true)) {
+        diasPraticasPsicologia++;
       }
 
       // A MÁGICA: O app lê o nome das tarefas que você marcou como concluídas nos dias
@@ -2533,11 +2534,11 @@ function App() {
     else if (diasVoluntariado >= 5) freqVoluntariadoCalc = "Duas a três vezes por semana";
     else if (diasVoluntariado >= 1) freqVoluntariadoCalc = "Uma vez por semana";
 
-    let praticasPsicologiaCalc = "Nunca";
-    if (totalPraticasPsicologia >= 20) praticasPsicologiaCalc = "Sempre (Todo dia)";
-    else if (totalPraticasPsicologia >= 12) praticasPsicologiaCalc = "Frequentemente (mais de 4x/sem)";
-    else if (totalPraticasPsicologia >= 8) praticasPsicologiaCalc = "Às vezes (3x/sem)";
-    else if (totalPraticasPsicologia > 0) praticasPsicologiaCalc = "Raramente (menos de 2x/sem)";
+    let praticasPsicologiaCalc = "Nunca - Não fez nenhum dia do mês";
+    if (diasPraticasPsicologia >= 28) praticasPsicologiaCalc = "Sempre - Fez todos os dias do mês";
+    else if (diasPraticasPsicologia >= 20) praticasPsicologiaCalc = "Frequentemente - fez mais de 4 vezes por semana";
+    else if (diasPraticasPsicologia >= 12) praticasPsicologiaCalc = "Às vezes - fez pelo menos três vezes por semana";
+    else if (diasPraticasPsicologia > 0) praticasPsicologiaCalc = "Raramente - Fez menos de duas vezes por semana";
 
     const estudandoMateriasCalc = countEstudos > 0 ? `Sim (${countEstudos} sessões de estudo na Missão)` : 'Não registrado';
     const fezGnCalc = countGN > 0 ? `Sim (${countGN}x)` : 'Não';
@@ -2913,7 +2914,7 @@ ${monthlyReport.desafioCrescimento || '-'}
     const stats = {
       horasVoluntariadoMin: 0, horasAssistidaMin: 0, horasMinistradaMin: 0,
       countEd: 0, countCrm: 0, countRaio: 0, countAulaRegular: 0, countAulaMinistrada: 0,
-      totalPraticas: 0, countGN: 0, countLimpeza: 0, countEstudos: 0
+      diasPraticas: 0, countGN: 0, countLimpeza: 0, countEstudos: 0
     };
 
     const calcMin = (ini, fim) => {
@@ -2942,7 +2943,9 @@ ${monthlyReport.desafioCrescimento || '-'}
         stats.horasVoluntariadoMin += (h * 60 + m);
       }
 
-      if (fv.praticas) stats.totalPraticas += Object.values(fv.praticas).filter(v => v === true).length;
+      if (fv.praticas && Object.values(fv.praticas).some(v => v === true)) {
+        stats.diasPraticas++;
+      }
 
       if (entry.tasksSnapshot) {
         entry.tasksSnapshot.forEach(t => {
@@ -2955,6 +2958,15 @@ ${monthlyReport.desafioCrescimento || '-'}
         });
       }
     });
+
+    let freqPraticas = "Nunca";
+    if (stats.diasPraticas >= 28) freqPraticas = "Sempre";
+    else if (stats.diasPraticas >= 20) freqPraticas = "Frequentemente";
+    else if (stats.diasPraticas >= 12) freqPraticas = "Às vezes";
+    else if (stats.diasPraticas > 0) freqPraticas = "Raramente";
+
+    const fmt = (m) => `${Math.floor(m/60)}h ${String(m%60).padStart(2,'0')}m`;
+    return { ...stats, hVol: fmt(stats.horasVoluntariadoMin), hAs: fmt(stats.horasAssistidaMin), hMin: fmt(stats.horasMinistradaMin), freqPraticas };
 
     const fmt = (m) => `${Math.floor(m/60)}h ${String(m%60).padStart(2,'0')}m`;
     return { ...stats, hVol: fmt(stats.horasVoluntariadoMin), hAs: fmt(stats.horasAssistidaMin), hMin: fmt(stats.horasMinistradaMin) };
@@ -4837,36 +4849,46 @@ ${monthlyReport.desafioCrescimento || '-'}
                 </div>
               )}
 
-        {/* SEÇÃO DA BIBLIOTECA DE VIRTUDES (AGORA FUNDIDA COM LEITURAS) */}
+        {/* SEÇÃO DA BIBLIOTECA DE VIRTUDES (AGORA FUNDIDA COM LEITURAS E EM GAVETA) */}
         {view === 'leituras' && (
           <div className="animate-fadeIn" style={{ marginTop: '2rem' }}>
-            <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-                <Book size={32} color={isDark ? '#d4af37' : '#6b4423'} />
-                <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif" }}>
-                  {fvUnlocked ? "Virtudes Acropolitanas" : "Biblioteca de Virtudes"}
-                </h2>
+            <div style={getBlockStyle('partial', isVirtuesOpen, isDark ? '#d4af37' : '#8b7355')}>
+              <div onClick={() => setIsVirtuesOpen(!isVirtuesOpen)} style={getHeaderStyle('partial', isVirtuesOpen)}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <Book size={28} color={isDark ? '#d4af37' : '#8b7355'} />
+                  <h2 style={{ margin: 0, fontSize: 'clamp(1.1rem, 3vw, 1.4rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif" }}>
+                    {fvUnlocked ? "Virtudes Acropolitanas" : "Biblioteca de Virtudes"}
+                  </h2>
+                </div>
+                {isVirtuesOpen ? <ChevronUp size={24} color={isDark ? '#d4af37' : '#8b7355'} /> : <ChevronDown size={24} color={isDark ? '#d4af37' : '#8b7355'} />}
               </div>
-              <p style={{ color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2rem', fontSize: '1rem' }}>Conheça as virtudes que estamos estudando e suas práticas</p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
-                {virtues.map((virtue, index) => (
-                  <div key={index} onClick={() => setSelectedVirtueDetail(selectedVirtueDetail === virtue.name ? null : virtue.name)} style={{ padding: '1.5rem', background: selectedVirtueDetail === virtue.name ? (isDark ? `${virtue.color}20` : `${virtue.color}15`) : (isDark ? 'rgba(26, 26, 46, 0.4)' : 'rgba(255, 255, 255, 0.8)'), border: `2px solid ${selectedVirtueDetail === virtue.name ? virtue.color : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)')}`, borderRadius: '12px', cursor: 'pointer', transition: 'all 0.3s ease' }}>
-                    <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '1.3rem', color: virtue.color, fontFamily: "'Cinzel', serif" }}>{virtue.name}</h3>
-                    <p style={{ fontSize: '0.95rem', color: isDark ? '#c8b896' : '#6b5744', margin: '0 0 1rem 0', fontStyle: 'italic' }}>{virtue.shortDesc}</p>
-                    {selectedVirtueDetail === virtue.name && (
-                      <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}` }}>
-                        <p style={{ fontSize: '1rem', color: isDark ? '#f0e6d2' : '#2c1810', marginBottom: '1rem', lineHeight: '1.7' }}>{virtue.description}</p>
-                        <div style={{ padding: '1rem', background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'rgba(255, 255, 255, 0.5)', borderRadius: '8px' }}>
-                          <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem', color: virtue.color, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Práticas Sugeridas:</h4>
-                          <p style={{ fontSize: '0.95rem', color: isDark ? '#c8b896' : '#6b5744', margin: 0, lineHeight: '1.8', whiteSpace: 'pre-line' }}>
-                            {fvUnlocked ? (virtue.internalPractices || virtue.practices) : virtue.practices}
-                          </p>
-                        </div>
+
+              {isVirtuesOpen && (
+                <div className="animate-fadeIn" style={{ padding: '0 2rem 2rem 2rem' }}>
+                  <p style={{ color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2rem', fontSize: '1rem', fontStyle: 'italic' }}>
+                    Conheça as virtudes que estamos estudando e suas práticas
+                  </p>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
+                    {virtues.map((virtue, index) => (
+                      <div key={index} onClick={() => setSelectedVirtueDetail(selectedVirtueDetail === virtue.name ? null : virtue.name)} style={{ padding: '1.5rem', background: selectedVirtueDetail === virtue.name ? (isDark ? `${virtue.color}20` : `${virtue.color}15`) : (isDark ? 'rgba(26, 26, 46, 0.4)' : 'rgba(255, 255, 255, 0.8)'), border: `2px solid ${selectedVirtueDetail === virtue.name ? virtue.color : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)')}`, borderRadius: '12px', cursor: 'pointer', transition: 'all 0.3s ease' }}>
+                        <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '1.3rem', color: virtue.color, fontFamily: "'Cinzel', serif" }}>{virtue.name}</h3>
+                        <p style={{ fontSize: '0.95rem', color: isDark ? '#c8b896' : '#6b5744', margin: '0 0 1rem 0', fontStyle: 'italic' }}>{virtue.shortDesc}</p>
+                        {selectedVirtueDetail === virtue.name && (
+                          <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}` }}>
+                            <p style={{ fontSize: '1rem', color: isDark ? '#f0e6d2' : '#2c1810', marginBottom: '1rem', lineHeight: '1.7' }}>{virtue.description}</p>
+                            <div style={{ padding: '1rem', background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'rgba(255, 255, 255, 0.5)', borderRadius: '8px' }}>
+                              <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem', color: virtue.color, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Práticas Sugeridas:</h4>
+                              <p style={{ fontSize: '0.95rem', color: isDark ? '#c8b896' : '#6b5744', margin: 0, lineHeight: '1.8', whiteSpace: 'pre-line' }}>
+                                {fvUnlocked ? (virtue.internalPractices || virtue.practices) : virtue.practices}
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -5514,7 +5536,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                                 <Badge icon={Clock} label="Voluntariado" value={s.hVol} color="#8e44ad" />
                                 <Badge icon={BookOpen} label="Aulas Assistidas" value={s.hAs} color="#3498db" />
                                 <Badge icon={Target} label="Aulas Ministradas" value={s.hMin} color="#e67e22" />
-                                <Badge icon={Zap} label="Freq. de Práticas" value={s.totalPraticas >= 20 ? 'Sempre' : s.totalPraticas >= 12 ? 'Frequentemente' : s.totalPraticas >= 8 ? 'Às vezes' : s.totalPraticas > 0 ? 'Raramente' : 'Nunca'} color="#f1c40f" />
+                                <Badge icon={Zap} label="Freq. de Práticas" value={s.freqPraticas} color="#f1c40f" />
                                 <Badge icon={CheckCircle} label="Aulas de Curso" value={`${s.countAulaRegular} presenças`} />
                                 <Badge icon={Award} label="Aulas de ED" value={`${s.countEd} presenças`} />
                                 <Badge icon={Shield} label="CRM Mensal" value={s.countCrm > 0 ? 'Participou' : 'Não registrada'} />
