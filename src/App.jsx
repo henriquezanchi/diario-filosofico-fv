@@ -4429,14 +4429,53 @@ ${monthlyReport.desafioCrescimento || aiGuarda || '-'}
                       </div>
 
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        <a 
-                          href={`https://www.amazon.com.br/s?k=${encodeURIComponent('livro ' + bookRecommendation.title + ' ' + bookRecommendation.author)}&tag=${AMAZON_AFFILIATE_ID}`}
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          style={{ padding: '0.8rem 1.5rem', background: '#FF9900', color: '#000', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(255,153,0,0.3)' }}
-                        >
-                          Comprar na Amazon
-                        </a>
+                        {(() => {
+                          const tituloLimpo = bookRecommendation.title.toLowerCase();
+                          
+                          // A Lista de Exceções baseada na sua pesquisa real
+                          const livrosSemAmazon = [
+                            'ankor',
+                            'cartas a délia',
+                            'cartas a delia',
+                            'magia, religião',
+                            'me disseram que',
+                            'a vida depois da morte',
+                            'o que fazemos com o coração',
+                            'mitos, ritos e símbolos',
+                            'iniciação e pensamento simbólico',
+                            'a natureza da nossa busca'
+                          ];
+
+                          // Se o título sugerido contiver algum fragmento da lista acima, ele é exceção
+                          const naoTemNaAmazon = livrosSemAmazon.some(livro => tituloLimpo.includes(livro));
+
+                          let buyLink = '';
+                          let buttonText = '';
+                          let bgButton = '';
+
+                          if (naoTemNaAmazon) {
+                            // Vai para o Google focado em buscar em sebos ou na própria editora
+                            buyLink = `https://www.google.com/search?q=${encodeURIComponent('comprar livro ' + bookRecommendation.title + ' ' + bookRecommendation.author)}`;
+                            buttonText = 'Buscar em Sebos ou Editora';
+                            bgButton = '#3498DB'; // Azul para indicar que é uma busca externa
+                          } else {
+                            // Rota Ouro: Vai para a Amazon com o seu Link de Afiliado!
+                            buyLink = `https://www.amazon.com.br/s?k=${encodeURIComponent('livro ' + bookRecommendation.title + ' ' + bookRecommendation.author)}&tag=${AMAZON_AFFILIATE_ID}`;
+                            buttonText = 'Comprar na Amazon';
+                            bgButton = '#FF9900'; // Laranja Amazon clássico
+                          }
+
+                          return (
+                            <a 
+                              href={buyLink}
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              style={{ padding: '0.8rem 1.5rem', background: bgButton, color: '#000', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: `0 4px 12px ${naoTemNaAmazon ? 'rgba(52, 152, 219, 0.3)' : 'rgba(255,153,0,0.3)'}` }}
+                            >
+                              {buttonText}
+                            </a>
+                          );
+                        })()}
                         <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
                           <button 
                             onClick={async () => {
