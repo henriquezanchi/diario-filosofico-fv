@@ -2907,67 +2907,55 @@ ${monthlyReport.desafioCrescimento || '-'}
   const streakInfo = getStreakInfo(streak);
   const StreakIcon = streakInfo.current.icon; 
   const getFvMonthlyStats = () => {
-    const hoje = new Date();
-    const trintaDiasAtras = new Date(); trintaDiasAtras.setDate(hoje.getDate() - 30);
-    const cicloEntries = entries.filter(e => new Date(e.date + 'T12:00:00') >= trintaDiasAtras);
-    
     const stats = {
-      horasVoluntariadoMin: 0, horasAssistidaMin: 0, horasMinistradaMin: 0,
-      countEd: 0, countCrm: 0, countRaio: 0, countAulaRegular: 0, countAulaMinistrada: 0,
-      diasPraticas: 0, countGN: 0, countLimpeza: 0, countEstudos: 0
+      horasVoluntariadoMin: 0,
+      horasAssistidaMin: 0,
+      horasMinistradaMin: 0,
+      diasPraticas: 0
     };
 
-    const calcMin = (ini, fim) => {
-      if (!ini || !fim) return 0;
-      const [h1, m1] = ini.split(':').map(Number);
-      const [h2, m2] = fim.split(':').map(Number);
-      return (h2 * 60 + m2) - (h1 * 60 + m1);
-    };
+    const hoje = new Date();
+    const trintaDiasAtras = new Date();
+    trintaDiasAtras.setDate(hoje.getDate() - 30);
+
+    const cicloEntries = entries.filter(e => new Date(e.date + 'T12:00:00') >= trintaDiasAtras);
 
     cicloEntries.forEach(entry => {
       const fv = entry.fvDaily || {};
-      if (fv.aulaEdPresenca === 'Sim') { stats.countEd++; stats.horasAssistidaMin += calcMin(fvCalendar.aulaEdHora, fvCalendar.aulaEdFim); }
-      if (fv.crmPresenca === 'Sim') { stats.countCrm++; stats.horasAssistidaMin += calcMin(fvCalendar.crmHora, fvCalendar.crmFim); }
-      if (fv.reuniaoRaioPresenca === 'Sim') { stats.countRaio++; stats.horasAssistidaMin += calcMin(fvCalendar.reuniaoRaioHora, fvCalendar.reuniaoRaioFim); }
-      if (fv.aulaRegularPresenca === 'Sim') { stats.countAulaRegular++; stats.horasAssistidaMin += calcMin(fvCalendar.aulaRegularHora, fvCalendar.aulaRegularFim); }
-      
-      if (fv.aulaMinistradaPresenca === 'Sim') {
-        stats.countAulaMinistrada++;
-        const dayStr = String(new Date(entry.date + 'T12:00:00').getDay());
-        const tempos = fvCalendar.aulaMinistradaTempos?.[dayStr];
-        if (tempos) stats.horasMinistradaMin += calcMin(tempos.inicio, tempos.fim);
-      }
 
       if (fv.horasVoluntariado) {
         const [h, m] = fv.horasVoluntariado.split(':').map(Number);
-        stats.horasVoluntariadoMin += (h * 60 + m);
+        if (!isNaN(h) && !isNaN(m)) stats.horasVoluntariadoMin += (h * 60) + m;
       }
 
+      if (fv.horasAulaAssistida) {
+        const [h, m] = fv.horasAulaAssistida.split(':').map(Number);
+        if (!isNaN(h) && !isNaN(m)) stats.horasAssistidaMin += (h * 60) + m;
+      }
+
+      if (fv.horasAulaMinistrada) {
+        const [h, m] = fv.horasAulaMinistrada.split(':').map(Number);
+        if (!isNaN(h) && !isNaN(m)) stats.horasMinistradaMin += (h * 60) + m;
+      }
+
+      // MÁGICA: Conta apenas os DIAS em que fez pelo menos uma prática
       if (fv.praticas && Object.values(fv.praticas).some(v => v === true)) {
         stats.diasPraticas++;
       }
-
-      if (entry.tasksSnapshot) {
-        entry.tasksSnapshot.forEach(t => {
-          if (t.completed) {
-            const n = t.name.toLowerCase();
-            if (n.includes('gn') || n.includes('guarda')) stats.countGN++;
-            if (n.includes('limpeza') || n.includes('faxina')) stats.countLimpeza++;
-            if (n.includes('estudar') || n.includes('matéria')) stats.countEstudos++;
-          }
-        });
-      }
     });
 
+    // A RÉGUA DE TRADUÇÃO
     let freqPraticas = "Nunca";
     if (stats.diasPraticas >= 28) freqPraticas = "Sempre";
     else if (stats.diasPraticas >= 20) freqPraticas = "Frequentemente";
     else if (stats.diasPraticas >= 12) freqPraticas = "Às vezes";
     else if (stats.diasPraticas > 0) freqPraticas = "Raramente";
 
-        const fmt = (m) => `${Math.floor(m/60)}h ${String(m%60).padStart(2,'0')}m`;
-    return { ...stats, hVol: fmt(stats.horasVoluntariadoMin), hAs: fmt(stats.horasAssistidaMin), hMin: fmt(stats.horasMinistradaMin) };
-  }; // <- Fim da função getFvMonthlyStats (mantenha este fechamento)
+    const fmt = (m) => `${Math.floor(m/60)}h ${String(m%60).padStart(2,'0')}m`;
+    
+    // RETORNO: Devolve os cálculos e a string formatada para a tela
+    return { ...stats, hVol: fmt(stats.horasVoluntariadoMin), hAs: fmt(stats.horasAssistidaMin), hMin: fmt(stats.horasMinistradaMin), freqPraticas };
+  };
 
   // --- PINCEL MÁGICO UNIVERSAL (Acessível por todas as abas) ---
   const getBlockStyle = (status, isOpen, activeBorder) => {
