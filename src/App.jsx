@@ -2965,10 +2965,7 @@ ${monthlyReport.desafioCrescimento || '-'}
     else if (stats.diasPraticas >= 12) freqPraticas = "Às vezes";
     else if (stats.diasPraticas > 0) freqPraticas = "Raramente";
 
-    const fmt = (m) => `${Math.floor(m/60)}h ${String(m%60).padStart(2,'0')}m`;
-    return { ...stats, hVol: fmt(stats.horasVoluntariadoMin), hAs: fmt(stats.horasAssistidaMin), hMin: fmt(stats.horasMinistradaMin), freqPraticas };
-
-    const fmt = (m) => `${Math.floor(m/60)}h ${String(m%60).padStart(2,'0')}m`;
+        const fmt = (m) => `${Math.floor(m/60)}h ${String(m%60).padStart(2,'0')}m`;
     return { ...stats, hVol: fmt(stats.horasVoluntariadoMin), hAs: fmt(stats.horasAssistidaMin), hMin: fmt(stats.horasMinistradaMin) };
   }; // <- Fim da função getFvMonthlyStats (mantenha este fechamento)
 
