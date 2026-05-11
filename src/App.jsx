@@ -2903,88 +2903,59 @@ ${monthlyReport.desafioCrescimento || aiGuarda || '-'}
   const isDark = theme === 'dark';
   const streakInfo = getStreakInfo(streak);
   const StreakIcon = streakInfo.current.icon; 
-  const getFvMonthlyTotals = () => {
+  const getFvMonthlyStats = () => {
     const hoje = new Date();
-    const startOfMonth = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-    const cicloEntries = entries.filter(e => new Date(e.date + 'T12:00:00') >= startOfMonth);
+    const trintaDiasAtras = new Date(); trintaDiasAtras.setDate(hoje.getDate() - 30);
+    const cicloEntries = entries.filter(e => new Date(e.date + 'T12:00:00') >= trintaDiasAtras);
+    
+    const stats = {
+      horasVoluntariadoMin: 0, horasAssistidaMin: 0, horasMinistradaMin: 0,
+      countEd: 0, countCrm: 0, countRaio: 0, countAulaRegular: 0, countAulaMinistrada: 0,
+      totalPraticas: 0, countGN: 0, countLimpeza: 0, countEstudos: 0
+    };
 
-    // Função auxiliar para calcular minutos entre dois horários "HH:MM"
-    const calcDuration = (inicio, fim) => {
-      if (!inicio || !fim) return 0;
-      const [h1, m1] = inicio.split(':').map(Number);
+    const calcMin = (ini, fim) => {
+      if (!ini || !fim) return 0;
+      const [h1, m1] = ini.split(':').map(Number);
       const [h2, m2] = fim.split(':').map(Number);
       return (h2 * 60 + m2) - (h1 * 60 + m1);
     };
 
-    let totalAssistidaMin = 0;
-    let totalMinistradaMin = 0;
-    let totalVoluntariadoMin = 0;
-
     cicloEntries.forEach(entry => {
       const fv = entry.fvDaily || {};
+      if (fv.aulaEdPresenca === 'Sim') { stats.countEd++; stats.horasAssistidaMin += calcMin(fvCalendar.aulaEdHora, fvCalendar.aulaEdFim); }
+      if (fv.crmPresenca === 'Sim') { stats.countCrm++; stats.horasAssistidaMin += calcMin(fvCalendar.crmHora, fvCalendar.crmFim); }
+      if (fv.reuniaoRaioPresenca === 'Sim') { stats.countRaio++; stats.horasAssistidaMin += calcMin(fvCalendar.reuniaoRaioHora, fvCalendar.reuniaoRaioFim); }
+      if (fv.aulaRegularPresenca === 'Sim') { stats.countAulaRegular++; stats.horasAssistidaMin += calcMin(fvCalendar.aulaRegularHora, fvCalendar.aulaRegularFim); }
       
-      // 1. Soma Aulas Assistidas (Regular + ED + CRM)
-      if (fv.aulaRegularPresenca === 'Sim') totalAssistidaMin += calcDuration(fvCalendar.aulaRegularHora, fvCalendar.aulaRegularFim);
-      if (fv.aulaEdPresenca === 'Sim') totalAssistidaMin += calcDuration(fvCalendar.aulaEdHora, fvCalendar.aulaEdFim);
-      if (fv.crmPresenca === 'Sim') totalAssistidaMin += calcDuration(fvCalendar.crmHora, fvCalendar.crmFim);
-
-      // 2. Soma Aulas Ministradas (Olha para o dia específico em que a aula ocorreu)
       if (fv.aulaMinistradaPresenca === 'Sim') {
-        const entryDateObj = new Date(entry.date + 'T12:00:00');
-        const dayStr = String(entryDateObj.getDay());
+        stats.countAulaMinistrada++;
+        const dayStr = String(new Date(entry.date + 'T12:00:00').getDay());
         const tempos = fvCalendar.aulaMinistradaTempos?.[dayStr];
-        if (tempos) {
-          totalMinistradaMin += calcDuration(tempos.inicio, tempos.fim);
-        }
+        if (tempos) stats.horasMinistradaMin += calcMin(tempos.inicio, tempos.fim);
       }
 
-      // 3. Soma Voluntariado Manual (Para escalas extras que não são aulas)
       if (fv.horasVoluntariado) {
         const [h, m] = fv.horasVoluntariado.split(':').map(Number);
-        totalVoluntariadoMin += (h * 60 + m);
+        stats.horasVoluntariadoMin += (h * 60 + m);
+      }
+
+      if (fv.praticas) stats.totalPraticas += Object.values(fv.praticas).filter(v => v === true).length;
+
+      if (entry.tasksSnapshot) {
+        entry.tasksSnapshot.forEach(t => {
+          if (t.completed) {
+            const n = t.name.toLowerCase();
+            if (n.includes('gn') || n.includes('guarda')) stats.countGN++;
+            if (n.includes('limpeza') || n.includes('faxina')) stats.countLimpeza++;
+            if (n.includes('estudar') || n.includes('matéria')) stats.countEstudos++;
+          }
+        });
       }
     });
 
-    const format = (min) => {
-      const h = Math.floor(min / 60);
-      const m = min % 60;
-      return `${h}h ${String(m).padStart(2, '0')}m`;
-    };
-
-    return {
-      voluntariado: format(totalVoluntariadoMin),
-      assistida: format(totalAssistidaMin),
-      ministrada: format(totalMinistradaMin)
-    };
-  };
-
-    // --- PINCEL MÁGICO UNIVERSAL (Acessível por todas as abas) ---
-  const getBlockStyle = (status, isOpen, activeBorder) => {
-    const corPadrao = activeBorder || (isDark ? '#FFD700' : '#996515');
-    const corConcluido = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)';
-    const corAtrasado = '#e74c3c'; // Vermelho Urgência
-
-    let border = `2px solid ${corPadrao}`;
-    let filter = 'none';
-    let opacity = 1;
-
-    if (status === 'full' && !isOpen) {
-      border = `1px solid ${corConcluido}`;
-      filter = 'grayscale(100%)';
-      opacity = 0.45;
-    } else if (status === 'partial' && !isOpen) {
-      border = `2px dashed ${corPadrao}`;
-      opacity = 0.9;
-    } else if (status === 'overdue' && !isOpen) {
-      border = `2px dashed ${corAtrasado}`;
-      opacity = 1;
-    }
-
-    return {
-      background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white',
-      borderRadius: '16px', border, overflow: 'hidden', transition: 'all 0.4s ease',
-      filter, opacity, boxShadow: (status === 'full' && !isOpen) ? 'none' : (status === 'overdue' && !isOpen ? '0 0 15px rgba(231, 76, 60, 0.3)' : '0 4px 12px rgba(0,0,0,0.1)')
-    };
+    const fmt = (m) => `${Math.floor(m/60)}h ${String(m%60).padStart(2,'0')}m`;
+    return { ...stats, hVol: fmt(stats.horasVoluntariadoMin), hAs: fmt(stats.horasAssistidaMin), hMin: fmt(stats.horasMinistradaMin) };
   };
 
   const getHeaderStyle = (status, isOpen) => {
@@ -5391,36 +5362,39 @@ ${monthlyReport.desafioCrescimento || aiGuarda || '-'}
 
                     {isGdveRelatorioOpen && (
                       <div className="animate-fadeIn" style={{ padding: '0 2rem 2rem 2rem' }}>
-                        {/* NOTA E CÁLCULO AUTOMÁTICO DE HORAS (VISUAL) */}
+                        {/* PAINEL DE RESULTADOS AUTOMATIZADOS DO CICLO */}
                         {(() => {
-                          const totals = getFvMonthlyTotals();
+                          const s = getFvMonthlyStats();
+                          const Badge = ({ icon: Icon, label, value, color }) => (
+                            <div style={{ background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc', padding: '1rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0'}`, display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: color || (isDark ? '#b8a88a' : '#64748b'), fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                <Icon size={14} /> {label}
+                              </div>
+                              <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: isDark ? '#f0e6d2' : '#1e293b', fontFamily: 'Georgia, serif' }}>
+                                {value}
+                              </div>
+                            </div>
+                          );
+
                           return (
-                            <div style={{ marginBottom: '2rem' }}>
-                              <div style={{ background: isDark ? 'rgba(155, 89, 182, 0.1)' : 'rgba(142, 68, 173, 0.05)', padding: '1rem', borderRadius: '8px', borderLeft: `4px solid ${isDark ? '#c39bd3' : '#8e44ad'}`, marginBottom: '1.5rem' }}>
+                            <div style={{ marginBottom: '2.5rem' }}>
+                              <div style={{ background: isDark ? 'rgba(155, 89, 182, 0.1)' : '#fdf8ff', padding: '1rem', borderRadius: '12px', borderLeft: `4px solid ${isDark ? '#c39bd3' : '#8e44ad'}`, marginBottom: '1.5rem' }}>
                                 <p style={{ margin: 0, fontSize: '0.9rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.5' }}>
-                                  <strong>Balanço do Ciclo:</strong> As horas abaixo estão sendo calculadas automaticamente pelo aplicativo, somando todos os seus registros diários deste mês.
+                                  <strong>Inteligência do Diário:</strong> Os dados abaixo foram extraídos dos seus registros diários e missões. Eles já estão prontos para o seu relatório oficial.
                                 </p>
                               </div>
-                              
-                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                                <div>
-                                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad', fontSize: '0.85rem', textTransform: 'uppercase' }}>Voluntariado</label>
-                                  <div style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.4)' : '#f3f4f6', color: isDark ? '#b8a88a' : '#64748b', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.3)' : '#cbd5e1'}`, cursor: 'not-allowed', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <Clock size={16} /> {totals.voluntariado}
-                                  </div>
-                                </div>
-                                <div>
-                                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad', fontSize: '0.85rem', textTransform: 'uppercase' }}>Aulas Assistidas</label>
-                                  <div style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.4)' : '#f3f4f6', color: isDark ? '#b8a88a' : '#64748b', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.3)' : '#cbd5e1'}`, cursor: 'not-allowed', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <BookOpen size={16} /> {totals.assistida}
-                                  </div>
-                                </div>
-                                <div>
-                                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad', fontSize: '0.85rem', textTransform: 'uppercase' }}>Aulas Ministradas</label>
-                                  <div style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.4)' : '#f3f4f6', color: isDark ? '#b8a88a' : '#64748b', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.3)' : '#cbd5e1'}`, cursor: 'not-allowed', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <Target size={16} /> {totals.ministrada}
-                                  </div>
-                                </div>
+
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+                                <Badge icon={Clock} label="Voluntariado" value={s.hVol} color="#8e44ad" />
+                                <Badge icon={BookOpen} label="Aulas Assistidas" value={s.hAs} color="#3498db" />
+                                <Badge icon={Target} label="Aulas Ministradas" value={s.hMin} color="#e67e22" />
+                                <Badge icon={Zap} label="Práticas Realizadas" value={`${s.totalPraticas} práticas`} color="#f1c40f" />
+                                <Badge icon={CheckCircle} label="Aulas de Curso" value={`${s.countAulaRegular} presenças`} />
+                                <Badge icon={Award} label="Aulas de ED" value={`${s.countEd} presenças`} />
+                                <Badge icon={Shield} label="CRM Mensal" value={s.countCrm > 0 ? 'Participou' : 'Não registrada'} />
+                                <Badge icon={Star} label="Reuniões de Raio" value={`${s.countRaio} encontros`} />
+                                <Badge icon={Mountain} label="Escalas de Limpeza" value={`${s.countLimpeza} check-ins`} />
+                                <Badge icon={Sunrise} label="Guarda Noturna (GN)" value={`${s.countGN} turnos`} />
                               </div>
                             </div>
                           );
