@@ -329,7 +329,7 @@ function App() {
   const [expandedCartaItems, setExpandedCartaItems] = useState({});
 
   // Controles de Expansão dos Blocos do Diário (Iniciam Fechados)
-  const [isPrologoOpen, setIsPrologoOpen] = useState(false);
+  const [isPrologoOpen, setIsPrologoOpen] = useState(true);
   const [isPraticasOpen, setIsPraticasOpen] = useState(false);
   const [isEscaladaOpen, setIsEscaladaOpen] = useState(false);
   const [isEpilogoOpen, setIsEpilogoOpen] = useState(false);
@@ -1372,6 +1372,7 @@ function App() {
       if (entryDoc.exists()) {
         const data = entryDoc.data();
         setMorningDone(data.morningDone || false);
+        setIsPrologoOpen(!(data.morningDone || false));
         setEveningDone(data.eveningDone || false);
         setDidMorning(data.didMorning !== false);
         setSelectedVirtue(data.virtue || '');
@@ -3359,31 +3360,6 @@ function App() {
                 <p style={{ fontSize: '1.2rem', color: isDark ? '#f0e6d2' : '#2c1810', margin: '0 0 1rem 0', lineHeight: '1.6' }}>"{dailyQuote.text}"</p>
                 <p style={{ fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744', margin: 0, textAlign: 'right', fontWeight: 'bold' }}>— {dailyQuote.author}</p>
               </div>
-            )}
-
-            {/* MURAL DO ORÁCULO: ESTAGNAÇÃO OU NOVAS JORNADAS */}
-            {fvUnlocked && aiConsent && (
-              (() => {
-                const stalled = getStalledBook();
-                if (stalled || finishedBooksCount > 0) {
-                  return (
-                    <div className="animate-fadeIn" style={{ background: isDark ? 'rgba(212, 175, 55, 0.05)' : '#fffbf0', padding: '1.2rem', borderRadius: '12px', border: `2px solid ${isDark ? '#d4af37' : '#ffe082'}`, marginBottom: '1rem', position: 'relative' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <Sparkles size={24} color="#d4af37" className={stalled ? "animate-pulse" : ""} />
-                        <div>
-                          <h4 style={{ margin: 0, fontSize: '0.9rem', color: '#d4af37', textTransform: 'uppercase' }}>Conselho do Oráculo</h4>
-                          <p style={{ margin: '0.3rem 0 0 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem', fontStyle: 'italic' }}>
-                            {stalled 
-                              ? `O tempo urge, Henrique. Você parou na página ${stalled.currentPage} de "${stalled.title}". Sabia que nas próximas páginas o autor aprofunda o conceito de dever? Retome a forja hoje.`
-                              : "Uma jornada concluída abre espaço para um novo sol. O Oráculo sugere uma nova obra na sua estante de estudos."}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                }
-                return null;
-              })()
             )}
 
             {/* PRÁTICAS DE HOJE (Tarefas extras) */}
