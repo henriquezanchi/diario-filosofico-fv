@@ -1,5 +1,3 @@
-import { AUTHOR_CANON } from './ranks';
-
 export const AUTHOR_CANON = {
   'platão': 35, 'platao': 35,
   'sêneca': 14, 'seneca': 14,
