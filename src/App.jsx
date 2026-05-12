@@ -3238,6 +3238,12 @@ ${monthlyReport.desafioCrescimento || '-'}
     );
   } 
 
+  // --- VARIÁVEIS GLOBAIS DE GAMIFICAÇÃO ---
+  const statsMenu = getFvMonthlyStats();
+  const pb = getPraticasBadgeInfo(statsMenu.diasPraticas);
+  const PraticaIcon = pb.icon;
+  const missoesCompletas = fvGdveTasks.filter(t => t.isCycle ? fvGdveCycleStatus[t.id] : (fvDaily.gdveTasksStatus?.[t.id] >= t.target)).length;
+
   return (
     <div style={{ minHeight: '100vh', background: isDark ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)' : 'linear-gradient(135deg, #f0e6d2 0%, #e8dcc4 100%)', fontFamily: 'Georgia, serif', transition: 'background 0.3s ease' }}>
       <header style={{ padding: '1rem 2rem', borderBottom: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, background: isDark ? 'rgba(26, 26, 46, 0.95)' : 'rgba(240, 230, 210, 0.95)', backdropFilter: 'blur(10px)', position: 'sticky', top: 0, zIndex: 100 }}>
@@ -3253,61 +3259,47 @@ ${monthlyReport.desafioCrescimento || '-'}
 
           {/* CONTROLES CONDICIONAIS (PC vs CELULAR) */}
           {isMobile ? (
-            // VERSÃO CELULAR (Limpa e Minimalista)
+            // VERSÃO CELULAR (Badges Interativos + Menu)
             <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
               
-              {/* BADGE DE FOGO */}
-              <div onClick={() => setShowStreakModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.4rem 0.6rem', background: streak > 0 ? (isDark ? 'rgba(255, 100, 0, 0.15)' : '#fff3e0') : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f0f0f0'), border: `1px solid ${streak > 0 ? (isDark ? '#ff9800' : '#ffb74d') : (isDark ? '#555' : '#ccc')}`, borderRadius: '12px', color: streak > 0 ? (isDark ? '#ffb74d' : '#e65100') : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontSize: '0.85rem', flexShrink: 0 }}>
-                <StreakIcon size={14} fill={streak > 0 ? (isDark ? '#ff9800' : '#e65100') : 'none'} color={streak > 0 ? (isDark ? '#ff9800' : '#e65100') : (isDark ? '#aaa' : '#777')} /> {streak}
+              <div onClick={() => setShowStreakModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.4rem 0.5rem', background: streak > 0 ? (isDark ? 'rgba(255, 100, 0, 0.15)' : '#fff3e0') : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f0f0f0'), border: `1px solid ${streak > 0 ? (isDark ? '#ff9800' : '#ffb74d') : (isDark ? '#555' : '#ccc')}`, borderRadius: '12px', color: streak > 0 ? (isDark ? '#ffb74d' : '#e65100') : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontSize: '0.75rem', cursor: 'pointer', flexShrink: 0 }}>
+                <StreakIcon size={14} fill={streak > 0 ? (isDark ? '#ff9800' : '#e65100') : 'none'} /> {streak}
               </div>
 
-              <button onClick={toggleNotifications} style={{ position: 'relative', padding: '0.3rem', background: 'transparent', border: 'none', cursor: 'pointer' }}>
-                <Bell size={22} color={notificationsActive ? '#4caf50' : (isDark ? '#d4af37' : '#6b4423')} />
-                {notificationsActive && <div style={{ position: 'absolute', top: '0', right: '0', background: '#4caf50', borderRadius: '50%', padding: '1px' }}><Check size={8} color="white" strokeWidth={4} /></div>}
-              </button>
+              <div onClick={() => setShowPracticesModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.4rem 0.5rem', background: isDark ? 'rgba(0,0,0,0.3)' : '#fdfbf7', border: `1px solid ${pb.color}`, borderRadius: '12px', color: pb.color, fontWeight: 'bold', fontSize: '0.75rem', cursor: 'pointer' }}>
+                <PraticaIcon size={14} /> <span>{pb.label}</span>
+              </div>
+
+              {fvUnlocked && fvGdveTasks.length > 0 && (
+                <div onClick={() => setShowQuickFv(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.4rem 0.5rem', background: missoesCompletas === fvGdveTasks.length ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(0,0,0,0.3)' : '#fdfbf7'), border: `1px solid ${missoesCompletas === fvGdveTasks.length ? '#4caf50' : (isDark ? '#555' : '#ccc')}`, borderRadius: '12px', color: missoesCompletas === fvGdveTasks.length ? '#4caf50' : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontSize: '0.75rem', cursor: 'pointer' }}>
+                  <Shield size={14} /> <span>{missoesCompletas}</span>
+                </div>
+              )}
               
-              <button onClick={toggleTheme} style={{ padding: '0.3rem', background: 'transparent', border: 'none', cursor: 'pointer' }}>
-                {isDark ? <Sun size={22} color="#d4af37" /> : <Moon size={22} color="#8b7355" />}
-              </button>
-              
-              <button onClick={() => setIsMobileMenuOpen(true)} style={{ padding: '0.3rem', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+              <button onClick={() => setIsMobileMenuOpen(true)} style={{ padding: '0.3rem', background: 'transparent', border: 'none', cursor: 'pointer', marginLeft: '0.2rem' }}>
                 <Menu size={28} color={isDark ? '#d4af37' : '#6b4423'} />
               </button>
             </div>
           ) : (
+            // VERSÃO COMPUTADOR (Badges Interativos + Menu Agrupado)
             <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center', flexWrap: 'wrap' }}>
-              {/* VERSÃO COMPUTADOR (Badges + Menu Agrupado) */}
               
-              {/* --- BADGE 1: FOGO INTERNO (STREAK) --- */}
               <div onClick={() => setShowStreakModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: streak > 0 ? (isDark ? 'rgba(255, 100, 0, 0.15)' : '#fff3e0') : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f0f0f0'), border: `1px solid ${streak > 0 ? (isDark ? '#ff9800' : '#ffb74d') : (isDark ? '#555' : '#ccc')}`, borderRadius: '20px', color: streak > 0 ? (isDark ? '#ffb74d' : '#e65100') : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontFamily: 'Georgia, serif', fontSize: '0.85rem', cursor: 'pointer', boxShadow: streak > 0 && isDark ? '0 0 10px rgba(255, 152, 0, 0.2)' : 'none' }}>
                 <StreakIcon size={16} fill={streak > 0 ? (isDark ? '#ff9800' : '#e65100') : 'none'} />
                 <span>{streak} {streak === 1 ? 'dia' : 'dias'}</span>
               </div>
 
-              {(() => {
-                 const statsMenu = getFvMonthlyStats();
-                 const pb = getPraticasBadgeInfo(statsMenu.diasPraticas);
-                 const PraticaIcon = pb.icon; // Necessário capitalizar para o React renderizar o ícone
-                 const missoesCompletas = fvGdveTasks.filter(t => t.isCycle ? fvGdveCycleStatus[t.id] : (fvDaily.gdveTasksStatus?.[t.id] >= t.target)).length;
-                 
-                 return (
-                   <>
-                     {/* --- BADGE 2: FREQUÊNCIA DE PRÁTICAS --- */}
-                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: isDark ? 'rgba(0,0,0,0.3)' : '#fdfbf7', border: `1px solid ${pb.color}`, borderRadius: '20px', color: pb.color, fontWeight: 'bold', fontFamily: 'Georgia, serif', fontSize: '0.85rem', cursor: 'help' }} title={`${statsMenu.diasPraticas} dias com práticas realizadas nos últimos 30 dias`}>
-                       <PraticaIcon size={16} /> <span>{pb.label}</span>
-                     </div>
+              <div onClick={() => setShowPracticesModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: isDark ? 'rgba(0,0,0,0.3)' : '#fdfbf7', border: `1px solid ${pb.color}`, borderRadius: '20px', color: pb.color, fontWeight: 'bold', fontFamily: 'Georgia, serif', fontSize: '0.85rem', cursor: 'pointer', transition: 'transform 0.2s' }} onMouseDown={(e) => e.currentTarget.style.transform='scale(0.95)'} onMouseUp={(e) => e.currentTarget.style.transform='scale(1)'}>
+                <PraticaIcon size={16} /> <span>{pb.label}</span>
+              </div>
 
-                     {/* --- BADGE 3: MISSÕES GDVE --- */}
-                     {fvUnlocked && fvGdveTasks.length > 0 && (
-                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: missoesCompletas === fvGdveTasks.length ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(0,0,0,0.3)' : '#fdfbf7'), border: `1px solid ${missoesCompletas === fvGdveTasks.length ? '#4caf50' : (isDark ? '#555' : '#ccc')}`, borderRadius: '20px', color: missoesCompletas === fvGdveTasks.length ? '#4caf50' : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontFamily: 'Georgia, serif', fontSize: '0.85rem', cursor: 'help' }} title="Missões do Ciclo Concluídas">
-                         <Shield size={16} /> <span>{missoesCompletas}/{fvGdveTasks.length}</span>
-                       </div>
-                     )}
-                   </>
-                 );
-              })()}
+              {fvUnlocked && fvGdveTasks.length > 0 && (
+                <div onClick={() => setShowQuickFv(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: missoesCompletas === fvGdveTasks.length ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(0,0,0,0.3)' : '#fdfbf7'), border: `1px solid ${missoesCompletas === fvGdveTasks.length ? '#4caf50' : (isDark ? '#555' : '#ccc')}`, borderRadius: '20px', color: missoesCompletas === fvGdveTasks.length ? '#4caf50' : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontFamily: 'Georgia, serif', fontSize: '0.85rem', cursor: 'pointer', transition: 'transform 0.2s' }} onMouseDown={(e) => e.currentTarget.style.transform='scale(0.95)'} onMouseUp={(e) => e.currentTarget.style.transform='scale(1)'}>
+                  <Shield size={16} /> <span>{missoesCompletas}/{fvGdveTasks.length}</span>
+                </div>
+              )}
 
-              {/* BOTÃO NAVEGAÇÃO AGRUPADA */}
+              {/* BOTÃO MENU DROPDOWN */}
               <div style={{ position: 'relative', marginLeft: '0.5rem' }} onMouseLeave={() => setShowDiaryMenu(false)}>
                 <button onMouseEnter={() => setShowDiaryMenu(true)} onClick={() => setShowDiaryMenu(!showDiaryMenu)} style={{ padding: '0.5rem 1rem', background: 'transparent', color: isDark ? '#d4af37' : '#6b4423', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Menu size={16} /> Menu <ChevronDown size={14} />
@@ -3336,7 +3328,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                 )}
               </div>
 
-              {/* BOTÃO OPÇÕES (CONFIGURAÇÕES E LOGOUT) */}
+              {/* BOTÃO OPÇÕES DROPDOWN */}
               <div style={{ position: 'relative' }} onMouseLeave={() => setShowProfileMenu(false)}>
                 <button onMouseEnter={() => setShowProfileMenu(true)} onClick={() => setShowProfileMenu(!showProfileMenu)} style={{ padding: '0.5rem', background: 'transparent', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer' }}>
                   <Settings size={18} color={isDark ? '#d4af37' : '#6b4423'} />
