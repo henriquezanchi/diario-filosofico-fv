@@ -7,7 +7,7 @@ import {
   Trash2, Edit, Save, XCircle, Flame, Zap, Shield, Star, Crown, 
   Bell, Check, Music, MessageSquare, Menu, Lock, ChevronDown, ChevronUp, 
   Mountain, Landmark, Swords, Bookmark, Library, MessageCircle, Camera,
-  Clock, ChevronLeft
+  Clock, ChevronLeft, Smartphone, ShieldAlert, ArrowLeft
 } from 'lucide-react';
 
 import { auth, db, messaging } from './config/firebase-config'; 
@@ -65,6 +65,34 @@ function App() {
   const [fvAccessStatus, setFvAccessStatus] = useState('checking'); // 'checking', 'approved', 'pending', 'unregistered'
   const [requestName, setRequestName] = useState('');
   const [requestUnit, setRequestUnit] = useState('');
+
+  // --- Estado da Central de Notificação (Guardião) ---
+  const [notifSettings, setNotifSettings] = useState({
+    whatsappNumber: '',
+    notifMorningTime: '07:30',
+    notifNightTime: '21:00',
+    alerts: {
+      dailyVirtue: true,
+      dailyEpilogue: true,
+      pendingTasks: true,
+      readingSlump: true,
+      practiceSlump: true,
+      diarySlump: true,
+      gdveWarning: true,
+      randomVirtue: false
+    }
+  });
+
+  const saveNotificationSettings = async () => {
+    if (!user) return;
+    try {
+      await setDoc(doc(db, 'userSettings', user.uid), { notifications: notifSettings }, { merge: true });
+      alert("✅ Configurações do Guardião salvas com sucesso!");
+    } catch (e) {
+      console.error("Erro ao salvar notificações:", e);
+      alert("Erro ao salvar as configurações.");
+    }
+  };
 
   const toggleNotifications = async () => {
     if (notificationsActive) {
@@ -3273,8 +3301,8 @@ ${monthlyReport.desafioCrescimento || '-'}
                   <div style={{ position: 'absolute', top: '100%', right: 0, paddingTop: '0.5rem', zIndex: 1000 }}>
                     <div className="animate-fadeIn" style={{ width: '220px', background: isDark ? 'rgba(26, 26, 46, 0.98)' : 'rgba(255, 255, 255, 0.98)', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', overflow: 'hidden', display: 'flex', flexDirection: 'column', backdropFilter: 'blur(10px)' }}>
                       
-                      <button onClick={() => { toggleNotifications(); setShowProfileMenu(false); }} style={{ padding: '1rem', background: 'transparent', border: 'none', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.95rem', fontFamily: 'Georgia, serif' }} onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(139, 115, 85, 0.05)'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
-                        <Bell size={18} color={notificationsActive ? '#4caf50' : (isDark ? '#d4af37' : '#6b4423')} /> {notificationsActive ? 'Lembretes (ON)' : 'Lembretes (OFF)'}
+                      <button onClick={() => { setView('notifications'); setShowProfileMenu(false); }} style={{ padding: '1rem', background: view === 'notifications' ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent', border: 'none', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.95rem', fontFamily: 'Georgia, serif' }} onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(139, 115, 85, 0.05)'} onMouseOut={(e) => e.currentTarget.style.background = view === 'notifications' ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent'}>
+                        <Bell size={18} color={isDark ? '#d4af37' : '#6b4423'} /> Guardião (WhatsApp)
                       </button>
                       
                       <button onClick={() => { setShowSuggestionModal(true); setShowProfileMenu(false); }} style={{ padding: '1rem', background: 'transparent', border: 'none', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.95rem', fontFamily: 'Georgia, serif' }} onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(139, 115, 85, 0.05)'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
@@ -3313,8 +3341,8 @@ ${monthlyReport.desafioCrescimento || '-'}
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
-              {['today', 'history', 'leituras', 'tasks', 'gdve', 'analytics'].map((item) => {
-                const labels = { today: '📖 Diário', history: '📜 Histórico', leituras: '📚 Estudos e Virtudes', tasks: '⚔️ Missões', gdve: '🛡️ Discipulado FV', analytics: '📊 Métricas' };
+              {['today', 'history', 'leituras', 'tasks', 'gdve', 'analytics', 'notifications'].map((item) => {
+                const labels = { today: '📖 Diário', history: '📜 Histórico', leituras: '📚 Estudos e Virtudes', tasks: '⚔️ Missões', gdve: '🛡️ Discipulado FV', analytics: '📊 Métricas', notifications: '🔔 O Guardião' };
             return (
                   <button 
                     key={item}
@@ -4146,6 +4174,101 @@ ${monthlyReport.desafioCrescimento || '-'}
               )}
 
             </div>
+          </div>
+        )}
+
+        {/* VIEW: CENTRAL DE NOTIFICAÇÕES (O GUARDIÃO) */}
+        {view === 'notifications' && (
+          <div className="animate-fadeIn" style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: '2rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+              <button onClick={() => setView('home')} style={{ background: 'transparent', border: 'none', color: isDark ? '#d4af37' : '#8b7355', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                <ArrowLeft size={24} />
+              </button>
+              <Bell size={28} color={isDark ? '#d4af37' : '#8b7355'} />
+              <h2 style={{ margin: 0, fontSize: '1.5rem', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif" }}>
+                O Guardião (Notificações)
+              </h2>
+            </div>
+
+            <p style={{ color: isDark ? '#b8a88a' : '#666', marginBottom: '2rem', fontSize: '1rem', fontStyle: 'italic' }}>
+              Configure seu assistente pessoal no WhatsApp para manter a Forja sempre acesa.
+            </p>
+
+            {/* SEÇÃO 1: CONEXÃO */}
+            <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.8)', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : '#ccc'}`, marginBottom: '1.5rem' }}>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 1rem 0', color: isDark ? '#d4af37' : '#2c3e50', fontSize: '1.1rem' }}>
+                <Smartphone size={20} /> Conexão WhatsApp
+              </h3>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.9rem' }}>Seu número (com DDD):</label>
+              <input 
+                type="text" 
+                placeholder="Ex: 62999999999"
+                value={notifSettings.whatsappNumber}
+                onChange={(e) => setNotifSettings({...notifSettings, whatsappNumber: e.target.value.replace(/\D/g, '')})}
+                style={{ width: '100%', maxWidth: '300px', padding: '0.8rem', borderRadius: '8px', border: `1px solid ${isDark ? '#555' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.4)' : '#fff', color: isDark ? '#fff' : '#000' }}
+              />
+            </div>
+
+            {/* SEÇÃO 2: HORÁRIOS FIXOS */}
+            <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.8)', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : '#ccc'}`, marginBottom: '1.5rem' }}>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 1rem 0', color: isDark ? '#d4af37' : '#2c3e50', fontSize: '1.1rem' }}>
+                <Clock size={20} /> Rotina Diária
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.9rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <input type="checkbox" checked={notifSettings.alerts.dailyVirtue} onChange={(e) => setNotifSettings({...notifSettings, alerts: {...notifSettings.alerts, dailyVirtue: e.target.checked}})} style={{ accentColor: '#d4af37', width: '16px', height: '16px' }} />
+                    Sorteio da Virtude (Manhã)
+                  </div>
+                  <input type="time" value={notifSettings.notifMorningTime} onChange={(e) => setNotifSettings({...notifSettings, notifMorningTime: e.target.value})} style={{ padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? '#555' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.4)' : '#fff', color: isDark ? '#fff' : '#000', width: 'fit-content' }} disabled={!notifSettings.alerts.dailyVirtue} />
+                </label>
+
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.9rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <input type="checkbox" checked={notifSettings.alerts.dailyEpilogue} onChange={(e) => setNotifSettings({...notifSettings, alerts: {...notifSettings.alerts, dailyEpilogue: e.target.checked}})} style={{ accentColor: '#d4af37', width: '16px', height: '16px' }} />
+                    Lembrete do Epílogo (Noite)
+                  </div>
+                  <input type="time" value={notifSettings.notifNightTime} onChange={(e) => setNotifSettings({...notifSettings, notifNightTime: e.target.value})} style={{ padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? '#555' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.4)' : '#fff', color: isDark ? '#fff' : '#000', width: 'fit-content' }} disabled={!notifSettings.alerts.dailyEpilogue} />
+                </label>
+              </div>
+            </div>
+
+            {/* SEÇÃO 3: ALERTAS CONDICIONAIS */}
+            <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.8)', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : '#ccc'}`, marginBottom: '2rem' }}>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 1rem 0', color: isDark ? '#d4af37' : '#2c3e50', fontSize: '1.1rem' }}>
+                <ShieldAlert size={20} /> Guardião de Disciplina
+              </h3>
+              <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#666', marginBottom: '1rem' }}>O Guardião avisa quando você está deixando a inércia vencer (disparado às 19h).</p>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {[
+                  { id: 'pendingTasks', label: 'Avisar se houver Tarefas Agendadas pendentes hoje' },
+                  { id: 'readingSlump', label: 'Avisar se eu ficar +3 dias sem avançar nas Leituras' },
+                  { id: 'practiceSlump', label: 'Avisar se eu ficar +3 dias sem registrar Práticas' },
+                  { id: 'diarySlump', label: 'Avisar se eu ficar +3 dias sem preencher o Diário' },
+                  { id: 'gdveWarning', label: 'Avisar faltando 1 semana para a reunião do GDVE (se leitura pendente)' },
+                  { id: 'randomVirtue', label: 'Sorteio Aleatório Diário (Lembrar da Virtude no meio do dia)' }
+                ].map(alert => (
+                  <label key={alert.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem', cursor: 'pointer' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={notifSettings.alerts[alert.id]} 
+                      onChange={(e) => setNotifSettings({...notifSettings, alerts: {...notifSettings.alerts, [alert.id]: e.target.checked}})} 
+                      style={{ accentColor: '#d4af37', width: '18px', height: '18px', cursor: 'pointer' }} 
+                    />
+                    {alert.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* BOTÃO SALVAR */}
+            <button 
+              onClick={saveNotificationSettings}
+              style={{ width: '100%', padding: '1rem', background: '#27ae60', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: '0 4px 15px rgba(39, 174, 96, 0.3)' }}
+            >
+              <Save size={20} /> Salvar Configurações do Guardião
+            </button>
           </div>
         )}
 
