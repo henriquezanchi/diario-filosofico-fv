@@ -3367,12 +3367,46 @@ ${monthlyReport.desafioCrescimento || '-'}
                 </div>
               </div>
               
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <input type="date" value={selectedDate} onChange={(e) => handleDateChange(e.target.value)} max={getTodayKey()} style={{ padding: '0.6rem', borderRadius: '8px', border: `1px solid ${isDark ? '#d4af37' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem', fontFamily: 'Georgia, serif', cursor: 'pointer' }} />
-                {selectedDate !== getTodayKey() && (
-                  <button onClick={() => handleDateChange(getTodayKey())} style={{ padding: '0.6rem 1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Voltar</button>
-                )}
-              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', border: `1px solid ${isDark ? '#d4af37' : '#ccc'}`, borderRadius: '8px', padding: '0.2rem' }}>
+                      <button 
+                        onClick={() => {
+                          const d = new Date(selectedDate + 'T12:00:00');
+                          d.setDate(d.getDate() - 1);
+                          handleDateChange(d.toISOString().split('T')[0]);
+                        }}
+                        style={{ background: 'transparent', border: 'none', color: isDark ? '#d4af37' : '#2c1810', cursor: 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        title="Dia Anterior"
+                      >
+                        <ChevronLeft size={20} />
+                      </button>
+
+                      <input 
+                        type="date" 
+                        value={selectedDate} 
+                        onChange={(e) => handleDateChange(e.target.value)} 
+                        max={getTodayKey()} 
+                        style={{ background: 'transparent', color: isDark ? '#f0e6d2' : '#2c1810', border: 'none', padding: '0.5rem', fontSize: '1rem', fontFamily: 'Georgia, serif', outline: 'none', cursor: 'pointer' }}
+                      />
+
+                      <button 
+                        onClick={() => {
+                          if (selectedDate >= getTodayKey()) return; 
+                          const d = new Date(selectedDate + 'T12:00:00');
+                          d.setDate(d.getDate() + 1);
+                          handleDateChange(d.toISOString().split('T')[0]);
+                        }}
+                        style={{ background: 'transparent', border: 'none', color: selectedDate >= getTodayKey() ? (isDark ? '#555' : '#ccc') : (isDark ? '#d4af37' : '#2c1810'), cursor: selectedDate >= getTodayKey() ? 'not-allowed' : 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        title="Próximo Dia"
+                      >
+                        <ChevronRight size={20} />
+                      </button>
+                    </div>
+
+                    {selectedDate !== getTodayKey() && (
+                      <button onClick={() => handleDateChange(getTodayKey())} style={{ padding: '0.6rem 1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Voltar a Hoje</button>
+                    )}
+                  </div>
             </div>
 
             {/* CITAÇÃO */}
