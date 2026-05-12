@@ -35,6 +35,8 @@ import {
   studyTips 
 } from './constants/data';
 
+import { getFavoriteTheme, getAuthorStats, getReadingRank, translateCategory } from './constants/bookMetrics';
+
 function App() {
   // Estados
   const [user, setUser] = useState(null);
@@ -436,19 +438,7 @@ function App() {
             totalPages: info?.pageCount || b.totalPages,
             currentPage: b.status === 'lido' ? (info?.pageCount || 0) : b.currentPage,
             thumbnail: info?.imageLinks?.thumbnail?.replace('http:', 'https:') || b.thumbnail,
-            category: (info?.categories?.[0] || b.category || 'Filosofia')
-              .replace(/Religion/g, 'Religião')
-              .replace(/Philosophy/g, 'Filosofia')
-              .replace(/Fiction/g, 'Ficção')
-              .replace(/History/g, 'História')
-              .replace(/Psychology/g, 'Psicologia')
-              .replace(/Science/g, 'Ciência')
-              .replace(/Self-Help/g, 'Autoajuda')
-              .replace(/Body, Mind & Spirit/g, 'Espiritualidade')
-              .replace(/Biography & Autobiography/g, 'Biografia')
-              .replace(/Literary Collections/g, 'Literatura')
-              .replace(/Poetry/g, 'Poesia')
-              .replace(/Social Science/g, 'Ciências Sociais'),
+            category: translateCategory(info?.categories?.[0] || b.category),
             isPendingEnrichment: false
           };
         });
