@@ -86,7 +86,8 @@ function App() {
   const saveNotificationSettings = async () => {
     if (!user) return;
     try {
-      await setDoc(doc(db, 'userSettings', user.uid), { notifications: notifSettings }, { merge: true });
+      // Trocado de 'userSettings' para 'users' para evitar bloqueio do Firebase
+      await setDoc(doc(db, 'users', user.uid), { notifications: notifSettings }, { merge: true });
       alert("✅ Configurações do Guardião salvas com sucesso!");
     } catch (e) {
       console.error("Erro ao salvar notificações:", e);
@@ -1305,6 +1306,11 @@ function App() {
         setLastDrawDate(userData.lastDrawDate || null);
         setMorningTime(userData.morningTime || '06:00'); 
         setEveningTime(userData.eveningTime || '22:00');
+        
+        // Carrega as configurações do Guardião salvas
+        if (userData.notifications) {
+          setNotifSettings(userData.notifications);
+        }
         
         if ('Notification' in window && Notification.permission === 'granted') {
           setNotificationsActive(!!userData.fcmToken);
