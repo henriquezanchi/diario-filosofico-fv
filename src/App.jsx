@@ -161,6 +161,7 @@ function App() {
   const [streak, setStreak] = useState(0); 
   const [longestStreak, setLongestStreak] = useState(0); 
   const [showStreakModal, setShowStreakModal] = useState(false); 
+  const [showPracticesModal, setShowPracticesModal] = useState(false);
 
   // Streaks da FV
   const [fvDiaryStreak, setFvDiaryStreak] = useState(0);
@@ -3085,6 +3086,8 @@ ${monthlyReport.desafioCrescimento || '-'}
 
   // -------------------------------------------------------------
 
+  
+
   if (!user) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'linear-gradient(135deg, #f0e6d2 0%, #e8dcc4 100%)', fontFamily: 'Georgia, serif' }}>
@@ -3353,7 +3356,7 @@ ${monthlyReport.desafioCrescimento || '-'}
         </div>
       </header>
 
-      {/* MENU SUSPENSO MOBILE */}
+      {/* MENU SUSPENSO MOBILE (GAVETA) */}
       {isMobileMenuOpen && (
         <div className="animate-fadeIn" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, height: '100dvh', background: isDark ? 'rgba(26, 26, 46, 0.98)' : 'rgba(240, 230, 210, 0.98)', zIndex: 10001, backdropFilter: 'blur(10px)', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <div style={{ padding: '1.5rem', paddingBottom: '120px', minHeight: '101%', display: 'flex', flexDirection: 'column' }}>
@@ -3363,31 +3366,31 @@ ${monthlyReport.desafioCrescimento || '-'}
               <button onClick={() => setIsMobileMenuOpen(false)} style={{ background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}><X size={32} /></button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', flex: 1 }}>
-              {['today', 'history', 'leituras', 'gdve', 'analytics', 'notifications'].map((item) => {
-                const labels = { 
-                  today: '☀️ Hoje', 
-                  history: '📜 Histórico', 
-                  leituras: '📚 Estudos', 
-                  gdve: '🛡️ Discipulado', 
-                  analytics: '📊 Métricas',
-                  notifications: '🔔 O Guardião'
-                };
-            return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', flex: 1 }}>
+              {[
+                { id: 'today', icon: <BookOpen size={22}/>, label: 'Hoje' },
+                { id: 'history', icon: <Calendar size={22}/>, label: 'Histórico' },
+                { id: 'leituras', icon: <Library size={22}/>, label: 'Estudos' },
+                { id: 'gdve', icon: <Shield size={22}/>, label: 'Discipulado', fvOnly: true },
+                { id: 'analytics', icon: <TrendingUp size={22}/>, label: 'Métricas' },
+                { id: 'notifications', icon: <Bell size={22}/>, label: 'Guardião' }
+              ].map((item) => {
+                if (item.fvOnly && !fvUnlocked) return null;
+                const isActive = view === item.id;
+                return (
                   <button 
-                    key={item}
-                    onClick={() => { setView(item); setIsMobileMenuOpen(false); }} 
-                    style={{ width: '100%', padding: '1.2rem', textAlign: 'left', background: view === item ? (isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)') : 'transparent', color: view === item ? (isDark ? '#FFD700' : '#6b4423') : (isDark ? '#f0e6d2' : '#2c1810'), border: `1px solid ${view === item ? (isDark ? '#d4af37' : '#6b4423') : 'transparent'}`, borderRadius: '12px', fontSize: '1.3rem', fontFamily: 'Georgia, serif', fontWeight: view === item ? 'bold' : 'normal', display: 'flex', alignItems: 'center', gap: '1rem' }}
+                    key={item.id}
+                    onClick={() => { setView(item.id); setIsMobileMenuOpen(false); }} 
+                    style={{ width: '100%', padding: '1rem', textAlign: 'left', background: isActive ? (isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)') : 'transparent', color: isActive ? (isDark ? '#FFD700' : '#6b4423') : (isDark ? '#f0e6d2' : '#2c1810'), border: `1px solid ${isActive ? (isDark ? '#d4af37' : '#6b4423') : 'transparent'}`, borderRadius: '12px', fontSize: '1.1rem', fontFamily: 'Georgia, serif', fontWeight: isActive ? 'bold' : 'normal', display: 'flex', alignItems: 'center', gap: '1rem' }}
                   >
-                    {labels[item]}
+                    {item.icon} {item.label}
                   </button>
                 );
               })}
 
-              <button onClick={() => { setIsMobileMenuOpen(false); setActivePracticeId('tratack'); setPracticePhase('intro'); setIsPracticeActive(true); }} style={{ width: '100%', padding: '1.2rem', textAlign: 'left', background: 'transparent', color: isDark ? '#f0e6d2' : '#2c1810', border: '1px solid transparent', borderRadius: '12px', fontSize: '1.3rem', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <Target size={24} color={isDark ? '#f0e6d2' : '#2c1810'} /> Tratak
+              <button onClick={() => { setIsMobileMenuOpen(false); setActivePracticeId('tratack'); setPracticePhase('intro'); setIsPracticeActive(true); }} style={{ width: '100%', padding: '1rem', textAlign: 'left', background: 'transparent', color: isDark ? '#f0e6d2' : '#2c1810', border: '1px solid transparent', borderRadius: '12px', fontSize: '1.1rem', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <Target size={22} color={isDark ? '#f0e6d2' : '#2c1810'} /> Fazer Tratak
               </button>
-              
             </div>
 
             <div style={{ marginTop: '4rem', display: 'flex', flexDirection: 'column', gap: '1rem', paddingTop: '2rem', borderTop: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}` }}>
@@ -6533,56 +6536,148 @@ ${monthlyReport.desafioCrescimento || '-'}
         <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.85rem', opacity: 0.8 }}>Versos de Ouro de Pitágoras</p>
       </footer>
       
-      {/* WIDGET FLUTUANTE DE TAREFAS GDVE (SÓ APARECE SE DESTRANCADO) */}
+      {/* ============================================================== */}
+      {/* MODAL DE PRÁTICAS (Abre ao clicar no Badge "Às vezes/Frequente") */}
+      {showPracticesModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(3px)' }} onClick={() => setShowPracticesModal(false)}>
+          <div className="animate-fadeIn" style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '1.5rem', borderRadius: '16px', maxWidth: '380px', width: '100%', border: `2px solid ${pb.color}`, position: 'relative', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setShowPracticesModal(false)} style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}><X size={20} /></button>
+            
+            <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+              <PraticaIcon size={46} color={pb.color} style={{ margin: '0 auto 0.5rem' }} />
+              <h2 style={{ margin: 0, fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.5rem' }}>Constância de Práticas</h2>
+            </div>
+
+            <div style={{ background: isDark ? 'rgba(255, 255, 255, 0.03)' : '#fff', padding: '1.2rem', borderRadius: '12px', border: `1px solid ${pb.color}`, textAlign: 'center', marginBottom: '1.5rem' }}>
+              <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 'bold', color: pb.color, display: 'block', marginBottom: '0.2rem' }}>Grau Atual</span>
+              <h3 style={{ margin: '0 0 0.25rem', fontFamily: "'Cinzel', serif", fontSize: '1.4rem', color: isDark ? '#f0e6d2' : '#2c1810' }}>{pb.label}</h3>
+              <p style={{ margin: '0 0 1rem', fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic' }}>Realizadas em {statsMenu.diasPraticas} dias neste ciclo.</p>
+              
+              {(() => {
+                 const dias = statsMenu.diasPraticas;
+                 let next = null;
+                 if (dias < 1) next = { min: 1, title: 'Raramente' };
+                 else if (dias < 12) next = { min: 12, title: 'Às vezes' };
+                 else if (dias < 20) next = { min: 20, title: 'Frequente' };
+                 else if (dias < 28) next = { min: 28, title: 'Sempre' };
+                 
+                 if (next) {
+                   return (
+                     <div style={{ marginTop: '0.5rem', paddingTop: '1rem', borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}` }}>
+                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '0.4rem', fontWeight: 'bold' }}>
+                         <span>Rumo a: {next.title}</span>
+                         <span>Faltam {next.min - dias} dias</span>
+                       </div>
+                       <div style={{ width: '100%', height: '8px', background: isDark ? 'rgba(255,255,255,0.1)' : '#eee', borderRadius: '4px', overflow: 'hidden' }}>
+                         <div style={{ width: `${Math.min(100, (dias / next.min) * 100)}%`, height: '100%', background: pb.color, transition: 'width 0.5s ease' }}></div>
+                       </div>
+                     </div>
+                   );
+                 } else {
+                   return (
+                     <div style={{ marginTop: '0.5rem', paddingTop: '1rem', borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}` }}>
+                       <p style={{ margin: 0, fontSize: '0.85rem', color: pb.color, fontWeight: 'bold' }}>🌟 Você manteve práticas impecáveis neste ciclo!</p>
+                     </div>
+                   );
+                 }
+              })()}
+            </div>
+
+            <button onClick={() => { setShowPracticesModal(false); setShowQuickFv(true); }} style={{ width: '100%', padding: '1rem', background: pb.color, color: '#fff', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', boxShadow: `0 4px 15px ${pb.color}40`, transition: 'transform 0.2s' }} onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'} onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}>
+              <Zap size={20} /> Realizar Práticas Agora
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* WIDGET FLUTUANTE DE TAREFAS GDVE (ESTRELA) */}
       {fvUnlocked && view !== 'fv' && (
         <div style={{ position: 'fixed', bottom: '20px', right: '20px', zIndex: 9998, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '1rem' }}>
           
           {/* Painel Aberto */}
           {showQuickFv && (
-            <div className="animate-fadeIn" style={{ background: isDark ? 'rgba(26, 26, 46, 0.95)' : 'rgba(253, 251, 247, 0.95)', backdropFilter: 'blur(10px)', padding: '1.5rem', borderRadius: '16px', border: `2px solid ${isDark ? '#FFD700' : '#996515'}`, boxShadow: '0 10px 30px rgba(0,0,0,0.3)', width: 'max-content', maxWidth: '300px' }}>
+            <div className="animate-fadeIn" style={{ background: isDark ? 'rgba(26, 26, 46, 0.98)' : 'rgba(253, 251, 247, 0.98)', backdropFilter: 'blur(10px)', padding: '1.5rem', borderRadius: '16px', border: `2px solid ${isDark ? '#FFD700' : '#996515'}`, boxShadow: '0 10px 30px rgba(0,0,0,0.4)', width: 'max-content', maxWidth: '340px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: `1px solid ${isDark ? 'rgba(255,215,0,0.2)' : 'rgba(153,101,21,0.2)'}`, paddingBottom: '0.5rem' }}>
-                <h4 style={{ margin: 0, color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Star size={16} /> Práticas Diárias</h4>
-                <button onClick={() => setShowQuickFv(false)} style={{ background: 'transparent', border: 'none', color: isDark ? '#aaa' : '#777', cursor: 'pointer' }}><X size={18} /></button>
+                <h4 style={{ margin: 0, color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '1.1rem' }}><Star size={18} /> Missões e Práticas</h4>
+                <button onClick={() => setShowQuickFv(false)} style={{ background: 'transparent', border: 'none', color: isDark ? '#aaa' : '#777', cursor: 'pointer' }}><X size={20} /></button>
               </div>
               
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '60vh', overflowY: 'auto', paddingRight: '0.2rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '65vh', overflowY: 'auto', paddingRight: '0.2rem' }}>
                 
-                {/* 1. TAREFAS DO GRUPO (MISSÕES DIÁRIAS) */}
-                {fvGdveTasks.filter(t => !t.isCycle).length > 0 && (
-                  fvGdveTasks.filter(t => !t.isCycle).map(task => {
+                {/* BLOCO ESPECIAL: LEITURA DE BASTIÃO DO CICLO */}
+                {fvGdveBastiaoName && (
+                  <div style={{ padding: '0.8rem', background: isDark ? 'rgba(0,0,0,0.4)' : '#fff', borderRadius: '8px', border: `1px solid ${fvGdveCycleStatus['bastiao'] ? '#4caf50' : (isDark ? '#d4af37' : '#996515')}`, marginBottom: '0.5rem', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
+                    <span style={{ display: 'block', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '0.3rem' }}>Leitura do Ciclo</span>
+                    <span style={{ display: 'block', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem', fontWeight: 'bold', marginBottom: '0.8rem', lineHeight: '1.3' }}>{fvGdveBastiaoName}</span>
+                    
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button onClick={() => {
+                         const newStatus = { ...fvGdveCycleStatus, bastiao: !fvGdveCycleStatus['bastiao'] };
+                         setFvGdveCycleStatus(newStatus);
+                         if(user) setDoc(doc(db, 'fvData', user.uid), { gdveCycleStatus: newStatus }, { merge: true });
+                      }} style={{ flex: 1, padding: '0.5rem', background: fvGdveCycleStatus['bastiao'] ? '#4caf50' : 'transparent', color: fvGdveCycleStatus['bastiao'] ? 'white' : (isDark ? '#f0e6d2' : '#2c1810'), border: `1px solid ${fvGdveCycleStatus['bastiao'] ? '#4caf50' : (isDark ? '#555' : '#ccc')}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', transition: 'all 0.2s' }}>
+                         {fvGdveCycleStatus['bastiao'] ? <CheckCircle size={14}/> : <div style={{width:'14px', height:'14px', borderRadius:'50%', border:'1px solid currentColor'}}></div>}
+                         {fvGdveCycleStatus['bastiao'] ? 'Já Li' : 'Marcar Lido'}
+                      </button>
+                      
+                      {fvGdveBastiaoLink && (
+                         <a href={fvGdveBastiaoLink} target="_blank" rel="noopener noreferrer" style={{ flex: 1, padding: '0.5rem', background: isDark ? 'rgba(74, 144, 226, 0.2)' : '#e3f2fd', color: isDark ? '#6cb2eb' : '#2980b9', border: `1px solid ${isDark ? '#6cb2eb' : '#2980b9'}`, borderRadius: '6px', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', transition: 'all 0.2s' }}>
+                           <BookOpen size={14} /> Ler Agora
+                         </a>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* 1. TODAS AS MISSÕES DO GDVE (DIÁRIAS E DE CICLO) */}
+                {fvGdveTasks.length > 0 && (
+                  fvGdveTasks.map(task => {
+                    const isCycle = task.isCycle;
                     const currentCount = (typeof fvDaily.gdveTasksStatus?.[task.id] === 'boolean' ? (fvDaily.gdveTasksStatus[task.id] ? 1 : 0) : fvDaily.gdveTasksStatus?.[task.id]) || 0;
                     const targetCount = task.target || 1;
-                    const taskColor = getTaskColor(currentCount, targetCount, isDark);
+                    
+                    let isCompleted = false;
+                    let displayValue = '';
+                    if (isCycle) {
+                       isCompleted = !!fvGdveCycleStatus[task.id];
+                       displayValue = isCompleted ? '✓' : '⏳';
+                    } else {
+                       isCompleted = currentCount >= targetCount;
+                       displayValue = `${currentCount}/${targetCount}`;
+                    }
                     
                     return (
-                      <div key={task.id} onClick={() => toggleGdveTask(task)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 1rem', background: isDark ? 'rgba(0,0,0,0.3)' : '#fff', borderRadius: '8px', border: `1px solid ${taskColor}`, cursor: 'pointer', transition: 'all 0.2s', gap: '1rem' }}>
-                        <span style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem', fontWeight: currentCount >= targetCount ? 'bold' : 'normal' }}>{task.name}</span>
-                        <div style={{ background: taskColor, color: '#fff', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold' }}>
-                          {currentCount}/{targetCount}
+                      <div key={task.id} onClick={() => toggleGdveTask(task)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 1rem', background: isCompleted ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(0,0,0,0.3)' : '#fff'), borderRadius: '8px', border: `1px solid ${isCompleted ? '#4caf50' : (isDark ? '#555' : '#ccc')}`, cursor: 'pointer', transition: 'all 0.2s', gap: '1rem', marginBottom: '0.2rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span style={{ color: isCompleted ? (isDark ? '#81c784' : '#2e7d32') : (isDark ? '#f0e6d2' : '#2c1810'), fontSize: '0.9rem', fontWeight: isCompleted ? 'bold' : 'normal', textDecoration: isCompleted ? 'line-through' : 'none' }}>{task.name}</span>
+                          {isCycle && <span style={{ fontSize: '0.65rem', color: isDark ? '#b8a88a' : '#888', textTransform: 'uppercase', marginTop: '0.2rem', fontWeight: 'bold' }}>Missão do Ciclo</span>}
+                        </div>
+                        <div style={{ background: isCompleted ? '#4caf50' : (isDark ? '#333' : '#eee'), color: isCompleted ? '#fff' : (isDark ? '#b8a88a' : '#666'), padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                          {displayValue}
                         </div>
                       </div>
                     );
                   })
                 )}
 
-                {/* DIVISOR SUTIL (Se houver Missões E Práticas) */}
-                {fvGdveTasks.filter(t => !t.isCycle).length > 0 && fvConfig?.praticas && (
-                  <div style={{ height: '1px', background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)', margin: '0.2rem 0' }}></div>
+                {fvConfig?.praticas && (
+                  <div style={{ height: '1px', background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)', margin: '0.5rem 0' }}></div>
                 )}
 
                 {/* 2. PRÁTICAS FIXAS DA ESCOLA */}
                 {fvConfig?.praticas?.map(prac => {
                   const isCompleted = !!fvDaily.praticas?.[prac.key];
                   return (
-                    <div key={prac.key} onClick={() => setActiveActionMenu({ key: prac.key, label: prac.label })} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 1rem', background: isCompleted ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(0,0,0,0.3)' : '#fff'), borderRadius: '8px', border: `1px solid ${isCompleted ? '#4caf50' : (isDark ? 'rgba(212,175,55,0.3)' : '#ccc')}`, cursor: 'pointer', transition: 'all 0.2s', gap: '1rem' }}>
-                      <span style={{ color: isCompleted ? (isDark ? '#81c784' : '#2e7d32') : (isDark ? '#f0e6d2' : '#2c1810'), fontSize: '0.95rem', fontWeight: isCompleted ? 'bold' : 'normal', textDecoration: isCompleted ? 'line-through' : 'none' }}>{prac.label}</span>
+                    <div key={prac.key} onClick={() => setActiveActionMenu({ key: prac.key, label: prac.label })} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 1rem', background: isCompleted ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(0,0,0,0.3)' : '#fff'), borderRadius: '8px', border: `1px solid ${isCompleted ? '#4caf50' : (isDark ? 'rgba(212,175,55,0.3)' : '#ccc')}`, cursor: 'pointer', transition: 'all 0.2s', gap: '1rem', marginBottom: '0.2rem' }}>
+                      <span style={{ color: isCompleted ? (isDark ? '#81c784' : '#2e7d32') : (isDark ? '#f0e6d2' : '#2c1810'), fontSize: '0.9rem', fontWeight: isCompleted ? 'bold' : 'normal', textDecoration: isCompleted ? 'line-through' : 'none' }}>{prac.label}</span>
                       {isCompleted ? <CheckCircle size={16} color="#4caf50" /> : <Zap size={16} color={isDark ? '#b8a88a' : '#ccc'} />}
                     </div>
                   );
                 })}
                 
-                {(fvGdveTasks.filter(t => !t.isCycle).length === 0 && (!fvConfig?.praticas || fvConfig.praticas.length === 0)) && (
-                   <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#888', fontStyle: 'italic', textAlign: 'center' }}>Nenhuma prática pendente.</p>
+                {(!fvGdveBastiaoName && fvGdveTasks.length === 0 && (!fvConfig?.praticas || fvConfig.praticas.length === 0)) && (
+                   <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#888', fontStyle: 'italic', textAlign: 'center' }}>Nenhuma prática ou missão pendente.</p>
                 )}
               </div>
             </div>
