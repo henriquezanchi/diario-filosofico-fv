@@ -3017,6 +3017,15 @@ ${monthlyReport.desafioCrescimento || '-'}
     return { ...stats, hVol: fmt(stats.horasVoluntariadoMin), hAs: fmt(stats.horasAssistidaMin), hMin: fmt(stats.horasMinistradaMin), freqPraticas };
   };
 
+  // --- TRADUTOR DO BADGE DE PRÁTICAS ---
+  const getPraticasBadgeInfo = (dias) => {
+    if (dias >= 28) return { label: 'Sempre', color: '#FFD700', icon: Sun };
+    if (dias >= 20) return { label: 'Frequente', color: '#ff9800', icon: Flame };
+    if (dias >= 12) return { label: 'Às vezes', color: '#4caf50', icon: Target };
+    if (dias > 0) return { label: 'Raramente', color: '#e74c3c', icon: Sparkles };
+    return { label: 'Nunca', color: isDark ? '#555' : '#999', icon: Moon };
+  };
+
   // --- PINCEL MÁGICO UNIVERSAL (Acessível por todas as abas) ---
   const getBlockStyle = (status, isOpen, activeBorder) => {
     const corPadrao = activeBorder || (isDark ? '#FFD700' : '#996515');
