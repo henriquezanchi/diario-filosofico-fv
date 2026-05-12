@@ -83,15 +83,19 @@ function App() {
     }
   });
 
+  const [saveBtnStatus, setSaveBtnStatus] = useState('idle'); // 'idle', 'saving', 'success'
+
   const saveNotificationSettings = async () => {
     if (!user) return;
+    setSaveBtnStatus('saving'); // Muda o botão para "Salvando..."
     try {
-      // Trocado de 'userSettings' para 'users' para evitar bloqueio do Firebase
       await setDoc(doc(db, 'users', user.uid), { notifications: notifSettings }, { merge: true });
-      alert("✅ Configurações do Guardião salvas com sucesso!");
+      setSaveBtnStatus('success'); // Muda o botão para Verde (Sucesso)
+      setTimeout(() => setSaveBtnStatus('idle'), 3000); // Volta ao normal após 3 segundos
     } catch (e) {
       console.error("Erro ao salvar notificações:", e);
       alert("Erro ao salvar as configurações.");
+      setSaveBtnStatus('idle');
     }
   };
 
@@ -2945,7 +2949,13 @@ ${monthlyReport.desafioCrescimento || '-'}
       horasVoluntariadoMin: 0,
       horasAssistidaMin: 0,
       horasMinistradaMin: 0,
-      diasPraticas: 0
+      diasPraticas: 0,
+      countAulaRegular: 0,
+      countEd: 0,
+      countCrm: 0,
+      countRaio: 0,
+      countLimpeza: 0,
+      countGN: 0
     };
 
     const hoje = new Date();
@@ -2957,28 +2967,44 @@ ${monthlyReport.desafioCrescimento || '-'}
     cicloEntries.forEach(entry => {
       const fv = entry.fvDaily || {};
 
+      // 1. Somatória de Horas
       if (fv.horasVoluntariado) {
         const [h, m] = fv.horasVoluntariado.split(':').map(Number);
         if (!isNaN(h) && !isNaN(m)) stats.horasVoluntariadoMin += (h * 60) + m;
       }
-
       if (fv.horasAulaAssistida) {
         const [h, m] = fv.horasAulaAssistida.split(':').map(Number);
         if (!isNaN(h) && !isNaN(m)) stats.horasAssistidaMin += (h * 60) + m;
       }
-
       if (fv.horasAulaMinistrada) {
         const [h, m] = fv.horasAulaMinistrada.split(':').map(Number);
         if (!isNaN(h) && !isNaN(m)) stats.horasMinistradaMin += (h * 60) + m;
       }
 
-      // MÁGICA: Conta apenas os DIAS em que fez pelo menos uma prática
+      // 2. Frequência de Práticas
       if (fv.praticas && Object.values(fv.praticas).some(v => v === true)) {
         stats.diasPraticas++;
       }
+
+      // 3. Contagem de Presenças (O que faltava para os Cards)
+      if (fv.aulaRegularPresenca === 'Sim') stats.countAulaRegular++;
+      if (fv.aulaEdPresenca === 'Sim') stats.countEd++;
+      if (fv.crmPresenca === 'Sim') stats.countCrm++;
+      if (fv.reuniaoRaioPresenca === 'Sim') stats.countRaio++;
+
+      // 4. Contagem de Missões (GN e Limpeza)
+      if (entry.tasksSnapshot) {
+        entry.tasksSnapshot.forEach(task => {
+           if (task.completed) {
+             const tName = task.name.toLowerCase();
+             if (tName.includes('limpeza') || tName.includes('faxina') || tName.includes('mutirão')) stats.countLimpeza++;
+             if (tName.includes('gn') || tName.includes('guarda noturna')) stats.countGN++;
+           }
+        });
+      }
     });
 
-    // A RÉGUA DE TRADUÇÃO
+    // A RÉGUA DE TRADUÇÃO DE FREQUÊNCIA
     let freqPraticas = "Nunca";
     if (stats.diasPraticas >= 28) freqPraticas = "Sempre";
     else if (stats.diasPraticas >= 20) freqPraticas = "Frequentemente";
@@ -2987,7 +3013,7 @@ ${monthlyReport.desafioCrescimento || '-'}
 
     const fmt = (m) => `${Math.floor(m/60)}h ${String(m%60).padStart(2,'0')}m`;
     
-    // RETORNO: Devolve os cálculos e a string formatada para a tela
+    // RETORNO DE TODOS OS DADOS JUNTOS
     return { ...stats, hVol: fmt(stats.horasVoluntariadoMin), hAs: fmt(stats.horasAssistidaMin), hMin: fmt(stats.horasMinistradaMin), freqPraticas };
   };
 
@@ -4115,12 +4141,23 @@ ${monthlyReport.desafioCrescimento || '-'}
               </div>
             </div>
 
-            {/* BOTÃO SALVAR */}
+            {/* BOTÃO SALVAR INTELIGENTE */}
             <button 
               onClick={saveNotificationSettings}
-              style={{ width: '100%', padding: '1rem', background: '#27ae60', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', boxShadow: '0 4px 15px rgba(39, 174, 96, 0.3)' }}
+              disabled={saveBtnStatus !== 'idle'}
+              style={{ 
+                width: '100%', padding: '1rem', 
+                background: saveBtnStatus === 'success' ? '#27ae60' : (isDark ? '#d4af37' : '#6b4423'), 
+                color: saveBtnStatus === 'success' ? 'white' : (isDark ? '#1a1a2e' : 'white'), 
+                border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', 
+                display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', 
+                cursor: saveBtnStatus !== 'idle' ? 'default' : 'pointer', 
+                boxShadow: saveBtnStatus === 'success' ? '0 4px 15px rgba(39, 174, 96, 0.4)' : '0 4px 12px rgba(0,0,0,0.15)',
+                transition: 'all 0.3s ease' 
+              }}
             >
-              <Save size={20} /> Salvar Configurações do Guardião
+              {saveBtnStatus === 'saving' ? <Sparkles className="animate-spin" size={20} /> : (saveBtnStatus === 'success' ? <CheckCircle size={20} /> : <Save size={20} />)} 
+              {saveBtnStatus === 'saving' ? 'Salvando...' : (saveBtnStatus === 'success' ? 'Guardião Atualizado!' : 'Salvar Configurações')}
             </button>
           </div>
         )}
@@ -5022,7 +5059,7 @@ ${monthlyReport.desafioCrescimento || '-'}
 
                             <div style={{ background: isDark ? 'rgba(231, 76, 60, 0.1)' : 'rgba(231, 76, 60, 0.05)', padding: '1rem', borderRadius: '8px', borderLeft: '3px solid #e74c3c', marginBottom: '2rem' }}>
                               <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.5', fontStyle: 'italic' }}>
-                                <strong>Aviso Importante:</strong> Esta auditoria utiliza Inteligência Artificial. Ela mapeia o passado para que você construa o futuro. Confirme os padrões com seu instrutor.
+                                <strong>Aviso Importante:</strong> Esta auditoria utiliza Inteligência Artificial. Ela mapeia o passado para que você construa o futuro. Confirme os padrões com seu Mestre.
                               </p>
                             </div>
 
