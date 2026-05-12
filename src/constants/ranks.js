@@ -12,18 +12,3 @@ export const AUTHOR_CANON = {
   'friedrich nietzsche': 10,
   'carl jung': 12
 };
-
-export const CATEGORY_MAP = {
-  'Religion': 'Religião',
-  'Philosophy': 'Filosofia',
-  'Fiction': 'Ficção',
-  'History': 'História',
-  'Psychology': 'Psicologia',
-  'Science': 'Ciência',
-  'Self-Help': 'Autoajuda',
-  'Body, Mind & Spirit': 'Espiritualidade',
-  'Biography & Autobiography': 'Biografia',
-  'Literary Collections': 'Literatura',
-  'Poetry': 'Poesia',
-  'Social Science': 'Ciências Sociais'
-};
