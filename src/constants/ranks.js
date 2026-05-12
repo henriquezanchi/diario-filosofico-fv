@@ -27,12 +27,3 @@ export const CATEGORY_MAP = {
   'Poetry': 'Poesia',
   'Social Science': 'Ciências Sociais'
 };
-
-export const translateCategory = (rawCategory) => {
-  if (!rawCategory) return 'Filosofia';
-  let result = rawCategory;
-  Object.entries(CATEGORY_MAP).forEach(([en, pt]) => {
-    result = result.replace(new RegExp(en, 'g'), pt);
-  });
-  return result;
-};
