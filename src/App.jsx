@@ -37,8 +37,6 @@ import {
 
 import { getFavoriteTheme, getAuthorStats, getReadingRank, translateCategory } from './constants/bookMetrics';
 import { AUTHOR_CANON, translateCategory, getReadingRank, getFavoriteTheme, getAuthorStats } from './constants/ranks';
-import { getReadingRank, getFavoriteTheme, getAuthorStats } from './constants/ranks';
-
 
 function App() {
   // Estados
