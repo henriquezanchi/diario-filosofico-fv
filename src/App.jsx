@@ -433,6 +433,7 @@ function App() {
 
         if (res.status === 429) {
           console.warn("Operário: Google Books pediu para ir mais devagar. Pausando.");
+            isEnrichingRef.current = false; // abaixa a bandeira manualmente aqui
           return;
         }
 
@@ -1460,11 +1461,8 @@ function App() {
         setWhatILeftUndone(data.whatILeftUndone || '');
         setFreeEpilogue(data.freeEpilogue || '');
         setTodayTasksStatus(data.tasksStatus || {});
-        setFvDaily(data.fvDaily || {
-          item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
-          horasVoluntariado: '', horasAulaAssistida: '', horasAulaMinistrada: '', gdveTasksStatus: {}, gdveAttendance: false,
-          praticas: { tratak: false, recitarHonra: false, recitar7Fases: false, camara: false, templo: false, porta: false, patioAberto: false, patioColunas: false, santuario: false }
-        });
+        setFvDaily(data.fvDaily || DEFAULT_FV_DAILY);
+
       } else {
         setMorningDone(false);
         setEveningDone(false);
