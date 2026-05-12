@@ -3263,36 +3263,66 @@ ${monthlyReport.desafioCrescimento || '-'}
               </button>
             </div>
           ) : (
-            // VERSÃO COMPUTADOR (Sincronizada com Mobile)
-            <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              {/* VERSÃO COMPUTADOR (Badges + Menu Agrupado) */}
               
-              {/* BADGE DE FOGO */}
-              <div onClick={() => setShowStreakModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: streak > 0 ? (isDark ? 'rgba(255, 100, 0, 0.15)' : '#fff3e0') : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f0f0f0'), border: `1px solid ${streak > 0 ? (isDark ? '#ff9800' : '#ffb74d') : (isDark ? '#555' : '#ccc')}`, borderRadius: '20px', color: streak > 0 ? (isDark ? '#ffb74d' : '#e65100') : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontFamily: 'Georgia, serif', fontSize: '0.9rem', cursor: 'pointer' }}>
-                <StreakIcon size={18} fill={streak > 0 ? (isDark ? '#ff9800' : '#e65100') : 'none'} />
+              {/* --- BADGE 1: FOGO INTERNO (STREAK) --- */}
+              <div onClick={() => setShowStreakModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: streak > 0 ? (isDark ? 'rgba(255, 100, 0, 0.15)' : '#fff3e0') : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f0f0f0'), border: `1px solid ${streak > 0 ? (isDark ? '#ff9800' : '#ffb74d') : (isDark ? '#555' : '#ccc')}`, borderRadius: '20px', color: streak > 0 ? (isDark ? '#ffb74d' : '#e65100') : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontFamily: 'Georgia, serif', fontSize: '0.85rem', cursor: 'pointer', boxShadow: streak > 0 && isDark ? '0 0 10px rgba(255, 152, 0, 0.2)' : 'none' }}>
+                <StreakIcon size={16} fill={streak > 0 ? (isDark ? '#ff9800' : '#e65100') : 'none'} />
                 <span>{streak} {streak === 1 ? 'dia' : 'dias'}</span>
               </div>
 
-              {/* BOTÕES NAVEGAÇÃO IGUAIS AO MOBILE */}
-              {[
-                { id: 'today', icon: <BookOpen size={16}/>, label: 'Hoje' },
-                { id: 'history', icon: <Calendar size={16}/>, label: 'Histórico' },
-                { id: 'leituras', icon: <Library size={16}/>, label: 'Estudos' },
-                { id: 'gdve', icon: <Shield size={16}/>, label: 'Discipulado', fvOnly: true },
-                { id: 'analytics', icon: <TrendingUp size={16}/>, label: 'Métricas' },
-                { id: 'notifications', icon: <Bell size={16}/>, label: 'Guardião' }
-              ].map(btn => {
-                if (btn.fvOnly && !fvUnlocked) return null;
-                const isActive = view === btn.id;
-                return (
-                  <button 
-                    key={btn.id}
-                    onClick={() => setView(btn.id)}
-                    style={{ padding: '0.5rem 1rem', background: isActive ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: isActive ? (isDark ? '#1a1a2e' : 'white') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s' }}
-                  >
-                    {btn.icon} {btn.label}
-                  </button>
-                );
-              })}
+              {(() => {
+                 const statsMenu = getFvMonthlyStats();
+                 const pb = getPraticasBadgeInfo(statsMenu.diasPraticas);
+                 const PraticaIcon = pb.icon; // Necessário capitalizar para o React renderizar o ícone
+                 const missoesCompletas = fvGdveTasks.filter(t => t.isCycle ? fvGdveCycleStatus[t.id] : (fvDaily.gdveTasksStatus?.[t.id] >= t.target)).length;
+                 
+                 return (
+                   <>
+                     {/* --- BADGE 2: FREQUÊNCIA DE PRÁTICAS --- */}
+                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: isDark ? 'rgba(0,0,0,0.3)' : '#fdfbf7', border: `1px solid ${pb.color}`, borderRadius: '20px', color: pb.color, fontWeight: 'bold', fontFamily: 'Georgia, serif', fontSize: '0.85rem', cursor: 'help' }} title={`${statsMenu.diasPraticas} dias com práticas realizadas nos últimos 30 dias`}>
+                       <PraticaIcon size={16} /> <span>{pb.label}</span>
+                     </div>
+
+                     {/* --- BADGE 3: MISSÕES GDVE --- */}
+                     {fvUnlocked && fvGdveTasks.length > 0 && (
+                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: missoesCompletas === fvGdveTasks.length ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(0,0,0,0.3)' : '#fdfbf7'), border: `1px solid ${missoesCompletas === fvGdveTasks.length ? '#4caf50' : (isDark ? '#555' : '#ccc')}`, borderRadius: '20px', color: missoesCompletas === fvGdveTasks.length ? '#4caf50' : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontFamily: 'Georgia, serif', fontSize: '0.85rem', cursor: 'help' }} title="Missões do Ciclo Concluídas">
+                         <Shield size={16} /> <span>{missoesCompletas}/{fvGdveTasks.length}</span>
+                       </div>
+                     )}
+                   </>
+                 );
+              })()}
+
+              {/* BOTÃO NAVEGAÇÃO AGRUPADA */}
+              <div style={{ position: 'relative', marginLeft: '0.5rem' }} onMouseLeave={() => setShowDiaryMenu(false)}>
+                <button onMouseEnter={() => setShowDiaryMenu(true)} onClick={() => setShowDiaryMenu(!showDiaryMenu)} style={{ padding: '0.5rem 1rem', background: 'transparent', color: isDark ? '#d4af37' : '#6b4423', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Menu size={16} /> Menu <ChevronDown size={14} />
+                </button>
+                {showDiaryMenu && (
+                  <div style={{ position: 'absolute', top: '100%', right: 0, paddingTop: '0.5rem', zIndex: 1000 }}>
+                    <div className="animate-fadeIn" style={{ width: '200px', background: isDark ? 'rgba(26, 26, 46, 0.98)' : 'white', border: `1px solid ${isDark ? '#d4af37' : '#ccc'}`, borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+                      {[
+                        { id: 'today', icon: <BookOpen size={16}/>, label: 'Hoje' },
+                        { id: 'history', icon: <Calendar size={16}/>, label: 'Histórico' },
+                        { id: 'leituras', icon: <Library size={16}/>, label: 'Estudos' },
+                        { id: 'gdve', icon: <Shield size={16}/>, label: 'Discipulado', fvOnly: true },
+                        { id: 'analytics', icon: <TrendingUp size={16}/>, label: 'Métricas' },
+                        { id: 'notifications', icon: <Bell size={16}/>, label: 'Guardião' }
+                      ].map(btn => {
+                        if (btn.fvOnly && !fvUnlocked) return null;
+                        const isActive = view === btn.id;
+                        return (
+                          <button key={btn.id} onClick={() => { setView(btn.id); setShowDiaryMenu(false); }} style={{ padding: '0.8rem', background: isActive ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent', border: 'none', borderBottom: '1px solid rgba(139, 115, 85, 0.1)', color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontWeight: isActive ? 'bold' : 'normal' }}>
+                            {btn.icon} {btn.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* BOTÃO OPÇÕES (CONFIGURAÇÕES E LOGOUT) */}
               <div style={{ position: 'relative' }} onMouseLeave={() => setShowProfileMenu(false)}>
@@ -3301,10 +3331,10 @@ ${monthlyReport.desafioCrescimento || '-'}
                 </button>
                 {showProfileMenu && (
                   <div style={{ position: 'absolute', top: '100%', right: 0, paddingTop: '0.5rem', zIndex: 1000 }}>
-                    <div className="animate-fadeIn" style={{ width: '180px', background: isDark ? 'rgba(26, 26, 46, 0.98)' : 'white', border: `1px solid ${isDark ? '#d4af37' : '#ccc'}`, borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                      <button onClick={() => { setShowSettingsModal(true); setShowProfileMenu(false); }} style={{ padding: '0.8rem', background: 'transparent', border: 'none', borderBottom: '1px solid #eee', color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer' }}>⚙️ Configurações</button>
-                      <button onClick={toggleTheme} style={{ padding: '0.8rem', background: 'transparent', border: 'none', borderBottom: '1px solid #eee', color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer' }}>{isDark ? '☀️ Tema Claro' : '🌙 Tema Escuro'}</button>
-                      <button onClick={handleLogout} style={{ padding: '0.8rem', background: 'rgba(231, 76, 60, 0.1)', border: 'none', color: '#e74c3c', textAlign: 'left', cursor: 'pointer', fontWeight: 'bold' }}>🚪 Sair</button>
+                    <div className="animate-fadeIn" style={{ width: '180px', background: isDark ? 'rgba(26, 26, 46, 0.98)' : 'white', border: `1px solid ${isDark ? '#d4af37' : '#ccc'}`, borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+                      <button onClick={() => { setShowSettingsModal(true); setShowProfileMenu(false); }} style={{ padding: '0.8rem', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(139, 115, 85, 0.1)', color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Settings size={16}/> Configurações</button>
+                      <button onClick={() => { toggleTheme(); setShowProfileMenu(false); }} style={{ padding: '0.8rem', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(139, 115, 85, 0.1)', color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>{isDark ? <Sun size={16}/> : <Moon size={16}/>} {isDark ? 'Tema Claro' : 'Tema Escuro'}</button>
+                      <button onClick={handleLogout} style={{ padding: '0.8rem', background: 'rgba(231, 76, 60, 0.1)', border: 'none', color: '#e74c3c', textAlign: 'left', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><LogOut size={16}/> Sair</button>
                     </div>
                   </div>
                 )}
@@ -4964,15 +4994,22 @@ ${monthlyReport.desafioCrescimento || '-'}
                       const cicloAtual = entries.filter(e => { const d = new Date(e.date + 'T12:00:00'); return d >= trintaDiasAtras && d <= hoje; });
                       const cicloAnterior = entries.filter(e => { const d = new Date(e.date + 'T12:00:00'); return d >= sessentaDiasAtras && d < trintaDiasAtras; });
 
-                      const countCustomTasks = (ciclo) => ciclo.reduce((acc, curr) => acc + (curr.tasksSnapshot ? curr.tasksSnapshot.filter(t => t.completed).length : 0), 0);
+                      // CONTAGEM DE PRÁTICAS (Em vez de tarefas)
+                      const countPraticas = (ciclo) => ciclo.reduce((acc, curr) => {
+                          let count = 0;
+                          if (curr.fvDaily?.praticas) {
+                              count += Object.values(curr.fvDaily.praticas).filter(v => v === true).length;
+                          }
+                          return acc + count;
+                      }, 0);
 
                       const preenchimentosAtual = cicloAtual.length;
                       const preenchimentosAnterior = cicloAnterior.length;
                       const varPreenchimentos = preenchimentosAnterior === 0 ? 100 : Math.round(((preenchimentosAtual - preenchimentosAnterior) / preenchimentosAnterior) * 100);
 
-                      const tarefasAtual = countCustomTasks(cicloAtual);
-                      const tarefasAnterior = countCustomTasks(cicloAnterior);
-                      const varTarefas = tarefasAnterior === 0 ? 100 : Math.round(((tarefasAtual - tarefasAnterior) / tarefasAnterior) * 100);
+                      const praticasAtual = countPraticas(cicloAtual);
+                      const praticasAnterior = countPraticas(cicloAnterior);
+                      const varPraticas = praticasAnterior === 0 ? 100 : Math.round(((praticasAtual - praticasAnterior) / praticasAnterior) * 100);
 
                       return (
                         <>
@@ -4995,16 +5032,16 @@ ${monthlyReport.desafioCrescimento || '-'}
                                 </div>
                               </div>
 
-                              {/* Card 2: Tarefas Personalizadas */}
+                              {/* Card 2: Práticas Realizadas */}
                               <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', padding: '1.5rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : '#ccc'}`, display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                                <span style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', marginBottom: '0.5rem', textAlign: 'center' }}>Tarefas Realizadas</span>
+                                <span style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', marginBottom: '0.5rem', textAlign: 'center' }}>Práticas Realizadas</span>
                                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
-                                  <span style={{ fontSize: '2.5rem', fontWeight: 'bold', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif" }}>{tarefasAtual}</span>
+                                  <span style={{ fontSize: '2.5rem', fontWeight: 'bold', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif" }}>{praticasAtual}</span>
                                   <span style={{ fontSize: '1rem', color: isDark ? '#888' : '#999' }}>ações</span>
                                 </div>
-                                <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.3rem', background: varTarefas >= 0 ? 'rgba(76, 175, 80, 0.15)' : 'rgba(231, 76, 60, 0.15)', color: varTarefas >= 0 ? (isDark ? '#81c784' : '#2e7d32') : '#e74c3c', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 'bold' }}>
-                                  {varTarefas >= 0 ? <ChevronUp size={16} /> : <ChevronDown size={16} />} 
-                                  {varTarefas > 0 ? '+' : ''}{varTarefas}%
+                                <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.3rem', background: varPraticas >= 0 ? 'rgba(76, 175, 80, 0.15)' : 'rgba(231, 76, 60, 0.15)', color: varPraticas >= 0 ? (isDark ? '#81c784' : '#2e7d32') : '#e74c3c', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                                  {varPraticas >= 0 ? <ChevronUp size={16} /> : <ChevronDown size={16} />} 
+                                  {varPraticas > 0 ? '+' : ''}{varPraticas}%
                                 </div>
                               </div>
 
@@ -5556,6 +5593,14 @@ ${monthlyReport.desafioCrescimento || '-'}
                             </div>
                           );
 
+                          const getPraticasBadgeInfo = (dias) => {
+                            if (dias >= 28) return { label: 'Sempre', color: '#FFD700', icon: Sun };
+                            if (dias >= 20) return { label: 'Frequente', color: '#ff9800', icon: Flame };
+                            if (dias >= 12) return { label: 'Às vezes', color: '#4caf50', icon: Target };
+                            if (dias > 0) return { label: 'Raramente', color: '#e74c3c', icon: Sparkles };
+                            return { label: 'Nunca', color: isDark ? '#555' : '#999', icon: Moon };
+                          };
+
                           return (
                             <div style={{ marginBottom: '2.5rem' }}>
                               <div style={{ background: isDark ? 'rgba(155, 89, 182, 0.1)' : '#fdf8ff', padding: '1rem', borderRadius: '12px', borderLeft: `4px solid ${isDark ? '#c39bd3' : '#8e44ad'}`, marginBottom: '1.5rem' }}>
@@ -5579,6 +5624,8 @@ ${monthlyReport.desafioCrescimento || '-'}
                             </div>
                           );
                         })()}
+
+                        
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
                           
