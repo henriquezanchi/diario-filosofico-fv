@@ -27,6 +27,17 @@ import {
 import './App.css';
 import AdBanner from './AdBanner'; 
 
+const DEFAULT_FV_DAILY = {
+  item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
+  horasVoluntariado: '', horasAulaAssistida: '', horasAulaMinistrada: '',
+  gdveTasksStatus: {}, gdveAttendance: false,
+  praticas: {
+    tratak: false, recitarHonra: false, recitar7Fases: false,
+    camara: false, templo: false, porta: false,
+    patioAberto: false, patioColunas: false, santuario: false
+  }
+};
+
 // BANCO DE MEMÓRIA DOS BASTIÕES GDVE
 const BASTIOES_DB = [
   { name: "Bastiões 1976 - 001 a 006", link: "https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=23101&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es" },
@@ -348,6 +359,7 @@ function App() {
   const [kuravaData, setKuravaData] = useState(null);
   const [isGeneratingKurava, setIsGeneratingKurava] = useState(false);
   const [isKuravaRevealed, setIsKuravaRevealed] = useState(false);
+  const isEnrichingRef = useRef(false);
   const [isGeneratingSynthesis, setIsGeneratingSynthesis] = useState(false);
   const [fvGdveDesafios, setFvGdveDesafios] = useState([]);
   const [fvGdveReuniao, setFvGdveReuniao] = useState('');
@@ -401,55 +413,79 @@ function App() {
     });
   };
 
-  // --- O OPERÁRIO INVISÍVEL (BACKGROUND WORKER) ---
+    // --- O OPERÁRIO INVISÍVEL (BACKGROUND WORKER) ---
   useEffect(() => {
     const enrichNextBook = async () => {
       const pendingBook = books.find(b => b.isPendingEnrichment);
-      if (!pendingBook || isSearchingBooks) return;
+
+      // Se não há livro pendente, se já está buscando, ou se já está enriquecendo: para aqui
+      if (!pendingBook || isSearchingBooks || isEnrichingRef.current) return;
+
+      // Levanta a bandeira: "estou trabalhando, não me interrompa"
+      isEnrichingRef.current = true;
 
       try {
-        const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(pendingBook.title + ' ' + pendingBook.author)}&maxResults=1&langRestrict=pt`);
-        
-        // Se o Google bater a porta (Erro 429), não tentamos processar o JSON, só abortamos e tentamos de novo depois.
+        const res = await fetch(
+          `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(
+            pendingBook.title + ' ' + pendingBook.author
+          )}&maxResults=1&langRestrict=pt`
+        );
+
         if (res.status === 429) {
-           console.warn("Operário: O Google Books pediu para ir mais devagar (Erro 429). Pausando as buscas por um tempo.");
-           return; 
+          console.warn("Operário: Google Books pediu para ir mais devagar. Pausando.");
+          return;
         }
 
         const json = await res.json();
         const info = json.items?.[0]?.volumeInfo;
 
         const updatedBooks = books.map(b => {
-          if (b.id === pendingBook.id) {
-            return {
-              ...b,
-              totalPages: info?.pageCount || b.totalPages,
-              currentPage: b.status === 'lido' ? (info?.pageCount || 0) : b.currentPage,
-              thumbnail: info?.imageLinks?.thumbnail?.replace('http:', 'https:') || b.thumbnail,
-              category: (info?.categories?.[0] || b.category)
-                  .replace(/Religion/g, 'Religião').replace(/Philosophy/g, 'Filosofia')
-                  .replace(/Fiction/g, 'Ficção').replace(/History/g, 'História')
-                  .replace(/Psychology/g, 'Psicologia').replace(/Science/g, 'Ciência')
-                  .replace(/Self-Help/g, 'Autoajuda').replace(/Body, Mind & Spirit/g, 'Espiritualidade')
-                  .replace(/Biography & Autobiography/g, 'Biografia').replace(/Literary Collections/g, 'Literatura')
-                  .replace(/Poetry/g, 'Poesia').replace(/Social Science/g, 'Ciências Sociais'),
-              isPendingEnrichment: false 
-            };
-          }
-          return b;
+          if (b.id !== pendingBook.id) return b;
+          return {
+            ...b,
+            totalPages: info?.pageCount || b.totalPages,
+            currentPage: b.status === 'lido' ? (info?.pageCount || 0) : b.currentPage,
+            thumbnail: info?.imageLinks?.thumbnail?.replace('http:', 'https:') || b.thumbnail,
+            category: (info?.categories?.[0] || b.category || 'Filosofia')
+              .replace(/Religion/g, 'Religião')
+              .replace(/Philosophy/g, 'Filosofia')
+              .replace(/Fiction/g, 'Ficção')
+              .replace(/History/g, 'História')
+              .replace(/Psychology/g, 'Psicologia')
+              .replace(/Science/g, 'Ciência')
+              .replace(/Self-Help/g, 'Autoajuda')
+              .replace(/Body, Mind & Spirit/g, 'Espiritualidade')
+              .replace(/Biography & Autobiography/g, 'Biografia')
+              .replace(/Literary Collections/g, 'Literatura')
+              .replace(/Poetry/g, 'Poesia')
+              .replace(/Social Science/g, 'Ciências Sociais'),
+            isPendingEnrichment: false
+          };
         });
 
-        saveBooksToDb(updatedBooks);
+        // Salva sem chamar saveBooksToDb para não disparar o loop
+        const livrosSanitizados = JSON.parse(JSON.stringify(updatedBooks));
+        setBooks(livrosSanitizados);
+        if (user) {
+          await setDoc(
+            doc(db, 'userBooks', user.uid),
+            { books: livrosSanitizados },
+            { merge: true }
+          );
+        }
         console.log(`Operário: Dados de "${pendingBook.title}" atualizados.`);
+
       } catch (e) {
         console.error("Erro no operário:", e);
+      } finally {
+        // Abaixa a bandeira: "terminei, pode chamar de novo se precisar"
+        isEnrichingRef.current = false;
       }
     };
 
-    // O operário trabalha a cada 6 segundos para não estressar a API
     const timer = setTimeout(enrichNextBook, 6000);
     return () => clearTimeout(timer);
-  }, [books, isSearchingBooks]);
+  }, [books, isSearchingBooks, user]);
 
   // --- MOTOR DE MÉTRICAS (Fase 3) ---
   const getFavoriteTheme = () => {
@@ -537,8 +573,7 @@ function App() {
   // Estado Diário da Carta de Degrau FV
   const [fvDaily, setFvDaily] = useState({
     item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
-    horasVoluntariado: '', horasAulaAssistida: '', horasAulaMinistrada: '', gdveTasksStatus: {}, gdveAttendance: false,    gdveTasksStatus: {}, gdveAttendance: false,
-    praticas: {
+    horasVoluntariado: '', horasAulaAssistida: '', horasAulaMinistrada: '', gdveTasksStatus: {}, gdveAttendance: false,    praticas: {
       tratak: false, recitarHonra: false, recitar7Fases: false,
       camara: false, templo: false, porta: false, patioAberto: false,
       patioColunas: false, santuario: false
@@ -588,12 +623,11 @@ function App() {
       user, selectedDate, selectedVirtue, customVirtue, showCustomVirtue, dailyIntention,
       whereIFailed, whatIDidWell, whatILeftUndone, freeEpilogue, didMorning,
       morningDone, eveningDone,
-      todayTasksStatus, fvDaily,
-      tasksSnapshot: getTasksForToday().map(task => ({
-        id: task.id, name: task.name, completed: !!todayTasksStatus[task.id]
-      }))
+      todayTasksStatus, fvDaily, customTasks
     };
-  });
+  }, [user, selectedDate, selectedVirtue, customVirtue, showCustomVirtue, dailyIntention,
+      whereIFailed, whatIDidWell, whatILeftUndone, freeEpilogue, didMorning,
+      morningDone, eveningDone, todayTasksStatus, fvDaily, customTasks]);
 
   const performSilentAutoSave = async () => {
     const data = autoSaveDataRef.current;
@@ -620,7 +654,17 @@ function App() {
       whatILeftUndone: data.whatILeftUndone || '',
       freeEpilogue: data.freeEpilogue || '',
       tasksStatus: data.todayTasksStatus || {},
-      tasksSnapshot: data.tasksSnapshot || [],
+      tasksSnapshot: (data.customTasks || [])
+        .filter(task => {
+          if (!task.recurrence || task.recurrence === 'daily') return true;
+          const d = new Date(data.selectedDate + 'T12:00:00');
+          if (task.recurrence === 'weekly') return task.weekDays?.includes(d.getDay());
+          if (task.recurrence === 'monthly') return parseInt(task.monthDay) === d.getDate();
+          return true;
+        })
+        .map(task => ({
+          id: task.id, name: task.name, completed: !!(data.todayTasksStatus || {})[task.id]
+        })),
       fvDaily: data.fvDaily || {
         item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
         horasVoluntariado: '', horasAulaAssistida: '', horasAulaMinistrada: '', gdveTasksStatus: {}, gdveAttendance: false,
@@ -635,11 +679,17 @@ function App() {
     }
   };
 
+    const performSilentAutoSaveRef = useRef(null);
+  useEffect(() => {
+    performSilentAutoSaveRef.current = performSilentAutoSave;
+  });
+
   useEffect(() => {
     const intervalId = setInterval(() => {
-      performSilentAutoSave();
-    }, 60000); 
-    
+      if (performSilentAutoSaveRef.current) {
+        performSilentAutoSaveRef.current();
+      }
+    }, 60000);
     return () => clearInterval(intervalId);
   }, []);
 
@@ -1075,11 +1125,7 @@ function App() {
     setLastDrawDate(null);
     setSelectedDate(getTodayKey()); 
     setBooks([]); 
-    setFvDaily({
-      item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
-      horasVoluntariado: '', horasAulaAssistida: '', horasAulaMinistrada: '', gdveTasksStatus: {}, gdveAttendance: false,
-      praticas: { tratak: false, recitarHonra: false, recitar7Fases: false, camara: false, templo: false, porta: false, patioAberto: false, patioColunas: false, santuario: false }
-    });
+    setFvDaily(DEFAULT_FV_DAILY);
   };
 
   const getTasksForToday = () => {
