@@ -7,7 +7,7 @@ import {
   Trash2, Edit, Save, XCircle, Flame, Zap, Shield, Star, Crown, 
   Bell, Check, Music, MessageSquare, Menu, Lock, ChevronDown, ChevronUp, 
   Mountain, Landmark, Swords, Bookmark, Library, MessageCircle, Camera,
-  Clock, ChevronLeft, ChevronRight
+  Clock, ChevronLeft
 } from 'lucide-react';
 
 import { auth, db, messaging } from './config/firebase-config'; 
