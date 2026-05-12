@@ -35,8 +35,8 @@ import {
   studyTips 
 } from './constants/data';
 
-import { getFavoriteTheme, getAuthorStats, getReadingRank, translateCategory } from './constants/bookMetrics';
-import { AUTHOR_CANON, translateCategory, getReadingRank, getFavoriteTheme, getAuthorStats } from './constants/ranks';
+import { translateCategory } from './constants/bookMetrics';
+import { AUTHOR_CANON, getReadingRank, getFavoriteTheme, getAuthorStats } from './constants/ranks';
 
 function App() {
   // Estados
