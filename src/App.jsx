@@ -3231,99 +3231,51 @@ ${monthlyReport.desafioCrescimento || '-'}
               </button>
             </div>
           ) : (
-            // VERSÃO COMPUTADOR (Completa)
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            // VERSÃO COMPUTADOR (Sincronizada com Mobile)
+            <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
               
-              {/* BADGE DE FOGO (SEMPRE VISÍVEL NO PC) */}
-              <div onClick={() => setShowStreakModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: streak > 0 ? (isDark ? 'rgba(255, 100, 0, 0.15)' : '#fff3e0') : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f0f0f0'), border: `1px solid ${streak > 0 ? (isDark ? '#ff9800' : '#ffb74d') : (isDark ? '#555' : '#ccc')}`, borderRadius: '20px', color: streak > 0 ? (isDark ? '#ffb74d' : '#e65100') : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontFamily: 'Georgia, serif', fontSize: '0.9rem', marginRight: '0.5rem', cursor: 'pointer', boxShadow: streak > 0 && isDark ? '0 0 10px rgba(255, 152, 0, 0.2)' : 'none' }}>
-                <StreakIcon size={18} fill={streak > 0 ? (isDark ? '#ff9800' : '#e65100') : 'none'} color={streak > 0 ? (isDark ? '#ff9800' : '#e65100') : (isDark ? '#aaa' : '#777')} />
+              {/* BADGE DE FOGO */}
+              <div onClick={() => setShowStreakModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: streak > 0 ? (isDark ? 'rgba(255, 100, 0, 0.15)' : '#fff3e0') : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f0f0f0'), border: `1px solid ${streak > 0 ? (isDark ? '#ff9800' : '#ffb74d') : (isDark ? '#555' : '#ccc')}`, borderRadius: '20px', color: streak > 0 ? (isDark ? '#ffb74d' : '#e65100') : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontFamily: 'Georgia, serif', fontSize: '0.9rem', cursor: 'pointer' }}>
+                <StreakIcon size={18} fill={streak > 0 ? (isDark ? '#ff9800' : '#e65100') : 'none'} />
                 <span>{streak} {streak === 1 ? 'dia' : 'dias'}</span>
               </div>
 
-              
+              {/* BOTÕES NAVEGAÇÃO IGUAIS AO MOBILE */}
+              {[
+                { id: 'today', icon: <BookOpen size={16}/>, label: 'Hoje' },
+                { id: 'history', icon: <Calendar size={16}/>, label: 'Histórico' },
+                { id: 'leituras', icon: <Library size={16}/>, label: 'Estudos' },
+                { id: 'gdve', icon: <Shield size={16}/>, label: 'Discipulado', fvOnly: true },
+                { id: 'analytics', icon: <TrendingUp size={16}/>, label: 'Métricas' },
+                { id: 'notifications', icon: <Bell size={16}/>, label: 'Guardião' }
+              ].map(btn => {
+                if (btn.fvOnly && !fvUnlocked) return null;
+                const isActive = view === btn.id;
+                return (
+                  <button 
+                    key={btn.id}
+                    onClick={() => setView(btn.id)}
+                    style={{ padding: '0.5rem 1rem', background: isActive ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: isActive ? (isDark ? '#1a1a2e' : 'white') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s' }}
+                  >
+                    {btn.icon} {btn.label}
+                  </button>
+                );
+              })}
 
-              {/* DROPDOWN 1: DIÁRIO */}
-              <div 
-                style={{ position: 'relative', display: 'flex', flexDirection: 'column' }} 
-                onMouseLeave={() => setShowDiaryMenu(false)}
-              >
-                <button 
-                  onMouseEnter={() => setShowDiaryMenu(true)}
-                  onClick={() => setShowDiaryMenu(!showDiaryMenu)} 
-                  style={{ padding: '0.5rem 1rem', background: ['today', 'history', 'analytics'].includes(view) ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: ['today', 'history', 'analytics'].includes(view) ? (isDark ? '#1a1a2e' : '#f0e6d2') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s' }}
-                >
-                  <BookOpen size={16} /> Diário {showDiaryMenu ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              {/* BOTÃO OPÇÕES (CONFIGURAÇÕES E LOGOUT) */}
+              <div style={{ position: 'relative' }} onMouseLeave={() => setShowProfileMenu(false)}>
+                <button onMouseEnter={() => setShowProfileMenu(true)} onClick={() => setShowProfileMenu(!showProfileMenu)} style={{ padding: '0.5rem', background: 'transparent', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer' }}>
+                  <Settings size={18} color={isDark ? '#d4af37' : '#6b4423'} />
                 </button>
-                {showDiaryMenu && (
-                  <div style={{ position: 'absolute', top: '100%', left: 0, paddingTop: '0.5rem', zIndex: 1000 }}>
-                    <div className="animate-fadeIn" style={{ width: '160px', background: isDark ? 'rgba(26, 26, 46, 0.98)' : 'rgba(255, 255, 255, 0.98)', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', overflow: 'hidden', display: 'flex', flexDirection: 'column', backdropFilter: 'blur(10px)' }}>
-                      <button onClick={() => { setView('today'); setShowDiaryMenu(false); }} style={{ padding: '0.75rem 1rem', background: view === 'today' ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', fontFamily: 'Georgia, serif' }} onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(139, 115, 85, 0.05)'} onMouseOut={(e) => e.currentTarget.style.background = view === 'today' ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent'}>☀️ Hoje</button>
-                      <button onClick={() => { setView('history'); setShowDiaryMenu(false); }} style={{ padding: '0.75rem 1rem', background: view === 'history' ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', fontFamily: 'Georgia, serif' }} onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(139, 115, 85, 0.05)'} onMouseOut={(e) => e.currentTarget.style.background = view === 'history' ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent'}>📚 Histórico</button>
-                      <button onClick={() => { setView('analytics'); setShowDiaryMenu(false); }} style={{ padding: '0.75rem 1rem', background: view === 'analytics' ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem', fontFamily: 'Georgia, serif' }} onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(139, 115, 85, 0.05)'} onMouseOut={(e) => e.currentTarget.style.background = view === 'analytics' ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent'}><TrendingUp size={16}/> Métricas</button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* BOTÃO DE ESTUDOS */}
-              <button 
-                onClick={() => setView('leituras')} 
-                style={{ padding: '0.5rem 1rem', background: view === 'leituras' ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: view === 'leituras' ? (isDark ? '#1a1a2e' : 'white') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s', marginRight: '0.5rem' }}
-              >
-                <Library size={16} /> Estudos
-              </button>
-
-              {/* BOTÃO GDVE*/}
-              {fvUnlocked && (
-                <button 
-                  onClick={() => setView('gdve')} 
-                  style={{ padding: '0.5rem 1rem', background: view === 'gdve' ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'transparent', color: view === 'gdve' ? '#000' : '#FFD700', border: '2px solid #FFD700', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: view === 'gdve' ? '0 0 15px rgba(255, 215, 0, 0.4)' : 'none', transition: 'all 0.2s' }}
-                >
-                  <Shield size={16} /> Discipulado
-                </button>
-              )}
-            
-              {/* MENU DE OPÇÕES (DROPDOWN) - CORRIGIDO */}
-              <div 
-                style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }} 
-                onMouseLeave={() => setShowProfileMenu(false)}
-              >
-                <button 
-                  onMouseEnter={() => setShowProfileMenu(true)}
-                  onClick={() => setShowProfileMenu(!showProfileMenu)} 
-                  style={{ padding: '0.5rem 1rem', background: showProfileMenu ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: showProfileMenu ? (isDark ? '#1a1a2e' : 'white') : (isDark ? '#d4af37' : '#6b4423'), border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s' }}
-                >
-                  <Settings size={18} /> Opções {showProfileMenu ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                </button>
-
-                {/* A LISTA DE OPÇÕES AGORA ESTÁ COLADA NO BOTÃO (Tiramos o vão invisível) */}
                 {showProfileMenu && (
                   <div style={{ position: 'absolute', top: '100%', right: 0, paddingTop: '0.5rem', zIndex: 1000 }}>
-                    <div className="animate-fadeIn" style={{ width: '220px', background: isDark ? 'rgba(26, 26, 46, 0.98)' : 'rgba(255, 255, 255, 0.98)', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', overflow: 'hidden', display: 'flex', flexDirection: 'column', backdropFilter: 'blur(10px)' }}>
-                      
-                      <button onClick={() => { setView('notifications'); setShowProfileMenu(false); }} style={{ padding: '1rem', background: view === 'notifications' ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent', border: 'none', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.95rem', fontFamily: 'Georgia, serif' }} onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(139, 115, 85, 0.05)'} onMouseOut={(e) => e.currentTarget.style.background = view === 'notifications' ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent'}>
-                        <Bell size={18} color={isDark ? '#d4af37' : '#6b4423'} /> Guardião (WhatsApp)
-                      </button>
-                      
-                      <button onClick={() => { setShowSuggestionModal(true); setShowProfileMenu(false); }} style={{ padding: '1rem', background: 'transparent', border: 'none', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.95rem', fontFamily: 'Georgia, serif' }} onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(139, 115, 85, 0.05)'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
-                        <MessageSquare size={18} color={isDark ? '#d4af37' : '#6b4423'} /> Enviar Sugestão
-                      </button>
-                      
-                      <button onClick={() => { setShowSettingsModal(true); setShowProfileMenu(false); }} style={{ padding: '1rem', background: 'transparent', border: 'none', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.95rem', fontFamily: 'Georgia, serif' }} onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(139, 115, 85, 0.05)'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
-                        <Settings size={18} color={isDark ? '#d4af37' : '#6b4423'} /> Configurações
-                      </button>
-                      
-                      <button onClick={() => { toggleTheme(); setShowProfileMenu(false); }} style={{ padding: '1rem', background: 'transparent', border: 'none', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`, color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.95rem', fontFamily: 'Georgia, serif' }} onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(139, 115, 85, 0.05)'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
-                        {isDark ? <Sun size={18} color="#d4af37" /> : <Moon size={18} color="#8b7355" />} Tema: {isDark ? 'Mudar para Claro' : 'Mudar para Escuro'}
-                      </button>
-                      
-                      <button onClick={() => { handleLogout(); setShowProfileMenu(false); }} style={{ padding: '1rem', background: 'rgba(231, 76, 60, 0.05)', border: 'none', color: '#e74c3c', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.95rem', fontWeight: 'bold', fontFamily: 'Georgia, serif' }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(231, 76, 60, 0.15)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(231, 76, 60, 0.05)'}>
-                        <LogOut size={18} /> Sair do Diário
-                      </button>
+                    <div className="animate-fadeIn" style={{ width: '180px', background: isDark ? 'rgba(26, 26, 46, 0.98)' : 'white', border: `1px solid ${isDark ? '#d4af37' : '#ccc'}`, borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                      <button onClick={() => { setShowSettingsModal(true); setShowProfileMenu(false); }} style={{ padding: '0.8rem', background: 'transparent', border: 'none', borderBottom: '1px solid #eee', color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer' }}>⚙️ Configurações</button>
+                      <button onClick={toggleTheme} style={{ padding: '0.8rem', background: 'transparent', border: 'none', borderBottom: '1px solid #eee', color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer' }}>{isDark ? '☀️ Tema Claro' : '🌙 Tema Escuro'}</button>
+                      <button onClick={handleLogout} style={{ padding: '0.8rem', background: 'rgba(231, 76, 60, 0.1)', border: 'none', color: '#e74c3c', textAlign: 'left', cursor: 'pointer', fontWeight: 'bold' }}>🚪 Sair</button>
                     </div>
                   </div>
                 )}
-              
               </div>
             </div>
           )}
