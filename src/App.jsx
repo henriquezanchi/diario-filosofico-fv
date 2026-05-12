@@ -571,14 +571,8 @@ function App() {
   };
   
   // Estado Diário da Carta de Degrau FV
-  const [fvDaily, setFvDaily] = useState({
-    item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
-    horasVoluntariado: '', horasAulaAssistida: '', horasAulaMinistrada: '', gdveTasksStatus: {}, gdveAttendance: false,    praticas: {
-      tratak: false, recitarHonra: false, recitar7Fases: false,
-      camara: false, templo: false, porta: false, patioAberto: false,
-      patioColunas: false, santuario: false
-    }
-  });
+  const [fvDaily, setFvDaily] = useState(DEFAULT_FV_DAILY);
+
 
   // Controle Universal das Práticas Guiadas
   const [isPracticeActive, setIsPracticeActive] = useState(false); 
@@ -665,11 +659,7 @@ function App() {
         .map(task => ({
           id: task.id, name: task.name, completed: !!(data.todayTasksStatus || {})[task.id]
         })),
-      fvDaily: data.fvDaily || {
-        item1: '', item2: '', item34: '', item5: '', item6: '', item7: '',
-        horasVoluntariado: '', horasAulaAssistida: '', horasAulaMinistrada: '', gdveTasksStatus: {}, gdveAttendance: false,
-        praticas: { tratak: false, recitarHonra: false, recitar7Fases: false, camara: false, templo: false, porta: false, patioAberto: false, patioColunas: false, santuario: false }
-      }
+      fvDaily: data.fvDaily || DEFAULT_FV_DAILY
     };
 
     try {
