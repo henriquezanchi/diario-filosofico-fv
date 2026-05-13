@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Award, BookOpen, CheckCircle, ShoppingCart, ChevronDown, ChevronUp } from 'lucide-react';
-import { GRADE_CURRICULAR } from '../constants/data';
+import { GRADE_CURRICULAR } from './constants/data';
 
 // Agrupa os livros da grade por stage (ex: "1º Ano", "2º Ano", "3º Ano")
 const agruparPorAno = (lista) => {
