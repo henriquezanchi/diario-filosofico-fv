@@ -2881,6 +2881,12 @@ ${monthlyReport.desafioCrescimento || '-'}
   const totalPraticasCount = fvConfig?.praticas?.length || 4;
   const pb = getPraticasBadgeInfo(statsMenu.diasPraticas);
   const PraticaIcon = pb.icon;
+  const todayKeyBadge = getTodayKey();
+  const todayEntryBadge = entries.find(e => e.date === todayKeyBadge);
+  const praticasDeHoje = todayEntryBadge?.fvDaily?.praticas
+    ? Object.values(todayEntryBadge.fvDaily.praticas).filter(v => v === true).length
+    : 0;
+  const totalPraticasConfig = (fvConfig?.praticas?.length || 4) + 4;
   const missoesCompletas = fvGdveTasks.filter(t => t.isCycle ? fvGdveCycleStatus[t.id] : (fvDaily.gdveTasksStatus?.[t.id] >= t.target)).length;
 
   return (
@@ -2906,7 +2912,7 @@ ${monthlyReport.desafioCrescimento || '-'}
               </div>
 
               <div onClick={() => setShowPracticesModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.4rem 0.5rem', background: isDark ? 'rgba(0,0,0,0.3)' : '#fdfbf7', border: `1px solid ${pb.color}`, borderRadius: '12px', color: pb.color, fontWeight: 'bold', fontSize: '0.75rem', cursor: 'pointer' }}>
-                <PraticaIcon size={14} /> <span>{praticasHojeCount}/{totalPraticasCount}</span>
+                <PraticaIcon size={14} /> <span>{praticasDeHoje}/{totalPraticasConfig}</span>
               </div>
 
               {fvUnlocked && fvGdveTasks.length > 0 && (
@@ -2929,7 +2935,7 @@ ${monthlyReport.desafioCrescimento || '-'}
               </div>
 
               <div onClick={() => setShowPracticesModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: isDark ? 'rgba(0,0,0,0.3)' : '#fdfbf7', border: `1px solid ${pb.color}`, borderRadius: '20px', color: pb.color, fontWeight: 'bold', fontFamily: 'Georgia, serif', fontSize: '0.85rem', cursor: 'pointer', transition: 'transform 0.2s' }} onMouseDown={(e) => e.currentTarget.style.transform='scale(0.95)'} onMouseUp={(e) => e.currentTarget.style.transform='scale(1)'}>
-                <PraticaIcon size={16} /> <span>{praticasHojeCount}/{totalPraticasCount}</span>
+                <PraticaIcon size={16} /> <span>{praticasDeHoje}/{totalPraticasConfig}</span>
               </div>
 
               {fvUnlocked && fvGdveTasks.length > 0 && (
