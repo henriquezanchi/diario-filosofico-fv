@@ -320,3 +320,13 @@ export const studyTips = [
     { phase: "Prática Geral", text: "Não meça seu avanço pela quantidade de páginas viradas, mas pela quantidade de ideias que você transformou em ação." },
     { phase: "Prática Geral", text: "É preferível ler poucos livros bons muitas vezes, do que muitos livros ruins uma só vez." }
   ];
+
+  export const GRADE_CURRICULAR = [
+  { id: 'g1', title: 'O Caibalion', author: 'Três Iniciados', stage: 'Introdução' },
+  { id: 'g2', title: 'Bhagavad Gita', author: 'Vyasa', stage: 'Introdução' },
+  { id: 'g3', title: 'A Voz do Silêncio', author: 'H.P. Blavatsky', stage: 'Introdução' },
+  { id: 'g4', title: 'Luz no Caminho', author: 'Mabel Collins', stage: 'Básico' },
+  { id: 'g5', title: 'Meditações', author: 'Marco Aurélio', stage: 'Básico' },
+  { id: 'g6', title: 'Cartas a Lucílio', author: 'Sêneca', stage: 'Avançado' },
+  { id: 'g7', title: 'O Mito da Caverna', author: 'Platão', stage: 'Avançado' },
+];
