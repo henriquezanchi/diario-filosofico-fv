@@ -3871,7 +3871,710 @@ ${monthlyReport.desafioCrescimento || '-'}
               doc={doc}
               setDoc={setDoc}
             />
-          
+            
+            <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+              
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', position: 'relative' }}>
+                      <label style={{ 
+                        cursor: isAwaitingScan ? 'wait' : 'pointer', 
+                        background: isAwaitingScan ? 'rgba(212,175,55,0.1)' : 'transparent', 
+                        color: isDark ? '#b8a88a' : '#6b5744', 
+                        border: `1px solid ${isAwaitingScan ? '#FFD700' : (isDark ? '#b8a88a' : '#6b5744')}`, 
+                        padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.9rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.3s' 
+                      }}>
+                        {isAwaitingScan ? (
+                          <><Sparkles className="animate-spin" size={16} color="#FFD700" /> Identificando...</>
+                        ) : (
+                          <><Search size={16} /> Escanear Estante</>
+                        )}
+                        <input type="file" accept="image/*" capture="environment" onChange={handleShelfScan} disabled={isAwaitingScan} style={{ display: 'none' }} />
+                      </label>
+                      
+                      {/* NOTIFICAÇÃO FLUTUANTE (TOAST) */}
+                      {scanNotification?.show && (
+                        <div 
+                          onClick={() => { setShowScannerModal(true); setScanNotification(prev => ({ ...prev, show: false })); }}
+                          className="animate-bounce"
+                          style={{ position: 'absolute', top: '-60px', left: 0, right: 0, background: '#4caf50', color: 'white', padding: '0.6rem 1rem', borderRadius: '10px', fontSize: '0.85rem', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(0,0,0,0.3)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', zIndex: 10, width: 'max-content', minWidth: '220px' }}
+                        >
+                          <Check size={16} /> {scanNotification.count} livros encontrados! Clique aqui.
+                        </div>
+                      )}
+
+                      <button onClick={() => setShowAddBook(true)} style={{ background: isDark ? '#FFD700' : '#996515', color: isDark ? '#000' : '#fff', border: 'none', padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Plus size={16} /> Novo Livro
+                      </button>
+                    </div>
+              <p style={{ color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2rem', fontSize: '1rem', fontStyle: 'italic' }}>
+
+                "Um quarto sem livros é como um corpo sem alma." — Cícero
+
+              </p>
+              
+                {/* DASHBOARD DE GAMIFICAÇÃO: O CAMINHO DO SÁBIO */}
+              {(() => {
+                const rank = getReadingRank(totalForgedPages);
+                const progressToNext = rank.next ? Math.min(100, Math.round((totalForgedPages / rank.next) * 100)) : 100;
+                
+                return (
+                  <div className="animate-fadeIn" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
+                    
+                    {/* CARD DO RANK */}
+                    <div style={{ background: isDark ? 'rgba(0,0,0,0.3)' : '#fcfcfc', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : '#eee'}`, display: 'flex', alignItems: 'center', gap: '1.5rem', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
+                      <div style={{ width: '70px', height: '70px', borderRadius: '50%', border: `3px solid ${rank.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', background: isDark ? 'rgba(255,255,255,0.05)' : 'white', boxShadow: `0 0 15px ${rank.color}40` }}>
+                        <Award size={36} color={rank.color} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', color: isDark ? '#b8a88a' : '#888', fontWeight: 'bold' }}>Seu Grau na Escola</span>
+                        <h3 style={{ margin: '0.2rem 0 0.5rem 0', fontFamily: "'Cinzel', serif", fontSize: '1.4rem', color: rank.color }}>{rank.title}</h3>
+                        
+                        {rank.next ? (
+                          <>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: isDark ? '#f0e6d2' : '#2c1810', marginBottom: '0.3rem', fontWeight: 'bold' }}>
+                              <span>Páginas Forjadas: {totalForgedPages}</span>
+                              <span>Rumo a {rank.next}</span>
+                            </div>
+                            <div style={{ width: '100%', height: '6px', background: isDark ? 'rgba(255,255,255,0.1)' : '#e0e0e0', borderRadius: '3px', overflow: 'hidden' }}>
+                              <div style={{ width: `${progressToNext}%`, height: '100%', background: rank.color, transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)' }}></div>
+                            </div>
+                          </>
+                        ) : (
+                          <div style={{ color: rank.color, fontSize: '0.85rem', fontWeight: 'bold', marginTop: '0.5rem' }}>Você alcançou o cume da Sabedoria Literária.</div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* NOVO PAINEL DE MÉTRICAS DETALHADO */}
+                    <div style={{ background: isDark ? 'rgba(212,175,55,0.05)' : '#fffbf0', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', alignItems: 'center' }}>
+                      
+                      {/* Obras Lidas */}
+                      <div style={{ textAlign: 'center', borderRight: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`, borderBottom: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`, paddingBottom: '0.5rem' }}>
+                        <div style={{ fontSize: '1.8rem', fontWeight: 'bold', fontFamily: "'Cinzel', serif", color: isDark ? '#FFD700' : '#996515' }}>
+                          {books.length}
+                        </div>
+                        <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: isDark ? '#b8a88a' : '#6b5744', fontWeight: 'bold' }}>Na Estante</div>
+                      </div>
+
+                      {/* Concluídos */}
+                      <div style={{ textAlign: 'center', borderBottom: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`, paddingBottom: '0.5rem' }}>
+                        <div style={{ fontSize: '1.8rem', fontWeight: 'bold', fontFamily: "'Cinzel', serif", color: '#4caf50' }}>
+                          {finishedBooksCount}
+                        </div>
+                        <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: isDark ? '#b8a88a' : '#6b5744', fontWeight: 'bold' }}>Concluídos</div>
+                      </div>
+
+                      {/* Tema Frequente */}
+                      <div style={{ textAlign: 'center', borderRight: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`, paddingTop: '0.5rem' }}>
+                        <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: isDark ? '#f0e6d2' : '#2c1810', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', padding: '0 0.5rem' }}>
+                          {favoriteTheme}
+                        </div>
+                        <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: isDark ? '#b8a88a' : '#6b5744', fontWeight: 'bold', marginTop: '0.2rem' }}>Tema Frequente</div>
+                      </div>
+
+                      {/* Taxa de Finalização */}
+                      <div style={{ textAlign: 'center', paddingTop: '0.5rem' }}>
+                        <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: isDark ? '#f0e6d2' : '#2c1810' }}>
+                          {books.length > 0 ? Math.round((finishedBooksCount / books.length) * 100) : 0}%
+                        </div>
+                        <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: isDark ? '#b8a88a' : '#6b5744', fontWeight: 'bold', marginTop: '0.2rem' }}>Taxa de Conclusão</div>
+                      </div>
+
+                    </div>
+
+                  </div>
+                );
+              })()}
+
+              {/* FORMULÁRIO DE ADICIONAR/EDITAR LIVRO (COM BUSCA GOOGLE) */}
+              {showAddBook && (
+                <div style={{ padding: '1.5rem', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.3)', borderRadius: '12px', marginBottom: '2rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}` }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                    <h3 style={{ margin: 0, color: isDark ? '#d4af37' : '#6b4423', fontFamily: "'Cinzel', serif" }}>{editingBookId ? 'Editar Livro' : 'Adicionar à Estante'}</h3>
+                    <button onClick={() => { setShowAddBook(false); setBookSearchResults([]); setBookSearchQuery(''); }} style={{ background: 'transparent', color: '#e74c3c', border: 'none', cursor: 'pointer' }}><X size={24} /></button>
+                  </div>
+                  
+                  {/* BARRA DE PESQUISA GOOGLE */}
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <input 
+                        type="text" 
+                        value={bookSearchQuery} 
+                        onChange={(e) => setBookSearchQuery(e.target.value)} 
+                        onKeyDown={(e) => e.key === 'Enter' && searchBooks(bookSearchQuery)}
+                        placeholder="Pesquise por título ou autor..." 
+                        style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, background: isDark ? 'rgba(0,0,0,0.2)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} 
+                      />
+                      <button onClick={() => searchBooks(bookSearchQuery)} style={{ padding: '0 1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
+                        {isSearchingBooks ? <Sparkles className="animate-spin" size={18}/> : <Search size={18}/>}
+                      </button>
+                    </div>
+
+                    {/* RESULTADOS DA BUSCA */}
+                    {bookSearchResults.length > 0 && (
+                      <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', borderRadius: '8px', padding: '0.5rem', maxHeight: '200px', overflowY: 'auto' }}>
+                        {bookSearchResults.map(res => (
+                          <div 
+                            key={res.id} 
+                            onClick={() => {
+                              if (editingBookId) {
+                                // MODO COMPLETAR: Salva, move para Lidos e fecha a tela
+                                const updated = books.map(b => {
+                                  if (b.id === editingBookId) {
+                                    return {
+                                      ...b,
+                                      title: res.title,
+                                      author: res.author,
+                                      totalPages: res.totalPages,
+                                      currentPage: res.totalPages,
+                                      thumbnail: res.thumbnail,
+                                      category: res.category,
+                                      status: 'lido',
+                                      finishedDate: new Date().toISOString(),
+                                      isPendingEnrichment: false
+                                    };
+                                  }
+                                  return b;
+                                });
+                                saveBooksToDb(updated);
+                                setShowAddBook(false);
+                                setBookSearchResults([]);
+                                setEditingBookId(null);
+                              } else {
+                                // MODO NOVO LIVRO: Só preenche o form
+                                setNewBook({ title: res.title, author: res.author, currentPage: 0, totalPages: res.totalPages, thumbnail: res.thumbnail, category: res.category });
+                                setBookSearchResults([]);
+                              }
+                            }}
+                            style={{ display: 'flex', gap: '0.75rem', padding: '0.5rem', cursor: 'pointer', borderRadius: '6px', borderBottom: isDark ? '1px solid #333' : '1px solid #eee' }}
+                            onMouseOver={(e) => e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.05)' : '#f9f9f9'}
+                            onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                          >
+                            <img src={res.thumbnail || 'https://via.placeholder.com/40x60?text=No+Cover'} alt="Capa" style={{ width: '40px', height: '60px', objectFit: 'cover', borderRadius: '4px' }} />
+                            <div style={{ textAlign: 'left' }}>
+                              <div style={{ fontSize: '0.9rem', fontWeight: 'bold', color: isDark ? '#f0e6d2' : '#2c1810' }}>{res.title}</div>
+                              <div style={{ fontSize: '0.8rem', color: '#888' }}>{res.author}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* FORMULÁRIO FINAL (Preenchido ou Manual) */}
+                  {bookSearchResults.length === 0 && !isSearchingBooks && (
+                    <>
+                      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '1rem', marginBottom: '1rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                          <label style={{ fontSize: '0.8rem', color: '#888', marginBottom: '0.2rem' }}>Título</label>
+                          <input type="text" value={newBook.title} onChange={(e) => setNewBook({...newBook, title: e.target.value})} placeholder="Título..." style={{ padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                          <label style={{ fontSize: '0.8rem', color: '#888', marginBottom: '0.2rem' }}>Autor</label>
+                          <input type="text" value={newBook.author} onChange={(e) => setNewBook({...newBook, author: e.target.value})} placeholder="Autor..." style={{ padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                        </div>
+                      </div>
+                      
+                      <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '1rem', marginBottom: '1.5rem' }}>
+                        <div style={{ flex: 1 }}>
+                          <label style={{ fontSize: '0.8rem', color: '#888' }}>Pág. Atual</label>
+                          <input type="number" value={newBook.currentPage} onChange={(e) => setNewBook({...newBook, currentPage: parseInt(e.target.value) || 0})} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <label style={{ fontSize: '0.8rem', color: '#888' }}>Total Págs</label>
+                          <input type="number" value={newBook.totalPages} onChange={(e) => setNewBook({...newBook, totalPages: parseInt(e.target.value) || 0})} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <label style={{ fontSize: '0.8rem', color: '#888' }}>Link do PDF (Drive/Dropbox)</label>
+                          <input type="text" value={newBook.link || ''} onChange={(e) => setNewBook({...newBook, link: e.target.value})} placeholder="https://..." style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  
+                  {/* Atalho para Livro Já Lido - Salvamento Imediato */}
+                  {!editingBookId && newBook.totalPages > 0 && (
+                    <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <button 
+                        onClick={() => {
+                          const finishedBook = { 
+                            ...newBook, 
+                            currentPage: newBook.totalPages, 
+                            finishedDate: new Date().toISOString() 
+                          };
+                          
+                          // Colocamos o novo livro na FRENTE do array ([novo, ...antigos])
+                          const updated = [{ id: `book_${Date.now()}`, ...finishedBook }, ...books];
+
+                          saveBooksToDb(updated);
+                          
+                          // Fecha sem popup, a aparição no topo é a confirmação
+                          setShowAddBook(false);
+                          setBookSearchQuery('');
+                          setNewBook({ title: '', author: '', currentPage: 0, totalPages: 0 });
+                        }}
+                        style={{ background: isDark ? 'rgba(76, 175, 80, 0.2)' : '#e8f5e9', color: isDark ? '#81c784' : '#2e7d32', border: `2px solid ${isDark ? '#4caf50' : '#4caf50'}`, padding: '0.6rem 1rem', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', justifyContent: 'center' }}
+                      >
+                        <CheckCircle size={18} /> Marcar como Já Lido e Guardar na Estante
+                      </button>
+                    </div>
+                  )}
+
+                  <button 
+                    onClick={() => {
+                      if(!newBook.title) return alert('Dê um título ao livro.');
+                      
+                      let updated;
+                      if (editingBookId) {
+                        // Se estiver editando, mantém a posição original
+                        updated = books.map(b => b.id === editingBookId ? { ...b, ...newBook } : b);
+                      } else {
+                        // Se for novo, coloca no TOPO da lista
+                        updated = [{ id: `book_${Date.now()}`, ...newBook, finishedDate: null }, ...books];
+                      }
+                      
+                      saveBooksToDb(updated);
+                      setShowAddBook(false);
+                      setBookSearchQuery('');
+                      setNewBook({ title: '', author: '', currentPage: 0, totalPages: 0 });
+                      setEditingBookId(null);
+                    }}
+                    style={{ width: '100%', padding: '0.75rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', fontSize: '1rem' }}
+                  >
+                    <Save size={18} style={{ marginRight: '0.5rem' }}/> {editingBookId ? 'Salvar Alterações' : 'Guardar na Estante'}
+                  </button>
+                </div>
+              )}
+
+              {/* VITRINE DE RECOMENDAÇÃO (MONETIZAÇÃO) */}
+              {books.length > 0 && (
+                <div style={{ marginBottom: '3rem', padding: '1.5rem', background: isDark ? 'linear-gradient(135deg, rgba(212,175,55,0.1) 0%, rgba(0,0,0,0.3) 100%)' : 'linear-gradient(135deg, #fffbf0 0%, #fff 100%)', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212,175,55,0.3)' : '#ffe082'}`, position: 'relative', overflow: 'hidden' }}>
+                  {!bookRecommendation ? (
+                    <div style={{ textAlign: 'center', padding: '2rem' }}>
+                      <Sparkles className="animate-spin" size={24} color={isDark ? '#FFD700' : '#996515'} style={{ margin: '0 auto 1rem' }} />
+                      <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.9rem', fontStyle: 'italic' }}>O Oráculo está consultando os astros e sua estante para encontrar a próxima jornada...</p>
+                    </div>
+                  ) : (
+                    <div className="animate-fadeIn" style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <div style={{ position: 'absolute', top: '10px', right: '10px', fontSize: '0.6rem', color: isDark ? '#555' : '#ccc', textTransform: 'uppercase' }}>Sugestão do Oráculo</div>
+                      
+                      <img src={bookRecommendation.thumbnail || 'https://placehold.co/60x90/1a1a2e/d4af37?text=Capa'} alt="Capa" style={{ width: '70px', height: '100px', borderRadius: '6px', boxShadow: '0 4px 10px rgba(0,0,0,0.3)' }} />
+                      
+                      <div style={{ flex: 1, minWidth: '200px' }}>
+                        <h4 style={{ margin: 0, color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif", fontSize: '1.1rem' }}>{bookRecommendation.title}</h4>
+                        <p style={{ margin: '0.2rem 0 0.75rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.85rem' }}>de {bookRecommendation.author}</p>
+                        <p style={{ margin: 0, color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.9rem', fontStyle: 'italic', lineHeight: '1.4' }}>"{bookRecommendation.reason}"</p>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {(() => {
+                          const tituloLimpo = bookRecommendation.title.toLowerCase();
+                          
+                          // A Lista de Exceções baseada na sua pesquisa real
+                          const livrosSemAmazon = [
+                            'ankor',
+                            'cartas a délia',
+                            'cartas a delia',
+                            'magia, religião',
+                            'me disseram que',
+                            'a vida depois da morte',
+                            'o que fazemos com o coração',
+                            'mitos, ritos e símbolos',
+                            'iniciação e pensamento simbólico',
+                            'a natureza da nossa busca'
+                          ];
+
+                          // Se o título sugerido contiver algum fragmento da lista acima, ele é exceção
+                          const naoTemNaAmazon = livrosSemAmazon.some(livro => tituloLimpo.includes(livro));
+
+                          let buyLink = '';
+                          let buttonText = '';
+                          let bgButton = '';
+
+                          if (naoTemNaAmazon) {
+                            // Vai para o Google focado em buscar em sebos ou na própria editora
+                            buyLink = `https://www.google.com/search?q=${encodeURIComponent('comprar livro ' + bookRecommendation.title + ' ' + bookRecommendation.author)}`;
+                            buttonText = 'Buscar em Sebos ou Editora';
+                            bgButton = '#3498DB'; // Azul para indicar que é uma busca externa
+                          } else {
+                            // Rota Ouro: Vai para a Amazon com o seu Link de Afiliado!
+                            buyLink = `https://www.amazon.com.br/s?k=${encodeURIComponent('livro ' + bookRecommendation.title + ' ' + bookRecommendation.author)}&tag=${AMAZON_AFFILIATE_ID}`;
+                            buttonText = 'Comprar na Amazon';
+                            bgButton = '#FF9900'; // Laranja Amazon clássico
+                          }
+
+                          return (
+                            <a 
+                              href={buyLink}
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              style={{ padding: '0.8rem 1.5rem', background: bgButton, color: '#000', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: `0 4px 12px ${naoTemNaAmazon ? 'rgba(52, 152, 219, 0.3)' : 'rgba(255,153,0,0.3)'}` }}
+                            >
+                              {buttonText}
+                            </a>
+                          );
+                        })()}
+                        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                          <button 
+                            onClick={async () => {
+                              // Cria o livro já marcando com 1 página para o sistema entender que está concluído enquanto o Oráculo busca o real
+                              const newBook = { id: `book_${Date.now()}`, title: bookRecommendation.title, author: bookRecommendation.author, totalPages: 1, currentPage: 1, thumbnail: bookRecommendation.thumbnail, category: 'Filosofia', isPendingEnrichment: true, status: 'lido', finishedDate: new Date().toISOString() };
+                              saveBooksToDb([newBook, ...books]);
+                              
+                              // Adiciona aos descartes para o Oráculo nunca mais sugerir ele
+                              const novaLista = [...discardedSuggestions, bookRecommendation.title];
+                              setDiscardedSuggestions(novaLista);
+                              if (user) await setDoc(doc(db, 'userBooks', user.uid), { discardedSuggestions: novaLista }, { merge: true });
+
+                              generateBookRecommendation();
+                            }}
+                            disabled={isGeneratingRecommendation} style={{ flex: 1, background: 'transparent', border: `1px solid ${isDark ? '#555' : '#ccc'}`, color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.75rem', cursor: 'pointer', borderRadius: '4px', padding: '0.4rem', transition: 'all 0.2s' }}>{isGeneratingRecommendation ? 'Gerando...' : 'Já Li (Adicionar à Estante)'}</button>
+                          
+                          <button 
+                            onClick={async () => {
+                              const novaLista = [...discardedSuggestions, bookRecommendation.title];
+                              setDiscardedSuggestions(novaLista);
+                              if (user) await setDoc(doc(db, 'userBooks', user.uid), { discardedSuggestions: novaLista }, { merge: true });
+                              generateBookRecommendation();
+                            }}
+                            disabled={isGeneratingRecommendation} style={{ flex: 1, background: 'transparent', border: `1px solid ${isDark ? '#555' : '#ccc'}`, color: '#e74c3c', fontSize: '0.75rem', cursor: 'pointer', borderRadius: '4px', padding: '0.4rem', transition: 'all 0.2s' }}>{isGeneratingRecommendation ? 'Gerando...' : 'Descartar Sugestão'}</button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* A ESTANTE DE LIVROS E SEÇÃO COMPLETAR */}
+              {/* BARRA DE PESQUISA NA ESTANTE */}
+              {books.length > 0 && (
+                <div style={{ position: 'relative', marginBottom: '1.5rem' }}>
+                  <Search size={18} color={isDark ? '#b8a88a' : '#6b5744'} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
+                  <input 
+                    type="text" 
+                    placeholder="Filtrar livros por título ou autor..." 
+                    value={shelfSearchTerm} 
+                    onChange={(e) => setShelfSearchTerm(e.target.value)} 
+                    style={{ width: '100%', padding: '0.6rem 0.6rem 0.6rem 2.8rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.2)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} 
+                  />
+                </div>
+              )}
+              {books.length === 0 && !showAddBook ? (
+                <div style={{ textAlign: 'center', padding: '3rem', color: isDark ? '#b8a88a' : '#6b5744' }}>
+                  <Bookmark size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
+                  <p style={{ fontSize: '1.1rem' }}>Sua estante está vazia. Adicione o livro que está lendo.</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                  {(() => {
+                    // A NOVA HIERARQUIA DAS ESTANTES
+
+                    // Listas agora respeitam o termo de busca
+                    const filteredBooks = books.filter(b => 
+                      b.title.toLowerCase().includes(shelfSearchTerm.toLowerCase()) || 
+                      b.author.toLowerCase().includes(shelfSearchTerm.toLowerCase())
+                    );
+
+                    const attentionBooks = filteredBooks.filter(b => !b.isPendingEnrichment && b.totalPages === 0);
+                    const readBooks = filteredBooks.filter(b => b.status === 'lido' || b.finishedDate || (b.totalPages > 0 && b.currentPage >= b.totalPages));
+                    const ownedBooks = filteredBooks.filter(b => b.status === 'juro' && !attentionBooks.includes(b) && !readBooks.includes(b));
+                    const wishBooks = filteredBooks.filter(b => b.status === 'desejo' && !attentionBooks.includes(b) && !readBooks.includes(b));
+                    const readingBooks = filteredBooks.filter(b => !attentionBooks.includes(b) && !readBooks.includes(b) && !ownedBooks.includes(b) && !wishBooks.includes(b));
+
+                    const toggleDeleteSelection = (id) => {
+                      if (selectedForDeletion.includes(id)) setSelectedForDeletion(prev => prev.filter(item => item !== id));
+                      else setSelectedForDeletion(prev => [...prev, id]);
+                    };
+
+                    // Motor de renderização de Cards (para não repetir código)
+                    const renderBookCard = (book, isWarning) => {
+                      const progress = book.totalPages > 0 ? Math.min(100, Math.round((book.currentPage / book.totalPages) * 100)) : 0;
+                      const isFinished = !!book.finishedDate || (progress >= 100 && book.totalPages > 0);
+                      const isPending = book.isPendingEnrichment;
+
+                      return (
+                        <div key={book.id} style={{ background: isFinished ? (isDark ? 'rgba(76, 175, 80, 0.05)' : '#f0fdf4') : (isWarning ? (isDark ? 'rgba(231,76,60,0.05)' : '#fff5f5') : (isDark ? 'rgba(26, 26, 46, 0.4)' : 'rgba(255, 255, 255, 0.8)')), border: `1px solid ${isWarning ? '#e74c3c' : (isFinished ? '#4caf50' : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'))}`, borderRadius: '12px', padding: '1.2rem', position: 'relative', overflow: 'hidden', display: 'flex', gap: '1rem' }}>
+                          {/* CHECKBOX DE EXCLUSÃO EM LOTE (SÓ APARECE SE TIVER AVISO) */}
+                          {isWarning && (
+                            <input 
+                              type="checkbox" 
+                              checked={selectedForDeletion.includes(book.id)} 
+                              onChange={() => toggleDeleteSelection(book.id)} 
+                              style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 5, width: '20px', height: '20px', cursor: 'pointer' }}
+                            />
+                          )}
+                          {/* CAPA DO LIVRO */}
+                          <div style={{ flexShrink: 0, width: '80px', height: '120px', background: '#333', borderRadius: '6px', overflow: 'hidden', boxShadow: '0 4px 10px rgba(0,0,0,0.3)', position: 'relative' }}>
+                            <img src={book.thumbnail || 'https://placehold.co/80x120/1a1a2e/d4af37?text=Sem+Capa'} alt="Capa" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            {isPending && (
+                               <div className="animate-fadeIn" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.8)', color: '#FFD700', fontSize: '0.65rem', textAlign: 'center', padding: '4px 0', fontWeight: 'bold' }}>Buscando...</div>
+                            )}
+                          </div>
+
+                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                              <h3 style={{ margin: 0, color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.1rem', fontFamily: "'Cinzel', serif", lineHeight: '1.2' }}>{book.title}</h3>
+                              <div style={{ display: 'flex', gap: '0.3rem' }}>
+                                <button onClick={() => { setEditingBookId(book.id); setNewBook(book); setShowAddBook(true); window.scrollTo(0,0); }} style={{ background: 'transparent', border: 'none', color: isDark ? '#d4af37' : '#6b4423', cursor: 'pointer' }}><Edit size={14} /></button>
+                                <button onClick={() => { if(window.confirm('Remover da estante?')) saveBooksToDb(books.filter(b => b.id !== book.id)); }} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer' }}><Trash2 size={14} /></button>
+                              </div>
+                            </div>
+                            
+                            <p style={{ margin: '0.2rem 0 0.5rem 0', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.85rem', fontStyle: 'italic' }}>{book.author}</p>
+                            
+                            {book.category && (
+                              <span style={{ alignSelf: 'flex-start', fontSize: '0.65rem', padding: '2px 6px', background: isDark ? 'rgba(212,175,55,0.1)' : 'rgba(0,0,0,0.05)', borderRadius: '4px', color: isDark ? '#d4af37' : '#6b4423', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.75rem' }}>{book.category}</span>
+                            )}
+
+                            {isWarning ? (
+                               <div 
+                              style={{ marginTop: 'auto', padding: '0.6rem', background: '#e74c3c', color: 'white', borderRadius: '6px', fontSize: '0.8rem', textAlign: 'center', cursor: 'pointer', fontWeight: 'bold', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.4rem', boxShadow: '0 2px 5px rgba(231, 76, 60, 0.3)' }} 
+                              onClick={() => { 
+                                setEditingBookId(book.id); 
+                                setNewBook(book); 
+                                setShowAddBook(true); 
+                                
+                                // PESQUISA AUTOMÁTICA COM DEBOUNCE LONGO:
+                                 const queryTerm = `${book.title} ${book.author}`;
+                                 setBookSearchQuery(queryTerm);
+                                 
+                                 // Se já tiver uma busca engatilhada, cancela para não encavalar
+                                 if (window.searchTimeout) clearTimeout(window.searchTimeout);
+                                 
+                                 // Espera 1.5 segundos antes de atirar no Google
+                                 window.searchTimeout = setTimeout(() => {
+                                   searchBooks(queryTerm); 
+                                 }, 1500);
+                              }}
+                            >
+                              <Search size={14} /> Completar Dados
+                            </div>
+                            ) : (
+                              <>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '0.3rem' }}>
+                                  <span>{isPending ? 'Analisando os astros...' : `${progress}% concluído`}</span>
+                                  {isFinished && <span style={{ color: '#4caf50' }}>Lido em {book.finishedDate ? new Date(book.finishedDate).toLocaleDateString('pt-BR') : ''}</span>}
+                                </div>
+                                <div style={{ width: '100%', height: '6px', background: isDark ? 'rgba(255,255,255,0.1)' : '#eee', borderRadius: '3px', overflow: 'hidden', marginBottom: '1rem' }}>
+                                  <div style={{ width: `${progress}%`, height: '100%', background: isFinished ? '#4caf50' : (isDark ? '#d4af37' : '#6b4423'), transition: 'width 0.8s ease' }}></div>
+                                </div>
+
+                                {!isFinished ? (
+                                  <div style={{ display: 'flex', gap: '0.4rem' }}>
+                                    <button 
+                                      onClick={() => {
+                                      if(isPending) return alert("Aguarde o Oráculo encontrar as páginas deste livro primeiro, ou edite-o manualmente clicando no lápis acima.");
+                                      const inputPagina = prompt(`Livro: ${book.title}\nTotal de páginas: ${book.totalPages}\n\nEm qual página você parou hoje?`, book.currentPage);
+                                      if (inputPagina && !isNaN(inputPagina)) {
+                                        const novaPaginaInformada = parseInt(inputPagina);
+                                        if (novaPaginaInformada <= book.currentPage) return alert("A página informada é menor ou igual à atual.");
+
+                                        const novaPag = Math.min(book.totalPages, novaPaginaInformada);
+                                        const acabouAgora = (novaPag >= book.totalPages);
+                                        
+                                        const paginasAvançadasReais = novaPag - book.currentPage;
+                                        const novoTotalGlobal = totalForgedPages + paginasAvançadasReais;
+
+                                        const livroAtualizado = { ...book, currentPage: novaPag, finishedDate: acabouAgora ? new Date().toISOString() : null };
+                                        saveBooksToDb(books.map(b => b.id === book.id ? livroAtualizado : b), novoTotalGlobal);
+
+                                        if (acabouAgora) {
+                                          alert(`Vitória! Você concluiu "${book.title}".`);
+                                        } else if (paginasAvançadasReais > 0) {
+                                          setPostReadInvite(livroAtualizado);
+                                          if(aiConsent) generateTopicsForInvite(livroAtualizado);
+                                        }
+                                      }
+                                    }}
+                                      style={{ flex: 1, padding: '0.5rem', background: 'transparent', color: isDark ? '#d4af37' : '#6b4423', border: `1px solid ${isDark ? 'rgba(212,175,55,0.4)' : '#ccc'}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}
+                                    >
+                                      + Atualizar
+                                    </button>                                    
+                                  </div>
+                                ) : (
+                                  <div style={{ textAlign: 'center', color: '#4caf50', fontSize: '0.8rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', border: '1px solid #4caf50', borderRadius: '6px', padding: '0.4rem' }}>
+                                    <Award size={14} /> Leitura Finalizada
+                                  </div>
+                                )}
+                              </>
+                            )}
+                            
+                            <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.75rem' }}>
+                              {book.link && (
+                                <a href={book.link} target="_blank" rel="noopener noreferrer" style={{ flex: 1, padding: '0.5rem', background: '#3498DB', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold', textDecoration: 'none', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}>
+                                  <FileText size={12} /> Abrir PDF
+                                </a>
+                              )}
+                              <button 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  // Abre ou fecha a gaveta do livro atual
+                                  setExpandedNotesId(prev => prev === book.id ? null : book.id);
+                                }}
+                                style={{ flex: 1, padding: '0.5rem', background: expandedNotesId === book.id ? (isDark ? '#d4af37' : '#6b4423') : (isDark ? 'rgba(255,255,255,0.1)' : '#f0f0f0'), color: expandedNotesId === book.id ? (isDark ? '#1a1a2e' : 'white') : (isDark ? '#f0e6d2' : '#2c1810'), border: `1px solid ${expandedNotesId === book.id ? 'transparent' : (isDark ? '#555' : '#ccc')}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', transition: 'all 0.2s' }}
+                              >
+                                <Edit size={12} /> {book.notes ? 'Ver Notas' : '+ Notas'}
+                              </button>
+                            </div>
+
+                            {/* A GAVETA DE NOTAS EXPANSÍVEL */}
+                            {expandedNotesId === book.id && (
+                              <div className="animate-fadeIn" style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }} onClick={(e) => e.stopPropagation()}>
+                                <textarea 
+                                  value={book.notes || ''} 
+                                  onChange={(e) => {
+                                    // Atualiza a memória local enquanto você digita
+                                    setBooks(books.map(b => b.id === book.id ? { ...b, notes: e.target.value } : b));
+                                  }}
+                                  placeholder="Suas reflexões, trechos marcantes, resumos de capítulos..."
+                                  rows={5}
+                                  style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.4)' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.4)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.9rem', fontFamily: 'Georgia, serif', resize: 'vertical' }}
+                                />
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    // Salva no banco de dados e fecha a gaveta
+                                    saveBooksToDb(books);
+                                    setExpandedNotesId(null);
+                                  }}
+                                  style={{ alignSelf: 'flex-end', padding: '0.5rem 1.5rem', background: '#4caf50', color: 'white', border: 'none', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 2px 8px rgba(76,175,80,0.3)' }}
+                                >
+                                  <Save size={14} /> Salvar Fichamento
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    };
+                            
+                    return (
+                      <>
+
+                      {/* 0. A TRILHA DE FORMAÇÃO (NOVO DESIGN EM GRADE) */}
+                        <div>
+                          <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#FFD700' : '#996515', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Award size={20} /> A Trilha de Formação (Obrigatórios)</h3>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '1rem' }}>
+                             {GRADE_CURRICULAR.map((livroCanon, idx) => {
+                                // Lógica embutida elegante
+                                const livroNaEstante = books.find(b => b.title.toLowerCase().includes(livroCanon.title.toLowerCase()));
+                                const statusUser = livroNaEstante ? (livroNaEstante.finishedDate ? 'lido' : livroNaEstante.status) : 'pendente';
+                                const isLido = statusUser === 'lido';
+                                const isLendo = statusUser === 'lendo';
+                                
+                                let borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+                                let bgColor = isDark ? 'rgba(26, 26, 46, 0.4)' : 'rgba(255, 255, 255, 0.6)';
+                                
+                                if (isLido) {
+                                  borderColor = '#4caf50';
+                                  bgColor = isDark ? 'rgba(76, 175, 80, 0.05)' : '#f0fdf4';
+                                } else if (isLendo) {
+                                  borderColor = isDark ? '#d4af37' : '#996515';
+                                  bgColor = isDark ? 'rgba(212, 175, 55, 0.05)' : '#fffbf0';
+                                }
+
+                                return (
+                                  <div key={idx} style={{ background: bgColor, borderRadius: '12px', border: `1px solid ${borderColor}`, padding: '1.2rem', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
+                                    {isLido && <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '80px', height: '80px', background: 'radial-gradient(circle, rgba(76,175,80,0.15) 0%, transparent 70%)', borderRadius: '50%' }}></div>}
+                                    
+                                    <span style={{ fontSize: '0.65rem', color: isDark ? '#b8a88a' : '#888', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', marginBottom: '0.5rem' }}>{livroCanon.stage}</span>
+                                    <h4 style={{ margin: '0 0 0.25rem 0', color: isLido ? '#4caf50' : (isDark ? '#f0e6d2' : '#2c1810'), fontSize: '1.1rem', lineHeight: '1.2', fontFamily: "'Cinzel', serif" }}>{livroCanon.title}</h4>
+                                    <p style={{ margin: '0 0 1rem 0', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.85rem', fontStyle: 'italic' }}>{livroCanon.author}</p>
+                                    
+                                    <div style={{ marginTop: 'auto' }}>
+                                      {isLido ? (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#4caf50', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                                          <CheckCircle size={16} /> Concluído
+                                        </div>
+                                      ) : isLendo ? (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: isDark ? '#d4af37' : '#996515', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                                          <BookOpen size={16} /> Lendo agora
+                                        </div>
+                                      ) : (
+                                        <button 
+                                          onClick={() => {
+                                            setNewBook({ title: livroCanon.title, author: livroCanon.author, currentPage: 0, totalPages: 0, link: '', notes: '' });
+                                            setShowAddBook(true);
+                                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                                          }}
+                                          style={{ width: '100%', padding: '0.6rem', background: 'transparent', color: isDark ? '#d4af37' : '#6b4423', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.4)' : 'rgba(139, 115, 85, 0.4)'}`, borderRadius: '6px', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', transition: 'all 0.2s' }}
+                                        >
+                                          <Plus size={14} /> Iniciar Leitura
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                             })}
+                          </div>
+                        </div>
+                        {/* 1. SEÇÃO ESTOU LENDO */}
+                        {readingBooks.length > 0 && (
+                          <div>
+                            <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#FFD700' : '#996515', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><BookOpen size={20} /> Em Forja (Lendo Agora)</h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                              {readingBooks.map(b => renderBookCard(b, false))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 2. SEÇÃO PROMESSSAS (JÁ TENHO) */}
+                        {ownedBooks.length > 0 && (
+                          <div style={{ paddingTop: '1.5rem' }}>
+                            <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Bookmark size={18} /> Minha Biblioteca (Vou Começar)</h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                              {ownedBooks.map(b => renderBookCard(b, false))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* 3. SEÇÃO REQUER ATENÇÃO (COM EXCLUSÃO EM LOTE) */}
+                        {attentionBooks.length > 0 && (
+                          <div style={{ paddingTop: '1.5rem', borderTop: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`}}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
+                              <h3 style={{ margin: 0, color: '#e74c3c', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><AlertCircle size={18} /> Requer Atenção (Sem Páginas)</h3>
+                              {selectedForDeletion.length > 0 && (
+                                <button onClick={() => { if(window.confirm(`Apagar ${selectedForDeletion.length} livros permanentemente?`)) { saveBooksToDb(books.filter(b => !selectedForDeletion.includes(b.id))); setSelectedForDeletion([]); } }} style={{ background: '#e74c3c', color: 'white', padding: '0.5rem 1rem', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
+                                  🗑️ Apagar Selecionados ({selectedForDeletion.length})
+                                </button>
+                              )}
+                            </div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                              {attentionBooks.map(b => renderBookCard(b, true))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 4. SEÇÃO LISTA DE DESEJOS */}
+                        {wishBooks.length > 0 && (
+                          <div style={{ paddingTop: '1.5rem' }}>
+                            <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Star size={18} /> Lista de Desejos (Quero Comprar)</h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem', opacity: 0.8 }}>
+                              {wishBooks.map(b => renderBookCard(b, false))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* 5. SEÇÃO JÁ LIDOS (GAVETA SANFONA) */}
+                        {readBooks.length > 0 && (
+                          <div style={{ paddingTop: '1.5rem', borderTop: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`}}>
+                            <div onClick={() => setShowReadBooks(!showReadBooks)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', padding: '0.5rem 0' }}>
+                              <h3 style={{ margin: 0, color: '#4caf50', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Award size={18} /> Sabedoria Acumulada ({readBooks.length} obras lidas)</h3>
+                              {showReadBooks ? <ChevronUp size={20} color="#4caf50" /> : <ChevronDown size={20} color="#4caf50" />}
+                            </div>
+                            {showReadBooks && (
+                              <div className="animate-fadeIn" style={{ marginTop: '1.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                                {readBooks.sort((a,b) => new Date(b.finishedDate || 0) - new Date(a.finishedDate || 0)).map(b => renderBookCard(b, false))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                      </>
+                    );
+                  })()}
+                </div>
+              )}             
+            </div>
           </div>
         )}
 
