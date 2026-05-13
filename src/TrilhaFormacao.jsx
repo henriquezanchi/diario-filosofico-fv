@@ -1,389 +1,99 @@
-import React, { useState } from 'react';
-import { Award, BookOpen, CheckCircle, ShoppingCart, ChevronDown, ChevronUp } from 'lucide-react';
+import React from 'react';
+import { Award, CheckCircle, BookOpen, ShoppingCart, Plus } from 'lucide-react';
 import { GRADE_CURRICULAR } from './constants/data';
 
-// Agrupa os livros da grade por stage (ex: "1º Ano", "2º Ano", "3º Ano")
-const agruparPorAno = (lista) => {
-  return lista.reduce((acc, livro) => {
-    const ano = livro.stage || 'Outros';
-    if (!acc[ano]) acc[ano] = [];
-    acc[ano].push(livro);
-    return acc;
-  }, {});
-};
+export default function TrilhaFormacao({ books, isDark, setNewBook, setShowAddBook, saveBooksToDb }) {
+  
+  // Normalização ultra-robusta para ignorar hifens, artigos e acentos
+  const normalizarParaMatch = (str = '') => {
+    if (!str) return '';
+    const artigos = /^(o|a|os|as|um|uma|the|an|a|de|do|da|dos|das)\s+/i;
+    return str
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove acentos
+      .toLowerCase()
+      .replace(/-/g, ' ') // transforma hifen em espaço (ajuda no Bhagavad-Gita)
+      .replace(/[^a-z0-9\s]/g, ' ') // remove pontuação
+      .replace(artigos, '') // remove artigos iniciais
+      .replace(/\s+/g, ' ').trim();
+  };
 
-// --- FUNÇÕES DE FUZZY MATCH (MOVIDAS PARA FORA DO COMPONENTE) ---
-const normalizar = (str = '') => {
-  const artigos = new RegExp('^(o|a|os|as|um|uma|the|an|de|do|da|dos|das)\\s+', 'i');
-  return str
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .replace(artigos, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-};
+  const getTokens = (str) => normalizarParaMatch(str).split(' ').filter(t => t.length > 2);
 
-const tokens = (str) =>
-  normalizar(str).split(' ').filter((t) => t.length > 2);
+  const titulosEquivalentes = (tituloA, tituloB) => {
+    const tA = getTokens(tituloA); 
+    const tB = getTokens(tituloB);
+    if (tA.length === 0 || tB.length === 0) return false;
+    const menor = tA.length < tB.length ? tA : tB;
+    const maior = tA.length < tB.length ? tB : tA;
+    const hits = menor.filter(t => maior.some(m => m.includes(t) || t.includes(m))).length;
+    return (hits / menor.length) >= 0.75;
+  };
 
-const scoreSimilaridade = (tokensA, tokensB) => {
-  const menor = tokensA.length < tokensB.length ? tokensA : tokensB;
-  const maior = tokensA.length < tokensB.length ? tokensB : tokensA;
-  if (menor.length === 0) return 0;
-  const hits = menor.filter((t) =>
-    maior.some((m) => m.includes(t) || t.includes(m))
-  ).length;
-  return hits / menor.length;
-};
-
-const titulosEquivalentes = (tituloA, tituloB) =>
-  scoreSimilaridade(tokens(tituloA), tokens(tituloB)) >= 0.75;
-
-const autoresEquivalentes = (autorA = '', autorB = '') => {
-  if (!autorA || !autorB) return true;
-  const tA = tokens(autorA);
-  const tB = tokens(autorB);
-  if (tA.length === 0 || tB.length === 0) return true;
-  const sobrenomeA = tA[tA.length - 1];
-  const sobrenomeB = tB[tB.length - 1];
-  if (sobrenomeA.includes(sobrenomeB) || sobrenomeB.includes(sobrenomeA)) return true;
-  return scoreSimilaridade(tA, tB) >= 0.5;
-};
-
-// Esta função agora recebe 'books' como argumento
-const encontrarNaEstante = (livroCanon, books) =>
-  books.find((b) =>
-    titulosEquivalentes(livroCanon.title, b.title) &&
-    autoresEquivalentes(livroCanon.author, b.author)
-  );
-
-
-const TrilhaFormacao = ({ books, isDark, setNewBook, setShowAddBook, saveBooksToDb, user, db, doc, setDoc }) => {
-  const [isOpen, setIsOpen] = useState(false);
-
-  const gruposPorAno = agruparPorAno(GRADE_CURRICULAR);
-
-  // Ação: Adicionar como "já lido" direto no array e salvar no Firebase
-  const handleJaLi = (livroCanon) => {
-    // Agora 'encontrarNaEstante' precisa de 'books'
-    const jaExiste = encontrarNaEstante(livroCanon, books);
-    if (jaExiste) return; // Proteção extra, mas o botão já fica oculto
-
+  const handleJaLi = (livro) => {
     const novoLivro = {
       id: `book_${Date.now()}`,
-      title: livroCanon.title,
-      author: livroCanon.author,
-      currentPage: 0,
-      totalPages: 0,
+      title: livro.title,
+      author: livro.author,
+      totalPages: 1, // valor simbólico
+      currentPage: 1,
       status: 'lido',
       finishedDate: new Date().toISOString(),
-      thumbnail: '',
       category: 'Filosofia',
-      isPendingEnrichment: true,
+      isPendingEnrichment: true // o operário vai buscar a capa depois
     };
-
-    saveBooksToDb([novoLivro, ...books]);
+    const novosLivros = [novoLivro, ...books];
+    saveBooksToDb(novosLivros);
+    alert(`✅ "${livro.title}" foi adicionado aos seus livros lidos!`);
   };
 
-  // Ação: Preenche o formulário para iniciar a leitura
-  const handleLer = (livroCanon) => {
-    setNewBook({
-      title: livroCanon.title,
-      author: livroCanon.author,
-      status: 'lendo',
-      currentPage: 0,
-      totalPages: 0,
+  const getProgressoGrade = () => {
+    return GRADE_CURRICULAR.map(livroCanon => {
+      const livroNaEstante = books.find(b => titulosEquivalentes(livroCanon.title, b.title));
+      return {
+        ...livroCanon,
+        statusUser: livroNaEstante ? (livroNaEstante.finishedDate || livroNaEstante.status === 'lido' ? 'lido' : 'lendo') : 'pendente',
+      };
     });
-    setShowAddBook(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  // Ação: Abre a busca na Amazon com link de afiliado
-  const handleComprar = (livroCanon) => {
-    const query = encodeURIComponent(`${livroCanon.title} ${livroCanon.author}`);
-    window.open(
-      `https://www.amazon.com.br/s?k=${query}&tag=filosofiae0a5-20`,
-      '_blank',
-      'noopener noreferrer'
-    );
-  };
-
-  const cardStyle = (statusUser) => {
-    if (statusUser === 'lido') {
-      return {
-        border: '1px solid #4caf50',
-        background: isDark ? 'rgba(76, 175, 80, 0.07)' : '#f0fdf4',
-      };
-    }
-    if (statusUser === 'lendo') {
-      return {
-        border: `1px solid ${isDark ? '#d4af37' : '#996515'}`,
-        background: isDark ? 'rgba(212, 175, 55, 0.07)' : '#fffbf0',
-      };
-    }
-    return {
-      border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
-      background: isDark ? 'rgba(26, 26, 46, 0.4)' : 'rgba(255,255,255,0.7)',
-    };
   };
 
   return (
-    <div
-      style={{
-        background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white',
-        borderRadius: '16px',
-        border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`,
-        overflow: 'hidden',
-        marginBottom: '1.5rem',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-      }}
-    >
-      {/* CABEÇALHO CLICÁVEL (ABRE/FECHA A GAVETA) */}
-      <div
-        onClick={() => setIsOpen((prev) => !prev)}
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '1.25rem 1.5rem',
-          cursor: 'pointer',
-          userSelect: 'none',
-          background: isDark
-            ? 'rgba(212, 175, 55, 0.06)'
-            : 'rgba(139, 115, 85, 0.04)',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <Award size={22} color={isDark ? '#FFD700' : '#996515'} />
-          <h3
-            style={{
-              margin: 0,
-              fontFamily: "'Cinzel', serif",
-              fontSize: '1.15rem',
-              color: isDark ? '#FFD700' : '#996515',
-            }}
-          >
-            Trilha de Formação
-          </h3>
-          <span
-            style={{
-              fontSize: '0.75rem',
-              color: isDark ? '#b8a88a' : '#888',
-              fontStyle: 'italic',
-            }}
-          >
-            — Obras Obrigatórias
-          </span>
-        </div>
-        {isOpen ? (
-          <ChevronUp size={20} color={isDark ? '#d4af37' : '#996515'} />
-        ) : (
-          <ChevronDown size={20} color={isDark ? '#d4af37' : '#996515'} />
-        )}
+    <div className="animate-fadeIn" style={{ marginBottom: '2.5rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+        <Award size={28} color={isDark ? '#FFD700' : '#996515'} />
+        <h2 style={{ margin: 0, color: isDark ? '#f0e6d2' : '#2c1810', fontSize: 'clamp(1.2rem, 3vw, 1.5rem)', fontFamily: "'Cinzel', serif" }}>
+          Trilha de Formação
+        </h2>
       </div>
-
-      {/* CONTEÚDO DA GAVETA */}
-      {isOpen && (
-        <div
-          style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}
-        >
-          {Object.entries(gruposPorAno).map(([ano, livros]) => (
-            <div key={ano}>
-              {/* TÍTULO DO ANO */}
-              <p
-                style={{
-                  margin: '0 0 1rem 0',
-                  fontSize: '0.7rem',
-                  textTransform: 'uppercase',
-                  letterSpacing: '2px',
-                  fontWeight: 'bold',
-                  color: isDark ? '#b8a88a' : '#888',
-                  borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'}`,
-                  paddingBottom: '0.5rem',
-                }}
-              >
-                {ano}
-              </p>
-
-              {/* LISTA DE LIVROS DO ANO */}
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-                  gap: '1rem',
-                }}
-              >
-                {livros.map((livroCanon, idx) => {
-                  // Agora 'encontrarNaEstante' precisa de 'books'
-                  const livroNaEstante = encontrarNaEstante(livroCanon, books);
-                  const isFinishedOnShelf =
-                    livroNaEstante &&
-                    (livroNaEstante.status === 'lido' ||
-                      !!livroNaEstante.finishedDate ||
-                      (livroNaEstante.totalPages > 0 &&
-                        livroNaEstante.currentPage >= livroNaEstante.totalPages));
-                  const statusUser = !livroNaEstante
-                    ? 'pendente'
-                    : isFinishedOnShelf
-                    ? 'lido'
-                    : 'lendo';
-
-                  const isLido = statusUser === 'lido';
-                  const isLendo = statusUser === 'lendo';
-                  const jaTemNaEstante = !!livroNaEstante;
-
-                  return (
-                    <div
-                      key={idx}
-                      style={{
-                        borderRadius: '12px',
-                        padding: '1.1rem',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '0.5rem',
-                        position: 'relative',
-                        transition: 'box-shadow 0.2s',
-                        ...cardStyle(statusUser),
-                      }}
-                    >
-                      <h4
-                        style={{
-                          margin: 0,
-                          fontFamily: "'Cinzel', serif",
-                          fontSize: '0.95rem',
-                          lineHeight: '1.3',
-                          color: isLido
-                            ? '#4caf50'
-                            : isDark
-                            ? '#f0e6d2'
-                            : '#2c1810',
-                        }}
-                      >
-                        {livroCanon.title}
-                      </h4>
-                      <p
-                        style={{
-                          margin: 0,
-                          fontSize: '0.8rem',
-                          fontStyle: 'italic',
-                          color: isDark ? '#b8a88a' : '#6b5744',
-                        }}
-                      >
-                        {livroCanon.author}
-                      </p>
-
-                      <div style={{ marginTop: '0.5rem' }}>
-                        {/* SE JÁ ESTIVER NA ESTANTE: MOSTRA SÓ O STATUS */}
-                        {jaTemNaEstante ? (
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.4rem',
-                              fontSize: '0.82rem',
-                              fontWeight: 'bold',
-                              color: isLido ? '#4caf50' : isDark ? '#d4af37' : '#996515',
-                            }}
-                          >
-                            {isLido ? (
-                              <>
-                                <CheckCircle size={14} /> Concluído
-                              </>
-                            ) : (
-                              <>
-                                <BookOpen size={14} /> Lendo agora
-                              </>
-                            )}
-                          </div>
-                        ) : (
-                          /* SE NÃO ESTIVER NA ESTANTE: MOSTRA OS 3 BOTÕES */
-                          <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                            {/* BOTÃO LER */}
-                            <button
-                              onClick={() => handleLer(livroCanon)}
-                              title="Iniciar leitura"
-                              style={{
-                                flex: 1,
-                                minWidth: '70px',
-                                padding: '0.45rem 0.5rem',
-                                background: 'transparent',
-                                color: isDark ? '#d4af37' : '#996515',
-                                border: `1px solid ${isDark ? 'rgba(212,175,55,0.5)' : 'rgba(139,115,85,0.5)'}`,
-                                borderRadius: '6px',
-                                fontSize: '0.75rem',
-                                fontWeight: 'bold',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '0.3rem',
-                              }}
-                            >
-                              <BookOpen size={12} /> Ler
-                            </button>
-
-                            {/* BOTÃO JÁ LI */}
-                            <button
-                              onClick={() => handleJaLi(livroCanon)}
-                              title="Marcar como já lido"
-                              style={{
-                                flex: 1,
-                                minWidth: '70px',
-                                padding: '0.45rem 0.5rem',
-                                background: 'transparent',
-                                color: '#4caf50',
-                                border: '1px solid rgba(76,175,80,0.5)',
-                                borderRadius: '6px',
-                                fontSize: '0.75rem',
-                                fontWeight: 'bold',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '0.3rem',
-                              }}
-                            >
-                              <CheckCircle size={12} /> Já Li
-                            </button>
-
-                            {/* BOTÃO COMPRAR */}
-                            <button
-                              onClick={() => handleComprar(livroCanon)}
-                              title="Comprar na Amazon"
-                              style={{
-                                flex: 1,
-                                minWidth: '70px',
-                                padding: '0.45rem 0.5rem',
-                                background: 'transparent',
-                                color: '#FF9900',
-                                border: '1px solid rgba(255,153,0,0.5)',
-                                borderRadius: '6px',
-                                fontSize: '0.75rem',
-                                fontWeight: 'bold',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '0.3rem',
-                              }}
-                            >
-                              <ShoppingCart size={12} /> Comprar
-                            </button>
-                          </div >
-                        )}
-                      </div >
-                    </div >
-                  );
-                })}
-              </div >
-            </div >
-          ))}
-        </div >
-      )}
-    </div >
+      
+      {['1º Ano', '2º Ano', '3º Ano'].map(ano => (
+        <div key={ano} style={{ marginTop: '1.5rem' }}>
+          <h3 style={{ fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', marginBottom: '1rem', borderBottom: `1px solid ${isDark ? '#333' : '#eee'}`, paddingBottom: '0.3rem' }}>{ano}</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+            {getProgressoGrade().filter(l => l.stage === ano).map((livro, idx) => {
+              const isLido = livro.statusUser === 'lido';
+              const isLendo = livro.statusUser === 'lendo';
+              return (
+                <div key={idx} style={{ background: isDark ? 'rgba(255,255,255,0.03)' : '#fff', padding: '1rem', borderRadius: '12px', border: `1px solid ${isLido ? '#4caf50' : (isLendo ? '#FFD700' : (isDark ? '#333' : '#eee'))}`, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <h4 style={{ margin: 0, color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem' }}>{livro.title}</h4>
+                  <p style={{ margin: 0, fontSize: '0.8rem', color: isDark ? '#888' : '#666' }}>{livro.author}</p>
+                  
+                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                    {isLido ? (
+                      <span style={{ color: '#4caf50', fontSize: '0.8rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><CheckCircle size={14}/> Lido</span>
+                    ) : (
+                      <>
+                        <button onClick={() => {setNewBook({title: livro.title, author: livro.author}); setShowAddBook(true); window.scrollTo(0,0);}} style={{ flex: 1, padding: '0.4rem', background: '#d4af37', color: '#1a1a2e', border: 'none', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', cursor: 'pointer' }}>Ler</button>
+                        <button onClick={() => handleJaLi(livro)} style={{ flex: 1, padding: '0.4rem', background: 'transparent', color: '#4caf50', border: '1px solid #4caf50', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', cursor: 'pointer' }}>Já Li</button>
+                      </>
+                    )}
+                    <a href={`https://www.amazon.com.br/s?k=${encodeURIComponent(livro.title + ' ' + livro.author)}&tag=filosofiae0a5-20`} target="_blank" rel="noopener noreferrer" style={{ padding: '0.4rem', background: '#FF9900', color: '#000', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Comprar"><ShoppingCart size={14} /></a>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
   );
-};
-
-export default TrilhaFormacao;
+}

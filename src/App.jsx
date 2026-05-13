@@ -4192,7 +4192,13 @@ ${monthlyReport.desafioCrescimento || '-'}
                 return (
                   <>
                     {/* A TRILHA DE FORMAÇÃO VEM AQUI PRIMEIRO, SEMPRE VISÍVEL */}
-                  <TrilhaFormacao books={books} isDark={isDark} setNewBook={setNewBook} setShowAddBook={setShowAddBook} />
+                  <TrilhaFormacao 
+                    books={books} 
+                    isDark={isDark} 
+                    setNewBook={setNewBook} 
+                    setShowAddBook={setShowAddBook} 
+                    saveBooksToDb={saveBooksToDb} 
+                  />
                       
 
                     {/* BARRA DE PESQUISA NA ESTANTE */}
