@@ -431,6 +431,12 @@ function App() {
         }
 
         const json = await res.json();
+        if (!json.items || json.items.length === 0) {
+          // O Google não achou nada! Libera o livro para o usuário editar manualmente.
+          const updatedBooks = books.map(b => b.id === pendingBook.id ? { ...b, isPendingEnrichment: false } : b);
+          saveBooksToDb(updatedBooks);
+          return;
+        }
         const info = json.items?.[0]?.volumeInfo;
 
         const updatedBooks = books.map(b => {
@@ -2705,11 +2711,46 @@ ${monthlyReport.desafioCrescimento || '-'}
 
   // -------------------------------------------------------------
 
-  // --- MOTOR DA GRADE CURRICULAR ---
+  // --- MOTOR INTELIGENTE DA GRADE CURRICULAR (FUZZY MATCH) ---
+  const normalizarParaMatch = (str = '') => {
+    if (!str) return '';
+    const artigos = /^(o|a|os|as|um|uma|the|an|a|de|do|da|dos|das)\s+/i;
+    return str
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove acentos
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ') // pontuação vira espaço
+      .replace(artigos, '') // remove artigos iniciais
+      .replace(/\s+/g, ' ').trim();
+  };
+
+  const getTokens = (str) => normalizarParaMatch(str).split(' ').filter(t => t.length > 2);
+
+  const titulosEquivalentes = (tituloA, tituloB) => {
+    const tA = getTokens(tituloA); const tB = getTokens(tituloB);
+    const menor = tA.length < tB.length ? tA : tB;
+    const maior = tA.length < tB.length ? tB : tA;
+    if (menor.length === 0) return 0;
+    const hits = menor.filter(t => maior.some(m => m.includes(t) || t.includes(m))).length;
+    return (hits / menor.length) >= 0.75;
+  };
+
+  const autoresEquivalentes = (autorA = '', autorB = '') => {
+    if (!autorA || !autorB) return true;
+    const tokA = getTokens(autorA); const tokB = getTokens(autorB);
+    if (tokA.length === 0 || tokB.length === 0) return true;
+    const sobrenomeA = tokA[tokA.length - 1]; const sobrenomeB = tokB[tokB.length - 1];
+    if (sobrenomeA.includes(sobrenomeB) || sobrenomeB.includes(sobrenomeA)) return true;
+    const menor = tokA.length < tokB.length ? tokA : tokB;
+    const maior = tokA.length < tokB.length ? tokB : tokA;
+    const hits = menor.filter(t => maior.some(m => m.includes(t) || t.includes(m))).length;
+    return (hits / menor.length) >= 0.5;
+  };
+
   const getProgressoGrade = () => {
     return GRADE_CURRICULAR.map(livroCanon => {
+      // O NOVO MATCH INTELIGENTE
       const livroNaEstante = books.find(b => 
-        b.title.toLowerCase().includes(livroCanon.title.toLowerCase())
+        titulosEquivalentes(livroCanon.title, b.title) && autoresEquivalentes(livroCanon.author, b.author)
       );
       return {
         ...livroCanon,
