@@ -4871,7 +4871,9 @@ ${monthlyReport.desafioCrescimento || '-'}
               // Juiz do Módulo GDVE (Bastião + Reunião + Práticas)
               const hasBastiao = fvGdveBastiaoName && fvGdveBastiaoName !== '';
               const hasMissoes = fvGdveTasks.length > 0;
-              const missoesCompletas = fvGdveTasks.filter(t => t.isCycle ? fvGdveCycleStatus[t.id] : (fvDaily.gdveTasksStatus?.[t.id] >= t.target)).length;
+              const todayEntryBadge = entries.find(e => e.date === getTodayKey());
+              const todayGdveStatus = todayEntryBadge?.fvDaily?.gdveTasksStatus || {};
+              const missoesCompletas = fvGdveTasks.filter(t => t.isCycle ? fvGdveCycleStatus[t.id] : (todayGdveStatus[t.id] >= t.target)).length;
               
               let gdveStatus = 'empty';
               if (hasBastiao || hasMissoes || fvDaily.gdveAttendance) {
