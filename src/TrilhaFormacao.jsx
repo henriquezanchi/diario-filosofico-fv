@@ -12,56 +12,53 @@ const agruparPorAno = (lista) => {
   }, {});
 };
 
+// --- FUNÇÕES DE FUZZY MATCH (fora do componente para evitar problema de minificação) ---
+const _normalizar = (str) => {
+  if (!str) return '';
+  const artigos = new RegExp('^(o|a|os|as|um|uma|the|an|de|do|da|dos|das)\\s+', 'i');
+  return str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(artigos, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+const _tokens = (str) =>
+  _normalizar(str).split(' ').filter((t) => t.length > 2);
+
+const _score = (tA, tB) => {
+  const menor = tA.length < tB.length ? tA : tB;
+  const maior = tA.length < tB.length ? tB : tA;
+  if (menor.length === 0) return 0;
+  return menor.filter((t) => maior.some((m) => m.includes(t) || t.includes(m))).length / menor.length;
+};
+
+const _titulosOk = (a, b) => _score(_tokens(a), _tokens(b)) >= 0.75;
+
+const _autoresOk = (a, b) => {
+  if (!a || !b) return true;
+  const tA = _tokens(a);
+  const tB = _tokens(b);
+  if (!tA.length || !tB.length) return true;
+  const sA = tA[tA.length - 1];
+  const sB = tB[tB.length - 1];
+  if (sA.includes(sB) || sB.includes(sA)) return true;
+  return _score(tA, tB) >= 0.5;
+};
+
+const _encontrar = (livroCanon, books) =>
+  books.find((b) => _titulosOk(livroCanon.title, b.title) && _autoresOk(livroCanon.author, b.author));
+
+// --- COMPONENTE ---
 const TrilhaFormacao = ({ books, isDark, setNewBook, setShowAddBook, saveBooksToDb, user, db, doc, setDoc }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const gruposPorAno = agruparPorAno(GRADE_CURRICULAR);
 
-    // --- FUNÇÕES DE FUZZY MATCH ---
-  const normalizar = (str = '') => {
-        const artigos = new RegExp('^(o|a|os|as|um|uma|the|an|de|do|da|dos|das)\\s+', 'i');
-    return str
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .toLowerCase()
-      .replace(/[^a-z0-9\s]/g, ' ')
-      .replace(artigos, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-  };
-
-  const tokens = (str) =>
-    normalizar(str).split(' ').filter((t) => t.length > 2);
-
-  const scoreSimilaridade = (tokensA, tokensB) => {
-    const menor = tokensA.length < tokensB.length ? tokensA : tokensB;
-    const maior = tokensA.length < tokensB.length ? tokensB : tokensA;
-    if (menor.length === 0) return 0;
-    const hits = menor.filter((t) =>
-      maior.some((m) => m.includes(t) || t.includes(m))
-    ).length;
-    return hits / menor.length;
-  };
-
-  const titulosEquivalentes = (tituloA, tituloB) =>
-    scoreSimilaridade(tokens(tituloA), tokens(tituloB)) >= 0.75;
-
-  const autoresEquivalentes = (autorA = '', autorB = '') => {
-    if (!autorA || !autorB) return true;
-    const tA = tokens(autorA);
-    const tB = tokens(autorB);
-    if (tA.length === 0 || tB.length === 0) return true;
-    const sobrenomeA = tA[tA.length - 1];
-    const sobrenomeB = tB[tB.length - 1];
-    if (sobrenomeA.includes(sobrenomeB) || sobrenomeB.includes(sobrenomeA)) return true;
-    return scoreSimilaridade(tA, tB) >= 0.5;
-  };
-
-  const encontrarNaEstante = (livroCanon) =>
-    books.find((b) =>
-      titulosEquivalentes(livroCanon.title, b.title) &&
-      autoresEquivalentes(livroCanon.author, b.author)
-    );
+  const encontrarNaEstante = (livroCanon) => _encontrar(livroCanon, books);
 
   // Ação: Adicionar como "já lido" direto no array e salvar no Firebase
   const handleJaLi = (livroCanon) => {
