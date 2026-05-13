@@ -81,7 +81,7 @@ export default function TrilhaFormacao({ books, isDark, setNewBook, setShowAddBo
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <Award size={28} color={isDark ? '#FFD700' : '#996515'} />
           <h2 style={{ margin: 0, fontSize: 'clamp(1.2rem, 3vw, 1.5rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif" }}>
-            Trilha de Formação (Livros Obrigatórios)
+            Trilha de Formação (Livros Obrigatórios para Pedagogos)
           </h2>
         </div>
         {isMainOpen ? <ChevronUp size={24} color={isDark ? '#d4af37' : '#6b4423'} /> : <ChevronDown size={24} color={isDark ? '#d4af37' : '#6b4423'} />}
@@ -90,65 +90,94 @@ export default function TrilhaFormacao({ books, isDark, setNewBook, setShowAddBo
       {/* CONTEÚDO DA TRILHA */}
       {isMainOpen && (
         <div className="animate-fadeIn" style={{ padding: '1rem 2rem 2rem' }}>
-          {['1º Ano', '2º Ano', '3º Ano'].map(ano => (
-            <div key={ano} style={{ marginBottom: '1rem' }}>
-              {/* SUB-GAVETA POR ANO */}
-              <div 
-                onClick={() => toggleYear(ano)}
-                style={{ 
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-                  padding: '0.8rem 1rem', background: isDark ? 'rgba(255,255,255,0.03)' : '#f9f9f9', 
-                  borderRadius: '8px', cursor: 'pointer', border: `1px solid ${isDark ? '#333' : '#eee'}`
-                }}
-              >
-                <h3 style={{ margin: 0, fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', letterSpacing: '1px' }}>{ano}</h3>
-                {openYears[ano] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-              </div>
+          {['1º Ano', '2º Ano', '3º Ano'].map(ano => {
+            // LÓGICA DE PORCENTAGEM DO ANO
+            const livrosDoAno = progresso.filter(l => l.stage === ano);
+            const total = livrosDoAno.length;
+            const lidos = livrosDoAno.filter(l => l.statusUser === 'lido').length;
+            const percentual = total > 0 ? Math.round((lidos / total) * 100) : 0;
+            const isCompleted = percentual === 100;
 
-              {openYears[ano] && (
-                <div className="animate-fadeIn" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem', marginTop: '1rem', padding: '0 0.5rem' }}>
-                  {progresso.filter(l => l.stage === ano).map((livro, idx) => {
-                    const isLido = livro.statusUser === 'lido';
-                    const isLendo = livro.statusUser === 'lendo';
-                    return (
-                      <div key={idx} style={{ 
-                        background: isLido ? (isDark ? 'rgba(76, 175, 80, 0.05)' : '#f0fdf4') : (isDark ? 'rgba(255,255,255,0.02)' : '#fff'), 
-                        padding: '1.2rem', borderRadius: '12px', 
-                        border: `1px solid ${isLido ? '#4caf50' : (isLendo ? '#FFD700' : (isDark ? '#333' : '#eee'))}`, 
-                        display: 'flex', flexDirection: 'column', gap: '0.5rem' 
-                      }}>
-                        <h4 style={{ margin: 0, color: isLido ? '#4caf50' : (isDark ? '#f0e6d2' : '#2c1810'), fontSize: '1rem', fontFamily: "'Cinzel', serif" }}>{livro.title}</h4>
-                        <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#666', fontStyle: 'italic' }}>{livro.author}</p>
-                        
-                        <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto', paddingTop: '0.5rem' }}>
-                          {isLido ? (
-                            <div style={{ color: '#4caf50', fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><CheckCircle size={14}/> Concluído</div>
-                          ) : (
-                            <>
-                              <button 
-  onClick={() => {
-    const query = `${livro.title} ${livro.author}`;
-    setShowAddBook(true); 
-    setBookSearchQuery(query); // Preenche a barra de busca
-    searchBooks(query);        // Dispara a pesquisa no Google Books
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }} 
-  style={{ flex: 1, padding: '0.5rem', background: '#d4af37', color: '#1a1a2e', border: 'none', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 'bold', cursor: 'pointer' }}
->
-  Pesquisar
-</button>
-                              <button onClick={() => handleJaLi(livro)} style={{ flex: 1, padding: '0.5rem', background: 'transparent', color: '#4caf50', border: '1px solid #4caf50', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 'bold', cursor: 'pointer' }}>Já Li</button>
-                            </>
-                          )}
-                          <a href={`https://www.amazon.com.br/s?k=${encodeURIComponent(livro.title + ' ' + livro.author)}&tag=filosofiae0a5-20`} target="_blank" rel="noopener noreferrer" style={{ padding: '0.5rem', background: '#FF9900', color: '#000', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Comprar na Amazon"><ShoppingCart size={16} /></a>
-                        </div>
-                      </div>
-                    );
-                  })}
+            return (
+              <div key={ano} style={{ marginBottom: '1rem' }}>
+                {/* SUB-GAVETA POR ANO (AGORA COM PORCENTAGEM) */}
+                <div 
+                  onClick={() => toggleYear(ano)}
+                  style={{ 
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+                    padding: '0.8rem 1rem', background: isDark ? 'rgba(255,255,255,0.03)' : '#f9f9f9', 
+                    borderRadius: '8px', cursor: 'pointer', border: `1px solid ${isCompleted ? '#4caf50' : (isDark ? '#333' : '#eee')}`,
+                    position: 'relative', overflow: 'hidden'
+                  }}
+                >
+                  {/* Barra de progresso sutil no fundo do botão */}
+                  <div style={{ position: 'absolute', bottom: 0, left: 0, height: '3px', width: `${percentual}%`, background: isCompleted ? '#4caf50' : (isDark ? '#d4af37' : '#996515'), transition: 'width 1s ease-in-out' }}></div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', zIndex: 1 }}>
+                    <h3 style={{ margin: 0, fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', letterSpacing: '1px' }}>{ano}</h3>
+                    
+                    {/* Badge de Porcentagem */}
+                    <span style={{ 
+                      fontSize: '0.75rem', fontWeight: 'bold', padding: '0.2rem 0.6rem', borderRadius: '12px', 
+                      background: isCompleted ? 'rgba(76, 175, 80, 0.15)' : (isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(139, 115, 85, 0.1)'),
+                      color: isCompleted ? '#4caf50' : (isDark ? '#d4af37' : '#996515') 
+                    }}>
+                      {percentual}% Concluído
+                    </span>
+                  </div>
+                  
+                  <div style={{ zIndex: 1, color: isDark ? '#b8a88a' : '#666' }}>
+                    {openYears[ano] ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                  </div>
                 </div>
-              )}
-            </div>
-          ))}
+
+                {/* LISTA DE LIVROS DENTRO DA GAVETA */}
+                {openYears[ano] && (
+                  <div className="animate-fadeIn" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem', marginTop: '1rem', padding: '0 0.5rem' }}>
+                    {livrosDoAno.map((livro, idx) => {
+                      const isLido = livro.statusUser === 'lido';
+                      const isLendo = livro.statusUser === 'lendo';
+                      return (
+                        <div key={idx} style={{ 
+                          background: isLido ? (isDark ? 'rgba(76, 175, 80, 0.05)' : '#f0fdf4') : (isDark ? 'rgba(255,255,255,0.02)' : '#fff'), 
+                          padding: '1.2rem', borderRadius: '12px', 
+                          border: `1px solid ${isLido ? '#4caf50' : (isLendo ? '#FFD700' : (isDark ? '#333' : '#eee'))}`, 
+                          display: 'flex', flexDirection: 'column', gap: '0.5rem' 
+                        }}>
+                          <h4 style={{ margin: 0, color: isLido ? '#4caf50' : (isDark ? '#f0e6d2' : '#2c1810'), fontSize: '1rem', fontFamily: "'Cinzel', serif" }}>{livro.title}</h4>
+                          <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#666', fontStyle: 'italic' }}>{livro.author}</p>
+                          
+                          <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto', paddingTop: '0.5rem' }}>
+                            {isLido ? (
+                              <div style={{ color: '#4caf50', fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><CheckCircle size={14}/> Concluído</div>
+                            ) : (
+                              <>
+                                <button onClick={() => {
+                                    const query = `${livro.title} ${livro.author}`;
+                                    setShowAddBook(true); 
+                                    setBookSearchQuery(query); 
+                                    searchBooks(query); 
+                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                  }} style={{ flex: 1, padding: '0.5rem', background: 'transparent', color: isDark ? '#d4af37' : '#6b4423', border: `1px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '6px', fontSize: '0.8rem', fontWeight: 'bold', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.3rem' }}>
+                                  <BookOpen size={14} /> Ler
+                                </button>
+                                <button onClick={() => handleJaLi(livro)} style={{ flex: 1, padding: '0.5rem', background: 'transparent', color: '#4caf50', border: '1px solid #4caf50', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 'bold', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.3rem' }}>
+                                  <CheckCircle size={14} /> Já Li
+                                </button>
+                              </>
+                            )}
+                            <a href={`https://www.amazon.com.br/s?k=${encodeURIComponent(livro.title + ' ' + livro.author)}&tag=filosofiae0a5-20`} target="_blank" rel="noopener noreferrer" style={{ padding: '0.5rem', background: 'transparent', color: '#FF9900', border: '1px solid #FF9900', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', fontSize: '0.8rem', fontWeight: 'bold', textDecoration: 'none' }} title="Comprar na Amazon">
+                              Comprar <ShoppingCart size={14} />
+                            </a>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

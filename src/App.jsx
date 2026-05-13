@@ -1355,7 +1355,6 @@ function App() {
     setIsGeneratingRecommendation(true);
 
     const livrosAtuais = books.map(b => `${b.title} (${b.author}) - Categoria: ${b.category}`).join(' | ');
-    // A MÁGICA AQUI: Usar a lista recém-atualizada se ela for passada no clique do botão
     const listaProibida = listaDescartadosAtualizada || discardedSuggestions;
 
     const prompt = `Você é um bibliotecário da Escola de Filosofia Nova Acrópole. 
@@ -1367,7 +1366,7 @@ function App() {
     Com base no perfil dele, sugira UM ÚNICO livro clássico de filosofia, história ou humanismo que seja o próximo passo ideal. 
     Escolha livros de autores como Marco Aurélio, Sêneca, Platão, Helena Blavatsky, Jorge Ángel Livraga ou similares.
     
-    Retorne ESTRITAMENTE um JSON:
+    Retorne ESTRITAMENTE um JSON válido, sem formatação markdown, com esta estrutura exata:
     {
       "title": "Título exato do livro",
       "author": "Autor",
@@ -1379,31 +1378,58 @@ function App() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json" } })
       });
-      const data = await response.json();
-      const rec = JSON.parse(data.candidates[0].content.parts[0].text);
-
-      const bookData = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(rec.title + ' ' + rec.author)}&maxResults=5`);
-      const bookInfo = await bookData.json();
       
-      const validBook = bookInfo.items?.find(item => item.volumeInfo.imageLinks?.thumbnail && item.volumeInfo.pageCount > 0);
-
-      if (!validBook) {
-        setBookRecommendation(null); 
-        return;
+      const data = await response.json();
+      
+      // Proteção 1: Impede que o app trave se a API atingir o limite
+      if (data.error) {
+         console.error("Erro da API Gemini:", data.error.message);
+         setIsGeneratingRecommendation(false);
+         return;
       }
 
-      const thumbnail = validBook.volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:');
-      const finalRec = { ...rec, thumbnail, generatedAt: new Date().toISOString() };
+      // Proteção 2: Limpa marcações de código (```json) que o Gemini costuma colocar
+      let rawText = data.candidates[0].content.parts[0].text;
+      rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+      const rec = JSON.parse(rawText);
+
+      // Busca a capa no Google Books
+      const bookData = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(rec.title + ' ' + rec.author)}&maxResults=5`);
+      const bookInfo = await bookData.json();
+      const validBook = bookInfo.items?.find(item => item.volumeInfo.imageLinks?.thumbnail && item.volumeInfo.pageCount > 0);
+
+      let finalRec;
+      
+      // Proteção 3: Quebra o Loop Infinito se o Google Books não achar o livro
+      if (!validBook) {
+        finalRec = { 
+          ...rec, 
+          thumbnail: '[https://placehold.co/60x90/1a1a2e/d4af37?text=Sem+Capa](https://placehold.co/60x90/1a1a2e/d4af37?text=Sem+Capa)', 
+          generatedAt: new Date().toISOString() 
+        };
+      } else {
+        const thumbnail = validBook.volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:');
+        finalRec = { ...rec, thumbnail, generatedAt: new Date().toISOString() };
+      }
 
       setBookRecommendation(finalRec);
-      await setDoc(doc(db, 'userBooks', user.uid), { bookRecommendation: finalRec }, { merge: true });
+      if (user) await setDoc(doc(db, 'userBooks', user.uid), { bookRecommendation: finalRec }, { merge: true });
 
     } catch (e) {
       console.error("Erro ao gerar recomendação:", e);
+      // Proteção 4: Se tudo falhar, gera um card de erro amigável para parar o loop
+      const fallback = { 
+        title: "O Oráculo Precisa Descansar", 
+        author: "Sistema", 
+        reason: "Ocorreu uma falha na conexão. Tente descartar esta sugestão mais tarde.", 
+        thumbnail: '[https://placehold.co/60x90/1a1a2e/e74c3c?text=Erro](https://placehold.co/60x90/1a1a2e/e74c3c?text=Erro)', 
+        generatedAt: new Date().toISOString() 
+      };
+      setBookRecommendation(fallback);
     } finally {
       setIsGeneratingRecommendation(false);
     }
-  };  
+  };
 
   const loadCustomTasks = async (uid) => {
     try {
