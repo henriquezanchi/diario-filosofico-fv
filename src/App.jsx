@@ -2912,7 +2912,7 @@ ${monthlyReport.desafioCrescimento || '-'}
               </div>
 
               <div onClick={() => setShowPracticesModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.4rem 0.5rem', background: isDark ? 'rgba(0,0,0,0.3)' : '#fdfbf7', border: `1px solid ${pb.color}`, borderRadius: '12px', color: pb.color, fontWeight: 'bold', fontSize: '0.75rem', cursor: 'pointer' }}>
-                <PraticaIcon size={14} /> <span>{praticasDeHoje}/{totalPraticasConfig}</span>
+                <PraticaIcon size={14} /> <span>{pb.label}</span>
               </div>
 
               {fvUnlocked && fvGdveTasks.length > 0 && (
@@ -2935,7 +2935,7 @@ ${monthlyReport.desafioCrescimento || '-'}
               </div>
 
               <div onClick={() => setShowPracticesModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: isDark ? 'rgba(0,0,0,0.3)' : '#fdfbf7', border: `1px solid ${pb.color}`, borderRadius: '20px', color: pb.color, fontWeight: 'bold', fontFamily: 'Georgia, serif', fontSize: '0.85rem', cursor: 'pointer', transition: 'transform 0.2s' }} onMouseDown={(e) => e.currentTarget.style.transform='scale(0.95)'} onMouseUp={(e) => e.currentTarget.style.transform='scale(1)'}>
-                <PraticaIcon size={16} /> <span>{praticasDeHoje}/{totalPraticasConfig}</span>
+                <PraticaIcon size={16} /> <span>{pb.label}</span>
               </div>
 
               {fvUnlocked && fvGdveTasks.length > 0 && (
