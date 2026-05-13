@@ -4887,7 +4887,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                             <option value="">Selecione...</option>
                             {fvConfig?.modulo2?.bancoTemas?.map((b, idx) => <option key={idx} value={b.name}>{b.name}</option>)}
                           </select>
-                          {fvGdveBastiaoLink && <a href={fvGdveBastiaoLink} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: '1rem', color: isDark ? '#FFD700' : '#996515', fontWeight: 'bold' }}>🔗 Abrir PDF do Bastião</a>}
+                          {fvGdveBastiaoLink && <a href={fvGdveBastiaoLink} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: '1rem', color: isDark ? '#FFD700' : '#996515', fontWeight: 'bold' }}>🔗 Ler Bastião</a>}
                         </div>
 
                         {/* Seção Práticas do Grupo */}

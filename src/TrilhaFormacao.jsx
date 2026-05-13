@@ -138,18 +138,25 @@ export default function TrilhaFormacao({ books, isDark, setNewBook, setShowAddBo
                       const isLido = livro.statusUser === 'lido';
                       const isLendo = livro.statusUser === 'lendo';
                       return (
-                        <div key={idx} style={{ 
-                          background: isLido ? (isDark ? 'rgba(76, 175, 80, 0.05)' : '#f0fdf4') : (isDark ? 'rgba(255,255,255,0.02)' : '#fff'), 
-                          padding: '1.2rem', borderRadius: '12px', 
-                          border: `1px solid ${isLido ? '#4caf50' : (isLendo ? '#FFD700' : (isDark ? '#333' : '#eee'))}`, 
-                          display: 'flex', flexDirection: 'column', gap: '0.5rem' 
-                        }}>
-                          <h4 style={{ margin: 0, color: isLido ? '#4caf50' : (isDark ? '#f0e6d2' : '#2c1810'), fontSize: '1rem', fontFamily: "'Cinzel', serif" }}>{livro.title}</h4>
-                          <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#666', fontStyle: 'italic' }}>{livro.author}</p>
+                      <div key={idx} style={{ 
+                        background: isLido ? (isDark ? 'rgba(76, 175, 80, 0.05)' : '#f0fdf4') : (isDark ? 'rgba(255,255,255,0.02)' : '#fff'), 
+                        padding: '1.2rem', borderRadius: '12px', 
+                        border: `1px solid ${isLido ? '#4caf50' : (isLendo ? '#FFD700' : (isDark ? '#333' : '#eee'))}`, 
+                        display: 'flex', flexDirection: 'column', gap: '0.5rem',
+                        transition: 'all 0.2s ease',
+                        boxShadow: '0 4px 10px rgba(0,0,0,0.05)'
+                      }}>
+                        <h4 style={{ margin: 0, color: isLido ? '#4caf50' : (isDark ? '#f0e6d2' : '#2c1810'), fontSize: '1.1rem', fontFamily: "'Cinzel', serif", lineHeight: '1.2' }}>{livro.title}</h4>
+                        <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#666', fontStyle: 'italic' }}>{livro.author}</p>
+                        
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto', paddingTop: '1rem' }}>
                           
-                          <div style={{ display: 'flex', gap: '0.5rem', marginTop: 'auto', paddingTop: '0.5rem' }}>
+                          {/* Área da Esquerda: Ações ou Status */}
+                          <div style={{ display: 'flex', gap: '0.5rem' }}>
                             {isLido ? (
-                              <div style={{ color: '#4caf50', fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><CheckCircle size={14}/> Concluído</div>
+                              <span style={{ color: '#4caf50', fontSize: '0.9rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                <CheckCircle size={16}/> Lido
+                              </span>
                             ) : (
                               <>
                                 <button onClick={() => {
@@ -158,19 +165,23 @@ export default function TrilhaFormacao({ books, isDark, setNewBook, setShowAddBo
                                     setBookSearchQuery(query); 
                                     searchBooks(query); 
                                     window.scrollTo({ top: 0, behavior: 'smooth' });
-                                  }} style={{ flex: 1, padding: '0.5rem', background: 'transparent', color: isDark ? '#d4af37' : '#6b4423', border: `1px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '6px', fontSize: '0.8rem', fontWeight: 'bold', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.3rem' }}>
-                                  <BookOpen size={14} /> Ler
+                                  }} style={{ padding: '0.5rem 1.2rem', background: '#d4af37', color: '#1a1a2e', border: 'none', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer' }}>
+                                  Ler
                                 </button>
-                                <button onClick={() => handleJaLi(livro)} style={{ flex: 1, padding: '0.5rem', background: 'transparent', color: '#4caf50', border: '1px solid #4caf50', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 'bold', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.3rem' }}>
-                                  <CheckCircle size={14} /> Já Li
+                                <button onClick={() => handleJaLi(livro)} style={{ padding: '0.5rem 1rem', background: 'transparent', color: '#4caf50', border: '1px solid #4caf50', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer' }}>
+                                  Já Li
                                 </button>
                               </>
                             )}
-                            <a href={`https://www.amazon.com.br/s?k=${encodeURIComponent(livro.title + ' ' + livro.author)}&tag=filosofiae0a5-20`} target="_blank" rel="noopener noreferrer" style={{ padding: '0.5rem', background: 'transparent', color: '#FF9900', border: '1px solid #FF9900', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', fontSize: '0.8rem', fontWeight: 'bold', textDecoration: 'none' }} title="Comprar na Amazon">
-                              Comprar <ShoppingCart size={14} />
-                            </a>
                           </div>
+
+                          {/* Área da Direita: Carrinho Discreto */}
+                          <a href={`https://www.amazon.com.br/s?k=${encodeURIComponent(livro.title + ' ' + livro.author)}&tag=filosofiae0a5-20`} target="_blank" rel="noopener noreferrer" style={{ padding: '0.5rem 0.8rem', background: '#FF9900', color: '#000', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none' }} title="Comprar na Amazon">
+                            <ShoppingCart size={16} />
+                          </a>
+
                         </div>
+                      </div>
                       );
                     })}
                   </div>
