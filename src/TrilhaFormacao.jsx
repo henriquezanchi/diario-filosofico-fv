@@ -12,11 +12,9 @@ const agruparPorAno = (lista) => {
   }, {});
 };
 
-// --- FUNÇÕES DE FUZZY MATCH (fora do componente para evitar problema de minificação) ---
-const _normalizar = (str) => {
-  if (!str) return '';
-   const artigos = new RegExp('^(o|a|os|as|um|uma|the|an|de|do|da|dos|das)\\s+', 'i');
-
+// --- FUNÇÕES DE FUZZY MATCH (MOVIDAS PARA FORA DO COMPONENTE) ---
+const normalizar = (str = '') => {
+  const artigos = new RegExp('^(o|a|os|as|um|uma|the|an|de|do|da|dos|das)\\s+', 'i');
   return str
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -27,43 +25,50 @@ const _normalizar = (str) => {
     .trim();
 };
 
-const _tokens = (str) =>
-  _normalizar(str).split(' ').filter((t) => t.length > 2);
+const tokens = (str) =>
+  normalizar(str).split(' ').filter((t) => t.length > 2);
 
-const _score = (tA, tB) => {
-  const menor = tA.length < tB.length ? tA : tB;
-  const maior = tA.length < tB.length ? tB : tA;
+const scoreSimilaridade = (tokensA, tokensB) => {
+  const menor = tokensA.length < tokensB.length ? tokensA : tokensB;
+  const maior = tokensA.length < tokensB.length ? tokensB : tokensA;
   if (menor.length === 0) return 0;
-  return menor.filter((t) => maior.some((m) => m.includes(t) || t.includes(m))).length / menor.length;
+  const hits = menor.filter((t) =>
+    maior.some((m) => m.includes(t) || t.includes(m))
+  ).length;
+  return hits / menor.length;
 };
 
-const _titulosOk = (a, b) => _score(_tokens(a), _tokens(b)) >= 0.75;
+const titulosEquivalentes = (tituloA, tituloB) =>
+  scoreSimilaridade(tokens(tituloA), tokens(tituloB)) >= 0.75;
 
-const _autoresOk = (a, b) => {
-  if (!a || !b) return true;
-  const tA = _tokens(a);
-  const tB = _tokens(b);
-  if (!tA.length || !tB.length) return true;
-  const sA = tA[tA.length - 1];
-  const sB = tB[tB.length - 1];
-  if (sA.includes(sB) || sB.includes(sA)) return true;
-  return _score(tA, tB) >= 0.5;
+const autoresEquivalentes = (autorA = '', autorB = '') => {
+  if (!autorA || !autorB) return true;
+  const tA = tokens(autorA);
+  const tB = tokens(autorB);
+  if (tA.length === 0 || tB.length === 0) return true;
+  const sobrenomeA = tA[tA.length - 1];
+  const sobrenomeB = tB[tB.length - 1];
+  if (sobrenomeA.includes(sobrenomeB) || sobrenomeB.includes(sobrenomeA)) return true;
+  return scoreSimilaridade(tA, tB) >= 0.5;
 };
 
-const _encontrar = (livroCanon, books) =>
-  books.find((b) => _titulosOk(livroCanon.title, b.title) && _autoresOk(livroCanon.author, b.author));
+// Esta função agora recebe 'books' como argumento
+const encontrarNaEstante = (livroCanon, books) =>
+  books.find((b) =>
+    titulosEquivalentes(livroCanon.title, b.title) &&
+    autoresEquivalentes(livroCanon.author, b.author)
+  );
 
-// --- COMPONENTE ---
+
 const TrilhaFormacao = ({ books, isDark, setNewBook, setShowAddBook, saveBooksToDb, user, db, doc, setDoc }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const gruposPorAno = agruparPorAno(GRADE_CURRICULAR);
 
-  const encontrarNaEstante = (livroCanon) => _encontrar(livroCanon, books);
-
   // Ação: Adicionar como "já lido" direto no array e salvar no Firebase
   const handleJaLi = (livroCanon) => {
-    const jaExiste = encontrarNaEstante(livroCanon);
+    // Agora 'encontrarNaEstante' precisa de 'books'
+    const jaExiste = encontrarNaEstante(livroCanon, books);
     if (jaExiste) return; // Proteção extra, mas o botão já fica oculto
 
     const novoLivro = {
@@ -211,7 +216,8 @@ const TrilhaFormacao = ({ books, isDark, setNewBook, setShowAddBook, saveBooksTo
                 }}
               >
                 {livros.map((livroCanon, idx) => {
-                                    const livroNaEstante = encontrarNaEstante(livroCanon);
+                  // Agora 'encontrarNaEstante' precisa de 'books'
+                  const livroNaEstante = encontrarNaEstante(livroCanon, books);
                   const isFinishedOnShelf =
                     livroNaEstante &&
                     (livroNaEstante.status === 'lido' ||
@@ -365,18 +371,18 @@ const TrilhaFormacao = ({ books, isDark, setNewBook, setShowAddBook, saveBooksTo
                             >
                               <ShoppingCart size={12} /> Comprar
                             </button>
-                          </div>
+                          </div >
                         )}
-                      </div>
-                    </div>
+                      </div >
+                    </div >
                   );
                 })}
-              </div>
-            </div>
+              </div >
+            </div >
           ))}
-        </div>
+        </div >
       )}
-    </div>
+    </div >
   );
 };
 
