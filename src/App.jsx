@@ -2747,19 +2747,6 @@ ${monthlyReport.desafioCrescimento || '-'}
     return (hits / menor.length) >= 0.5;
   };
 
-  const getProgressoGrade = () => {
-    return GRADE_CURRICULAR.map(livroCanon => {
-      // O NOVO MATCH INTELIGENTE
-      const livroNaEstante = books.find(b => 
-        titulosEquivalentes(livroCanon.title, b.title) && autoresEquivalentes(livroCanon.author, b.author)
-      );
-      return {
-        ...livroCanon,
-        statusUser: livroNaEstante ? (livroNaEstante.finishedDate ? 'lido' : livroNaEstante.status) : 'pendente',
-      };
-    });
-  };
-
   if (!user) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'linear-gradient(135deg, #f0e6d2 0%, #e8dcc4 100%)', fontFamily: 'Georgia, serif' }}>
@@ -4205,32 +4192,8 @@ ${monthlyReport.desafioCrescimento || '-'}
                 return (
                   <>
                     {/* A TRILHA DE FORMAÇÃO VEM AQUI PRIMEIRO, SEMPRE VISÍVEL */}
-                    <div style={{ marginBottom: '2.5rem' }}>
-                      <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#FFD700' : '#996515', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Award size={20} /> A Trilha de Formação (Obrigatórios)</h3>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
-                         {getProgressoGrade().map((livro, idx) => {
-                            const isLido = livro.statusUser === 'lido';
-                            const isLendo = livro.statusUser === 'lendo';
-                            let borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
-                            let bgColor = isDark ? 'rgba(26, 26, 46, 0.4)' : 'rgba(255, 255, 255, 0.6)';
-                            if (isLido) { borderColor = '#4caf50'; bgColor = isDark ? 'rgba(76, 175, 80, 0.05)' : '#f0fdf4'; }
-                            else if (isLendo) { borderColor = isDark ? '#d4af37' : '#996515'; bgColor = isDark ? 'rgba(212, 175, 55, 0.05)' : '#fffbf0'; }
-
-                            return (
-                              <div key={idx} style={{ background: bgColor, borderRadius: '12px', border: `1px solid ${borderColor}`, padding: '1.2rem', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
-                                <span style={{ fontSize: '0.65rem', color: isDark ? '#b8a88a' : '#888', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '0.5rem' }}>{livro.stage}</span>
-                                <h4 style={{ margin: '0 0 0.25rem 0', color: isLido ? '#4caf50' : (isDark ? '#f0e6d2' : '#2c1810'), fontSize: '1.1rem', fontFamily: "'Cinzel', serif" }}>{livro.title}</h4>
-                                <p style={{ margin: '0 0 1rem 0', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.85rem', fontStyle: 'italic' }}>{livro.author}</p>
-                                <div style={{ marginTop: 'auto' }}>
-                                  {isLido ? <div style={{ color: '#4caf50', fontWeight: 'bold', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><CheckCircle size={14}/> Concluído</div> : 
-                                   isLendo ? <div style={{ color: isDark ? '#d4af37' : '#996515', fontWeight: 'bold', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><BookOpen size={14}/> Lendo agora</div> :
-                                   <button onClick={() => { setNewBook({ title: livro.title, author: livro.author }); setShowAddBook(true); window.scrollTo(0,0); }} style={{ width: '100%', padding: '0.5rem', background: 'transparent', color: isDark ? '#d4af37' : '#6b4423', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.4)' : 'rgba(139, 115, 85, 0.4)'}`, borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.85rem' }}>+ Iniciar Leitura</button>}
-                                </div>
-                              </div>
-                            );
-                         })}
-                      </div>
-                    </div>
+                  <TrilhaFormacao books={books} isDark={isDark} setNewBook={setNewBook} setShowAddBook={setShowAddBook} />
+                      
 
                     {/* BARRA DE PESQUISA NA ESTANTE */}
                     {books.length > 0 && (
