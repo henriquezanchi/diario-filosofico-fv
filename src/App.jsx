@@ -33,6 +33,7 @@ import {
   virtues, 
   philosophicalQuotes, 
   studyTips,
+  GRADE_CURRICULAR
 } from './constants/data';
 
 import { translateCategory } from './constants/bookMetrics';
