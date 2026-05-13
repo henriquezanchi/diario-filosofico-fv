@@ -1396,7 +1396,7 @@ function App() {
       // Busca a capa no Google Books
       const bookData = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(rec.title + ' ' + rec.author)}&maxResults=5`);
       const bookInfo = await bookData.json();
-      const validBook = bookInfo.items?.find(item => item.volumeInfo.imageLinks?.thumbnail && item.volumeInfo.pageCount > 0);
+      const validBook = bookInfo.items?.find(item => item.volumeInfo.imageLinks?.thumbnail);
 
       let finalRec;
       
@@ -4086,25 +4086,25 @@ ${monthlyReport.desafioCrescimento || '-'}
                   </div>
                 ) : (
                   <div className="animate-fadeIn" style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <div style={{ position: 'absolute', top: '10px', right: '10px', fontSize: '0.6rem', color: isDark ? '#555' : '#ccc', textTransform: 'uppercase' }}>Sugestão do Oráculo</div>
+                    <div style={{ position: 'absolute', top: '10px', right: '15px', fontSize: '0.65rem', color: isDark ? '#b8a88a' : '#888', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>Sugestão do Oráculo</div>
                     
-                    <img src={bookRecommendation.thumbnail || 'https://placehold.co/60x90/1a1a2e/d4af37?text=Capa'} alt="Capa" style={{ width: '70px', height: '100px', borderRadius: '6px', boxShadow: '0 4px 10px rgba(0,0,0,0.3)' }} />
+                    {/* CAPA INTELIGENTE (Sem links quebrados) */}
+                    {bookRecommendation.thumbnail && !bookRecommendation.thumbnail.includes('placehold') ? (
+                      <img src={bookRecommendation.thumbnail} alt="Capa" style={{ width: '70px', height: '105px', borderRadius: '6px', objectFit: 'cover', boxShadow: '0 4px 10px rgba(0,0,0,0.3)' }} />
+                    ) : (
+                      <div style={{ width: '70px', height: '105px', background: isDark ? 'rgba(0,0,0,0.4)' : '#eee', border: `1px solid ${isDark ? '#333' : '#ddd'}`, borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', fontSize: '0.7rem', color: isDark ? '#888' : '#aaa', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
+                        Sem Capa
+                      </div>
+                    )}
                     
-                    <div style={{ flex: 1, minWidth: '200px' }}>
-                      <h4 style={{ margin: 0, color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif", fontSize: '1.1rem' }}>{bookRecommendation.title}</h4>
-                      <p style={{ margin: '0.2rem 0 0.75rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.85rem' }}>de {bookRecommendation.author}</p>
-                      <p style={{ margin: 0, color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.9rem', fontStyle: 'italic', lineHeight: '1.4' }}>"{bookRecommendation.reason}"</p>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                      <a 
-                        href={`https://www.amazon.com.br/s?k=${encodeURIComponent('livro ' + bookRecommendation.title + ' ' + bookRecommendation.author)}&tag=${AMAZON_AFFILIATE_ID}`}
-                        target="_blank" rel="noopener noreferrer"
-                        style={{ padding: '0.8rem 1.5rem', background: '#FF9900', color: '#000', textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(255,153,0,0.3)' }}
-                      >
-                        Comprar na Amazon
-                      </a>
-                      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                    {/* INFORMAÇÕES DA OBRA */}
+                    <div style={{ flex: 1, minWidth: '200px', display: 'flex', flexDirection: 'column' }}>
+                      <h4 style={{ margin: 0, color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif", fontSize: '1.2rem', lineHeight: '1.2' }}>{bookRecommendation.title}</h4>
+                      <p style={{ margin: '0.2rem 0 0.75rem 0', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.85rem', fontStyle: 'italic' }}>de {bookRecommendation.author}</p>
+                      <p style={{ margin: 0, color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem', fontStyle: 'italic', lineHeight: '1.5' }}>"{bookRecommendation.reason}"</p>
+                      
+                      {/* BOTÕES MINIMALISTAS */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1.5rem', flexWrap: 'wrap' }}>
                         <button 
                           onClick={async () => {
                             const newBook = { id: `book_${Date.now()}`, title: bookRecommendation.title, author: bookRecommendation.author, totalPages: 1, currentPage: 1, thumbnail: bookRecommendation.thumbnail, category: 'Filosofia', isPendingEnrichment: true, status: 'lido', finishedDate: new Date().toISOString() };
@@ -4114,17 +4114,34 @@ ${monthlyReport.desafioCrescimento || '-'}
                             if (user) await setDoc(doc(db, 'userBooks', user.uid), { discardedSuggestions: novaLista }, { merge: true });
                             generateBookRecommendation(novaLista);
                           }}
-                          disabled={isGeneratingRecommendation} style={{ flex: 1, background: 'transparent', border: `1px solid ${isDark ? '#555' : '#ccc'}`, color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.75rem', cursor: 'pointer', borderRadius: '4px', padding: '0.4rem', transition: 'all 0.2s' }}>Já Li</button>
+                          disabled={isGeneratingRecommendation} 
+                          style={{ padding: '0.5rem 1rem', background: 'transparent', border: '1px solid #4caf50', color: '#4caf50', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer', borderRadius: '6px', transition: 'all 0.2s' }}
+                        >
+                          {isGeneratingRecommendation ? 'Gerando...' : 'Já Li'}
+                        </button>
                         
                         <button 
                           onClick={async () => {
                             const novaLista = [...discardedSuggestions, bookRecommendation.title];
                             setDiscardedSuggestions(novaLista);
                             if (user) await setDoc(doc(db, 'userBooks', user.uid), { discardedSuggestions: novaLista }, { merge: true });
-                            generateBookRecommendation(novaLista); // ATUALIZA O ORÁCULO DE FORMA SEGURA
+                            generateBookRecommendation(novaLista);
                           }}
-                          disabled={isGeneratingRecommendation} style={{ flex: 1, background: 'transparent', border: `1px solid ${isDark ? '#555' : '#ccc'}`, color: '#e74c3c', fontSize: '0.75rem', cursor: 'pointer', borderRadius: '4px', padding: '0.4rem', transition: 'all 0.2s' }}>{isGeneratingRecommendation ? 'Gerando...' : 'Descartar Sugestão'}</button>
-                      </div>
+                          disabled={isGeneratingRecommendation} 
+                          style={{ padding: '0.5rem 1rem', background: 'transparent', border: `1px solid #e74c3c`, color: '#e74c3c', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer', borderRadius: '6px', transition: 'all 0.2s' }}
+                        >
+                          {isGeneratingRecommendation ? 'Gerando...' : 'Descartar'}
+                        </button>
+
+                        <a 
+                          href={`https://www.amazon.com.br/s?k=${encodeURIComponent('livro ' + bookRecommendation.title + ' ' + bookRecommendation.author)}&tag=${AMAZON_AFFILIATE_ID}`}
+                          target="_blank" rel="noopener noreferrer"
+                          style={{ padding: '0.5rem 0.8rem', background: '#FF9900', color: '#000', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', marginLeft: 'auto' }}
+                          title="Comprar na Amazon"
+                        >
+                          <ShoppingCart size={16} />
+                        </a>
+                      </div>                    
                     </div>
                   </div>
                 )}
