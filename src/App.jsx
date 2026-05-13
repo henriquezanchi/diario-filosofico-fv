@@ -5701,39 +5701,7 @@ ${monthlyReport.desafioCrescimento || '-'}
             </div>
           </div>
         )}
-
-        {showQuickFv && (
-  <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(3px)' }} onClick={() => setShowQuickFv(false)}>
-    <div className="animate-fadeIn" style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '1.5rem', borderRadius: '16px', maxWidth: '380px', width: '100%', border: `2px solid ${isDark ? '#FFD700' : '#996515'}`, position: 'relative', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
-      <button onClick={() => setShowQuickFv(false)} style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}><X size={20} /></button>
-
-      <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-        <Shield size={40} color={isDark ? '#FFD700' : '#996515'} style={{ margin: '0 auto 0.5rem' }} />
-        <h2 style={{ margin: 0, fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.4rem' }}>Missões do Dia</h2>
-        <p style={{ margin: '0.3rem 0 0', fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744' }}>{missoesCompletas} de {fvGdveTasks.length} concluídas hoje</p>
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        {fvGdveTasks.map(task => {
-          const isCycle = task.isCycle;
-          const currentCount = todayGdveStatus[task.id] || 0;
-          const isCompleted = isCycle ? !!fvGdveCycleStatus[task.id] : currentCount >= (task.target || 1);
-          return (
-            <div key={task.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: isDark ? 'rgba(0,0,0,0.2)' : '#f9f9f9', borderRadius: '8px', border: `1px solid ${isCompleted ? '#4caf50' : (isDark ? 'rgba(255,215,0,0.2)' : '#eee')}` }}>
-              <input type="checkbox" checked={isCompleted} readOnly style={{ width: '18px', height: '18px', accentColor: '#4caf50' }} />
-              <span style={{ color: isDark ? '#f0e6d2' : '#2c1810', textDecoration: isCompleted ? 'line-through' : 'none', opacity: isCompleted ? 0.6 : 1 }}>{task.name}</span>
-            </div>
-          );
-        })}
-      </div>
-
-      <button onClick={() => { setShowQuickFv(false); setView('gdve'); }} style={{ marginTop: '1.5rem', width: '100%', padding: '0.8rem', background: isDark ? '#FFD700' : '#996515', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
-        Abrir Discipulado
-      </button>
-    </div>
-  </div>
-)}
-
+        
         {/* MODAL DE SEGURANÇA */}
         {showInactivityWarning && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(5px)' }}>
