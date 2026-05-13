@@ -321,12 +321,23 @@ export const studyTips = [
     { phase: "Prática Geral", text: "É preferível ler poucos livros bons muitas vezes, do que muitos livros ruins uma só vez." }
   ];
 
-  export const GRADE_CURRICULAR = [
-  { id: 'g1', title: 'O Caibalion', author: 'Três Iniciados', stage: 'Introdução' },
-  { id: 'g2', title: 'Bhagavad Gita', author: 'Vyasa', stage: 'Introdução' },
-  { id: 'g3', title: 'A Voz do Silêncio', author: 'H.P. Blavatsky', stage: 'Introdução' },
-  { id: 'g4', title: 'Luz no Caminho', author: 'Mabel Collins', stage: 'Básico' },
-  { id: 'g5', title: 'Meditações', author: 'Marco Aurélio', stage: 'Básico' },
-  { id: 'g6', title: 'Cartas a Lucílio', author: 'Sêneca', stage: 'Avançado' },
-  { id: 'g7', title: 'O Mito da Caverna', author: 'Platão', stage: 'Avançado' },
+ // A Grade Curricular de Leitura Obrigatória
+export const GRADE_CURRICULAR = [
+  // --- PRIMEIRO ANO ---
+  { id: 'g1', title: 'A República', author: 'Platão', stage: '1º Ano' },
+  { id: 'g2', title: 'Bhagavad Gita', author: 'Vyasa', stage: '1º Ano' },
+  { id: 'g3', title: 'A Voz do Silêncio', author: 'H.P. Blavatsky', stage: '1º Ano' },
+  { id: 'g4', title: 'O Ideal Político', author: 'Jorge Ángel Livraga', stage: '1º Ano' },
+  { id: 'g5', title: 'Fundamentos do Ideal Acropolitano', author: 'Jorge Ángel Livraga', stage: '1º Ano' },
+  
+  // --- SEGUNDO ANO ---
+  { id: 'g6', title: 'Dhammapada', author: 'Siddhartha Gautama (Buda)', stage: '2º Ano' },
+  { id: 'g7', title: 'Analectos', author: 'Confúcio', stage: '2º Ano' },
+  { id: 'g8', title: 'Meditações', author: 'Marco Aurélio', stage: '2º Ano' },
+  { id: 'g9', title: 'Manual', author: 'Epicteto', stage: '2º Ano' },
+  { id: 'g10', title: 'Sobre a Brevidade da Vida', author: 'Sêneca', stage: '2º Ano' },
+  
+  // --- TERCEIRO ANO ---
+  { id: 'g11', title: 'Ética a Nicômaco', author: 'Aristóteles', stage: '3º Ano' },
+  { id: 'g12', title: 'História', author: 'Heródoto', stage: '3º Ano' }
 ];
