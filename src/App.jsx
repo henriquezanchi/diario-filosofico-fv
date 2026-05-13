@@ -2581,28 +2581,19 @@ ${monthlyReport.desafioCrescimento || '-'}
   const StreakIcon = streakInfo.current.icon; 
   const getFvMonthlyStats = () => {
     const stats = {
-      horasVoluntariadoMin: 0,
-      horasAssistidaMin: 0,
-      horasMinistradaMin: 0,
-      diasPraticas: 0,
-      countAulaRegular: 0,
-      countEd: 0,
-      countCrm: 0,
-      countRaio: 0,
-      countLimpeza: 0,
-      countGN: 0
+      horasVoluntariadoMin: 0, horasAssistidaMin: 0, horasMinistradaMin: 0,
+      diasPraticas: 0, countAulaRegular: 0, countEd: 0, countCrm: 0,
+      countRaio: 0, countLimpeza: 0, countGN: 0
     };
 
     const hoje = new Date();
     const trintaDiasAtras = new Date();
     trintaDiasAtras.setDate(hoje.getDate() - 30);
-
     const cicloEntries = entries.filter(e => new Date(e.date + 'T12:00:00') >= trintaDiasAtras);
 
     cicloEntries.forEach(entry => {
       const fv = entry.fvDaily || {};
 
-      // 1. Somatória de Horas
       if (fv.horasVoluntariado) {
         const [h, m] = fv.horasVoluntariado.split(':').map(Number);
         if (!isNaN(h) && !isNaN(m)) stats.horasVoluntariadoMin += (h * 60) + m;
@@ -2616,18 +2607,15 @@ ${monthlyReport.desafioCrescimento || '-'}
         if (!isNaN(h) && !isNaN(m)) stats.horasMinistradaMin += (h * 60) + m;
       }
 
-      // 2. Frequência de Práticas
       if (fv.praticas && Object.values(fv.praticas).some(v => v === true)) {
         stats.diasPraticas++;
       }
 
-      // 3. Contagem de Presenças (O que faltava para os Cards)
       if (fv.aulaRegularPresenca === 'Sim') stats.countAulaRegular++;
       if (fv.aulaEdPresenca === 'Sim') stats.countEd++;
       if (fv.crmPresenca === 'Sim') stats.countCrm++;
       if (fv.reuniaoRaioPresenca === 'Sim') stats.countRaio++;
 
-      // 4. Contagem de Missões (GN e Limpeza)
       if (entry.tasksSnapshot) {
         entry.tasksSnapshot.forEach(task => {
            if (task.completed) {
@@ -2639,7 +2627,6 @@ ${monthlyReport.desafioCrescimento || '-'}
       }
     });
 
-    // A RÉGUA DE TRADUÇÃO DE FREQUÊNCIA
     let freqPraticas = "Nunca";
     if (stats.diasPraticas >= 28) freqPraticas = "Sempre";
     else if (stats.diasPraticas >= 20) freqPraticas = "Frequentemente";
@@ -2647,8 +2634,6 @@ ${monthlyReport.desafioCrescimento || '-'}
     else if (stats.diasPraticas > 0) freqPraticas = "Raramente";
 
     const fmt = (m) => `${Math.floor(m/60)}h ${String(m%60).padStart(2,'0')}m`;
-    
-    // RETORNO DE TODOS OS DADOS JUNTOS
     return { ...stats, hVol: fmt(stats.horasVoluntariadoMin), hAs: fmt(stats.horasAssistidaMin), hMin: fmt(stats.horasMinistradaMin), freqPraticas };
   };
 
@@ -4517,6 +4502,64 @@ ${monthlyReport.desafioCrescimento || '-'}
                             
                     return (
                       <>
+
+                      {/* 0. A TRILHA DE FORMAÇÃO (NOVO DESIGN EM GRADE) */}
+                        <div>
+                          <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#FFD700' : '#996515', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Award size={20} /> A Trilha de Formação (Obrigatórios)</h3>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '1rem' }}>
+                             {GRADE_CURRICULAR.map((livroCanon, idx) => {
+                                // Lógica embutida elegante
+                                const livroNaEstante = books.find(b => b.title.toLowerCase().includes(livroCanon.title.toLowerCase()));
+                                const statusUser = livroNaEstante ? (livroNaEstante.finishedDate ? 'lido' : livroNaEstante.status) : 'pendente';
+                                const isLido = statusUser === 'lido';
+                                const isLendo = statusUser === 'lendo';
+                                
+                                let borderColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+                                let bgColor = isDark ? 'rgba(26, 26, 46, 0.4)' : 'rgba(255, 255, 255, 0.6)';
+                                
+                                if (isLido) {
+                                  borderColor = '#4caf50';
+                                  bgColor = isDark ? 'rgba(76, 175, 80, 0.05)' : '#f0fdf4';
+                                } else if (isLendo) {
+                                  borderColor = isDark ? '#d4af37' : '#996515';
+                                  bgColor = isDark ? 'rgba(212, 175, 55, 0.05)' : '#fffbf0';
+                                }
+
+                                return (
+                                  <div key={idx} style={{ background: bgColor, borderRadius: '12px', border: `1px solid ${borderColor}`, padding: '1.2rem', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
+                                    {isLido && <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '80px', height: '80px', background: 'radial-gradient(circle, rgba(76,175,80,0.15) 0%, transparent 70%)', borderRadius: '50%' }}></div>}
+                                    
+                                    <span style={{ fontSize: '0.65rem', color: isDark ? '#b8a88a' : '#888', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', marginBottom: '0.5rem' }}>{livroCanon.stage}</span>
+                                    <h4 style={{ margin: '0 0 0.25rem 0', color: isLido ? '#4caf50' : (isDark ? '#f0e6d2' : '#2c1810'), fontSize: '1.1rem', lineHeight: '1.2', fontFamily: "'Cinzel', serif" }}>{livroCanon.title}</h4>
+                                    <p style={{ margin: '0 0 1rem 0', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.85rem', fontStyle: 'italic' }}>{livroCanon.author}</p>
+                                    
+                                    <div style={{ marginTop: 'auto' }}>
+                                      {isLido ? (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#4caf50', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                                          <CheckCircle size={16} /> Concluído
+                                        </div>
+                                      ) : isLendo ? (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: isDark ? '#d4af37' : '#996515', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                                          <BookOpen size={16} /> Lendo agora
+                                        </div>
+                                      ) : (
+                                        <button 
+                                          onClick={() => {
+                                            setNewBook({ title: livroCanon.title, author: livroCanon.author, currentPage: 0, totalPages: 0, link: '', notes: '' });
+                                            setShowAddBook(true);
+                                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                                          }}
+                                          style={{ width: '100%', padding: '0.6rem', background: 'transparent', color: isDark ? '#d4af37' : '#6b4423', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.4)' : 'rgba(139, 115, 85, 0.4)'}`, borderRadius: '6px', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', transition: 'all 0.2s' }}
+                                        >
+                                          <Plus size={14} /> Iniciar Leitura
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                             })}
+                          </div>
+                        </div>
                         {/* 1. SEÇÃO ESTOU LENDO */}
                         {readingBooks.length > 0 && (
                           <div>
