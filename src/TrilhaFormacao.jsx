@@ -65,7 +65,7 @@ const TrilhaFormacao = ({ books, isDark, setNewBook, setShowAddBook, saveBooksTo
 
   // Ação: Adicionar como "já lido" direto no array e salvar no Firebase
   const handleJaLi = (livroCanon) => {
-    const jaExiste = encontrarNaEstante(livroCanon.title);
+    const jaExiste = encontrarNaEstante(livroCanon);
     if (jaExiste) return; // Proteção extra, mas o botão já fica oculto
 
     const novoLivro = {
