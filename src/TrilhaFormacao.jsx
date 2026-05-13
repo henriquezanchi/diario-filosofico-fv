@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Award, BookOpen, CheckCircle, ShoppingCart, ChevronDown, ChevronUp } from 'lucide-react';
-import { GRADE_CURRICULAR } from './constants/data';
+import { GRADE_CURRICULAR } from '../constants/data';
 
 // Agrupa os livros da grade por stage (ex: "1º Ano", "2º Ano", "3º Ano")
 const agruparPorAno = (lista) => {
@@ -17,9 +17,51 @@ const TrilhaFormacao = ({ books, isDark, setNewBook, setShowAddBook, saveBooksTo
 
   const gruposPorAno = agruparPorAno(GRADE_CURRICULAR);
 
-  // Verifica se o livro já está na estante do usuário (por título)
-  const encontrarNaEstante = (titulo) =>
-    books.find((b) => b.title.toLowerCase().includes(titulo.toLowerCase()));
+    // --- FUNÇÕES DE FUZZY MATCH ---
+  const normalizar = (str = '') => {
+        const artigos = new RegExp('^(o|a|os|as|um|uma|the|an|de|do|da|dos|das)\\s+', 'i');
+    return str
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(artigos, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
+  const tokens = (str) =>
+    normalizar(str).split(' ').filter((t) => t.length > 2);
+
+  const scoreSimilaridade = (tokensA, tokensB) => {
+    const menor = tokensA.length < tokensB.length ? tokensA : tokensB;
+    const maior = tokensA.length < tokensB.length ? tokensB : tokensA;
+    if (menor.length === 0) return 0;
+    const hits = menor.filter((t) =>
+      maior.some((m) => m.includes(t) || t.includes(m))
+    ).length;
+    return hits / menor.length;
+  };
+
+  const titulosEquivalentes = (tituloA, tituloB) =>
+    scoreSimilaridade(tokens(tituloA), tokens(tituloB)) >= 0.75;
+
+  const autoresEquivalentes = (autorA = '', autorB = '') => {
+    if (!autorA || !autorB) return true;
+    const tA = tokens(autorA);
+    const tB = tokens(autorB);
+    if (tA.length === 0 || tB.length === 0) return true;
+    const sobrenomeA = tA[tA.length - 1];
+    const sobrenomeB = tB[tB.length - 1];
+    if (sobrenomeA.includes(sobrenomeB) || sobrenomeB.includes(sobrenomeA)) return true;
+    return scoreSimilaridade(tA, tB) >= 0.5;
+  };
+
+  const encontrarNaEstante = (livroCanon) =>
+    books.find((b) =>
+      titulosEquivalentes(livroCanon.title, b.title) &&
+      autoresEquivalentes(livroCanon.author, b.author)
+    );
 
   // Ação: Adicionar como "já lido" direto no array e salvar no Firebase
   const handleJaLi = (livroCanon) => {
@@ -171,12 +213,18 @@ const TrilhaFormacao = ({ books, isDark, setNewBook, setShowAddBook, saveBooksTo
                 }}
               >
                 {livros.map((livroCanon, idx) => {
-                  const livroNaEstante = encontrarNaEstante(livroCanon.title);
-                  const statusUser = livroNaEstante
-                    ? livroNaEstante.finishedDate
-                      ? 'lido'
-                      : livroNaEstante.status || 'lendo'
-                    : 'pendente';
+                                    const livroNaEstante = encontrarNaEstante(livroCanon);
+                  const isFinishedOnShelf =
+                    livroNaEstante &&
+                    (livroNaEstante.status === 'lido' ||
+                      !!livroNaEstante.finishedDate ||
+                      (livroNaEstante.totalPages > 0 &&
+                        livroNaEstante.currentPage >= livroNaEstante.totalPages));
+                  const statusUser = !livroNaEstante
+                    ? 'pendente'
+                    : isFinishedOnShelf
+                    ? 'lido'
+                    : 'lendo';
 
                   const isLido = statusUser === 'lido';
                   const isLendo = statusUser === 'lendo';
