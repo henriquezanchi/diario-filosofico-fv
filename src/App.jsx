@@ -4197,7 +4197,9 @@ ${monthlyReport.desafioCrescimento || '-'}
                     isDark={isDark} 
                     setNewBook={setNewBook} 
                     setShowAddBook={setShowAddBook} 
-                    saveBooksToDb={saveBooksToDb} 
+                    saveBooksToDb={saveBooksToDb}
+                    setBookSearchQuery={setBookSearchQuery}
+                    searchBooks={searchBooks}
                   />
                       
 

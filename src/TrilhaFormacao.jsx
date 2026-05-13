@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Award, CheckCircle, BookOpen, ShoppingCart, ChevronDown, ChevronUp } from 'lucide-react';
 import { GRADE_CURRICULAR } from './constants/data';
 
-export default function TrilhaFormacao({ books, isDark, setNewBook, setShowAddBook, saveBooksToDb }) {
+export default function TrilhaFormacao({ books, isDark, setNewBook, setShowAddBook, saveBooksToDb, setBookSearchQuery, searchBooks }) {
   // Estado para a gaveta principal e para as gavetas de cada ano
   const [isMainOpen, setIsMainOpen] = useState(false);
   const [openYears, setOpenYears] = useState({ '1º Ano': true, '2º Ano': false, '3º Ano': false });
@@ -125,7 +125,18 @@ export default function TrilhaFormacao({ books, isDark, setNewBook, setShowAddBo
                             <div style={{ color: '#4caf50', fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.3rem' }}><CheckCircle size={14}/> Concluído</div>
                           ) : (
                             <>
-                              <button onClick={() => {setNewBook({title: livro.title, author: livro.author}); setShowAddBook(true); window.scrollTo(0,0);}} style={{ flex: 1, padding: '0.5rem', background: '#d4af37', color: '#1a1a2e', border: 'none', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 'bold', cursor: 'pointer' }}>Ler</button>
+                              <button 
+  onClick={() => {
+    const query = `${livro.title} ${livro.author}`;
+    setShowAddBook(true); 
+    setBookSearchQuery(query); // Preenche a barra de busca
+    searchBooks(query);        // Dispara a pesquisa no Google Books
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }} 
+  style={{ flex: 1, padding: '0.5rem', background: '#d4af37', color: '#1a1a2e', border: 'none', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 'bold', cursor: 'pointer' }}
+>
+  Pesquisar
+</button>
                               <button onClick={() => handleJaLi(livro)} style={{ flex: 1, padding: '0.5rem', background: 'transparent', color: '#4caf50', border: '1px solid #4caf50', borderRadius: '6px', fontSize: '0.8rem', fontWeight: 'bold', cursor: 'pointer' }}>Já Li</button>
                             </>
                           )}
