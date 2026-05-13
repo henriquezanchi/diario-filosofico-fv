@@ -2712,15 +2712,16 @@ ${monthlyReport.desafioCrescimento || '-'}
   // -------------------------------------------------------------
 
   // --- MOTOR INTELIGENTE DA GRADE CURRICULAR (FUZZY MATCH) ---
-  const normalizarParaMatch = (str = '') => {
-    if (!str) return '';
-    const artigos = /^(o|a|os|as|um|uma|the|an|a|de|do|da|dos|das)\s+/i;
+  const normalizar = (str = '') => {
+    const artigos = new RegExp('^(o|a|os|as|um|uma|the|an|de|do|da|dos|das)\\s+', 'i');
     return str
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // remove acentos
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
       .toLowerCase()
-      .replace(/[^a-z0-9\s]/g, ' ') // pontuação vira espaço
-      .replace(artigos, '') // remove artigos iniciais
-      .replace(/\s+/g, ' ').trim();
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(artigos, '')
+      .replace(/\s+/g, ' ')
+      .trim();
   };
 
   const getTokens = (str) => normalizarParaMatch(str).split(' ').filter(t => t.length > 2);
