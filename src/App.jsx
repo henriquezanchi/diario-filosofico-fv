@@ -2877,7 +2877,7 @@ ${monthlyReport.desafioCrescimento || '-'}
   const todayKey2 = getTodayKey();
   const todayEntry = entries.find(e => e.date === todayKey2);
   const todayPraticas = todayEntry?.fvDaily?.praticas || {};
-  const praticasHojeCount = Object.values(todayPraticas).filter(v => v === true).length;
+  const praticasHojeCount = Object.values(todayFvDaily.praticas || {}).filter(v => v === true).length;
   const totalPraticasCount = fvConfig?.praticas?.length || 4;
   const pb = getPraticasBadgeInfo(statsMenu.diasPraticas);
   const PraticaIcon = pb.icon;
@@ -2887,9 +2887,8 @@ ${monthlyReport.desafioCrescimento || '-'}
     ? Object.values(todayEntryBadge.fvDaily.praticas).filter(v => v === true).length
     : 0;
   const totalPraticasConfig = (fvConfig?.praticas?.length || 4) + 4;
-  const todayEntryBadge = entries.find(e => e.date === getTodayKey());
   const todayGdveStatus = todayEntryBadge?.fvDaily?.gdveTasksStatus || {};
-  const missoesCompletas = fvGdveTasks.filter(t => t.isCycle ? fvGdveCycleStatus[t.id] : (todayGdveStatus[t.id] >= t.target)).length;
+  const missoesCompletas = fvGdveTasks.filter(t => t.isCycle ? !!fvGdveCycleStatus[t.id] : ((todayFvDaily.gdveTasksStatus?.[t.id] || 0) >= (t.target || 1))).length;
 
   return (
     <div style={{ minHeight: '100vh', background: isDark ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)' : 'linear-gradient(135deg, #f0e6d2 0%, #e8dcc4 100%)', fontFamily: 'Georgia, serif', transition: 'background 0.3s ease' }}>
