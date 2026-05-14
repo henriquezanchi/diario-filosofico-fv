@@ -13,18 +13,36 @@ export const DEFAULT_FV_DAILY = {
 // BANCO DE DADOS OFICIAL DOS BASTIÕES (COM ROTAS AUTOMATIZADAS POR ANO)
 // =========================================================================
 
-// Função interna para gerar a URL correta com base no ano da obra
+// Função com os IDs exatos fornecidos pelo Henrique
 const gerarLinkDoKoha = (anoStr) => {
   const ano = parseInt(anoStr, 10);
-  if (!ano) return "#"; // Link de fallback caso não tenha ano
+  if (!ano) return "#";
 
-  // Mapa de IDs do catálogo (Koha) baseado no seu padrão
-  // 1976 = 23101 | 1977 = 23102 | 1978 = 23103 ...
-  const anoBase = 1976;
-  const idBase = 23101;
-  const idCalculado = idBase + (ano - anoBase);
+  // Mapeamento exato de biblionumber por ano
+  const biblioMap = {
+    1976: 23101, 1977: 23102, 1978: 23103, 1979: 23104,
+    1980: 23105, 1981: 23106, 1982: 23107, 1983: 23108,
+    1984: 23109, 1985: 23110, 1986: 23111, 1987: 23112,
+    1988: 23113, 1989: 23115, 1990: 23116, 1991: 23117,
+    1992: 67560, 1993: 67561, 1994: 73565, 1995: 73566,
+    1996: 73567, 1997: 73568, 1998: 73569, 1999: 73570,
+    2000: 73571, 2001: 73572, 2002: 73573, 2003: 73574,
+    2004: 73575, 2005: 73576, 2006: 73577, 2007: 73578,
+    2008: 73579, 2009: 73580, 2010: 73581, 2011: 73582,
+    2012: 73583, 2013: 73584, 2014: 73585, 2015: 73586,
+    2016: 73587, 2017: 73588, 2018: 73589, 2019: 73590,
+    2020: 73591, 2021: 73592, 2022: 73593, 2023: 73594
+  };
 
-  return `https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=${idCalculado}&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es`;
+  const biblionumber = biblioMap[ano];
+
+  // Se o ano estiver no nosso mapa, manda o link direto. 
+  // Caso contrário, usa a busca como plano de segurança (fallback).
+  if (biblionumber) {
+    return `https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-detail.pl?biblionumber=${biblionumber}&query_desc=kw%2Cwrdl%3A%20basti%C3%B5es`;
+  } else {
+    return `https://biblioteca.acropolebrasil.com.br/cgi-bin/koha/opac-search.pl?idx=&q=Bastiões+${ano}`;
+  }
 };
 
 // Como são centenas de linhas, usamos uma string em bloco e um mapeamento inteligente para não poluir o código com 500 {objetos}.
