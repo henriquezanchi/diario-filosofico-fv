@@ -4930,13 +4930,13 @@ ${monthlyReport.desafioCrescimento || '-'}
                              let isCompleted = false;
                              let displayValue = '';
 
-                             // --- LÓGICA ULTRA-SMART DO BASTIÃO (NÚMERO OU NOME) ---
+                             // --- LÓGICA ULTRA-SMART DO BASTIÃO (NÚMERO OU NOME + MÚLTIPLOS) ---
                              let linkDoBastiao = null;
+                             let multiplosBastioes = null; // Nova variável para guardar a lista de empatados
                              const taskNameLower = task.name.toLowerCase();
                              const isBastiaoTask = taskNameLower.includes('bastião') || taskNameLower.includes('leitura');
                              
                              if (isBastiaoTask) {
-                                // Ferramenta que limpa acentos e pontuação para facilitar a busca
                                 const limpaTexto = (str) => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
                                 const textoLimpoTask = limpaTexto(task.name);
 
@@ -4948,24 +4948,28 @@ ${monthlyReport.desafioCrescimento || '-'}
                                    if (bastiaoEncontrado) linkDoBastiao = bastiaoEncontrado.link;
                                 }
 
-                                // 2. TENTATIVA POR NOME (Busca flexível por pedaços do título)
+                                // 2. TENTATIVA POR NOME COM FILTRO DE MÚLTIPLOS
                                 if (!linkDoBastiao) {
-                                   // Remove as palavras de comando para sobrar só o que você quer buscar
-                                   const termoBusca = textoLimpoTask.replace('bastiao', '').replace('leitura', '').replace('ler', '').replace('o', '').trim();
+                                   // A regex remove o "o" solto para evitar limpar letras "o" dentro de palavras
+                                   const termoBusca = textoLimpoTask.replace('bastiao', '').replace('leitura', '').replace('ler', '').replace(/(^|\s)o(\s|$)/g, ' ').trim();
                                    
-                                   // Só faz a busca se você tiver digitado pelo menos 4 letras do título (evita que "a" ou "de" puxe o link errado)
                                    if (termoBusca.length > 3) { 
-                                      const bastiaoPorNome = BASTIOES_DB.find(b => {
+                                      // Usamos .filter() em vez de .find() para pegar TODOS os que batem
+                                      const resultados = BASTIOES_DB.filter(b => {
                                          const tituloLimpo = limpaTexto(b.titulo);
-                                         // Verifica se o que você digitou é um pedaço do título oficial (ex: "animo" dentro de "animo a disciplina e possivel")
                                          return tituloLimpo.includes(termoBusca) || termoBusca.includes(tituloLimpo);
                                       });
-                                      if (bastiaoPorNome) linkDoBastiao = bastiaoPorNome.link;
+
+                                      if (resultados.length === 1) {
+                                         linkDoBastiao = resultados[0].link; // Achou só 1, link direto
+                                      } else if (resultados.length > 1) {
+                                         multiplosBastioes = resultados; // Empate! Guarda a lista
+                                      }
                                    }
                                 }
 
-                                // 3. PLANO C (Se não achou número nem nome, puxa o que estiver no dropdown)
-                                if (!linkDoBastiao) {
+                                // 3. PLANO C (Se não achou nada, puxa o do dropdown geral da sessão)
+                                if (!linkDoBastiao && !multiplosBastioes) {
                                    linkDoBastiao = fvGdveBastiaoLink;
                                 }
                              }
