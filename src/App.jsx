@@ -4900,9 +4900,23 @@ ${monthlyReport.desafioCrescimento || '-'}
                         {/* Seção Leitura */}
                         <div style={{ marginBottom: '2rem' }}>
                           <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Bastião / Leitura do Ciclo</label>
-                          <select value={fvGdveBastiaoName} onChange={async (e) => { const val = e.target.value; setFvGdveBastiaoName(val); const found = fvConfig?.modulo2?.bancoTemas?.find(b => b.name === val); const novoLink = found ? found.link : ''; setFvGdveBastiaoLink(novoLink); if (user) await setDoc(doc(db, 'fvData', user.uid), { fvGdveBastiaoName: val, fvGdveBastiaoLink: novoLink }, { merge: true }); }} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }}>
-                            <option value="">Selecione...</option>
-                            {fvConfig?.modulo2?.bancoTemas?.map((b, idx) => <option key={idx} value={b.name}>{b.name}</option>)}
+                          <select 
+                            value={fvGdveBastiaoName} 
+                            onChange={async (e) => { 
+                              const val = e.target.value; 
+                              setFvGdveBastiaoName(val); 
+                              // Busca no novo banco de Bastiões
+                              const found = BASTIOES_DB.find(b => b.nomeCompleto === val); 
+                              const novoLink = found ? found.link : ''; 
+                              setFvGdveBastiaoLink(novoLink); 
+                              if (user) await setDoc(doc(db, 'fvData', user.uid), { fvGdveBastiaoName: val, fvGdveBastiaoLink: novoLink }, { merge: true }); 
+                            }} 
+                            style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }}
+                          >
+                            <option value="">Selecione o Bastião na Grande Biblioteca...</option>
+                            {BASTIOES_DB.map((b, idx) => (
+                              <option key={idx} value={b.nomeCompleto}>{b.nomeCompleto}</option>
+                            ))}
                           </select>
                           {fvGdveBastiaoLink && <a href={fvGdveBastiaoLink} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: '1rem', color: isDark ? '#FFD700' : '#996515', fontWeight: 'bold' }}>🔗 Ler Bastião</a>}
                         </div>
