@@ -5010,7 +5010,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                                            {isCycle ? '⏳ Missão do Ciclo' : (isCounter ? '📅 Meta Diária' : '📅 Prática Diária')}
                                         </span>
                                         
-                                        {/* AQUI APARECE O BOTÃO */}
+                                        {/* AQUI APARECE O BOTÃO OU O MENU */}
                                         {linkDoBastiao && (
                                           <a 
                                             href={linkDoBastiao} 
@@ -5025,6 +5025,26 @@ ${monthlyReport.desafioCrescimento || '-'}
                                           >
                                             🔗 Abrir PDF
                                           </a>
+                                        )}
+
+                                        {multiplosBastioes && (
+                                          <select 
+                                            onClick={(e) => e.stopPropagation()} // Impede que o clique marque a tarefa
+                                            onChange={(e) => { 
+                                              if(e.target.value) window.open(e.target.value, '_blank'); 
+                                              e.target.value = ''; // Reseta o menu após clicar
+                                            }}
+                                            style={{ 
+                                              fontSize: '0.65rem', padding: '2px 6px', background: isDark ? 'rgba(212,175,55,0.1)' : '#fffbf0', 
+                                              color: isDark ? '#FFD700' : '#996515', border: `1px solid ${isDark ? '#FFD700' : '#996515'}`, 
+                                              borderRadius: '4px', maxWidth: '200px', fontWeight: 'bold', cursor: 'pointer'
+                                            }}
+                                          >
+                                            <option value="">{multiplosBastioes.length} encontrados! Escolha...</option>
+                                            {multiplosBastioes.map((b, i) => (
+                                              <option key={i} value={b.link}>{b.nomeCompleto}</option>
+                                            ))}
+                                          </select>
                                         )}
                                      </div>
                                    </div>
