@@ -4930,21 +4930,35 @@ ${monthlyReport.desafioCrescimento || '-'}
                              let isCompleted = false;
                              let displayValue = '';
 
-                             // --- LÓGICA ULTRA-SMART DO BASTIÃO ---
+                             // --- LÓGICA ULTRA-SMART DO BASTIÃO (NÚMERO OU NOME) ---
                              let linkDoBastiao = null;
-                             const isBastiaoTask = task.name.toLowerCase().includes('bastião') || task.name.toLowerCase().includes('leitura');
+                             const taskNameLower = task.name.toLowerCase();
+                             const isBastiaoTask = taskNameLower.includes('bastião') || taskNameLower.includes('leitura');
                              
                              if (isBastiaoTask) {
-                                // A IA do app procura um número dentro do texto que você digitou (ex: "039")
+                                // Ferramenta que limpa acentos e pontuação para facilitar a busca
+                                const limpaTexto = (str) => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+                                const textoLimpoTask = limpaTexto(task.name);
+
+                                // 1. TENTATIVA POR NÚMERO (Ex: "039" ou "39")
                                 const matchNumero = task.name.match(/\d+/);
                                 if (matchNumero) {
-                                   const numeroEncontrado = parseInt(matchNumero[0], 10).toString(); // Tira os zeros à esquerda
+                                   const numeroEncontrado = parseInt(matchNumero[0], 10).toString();
                                    const bastiaoEncontrado = BASTIOES_DB.find(b => b.numero === numeroEncontrado);
-                                   if (bastiaoEncontrado) {
-                                      linkDoBastiao = bastiaoEncontrado.link; // Link individual da tarefa!
-                                   }
+                                   if (bastiaoEncontrado) linkDoBastiao = bastiaoEncontrado.link;
                                 }
-                                // Se não achou número no texto, usa o link do menu geral como plano B
+
+                                // 2. TENTATIVA POR NOME (Ex: "Varre filho varre")
+                                if (!linkDoBastiao) {
+                                   const bastiaoPorNome = BASTIOES_DB.find(b => {
+                                      const tituloLimpo = limpaTexto(b.titulo);
+                                      // Evita falso positivo com títulos muito curtos e verifica se o título do banco está contido no que você digitou
+                                      return tituloLimpo.length > 4 && textoLimpoTask.includes(tituloLimpo);
+                                   });
+                                   if (bastiaoPorNome) linkDoBastiao = bastiaoPorNome.link;
+                                }
+
+                                // 3. PLANO C (Se não achou número nem nome, puxa o que estiver no dropdown)
                                 if (!linkDoBastiao) {
                                    linkDoBastiao = fvGdveBastiaoLink;
                                 }
