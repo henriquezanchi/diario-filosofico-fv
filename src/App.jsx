@@ -5029,10 +5029,30 @@ ${monthlyReport.desafioCrescimento || '-'}
 
                                         {multiplosBastioes && (
                                           <select 
-                                            onClick={(e) => e.stopPropagation()} // Impede que o clique marque a tarefa
-                                            onChange={(e) => { 
-                                              if(e.target.value) window.open(e.target.value, '_blank'); 
-                                              e.target.value = ''; // Reseta o menu após clicar
+                                            onClick={(e) => e.stopPropagation()} 
+                                            onChange={async (e) => { 
+                                              const selectedLink = e.target.value;
+                                              if (selectedLink) {
+                                                // 1. Abre o PDF em nova aba
+                                                window.open(selectedLink, '_blank'); 
+                                                
+                                                // 2. Descobre qual Bastião exato foi escolhido
+                                                const bastiaoEscolhido = multiplosBastioes.find(b => b.link === selectedLink);
+                                                
+                                                if (bastiaoEscolhido) {
+                                                   // 3. Atualiza o nome da tarefa para o nome oficial do Bastião
+                                                   const novasTasks = fvGdveTasks.map(t => 
+                                                     t.id === task.id ? { ...t, name: bastiaoEscolhido.nomeCompleto } : t
+                                                   );
+                                                   
+                                                   // 4. Salva a alteração na tela e no Firebase
+                                                   setFvGdveTasks(novasTasks);
+                                                   if (user) {
+                                                     await setDoc(doc(db, 'fvData', user.uid), { fvGdveTasks: novasTasks }, { merge: true });
+                                                   }
+                                                }
+                                              }
+                                              e.target.value = ''; // Reseta visualmente
                                             }}
                                             style={{ 
                                               fontSize: '0.65rem', padding: '2px 6px', background: isDark ? 'rgba(212,175,55,0.1)' : '#fffbf0', 
