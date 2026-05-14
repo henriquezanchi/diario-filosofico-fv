@@ -4925,19 +4925,32 @@ ${monthlyReport.desafioCrescimento || '-'}
                         <h4 style={{ color: isDark ? '#FFD700' : '#996515', fontSize: '1rem', fontFamily: "'Cinzel', serif", marginBottom: '1rem' }}>Práticas Específicas do Ciclo</h4>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
                            {fvGdveTasks.map(task => {
-                             // Lógica para saber que tipo de tarefa é
                              const isCycle = task.isCycle;
                              const isCounter = !isCycle && task.target > 1;
                              let isCompleted = false;
                              let displayValue = '';
 
-                             // --- NOVA LÓGICA DO BASTIÃO AUTOMÁTICO ---
-                             // Verifica se o nome da tarefa contém a palavra bastião ou leitura
+                             // --- LÓGICA ULTRA-SMART DO BASTIÃO ---
+                             let linkDoBastiao = null;
                              const isBastiaoTask = task.name.toLowerCase().includes('bastião') || task.name.toLowerCase().includes('leitura');
-                             const linkDoBastiao = isBastiaoTask ? fvGdveBastiaoLink : null;
+                             
+                             if (isBastiaoTask) {
+                                // A IA do app procura um número dentro do texto que você digitou (ex: "039")
+                                const matchNumero = task.name.match(/\d+/);
+                                if (matchNumero) {
+                                   const numeroEncontrado = parseInt(matchNumero[0], 10).toString(); // Tira os zeros à esquerda
+                                   const bastiaoEncontrado = BASTIOES_DB.find(b => b.numero === numeroEncontrado);
+                                   if (bastiaoEncontrado) {
+                                      linkDoBastiao = bastiaoEncontrado.link; // Link individual da tarefa!
+                                   }
+                                }
+                                // Se não achou número no texto, usa o link do menu geral como plano B
+                                if (!linkDoBastiao) {
+                                   linkDoBastiao = fvGdveBastiaoLink;
+                                }
+                             }
                              // -----------------------------------------
 
-                             // Puxa o valor do dia ou do ciclo global
                              const currentCount = (typeof fvDaily.gdveTasksStatus?.[task.id] === 'boolean' ? (fvDaily.gdveTasksStatus[task.id] ? 1 : 0) : fvDaily.gdveTasksStatus?.[task.id]) || 0;
                              const targetCount = task.target || 1;
                              const taskColor = getTaskColor(currentCount, targetCount, isDark);
@@ -4953,10 +4966,9 @@ ${monthlyReport.desafioCrescimento || '-'}
                              }
 
                              return (
-                               <div key={task.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: isDark ? 'rgba(0,0,0,0.2)' : '#f9f9f9', borderRadius: '8px', border: `1px solid ${taskColor}`, transition: 'all 0.3s ease' }}>
+                               <div key={task.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: isDark ? 'rgba(0,0,0,0.2)' : '#f9f9f9', borderRadius: '8px', border: `1px solid ${taskColor}`, transition: 'all 0.3s ease', marginBottom: '0.75rem' }}>
                                  <div onClick={() => toggleGdveTask(task)} style={{ flex: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                    
-                                   {/* Renderiza um Número se for meta diária, ou um Checkbox se for os outros */}
                                    {isCounter ? (
                                       <div style={{ padding: '0.3rem 0.6rem', background: taskColor, border: `1px solid ${taskColor}`, borderRadius: '12px', color: '#fff', fontWeight: 'bold', fontSize: '0.8rem', minWidth: '40px', textAlign: 'center' }}>
                                         {displayValue}
@@ -4973,13 +4985,14 @@ ${monthlyReport.desafioCrescimento || '-'}
                                         <span style={{ fontSize: '0.7rem', color: isDark ? '#b8a88a' : '#888', textTransform: 'uppercase' }}>
                                            {isCycle ? '⏳ Missão do Ciclo' : (isCounter ? '📅 Meta Diária' : '📅 Prática Diária')}
                                         </span>
-                                        {/* O BOTÃO DINÂMICO DO BASTIÃO APARECE AQUI */}
+                                        
+                                        {/* AQUI APARECE O BOTÃO */}
                                         {linkDoBastiao && (
                                           <a 
                                             href={linkDoBastiao} 
                                             target="_blank" 
                                             rel="noopener noreferrer" 
-                                            onClick={(e) => e.stopPropagation()} // Impede que o clique no link marque a tarefa
+                                            onClick={(e) => e.stopPropagation()} 
                                             style={{ 
                                               fontSize: '0.65rem', padding: '2px 6px', background: isDark ? 'rgba(212,175,55,0.1)' : '#fffbf0', 
                                               color: isDark ? '#FFD700' : '#996515', border: `1px solid ${isDark ? '#FFD700' : '#996515'}`, 
@@ -4991,7 +5004,6 @@ ${monthlyReport.desafioCrescimento || '-'}
                                         )}
                                      </div>
                                    </div>
-
                                  </div>
                                  <div style={{ display: 'flex', gap: '0.5rem' }}>
                                    <button onClick={(e) => { e.stopPropagation(); startEditingGdveTask(task); }} style={{ background: 'transparent', border: 'none', color: isDark ? '#d4af37' : '#996515', cursor: 'pointer' }} title="Editar"><Edit size={16} /></button>
