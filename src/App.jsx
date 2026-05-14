@@ -4948,14 +4948,20 @@ ${monthlyReport.desafioCrescimento || '-'}
                                    if (bastiaoEncontrado) linkDoBastiao = bastiaoEncontrado.link;
                                 }
 
-                                // 2. TENTATIVA POR NOME (Ex: "Varre filho varre")
+                                // 2. TENTATIVA POR NOME (Busca flexível por pedaços do título)
                                 if (!linkDoBastiao) {
-                                   const bastiaoPorNome = BASTIOES_DB.find(b => {
-                                      const tituloLimpo = limpaTexto(b.titulo);
-                                      // Evita falso positivo com títulos muito curtos e verifica se o título do banco está contido no que você digitou
-                                      return tituloLimpo.length > 4 && textoLimpoTask.includes(tituloLimpo);
-                                   });
-                                   if (bastiaoPorNome) linkDoBastiao = bastiaoPorNome.link;
+                                   // Remove as palavras de comando para sobrar só o que você quer buscar
+                                   const termoBusca = textoLimpoTask.replace('bastiao', '').replace('leitura', '').replace('ler', '').replace('o', '').trim();
+                                   
+                                   // Só faz a busca se você tiver digitado pelo menos 4 letras do título (evita que "a" ou "de" puxe o link errado)
+                                   if (termoBusca.length > 3) { 
+                                      const bastiaoPorNome = BASTIOES_DB.find(b => {
+                                         const tituloLimpo = limpaTexto(b.titulo);
+                                         // Verifica se o que você digitou é um pedaço do título oficial (ex: "animo" dentro de "animo a disciplina e possivel")
+                                         return tituloLimpo.includes(termoBusca) || termoBusca.includes(tituloLimpo);
+                                      });
+                                      if (bastiaoPorNome) linkDoBastiao = bastiaoPorNome.link;
+                                   }
                                 }
 
                                 // 3. PLANO C (Se não achou número nem nome, puxa o que estiver no dropdown)
