@@ -5131,8 +5131,26 @@ ${monthlyReport.desafioCrescimento || '-'}
                              )}
                            </div>
                            
-                           <input type="text" value={newGdveTaskName} onChange={(e) => setNewGdveTaskName(e.target.value)} placeholder="Ex: Ler Bastião / Eu sou Discípulo..." style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.4)' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
                            
+                           <input 
+                             type="text" 
+                             value={newGdveTaskName} 
+                             onChange={(e) => {
+                               const val = e.target.value;
+                               setNewGdveTaskName(val);
+                               
+                               // INTELIGÊNCIA: Se detectar que é leitura, muda o status automaticamente!
+                               const valLimpo = val.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+                               if (valLimpo.includes('bastiao') || valLimpo.includes('leitura') || valLimpo.includes('ler')) {
+                                 setNewGdveTaskIsCycle(true);
+                                 setNewGdveTaskTarget(1);
+                               }
+                             }} 
+                             placeholder="Ex: Ler Bastião / Eu sou Discípulo..." 
+                             style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.4)' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} 
+                           />
+
+
                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', marginTop: '0.5rem' }}>
                               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#666' }}>
                                  <input type="checkbox" checked={newGdveTaskIsCycle} onChange={(e) => { setNewGdveTaskIsCycle(e.target.checked); if(e.target.checked) setNewGdveTaskTarget(1); }} style={{ width: '16px', height: '16px', accentColor: '#FFD700', cursor: 'pointer' }} />
