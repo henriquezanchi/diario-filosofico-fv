@@ -4957,6 +4957,10 @@ ${monthlyReport.desafioCrescimento || '-'}
                                       // Usamos .filter() em vez de .find() para pegar TODOS os que batem
                                       const resultados = BASTIOES_DB.filter(b => {
                                          const tituloLimpo = limpaTexto(b.titulo);
+                                         
+                                         // CORREÇÃO: Ignora os Bastiões "???" (que ficam vazios ao limpar a pontuação)
+                                         if (tituloLimpo.length < 3) return false; 
+                                         
                                          return tituloLimpo.includes(termoBusca) || termoBusca.includes(tituloLimpo);
                                       });
 
@@ -5060,9 +5064,13 @@ ${monthlyReport.desafioCrescimento || '-'}
                                               borderRadius: '4px', maxWidth: '200px', fontWeight: 'bold', cursor: 'pointer'
                                             }}
                                           >
-                                            <option value="">{multiplosBastioes.length} encontrados! Escolha...</option>
+                                            <option value="" style={{ background: isDark ? '#1a1a2e' : '#fff', color: isDark ? '#b8a88a' : '#666' }}>
+                                              {multiplosBastioes.length} encontrados! Escolha...
+                                            </option>
                                             {multiplosBastioes.map((b, i) => (
-                                              <option key={i} value={b.link}>{b.nomeCompleto}</option>
+                                              <option key={i} value={b.link} style={{ background: isDark ? '#1a1a2e' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810' }}>
+                                                {b.nomeCompleto}
+                                              </option>
                                             ))}
                                           </select>
                                         )}
