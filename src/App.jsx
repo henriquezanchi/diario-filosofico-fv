@@ -186,6 +186,7 @@ function App() {
   }, []);
   
 
+
   // Sensor de Instalação (PWA)
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
@@ -1341,6 +1342,59 @@ function App() {
       setIsSearchingBooks(false);
     }
   };
+
+  // =========================================================================
+  // OBSERVADOR: AUTO-CORRETOR DE BASTIÕES
+  // =========================================================================
+  useEffect(() => {
+    let precisaSalvar = false;
+    
+    const tasksCorrigidas = fvGdveTasks.map(task => {
+      const taskNameLower = task.name.toLowerCase();
+      const isBastiaoTask = taskNameLower.includes('bastião') || taskNameLower.includes('leitura');
+      
+      if (isBastiaoTask) {
+        const limpaTexto = (str) => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+        const textoLimpoTask = limpaTexto(task.name);
+        let bastiaoUnico = null;
+        
+        // 1. Tenta achar pelo número
+        const matchNumero = task.name.match(/\d+/);
+        if (matchNumero) {
+           const numeroEncontrado = parseInt(matchNumero[0], 10).toString();
+           bastiaoUnico = BASTIOES_DB.find(b => b.numero === numeroEncontrado);
+        }
+        
+        // 2. Se não achou número, tenta pelo nome
+        if (!bastiaoUnico) {
+           const termoBusca = textoLimpoTask.replace('bastiao', '').replace('leitura', '').replace('ler', '').replace(/(^|\s)o(\s|$)/g, ' ').trim();
+           if (termoBusca.length > 3) { 
+              const resultados = BASTIOES_DB.filter(b => {
+                 const tituloLimpo = limpaTexto(b.titulo);
+                 if (tituloLimpo.length < 3) return false; 
+                 return tituloLimpo.includes(termoBusca) || termoBusca.includes(tituloLimpo);
+              });
+              if (resultados.length === 1) bastiaoUnico = resultados[0];
+           }
+        }
+
+        // 3. Se achou uma obra única E o nome atual está diferente do oficial, corrige!
+        if (bastiaoUnico && task.name !== bastiaoUnico.nomeCompleto) {
+           precisaSalvar = true;
+           return { ...task, name: bastiaoUnico.nomeCompleto };
+        }
+      }
+      return task; // Se não for bastião ou não precisar corrigir, devolve intacto
+    });
+
+    // Se houve alguma correção, atualiza a tela e o Firebase automaticamente
+    if (precisaSalvar) {
+       setFvGdveTasks(tasksCorrigidas);
+       if (user) {
+          setDoc(doc(db, 'fvData', user.uid), { fvGdveTasks: tasksCorrigidas }, { merge: true });
+       }
+    }
+  }, [fvGdveTasks, user]); // Fica observando sempre que a lista de tarefas mudar
 
   // --- GATILHO AUTOMÁTICO DO ORÁCULO (Fase 3) ---
   // Se o usuário tem livros, mas não tem recomendação (ou ela expirou), gera sozinho em background.
