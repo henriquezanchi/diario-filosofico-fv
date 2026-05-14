@@ -4896,31 +4896,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                              {fvDaily.gdveAttendance ? '✓ Presença Confirmada' : 'Marcar Presença'}
                            </button>
                         </div>
-
-                        {/* Seção Leitura */}
-                        <div style={{ marginBottom: '2rem' }}>
-                          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Bastião / Leitura do Ciclo</label>
-                          <select 
-                            value={fvGdveBastiaoName} 
-                            onChange={async (e) => { 
-                              const val = e.target.value; 
-                              setFvGdveBastiaoName(val); 
-                              // Busca no novo banco de Bastiões
-                              const found = BASTIOES_DB.find(b => b.nomeCompleto === val); 
-                              const novoLink = found ? found.link : ''; 
-                              setFvGdveBastiaoLink(novoLink); 
-                              if (user) await setDoc(doc(db, 'fvData', user.uid), { fvGdveBastiaoName: val, fvGdveBastiaoLink: novoLink }, { merge: true }); 
-                            }} 
-                            style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }}
-                          >
-                            <option value="">Selecione o Bastião na Grande Biblioteca...</option>
-                            {BASTIOES_DB.map((b, idx) => (
-                              <option key={idx} value={b.nomeCompleto}>{b.nomeCompleto}</option>
-                            ))}
-                          </select>
-                          {fvGdveBastiaoLink && <a href={fvGdveBastiaoLink} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: '1rem', color: isDark ? '#FFD700' : '#996515', fontWeight: 'bold' }}>🔗 Ler Bastião</a>}
-                        </div>
-
+                        
                         {/* Seção Práticas do Grupo */}
                         <h4 style={{ color: isDark ? '#FFD700' : '#996515', fontSize: '1rem', fontFamily: "'Cinzel', serif", marginBottom: '1rem' }}>Práticas Específicas do Ciclo</h4>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
@@ -4932,7 +4908,8 @@ ${monthlyReport.desafioCrescimento || '-'}
 
                              // --- LÓGICA ULTRA-SMART DO BASTIÃO (NÚMERO OU NOME + MÚLTIPLOS) ---
                              let linkDoBastiao = null;
-                             let multiplosBastioes = null; // Nova variável para guardar a lista de empatados
+                             let multiplosBastioes = null; 
+                             let bastiaoUnico = null; // <- NOVA VARIÁVEL PARA GUARDAR A OBRA EXATA
                              const taskNameLower = task.name.toLowerCase();
                              const isBastiaoTask = taskNameLower.includes('bastião') || taskNameLower.includes('leitura');
                              
@@ -4944,37 +4921,28 @@ ${monthlyReport.desafioCrescimento || '-'}
                                 const matchNumero = task.name.match(/\d+/);
                                 if (matchNumero) {
                                    const numeroEncontrado = parseInt(matchNumero[0], 10).toString();
-                                   const bastiaoEncontrado = BASTIOES_DB.find(b => b.numero === numeroEncontrado);
-                                   if (bastiaoEncontrado) linkDoBastiao = bastiaoEncontrado.link;
+                                   bastiaoUnico = BASTIOES_DB.find(b => b.numero === numeroEncontrado);
+                                   if (bastiaoUnico) linkDoBastiao = bastiaoUnico.link;
                                 }
 
-                                // 2. TENTATIVA POR NOME COM FILTRO DE MÚLTIPLOS
+                                // 2. TENTATIVA POR NOME COM FILTRO DE MÚLTIPLOS E CORREÇÃO DE "???"
                                 if (!linkDoBastiao) {
-                                   // A regex remove o "o" solto para evitar limpar letras "o" dentro de palavras
                                    const termoBusca = textoLimpoTask.replace('bastiao', '').replace('leitura', '').replace('ler', '').replace(/(^|\s)o(\s|$)/g, ' ').trim();
                                    
                                    if (termoBusca.length > 3) { 
-                                      // Usamos .filter() em vez de .find() para pegar TODOS os que batem
                                       const resultados = BASTIOES_DB.filter(b => {
                                          const tituloLimpo = limpaTexto(b.titulo);
-                                         
-                                         // CORREÇÃO: Ignora os Bastiões "???" (que ficam vazios ao limpar a pontuação)
                                          if (tituloLimpo.length < 3) return false; 
-                                         
                                          return tituloLimpo.includes(termoBusca) || termoBusca.includes(tituloLimpo);
                                       });
 
                                       if (resultados.length === 1) {
-                                         linkDoBastiao = resultados[0].link; // Achou só 1, link direto
+                                         bastiaoUnico = resultados[0];
+                                         linkDoBastiao = bastiaoUnico.link;
                                       } else if (resultados.length > 1) {
-                                         multiplosBastioes = resultados; // Empate! Guarda a lista
+                                         multiplosBastioes = resultados;
                                       }
                                    }
-                                }
-
-                                // 3. PLANO C (Se não achou nada, puxa o do dropdown geral da sessão)
-                                if (!linkDoBastiao && !multiplosBastioes) {
-                                   linkDoBastiao = fvGdveBastiaoLink;
                                 }
                              }
                              // -----------------------------------------
@@ -5015,12 +4983,24 @@ ${monthlyReport.desafioCrescimento || '-'}
                                         </span>
                                         
                                         {/* AQUI APARECE O BOTÃO OU O MENU */}
-                                        {linkDoBastiao && (
+                                        {linkDoBastiao && !multiplosBastioes && (
                                           <a 
                                             href={linkDoBastiao} 
                                             target="_blank" 
                                             rel="noopener noreferrer" 
-                                            onClick={(e) => e.stopPropagation()} 
+                                            onClick={async (e) => { 
+                                              e.stopPropagation();
+                                              // A MÁGICA ACONTECE AQUI: Se o nome for diferente do oficial, ele corrige!
+                                              if (bastiaoUnico && task.name !== bastiaoUnico.nomeCompleto) {
+                                                 const novasTasks = fvGdveTasks.map(t => 
+                                                   t.id === task.id ? { ...t, name: bastiaoUnico.nomeCompleto } : t
+                                                 );
+                                                 setFvGdveTasks(novasTasks);
+                                                 if (user) {
+                                                   await setDoc(doc(db, 'fvData', user.uid), { fvGdveTasks: novasTasks }, { merge: true });
+                                                 }
+                                              }
+                                            }} 
                                             style={{ 
                                               fontSize: '0.65rem', padding: '2px 6px', background: isDark ? 'rgba(212,175,55,0.1)' : '#fffbf0', 
                                               color: isDark ? '#FFD700' : '#996515', border: `1px solid ${isDark ? '#FFD700' : '#996515'}`, 
