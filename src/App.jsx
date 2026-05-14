@@ -4931,6 +4931,12 @@ ${monthlyReport.desafioCrescimento || '-'}
                              let isCompleted = false;
                              let displayValue = '';
 
+                             // --- NOVA LÓGICA DO BASTIÃO AUTOMÁTICO ---
+                             // Verifica se o nome da tarefa contém a palavra bastião ou leitura
+                             const isBastiaoTask = task.name.toLowerCase().includes('bastião') || task.name.toLowerCase().includes('leitura');
+                             const linkDoBastiao = isBastiaoTask ? fvGdveBastiaoLink : null;
+                             // -----------------------------------------
+
                              // Puxa o valor do dia ou do ciclo global
                              const currentCount = (typeof fvDaily.gdveTasksStatus?.[task.id] === 'boolean' ? (fvDaily.gdveTasksStatus[task.id] ? 1 : 0) : fvDaily.gdveTasksStatus?.[task.id]) || 0;
                              const targetCount = task.target || 1;
@@ -4963,9 +4969,27 @@ ${monthlyReport.desafioCrescimento || '-'}
                                      <span style={{ color: isCompleted ? (isDark ? '#81c784' : '#2e7d32') : (isDark ? '#f0e6d2' : '#2c1810'), textDecoration: isCompleted ? 'line-through' : 'none' }}>
                                        {task.name}
                                      </span>
-                                     <span style={{ fontSize: '0.7rem', color: isDark ? '#b8a88a' : '#888', marginTop: '0.2rem', textTransform: 'uppercase' }}>
-                                        {isCycle ? '⏳ Missão do Ciclo (Não zera)' : (isCounter ? '📅 Meta Diária' : '📅 Prática Diária')}
-                                     </span>
+                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.2rem' }}>
+                                        <span style={{ fontSize: '0.7rem', color: isDark ? '#b8a88a' : '#888', textTransform: 'uppercase' }}>
+                                           {isCycle ? '⏳ Missão do Ciclo' : (isCounter ? '📅 Meta Diária' : '📅 Prática Diária')}
+                                        </span>
+                                        {/* O BOTÃO DINÂMICO DO BASTIÃO APARECE AQUI */}
+                                        {linkDoBastiao && (
+                                          <a 
+                                            href={linkDoBastiao} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer" 
+                                            onClick={(e) => e.stopPropagation()} // Impede que o clique no link marque a tarefa
+                                            style={{ 
+                                              fontSize: '0.65rem', padding: '2px 6px', background: isDark ? 'rgba(212,175,55,0.1)' : '#fffbf0', 
+                                              color: isDark ? '#FFD700' : '#996515', border: `1px solid ${isDark ? '#FFD700' : '#996515'}`, 
+                                              borderRadius: '4px', textDecoration: 'none', display: 'inline-block', fontWeight: 'bold'
+                                            }}
+                                          >
+                                            🔗 Abrir PDF
+                                          </a>
+                                        )}
+                                     </div>
                                    </div>
 
                                  </div>
