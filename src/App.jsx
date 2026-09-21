@@ -39,20 +39,6 @@ import {
 import { translateCategory } from './constants/bookMetrics';
 import { AUTHOR_CANON, getReadingRank, getFavoriteTheme, getAuthorStats } from './constants/ranks';
 
-// Proxy server-side: a chave do Gemini nunca fica exposta no bundle do cliente.
-async function callGemini({ contents, generationConfig }) {
-  const idToken = await auth.currentUser?.getIdToken();
-  const response = await fetch('/api/gemini', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
-    },
-    body: JSON.stringify({ contents, generationConfig }),
-  });
-  return response.json();
-}
-
 function App() {
   // Estados
   const [user, setUser] = useState(null);
@@ -64,10 +50,6 @@ function App() {
   const [showPassword, setShowPassword] = useState(false);
   const [fvConfig, setFvConfig] = useState(null); // Armazena a estrutura vinda do Firebase
   const [isDownloadingConfig, setIsDownloadingConfig] = useState(false);
-  const [feedbackRating, setFeedbackRating] = useState(0);
-  const [feedbackText, setFeedbackText] = useState('');
-  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
-  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const [notificationsActive, setNotificationsActive] = useState(false);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
   const [morningTime, setMorningTime] = useState('06:00');
@@ -75,9 +57,7 @@ function App() {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
-  const [kuravaEnabled, setKuravaEnabled] = useState(true);
   const [isCloudDataLoaded, setIsCloudDataLoaded] = useState(false);
-  const [aiConsent, setAiConsent] = useState(false);
 
   // --- ESTADOS DE SEGURANÇA FV (ANTE-SALA) ---
   const [fvAccessStatus, setFvAccessStatus] = useState('checking'); // 'checking', 'approved', 'pending', 'unregistered'
@@ -349,7 +329,6 @@ function App() {
   const [newVirtueGoal, setNewVirtueGoal] = useState('');
   const [newProjectGoal, setNewProjectGoal] = useState('');
   const [acceptedMissions, setAcceptedMissions] = useState([]);
-  const [missionToAccept, setMissionToAccept] = useState(null);
   const [showGoalsEditor, setShowGoalsEditor] = useState(false);
   const [selectedVirtueDetail, setSelectedVirtueDetail] = useState(null);
   const [entries, setEntries] = useState([]);
@@ -361,22 +340,7 @@ function App() {
   const [fvNextCartaDate, setFvNextCartaDate] = useState('');
   const [fvMasterName, setFvMasterName] = useState('');
   const [fvLastMeetingDate, setFvLastMeetingDate] = useState('');
-  const [technicalSynthesis, setTechnicalSynthesis] = useState(null);
-  const [discipularSynthesis, setDiscipularSynthesis] = useState(null);
-  const [aiGuarda, setAiGuarda] = useState(null);
-  const [aiConquistas, setAiConquistas] = useState(null);
-  const [aiInvestigacoes, setAiInvestigacoes] = useState(null);
-  const [fvAiMetricas, setFvAiMetricas] = useState(null);
-  const [fvAiAuditoria, setFvAiAuditoria] = useState(null);
-  const [fvAiLexical, setFvAiLexical] = useState(null);
-  const [isGeneratingDiscSync, setIsGeneratingDiscSync] = useState(false);
-  const [aiSuggestedGoals, setAiSuggestedGoals] = useState(null);
-  const [isGeneratingGoals, setIsGeneratingGoals] = useState(false);
-  const [kuravaData, setKuravaData] = useState(null);
-  const [isGeneratingKurava, setIsGeneratingKurava] = useState(false);
-  const [isKuravaRevealed, setIsKuravaRevealed] = useState(false);
   const isEnrichingRef = useRef(false);
-  const [isGeneratingSynthesis, setIsGeneratingSynthesis] = useState(false);
   const [fvGdveDesafios, setFvGdveDesafios] = useState([]);
   const [fvGdveReuniao, setFvGdveReuniao] = useState('');
   const [fvGdveBastiaoName, setFvGdveBastiaoName] = useState(''); 
@@ -408,17 +372,8 @@ function App() {
   const [bookSearchQuery, setBookSearchQuery] = useState('');
   const [bookSearchResults, setBookSearchResults] = useState([]);
   const [isSearchingBooks, setIsSearchingBooks] = useState(false);
-  const [bookRecommendation, setBookRecommendation] = useState(null);
-  const [isScanningShelf, setIsScanningShelf] = useState(false);
-  const [detectedBooks, setDetectedBooks] = useState([]);
-  const [showScannerModal, setShowScannerModal] = useState(false);
-  const [isAwaitingScan, setIsAwaitingScan] = useState(false);
-  const [scanNotification, setScanNotification] = useState(null); // { count: 0, show: false }
-  const [discardedSuggestions, setDiscardedSuggestions] = useState([]); // Memória do Oráculo
   const [selectedForDeletion, setSelectedForDeletion] = useState([]); // Exclusão em lote
   const [showReadBooks, setShowReadBooks] = useState(false); // Gaveta sanfona de Lidos
-  const [isGeneratingRecommendation, setIsGeneratingRecommendation] = useState(false);
-  const AMAZON_AFFILIATE_ID = 'filosofiae0a5-20'; // 
   const totalForgedPages = books.reduce((acc, book) => acc + (book.currentPage || 0), 0);
   const [taskReminderTime, setTaskReminderTime] = useState('10:00');
   const getStalledBook = () => {
@@ -721,7 +676,6 @@ function App() {
     setMorningDone(false);
     setEveningDone(false);
     setSelectedVirtue('');
-    setKuravaData(null);
     setCustomVirtue('');
     setDailyIntention('');
     setMorningChallenges('');
@@ -1304,13 +1258,6 @@ function App() {
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         setBooks(docSnap.data().books || []);
-        setDiscardedSuggestions(docSnap.data().discardedSuggestions || []);
-        const savedRec = docSnap.data().bookRecommendation;
-        if (savedRec && savedRec.generatedAt) {
-          const ageInDays = (new Date() - new Date(savedRec.generatedAt)) / (1000 * 60 * 60 * 24);
-          if (ageInDays < 7) setBookRecommendation(savedRec);
-          else setBookRecommendation(null);
-        }
       }
     } catch (error) { console.error('Erro ao carregar livros:', error); }
   };
@@ -1329,75 +1276,6 @@ function App() {
         console.error('Erro ao salvar livros:', error); 
       }
     }
-  };
-
-  // --- MOTOR DE VISÃO COMPUTACIONAL (Fase 4) ---
-  const handleShelfScan = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if(!aiConsent) return alert('Autorize a IA nas Configurações.');
-
-    // 1. Inicia o modo silencioso e FECHA qualquer modal aberto
-    setIsAwaitingScan(true);
-    setShowScannerModal(false); 
-    setScanNotification(null);
-
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = async () => {
-      const base64String = reader.result.split(',')[1];
-      const prompt = `Atue como um bibliotecário especialista. Analise esta imagem de capas ou lombadas de livros. Identifique cada obra. Tente extrair: Título, Autor e Editora. Retorne ESTRITAMENTE um array JSON de objetos: [{"title": "Título", "author": "Autor", "publisher": "Editora"}]`;
-
-      try {
-        const data = await callGemini({
-          contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: file.type, data: base64String } }] }],
-          generationConfig: { responseMimeType: "application/json" }
-        });
-        const detected = JSON.parse(data.candidates[0].content.parts[0].text);
-        
-        // 2. Guarda os resultados mas NÃO abre o modal ainda
-        setDetectedBooks(detected.map(b => ({ ...b, isPending: true })));
-        
-        // 3. Dispara a notificação de sucesso
-        setScanNotification({ count: detected.length, show: true });
-      } catch(err) {
-        console.error("Erro no Escaner Silencioso:", err);
-        alert("O Oráculo se distraiu. Tente outra foto.");
-      } finally {
-        setIsAwaitingScan(false);
-        e.target.value = null;
-      }
-    };
-  };
-
-  // --- PROCESSADOR RÁPIDO DO ESCANER ---
-  const dismissDetectedBook = (title) => {
-    setDetectedBooks(prev => prev.filter(b => b.title !== title));
-  };
-
-  const handleQuickAdd = (detectedBook, status) => {
-    const newBook = {
-      id: `book_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-      title: detectedBook.title,
-      author: detectedBook.author,
-      publisher: detectedBook.publisher || null,
-      totalPages: 0, 
-      currentPage: 0, 
-      thumbnail: null, 
-      category: 'Filosofia',
-      isPendingEnrichment: true, 
-      status: status // 'lido', 'lendo', 'juro' (já tenho), 'desejo' (quero comprar)
-    };
-
-    if (status === 'lido') {
-      newBook.finishedDate = new Date().toISOString();
-    } else if (status === 'lendo') {
-      const input = prompt(`Em qual página você está de "${detectedBook.title}"?`, '0');
-      newBook.currentPage = parseInt(input) || 0;
-    }
-
-    saveBooksToDb([newBook, ...books]);
-    dismissDetectedBook(detectedBook.title);
   };
 
   const searchBooks = async (query) => {
@@ -1482,93 +1360,6 @@ function App() {
     }
   }, [fvGdveTasks, user]); // Fica observando sempre que a lista de tarefas mudar
 
-  // --- GATILHO AUTOMÁTICO DO ORÁCULO (Fase 3) ---
-  // Se o usuário tem livros, mas não tem recomendação (ou ela expirou), gera sozinho em background.
-  useEffect(() => {
-    if (books.length > 0 && bookRecommendation === null && !isGeneratingRecommendation && aiConsent) {
-      generateBookRecommendation();
-    }
-  }, [books, bookRecommendation, aiConsent, isGeneratingRecommendation]);
-
-  const generateBookRecommendation = async (listaDescartadosAtualizada = null) => {
-    if (!user || books.length === 0) return;
-    setIsGeneratingRecommendation(true);
-
-    const livrosAtuais = books.map(b => `${b.title} (${b.author}) - Categoria: ${b.category}`).join(' | ');
-    const listaProibida = listaDescartadosAtualizada || discardedSuggestions;
-
-    const prompt = `Você é um bibliotecário da Escola de Filosofia Nova Acrópole. 
-    O aluno está lendo ou já leu estes livros: ${livrosAtuais}.
-    
-    ATENÇÃO - LISTA DE LIVROS PROIBIDOS (Ele já leu ou descartou): ${listaProibida.join(', ')}. 
-    NUNCA, SOB NENHUMA HIPÓTESE, sugira um livro que contenha qualquer palavra desta lista proibida.
-    
-    Com base no perfil dele, sugira UM ÚNICO livro clássico de filosofia, história ou humanismo que seja o próximo passo ideal. 
-    Escolha livros de autores como Marco Aurélio, Sêneca, Platão, Helena Blavatsky, Jorge Ángel Livraga ou similares.
-    
-    Retorne ESTRITAMENTE um JSON válido, sem formatação markdown, com esta estrutura exata:
-    {
-      "title": "Título exato do livro",
-      "author": "Autor",
-      "reason": "Uma frase curta explicando por que este livro complementa as leituras atuais."
-    }`;
-
-    try {
-      const data = await callGemini({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { responseMimeType: "application/json" }
-      });
-
-      // Proteção 1: Impede que o app trave se a API atingir o limite
-      if (data.error) {
-         console.error("Erro da API Gemini:", data.error.message);
-         setIsGeneratingRecommendation(false);
-         return;
-      }
-
-      // Proteção 2: Limpa marcações de código (```json) que o Gemini costuma colocar
-      let rawText = data.candidates[0].content.parts[0].text;
-      rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-      const rec = JSON.parse(rawText);
-
-      // Busca a capa no Google Books
-      const bookData = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(rec.title + ' ' + rec.author)}&maxResults=5`);
-      const bookInfo = await bookData.json();
-      const validBook = bookInfo.items?.find(item => item.volumeInfo.imageLinks?.thumbnail);
-
-      let finalRec;
-      
-      // Proteção 3: Quebra o Loop Infinito se o Google Books não achar o livro
-      if (!validBook) {
-        finalRec = { 
-          ...rec, 
-          thumbnail: '[https://placehold.co/60x90/1a1a2e/d4af37?text=Sem+Capa](https://placehold.co/60x90/1a1a2e/d4af37?text=Sem+Capa)', 
-          generatedAt: new Date().toISOString() 
-        };
-      } else {
-        const thumbnail = validBook.volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:');
-        finalRec = { ...rec, thumbnail, generatedAt: new Date().toISOString() };
-      }
-
-      setBookRecommendation(finalRec);
-      if (user) await setDoc(doc(db, 'userBooks', user.uid), { bookRecommendation: finalRec }, { merge: true });
-
-    } catch (e) {
-      console.error("Erro ao gerar recomendação:", e);
-      // Proteção 4: Se tudo falhar, gera um card de erro amigável para parar o loop
-      const fallback = { 
-        title: "O Oráculo Precisa Descansar", 
-        author: "Sistema", 
-        reason: "Ocorreu uma falha na conexão. Tente descartar esta sugestão mais tarde.", 
-        thumbnail: '[https://placehold.co/60x90/1a1a2e/e74c3c?text=Erro](https://placehold.co/60x90/1a1a2e/e74c3c?text=Erro)', 
-        generatedAt: new Date().toISOString() 
-      };
-      setBookRecommendation(fallback);
-    } finally {
-      setIsGeneratingRecommendation(false);
-    }
-  };
-
   const loadCustomTasks = async (uid) => {
     try {
       const tasksDoc = await getDoc(doc(db, 'customTasks', uid));
@@ -1584,7 +1375,6 @@ function App() {
         setVirtueGoals(data.virtueGoals || []);
         setProjectGoals(data.projectGoals || []);
         setAcceptedMissions(data.acceptedMissions || []);
-        setAiSuggestedGoals(data.aiSuggestedGoals || null);
       }
     } catch (error) { console.error('Erro ao carregar metas:', error); }
   };
@@ -1621,11 +1411,6 @@ function App() {
         setFvGdveCycleStatus(data.gdveCycleStatus || {});
         setFvGdveBastiaoName(data.fvGdveBastiaoName || data.bastiaoName || '');
         setFvGdveBastiaoLink(data.fvGdveBastiaoLink || data.bastiaoLink || '');
-        
-        setKuravaEnabled(data.kuravaEnabled !== false);
-        setAiConsent(data.aiConsent || false);
-        setDiscipularSynthesis(data.discipularSynthesis || null);
-        setTechnicalSynthesis(data.technicalSynthesis || null);
       }
     } catch (error) {
       console.error("Erro ao carregar dados da nuvem:", error);
@@ -1875,22 +1660,6 @@ function App() {
     }
   };
 
-  // --- MOTOR DAS MISSÕES DE CICLO (IA E JURAMENTO) ---
-  const confirmAcceptMission = () => {
-    if (!missionToAccept) return;
-    const newMission = {
-      id: Date.now(),
-      titulo: missionToAccept.titulo,
-      descricao: missionToAccept.descricao,
-      startDate: getTodayKey(),
-      completed: false
-    };
-    const newList = [...acceptedMissions, newMission];
-    setAcceptedMissions(newList);
-    saveLongTermGoals(null, null, newList);
-    setMissionToAccept(null);
-  };
-
   const toggleAcceptedMission = (id) => {
     const newList = acceptedMissions.map(m => m.id === id ? { ...m, completed: !m.completed } : m);
     setAcceptedMissions(newList);
@@ -1902,127 +1671,6 @@ function App() {
       const newList = acceptedMissions.filter(m => m.id !== id);
       setAcceptedMissions(newList);
       saveLongTermGoals(null, null, newList);
-    }
-  };
-
-  // --- SISTEMA DE AUDITORIA ATIVA: O CAMPO DE KURUKSHETRA ---
-  const generateKuravaAnalysis = async () => {
-    if (!user) return;
-    if (!aiConsent) { alert("Para acionar o Oráculo, autorize o uso da IA no menu de 'Opções > Configurações'."); return; }
-    setIsGeneratingKurava(true);
-
-    try {
-      const hoje = new Date();
-      const seteDiasAtras = new Date(); seteDiasAtras.setDate(hoje.getDate() - 7);
-      
-      const ultimosDias = entries.filter(e => { 
-        const d = new Date(e.date + 'T12:00:00'); 
-        return d >= seteDiasAtras && d <= hoje; 
-      });
-
-      if (ultimosDias.length === 0) {
-        alert("O campo de batalha está vazio. Preencha o diário nos próximos dias para a IA rastrear seus Kuravas.");
-        setIsGeneratingKurava(false);
-        return;
-      }
-
-      let dossie = `REGISTROS DOS ÚLTIMOS 7 DIAS:\n`;
-      ultimosDias.forEach(e => {
-        dossie += `[${e.date.split('-').reverse().join('/')}] `;
-        if (e.whereIFailed) dossie += `FALHA DECLARADA: ${e.whereIFailed} | `;
-        if (e.whatILeftUndone) dossie += `OMISSÃO: ${e.whatILeftUndone} | `;
-        if (e.freeEpilogue) dossie += `TEXTO LIVRE: ${e.freeEpilogue} | `;
-        dossie += `\n`;
-      });
-
-      const prompt = `Você é um Instrutor Filosófico analisando o diário de um discípulo. 
-      Sua missão é identificar o "Kurava da Semana" (defeito dominante) e convocar o "Pandava" (virtude).
-      ALÉM DISSO, você deve gerar 10 "Ações de Foro Íntimo" altamente específicas para este aluno.
-      
-      Crie armadilhas morais, "falsas virtudes" (ações que parecem boas mas são fugas, ex: "organizei a mesa para adiar o trabalho"), e vitórias silenciosas baseadas no texto dele.
-
-      DADOS CRUZADOS DOS ÚLTIMOS 7 DIAS:
-      ${dossie}
-
-      Retorne ESTRITAMENTE um objeto JSON válido com estas chaves:
-      "kurava": "Nome do defeito/vício (1 ou 2 palavras)",
-      "pandava": "A Virtude exata para combatê-lo",
-      "diagnostico": "Explique de forma fria onde esse Kurava se escondeu nas respostas.",
-      "estrategia": "Ação prática de 1 linha.",
-      "acoesForoIntimo": [
-        { "id": 1, "text": "Frase da ação em primeira pessoa (ex: Senti raiva e segurei a língua)", "value": 15, "type": "positive" },
-        { "id": 2, "text": "Frase da ação (ex: Gastei horas lendo teoria para não agir)", "value": -15, "type": "negative" }
-        // ... Gere exatamente 10 itens (valores de -20 a +20).
-      ]
-      `;
-
-      const data = await callGemini({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { responseMimeType: "application/json" }
-      });
-      if (data.error) throw new Error(data.error.message);
-
-      const parsedData = JSON.parse(data.candidates[0].content.parts[0].text);
-      setKuravaData(parsedData);
-
-      // Salva no banco de dados para não perder ao atualizar a página
-      await setDoc(doc(db, 'fvData', user.uid), { kuravaData: { ...parsedData, lastUpdate: new Date().toISOString() }, kuravaEnabled: true }, { merge: true });
-
-    } catch (error) { 
-      console.error(error); 
-      alert("Erro ao invocar a auditoria de Kurukshetra."); 
-    } finally { 
-      setIsGeneratingKurava(false); 
-    }
-  };
-
-  const generateAiGoals = async () => {
-    if (!user) return;
-    if (!aiConsent) { alert("Para gerar missões, autorize o uso da IA no menu de 'Opções > Configurações'."); return; }
-    setIsGeneratingGoals(true);
-
-    try {
-      const prompt = `Você é um Mentor Filosófico e Estrategista Comportamental.
-      Analise a Visão de Longo Prazo e as Metas Anuais do aluno, e cruze isso com suas falhas recentes (Guarda Baixada) extraídas do seu autoexame.
-      
-      Sonhos (Virtudes a Desenvolver): ${virtueGoals.map(g => g.text).join(' | ') || 'Não definidas'}
-      Projetos (Ações no Mundo): ${projectGoals.map(g => g.text).join(' | ') || 'Não definidos'}
-      Onde a Guarda Baixou (Fraquezas recentes): ${aiGuarda || 'Nenhuma fraqueza registrada ainda'}
-      
-      Crie 3 "Missões de Ciclo" (metas práticas de 15 dias, focadas na raiz do problema) para forçar o aluno a alinhar suas ações aos seus objetivos.
-
-      REGRAS DE SEGURANÇA E ÉTICA (MUITO IMPORTANTE):
-      - NUNCA sugira restrições alimentares (como cortar açúcar, jejuns), alterações drásticas de sono ou exercícios físicos intensos. 
-      - Mantenha os desafios estritamente no campo filosófico, comportamental, de estudos, meditação, reflexão ou organização pessoal e de tempo.
-
-      Retorne ESTRITAMENTE um objeto JSON válido:
-      {
-        "conselho": "Um parágrafo curto e direto de choque de realidade filosófica cruzando o que ele quer com o que ele tem feito.",
-        "missoes": [
-          { "titulo": "Nome da Missão", "descricao": "O que fazer exatamente" },
-          { "titulo": "Nome da Missão", "descricao": "O que fazer exatamente" },
-          { "titulo": "Nome da Missão", "descricao": "O que fazer exatamente" }
-        ]
-      }`;
-
-      const data = await callGemini({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { responseMimeType: "application/json" }
-      });
-      if (data.error) throw new Error(data.error.message);
-
-      const parsedData = JSON.parse(data.candidates[0].content.parts[0].text);
-      setAiSuggestedGoals(parsedData);
-
-      await setDoc(doc(db, 'longTermGoals', user.uid), { 
-        virtueGoals, projectGoals, aiSuggestedGoals: parsedData, updatedAt: Timestamp.now() 
-      }, { merge: true });
-
-    } catch (error) { 
-      console.error(error); 
-      alert("Erro ao consultar a IA."); 
-    } finally { 
-      setIsGeneratingGoals(false); 
     }
   };
 
@@ -2158,108 +1806,6 @@ function App() {
       }, { merge: true });
       alert("✅ Acompanhamento Discipular salvo com sucesso!");
     } catch (error) { console.error("Erro ao salvar datas FV:", error); }
-  };
-
-  const generateTechnicalSynthesis = async () => {
-    if (!user) return;
-    if (!aiConsent) { alert("Para auditar seus dados, autorize o uso da IA no menu de 'Opções > Configurações'."); return; }
-    setIsGeneratingSynthesis(true);
-
-    try {
-      const hoje = new Date();
-      const trintaDiasAtras = new Date(); trintaDiasAtras.setDate(hoje.getDate() - 30);
-      const sessentaDiasAtras = new Date(); sessentaDiasAtras.setDate(hoje.getDate() - 60);
-
-      const cicloAtual = entries.filter(e => { const d = new Date(e.date + 'T12:00:00'); return d >= trintaDiasAtras && d <= hoje; });
-      const cicloAnterior = entries.filter(e => { const d = new Date(e.date + 'T12:00:00'); return d >= sessentaDiasAtras && d < trintaDiasAtras; });
-      
-      const epilogosAtual = cicloAtual.filter(e => e.eveningDone);
-      const evasaoVazia = epilogosAtual.filter(e => !e.whereIFailed && !e.whatIDidWell && !e.whatILeftUndone && !e.freeEpilogue).length;
-      const evasaoParcial = epilogosAtual.filter(e => (e.whereIFailed || e.whatIDidWell || e.whatILeftUndone) && (!e.whereIFailed || !e.whatIDidWell || !e.whatILeftUndone)).length;
-
-      // Conta as práticas silenciosas do FV
-      const countPractices = (ciclo) => { let total = 0; ciclo.forEach(e => { if(e.fvDaily && e.fvDaily.praticas) { total += Object.values(e.fvDaily.praticas).filter(v => v === true).length; } }); return total; };
-
-      let dossie = `DADOS ESTATÍSTICOS DO USUÁRIO:\n\n`;
-      dossie += `[CICLO ANTERIOR: Dias -60 a -31]\n- Preenchimentos Diário: ${cicloAnterior.length}\n- Práticas FV: ${countPractices(cicloAnterior)}\n\n`;
-
-      dossie += `[CICLO ATUAL: Últimos 30 dias]\n- Preenchimentos Diário: ${cicloAtual.length}\n- Práticas FV: ${countPractices(cicloAtual)}\n`;
-      dossie += `- COMPORTAMENTO DE AUTOEXAME: Dos ${epilogosAtual.length} epílogos, ${evasaoVazia} foram deixados em branco e ${evasaoParcial} foram parciais.\n`;
-      
-      dossie += `- ONDE FALHOU (Diário comum): ${cicloAtual.filter(e => e.whereIFailed).map(e => e.whereIFailed).join(' | ')}\n`;
-      dossie += `- TEXTO LIVRE (Epílogo): ${cicloAtual.filter(e => e.freeEpilogue).map(e => e.freeEpilogue).join(' | ')}\n`;
-
-      // INJETANDO O OURO ALQUÍMICO (DADOS FV)
-      const fvItem1 = cicloAtual.filter(e => e.fvDaily && e.fvDaily.item1).map(e => e.fvDaily.item1).join(' | ');
-      const fvItem6 = cicloAtual.filter(e => e.fvDaily && e.fvDaily.item6).map(e => e.fvDaily.item6).join(' | ');
-      
-      // Coletando as Leis da Matéria divididas
-      let fvItem2Materia = '';
-      cicloAtual.forEach(e => {
-          if(e.fvDaily) {
-              const subKeys = ['instintos', 'idade', 'enfermidade', 'animo', 'humor', 'ideias', 'sentimentos', 'ambiente'];
-              subKeys.forEach(k => {
-                 if(e.fvDaily[`item2_${k}`]) fvItem2Materia += `(${k}): ${e.fvDaily[`item2_${k}`]} | `;
-              });
-              if(e.fvDaily.item2) fvItem2Materia += e.fvDaily.item2 + ' | '; // Pega textos antigos se houver
-          }
-      });
-
-      dossie += `- FV VARRER POR DENTRO (Item 1): ${fvItem1}\n`;
-      dossie += `- FV VÍCIOS E NEGLIGÊNCIAS (Item 6): ${fvItem6}\n`;
-      dossie += `- FV LEIS DA MATÉRIA (Item 2): ${fvItem2Materia}\n`;
-
-      const termoMestre = fvMasterName ? `o seu Instrutor (${fvMasterName})` : "o seu Instrutor";
-
-      const prompt = `Você é um Analista de Dados e Mentor Filosófico. Retorne ESTRITAMENTE um objeto JSON válido (sem formatação Markdown e sem blocos de código).
-
-      REGRAS DE CONTEÚDO:
-      - NÃO dê conselhos morais clichês. Aja como um auditor imparcial e cirúrgico.
-      - Analise os DADOS ESTATÍSTICOS cruzando-os com os textos densos das Práticas FV ("Varrer por Dentro", "Vícios", "Leis da Matéria").
-      - O objetivo é extrair o ouro alquímico: os padrões de queda e ascensão da consciência do aluno neste ciclo.
-
-      O JSON deve conter EXATAMENTE as seguintes chaves:
-      "guardaBaixou": Uma síntese fria dos padrões recorrentes onde o usuário falhou, cedeu aos vícios (Item 6) ou foi dominado pelas Leis da Matéria (Item 2). (Máximo 4 linhas).
-      "conquistas": Uma síntese técnica dos padrões de acerto, virtudes executadas e aumento da Vontade/Práticas FV (Máximo 4 linhas).
-      "investigacoes": Um mapeamento de hipóteses, causas e "nós psíquicos" que o usuário expressou predominantemente no "Varrer por Dentro" (Item 1) e no Texto Livre (Máximo 4 linhas).
-      "sinteseGeral": Um relatório de 2 parágrafos: O primeiro avaliando o comportamento de preenchimento, evasão e constância comparando o ciclo atual com o anterior. O segundo sugerindo 2 perguntas técnicas precisas e desconfortáveis para ele levar para a reunião de acompanhamento com ${termoMestre}.
-
-      DADOS DO CICLO:
-      ${dossie}`;
-
-      // Configuração forçando o Gemini a cuspir JSON puro
-      const data = await callGemini({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { responseMimeType: "application/json" }
-      });
-      if (data.error) throw new Error(data.error.message);
-
-      // Parse do JSON recebido
-      const rawText = data.candidates[0].content.parts[0].text;
-      const parsedData = JSON.parse(rawText);
-      const dataAtual = new Date().toISOString();
-
-      // Salva nos estados
-      setAiGuarda(parsedData.guardaBaixou);
-      setAiConquistas(parsedData.conquistas);
-      setAiInvestigacoes(parsedData.investigacoes);
-      setTechnicalSynthesis(parsedData.sinteseGeral);
-
-      // Salva no Firebase
-      await setDoc(doc(db, 'fvData', user.uid), { 
-        technicalSynthesis: parsedData.sinteseGeral, 
-        aiGuarda: parsedData.guardaBaixou,
-        aiConquistas: parsedData.conquistas,
-        aiInvestigacoes: parsedData.investigacoes,
-        technicalSynthesisDate: dataAtual 
-      }, { merge: true });
-
-    } catch (error) { 
-      console.error(error); 
-      alert("Erro ao gerar síntese estruturada. Tente novamente."); 
-    } finally { 
-      setIsGeneratingSynthesis(false); 
-    }
   };
 
   const saveFvTexts = async () => {
@@ -3819,105 +3365,6 @@ ${monthlyReport.desafioCrescimento || '-'}
                 </div>
               )}
 
-              {/* O ORÁCULO FICA AQUI EMBAIXO */}
-              <div style={{ borderTop: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, marginTop: '2rem', paddingTop: '2rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
-                    <h3 style={{ margin: 0, color: isDark ? '#FFD700' : '#996515', fontSize: '1.3rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <Sparkles size={22} /> Forja de Missões (IA)
-                    </h3>
-                    <button onClick={generateAiGoals} disabled={isGeneratingGoals || (virtueGoals.length === 0 && projectGoals.length === 0)} style={{ padding: '0.6rem 1.2rem', background: isGeneratingGoals ? (isDark ? 'rgba(255, 152, 0, 0.15)' : '#fff3e0') : 'transparent', color: isGeneratingGoals ? (isDark ? '#ff9800' : '#e65100') : (isDark ? '#FFD700' : '#996515'), border: `1px solid ${isGeneratingGoals ? (isDark ? '#ff9800' : '#ffb74d') : (isDark ? '#FFD700' : '#996515')}`, borderRadius: '8px', cursor: (isGeneratingGoals || (virtueGoals.length === 0 && projectGoals.length === 0)) ? 'not-allowed' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.3s ease' }}>
-                      {isGeneratingGoals ? <Sparkles className="animate-spin" size={16} /> : <Target size={16} />}
-                      {isGeneratingGoals ? 'Consultando o Oráculo...' : 'Gerar Missões de Ciclo (15 dias)'}
-                    </button>
-                  </div>
-
-                  {(virtueGoals.length === 0 && projectGoals.length === 0) && <p style={{ fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic' }}>Adicione ao menos um Sonho ou Projeto acima para que a IA possa gerar suas missões cruzadas.</p>}
-
-                  {aiSuggestedGoals && (
-                    <div className="animate-fadeIn" style={{ background: isDark ? 'rgba(0,0,0,0.3)' : '#fdfbf7', padding: '1.5rem', borderRadius: '12px', border: `1px dashed ${isDark ? 'rgba(255, 215, 0, 0.4)' : 'rgba(153, 101, 21, 0.3)'}` }}>
-                      <p style={{ margin: '0 0 1.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.05rem', lineHeight: '1.6', fontStyle: 'italic', borderLeft: `3px solid ${isDark ? '#FFD700' : '#996515'}`, paddingLeft: '1rem' }}>
-                        "{aiSuggestedGoals.conselho}"
-                      </p>
-                      {/* DISCLAIMER DE SEGURANÇA */}
-                      <div style={{ background: isDark ? 'rgba(231, 76, 60, 0.1)' : '#fff5f5', padding: '1rem', borderRadius: '8px', borderLeft: '3px solid #e74c3c', marginBottom: '1.5rem', display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
-                        <AlertCircle size={20} color="#e74c3c" style={{ flexShrink: 0, marginTop: '0.1rem' }} />
-                        <p style={{ margin: 0, color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.85rem', lineHeight: '1.5' }}>
-                          <strong style={{ color: '#e74c3c' }}>Prudência Filosófica:</strong> Estas missões são sugestões algorítmicas geradas por IA com base em seus textos. A máquina não possui contexto médico ou psicológico completo. Avalie com responsabilidade e bom senso se a missão é segura e adequada à sua realidade antes de assumi-la.
-                        </p>
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
-                        {aiSuggestedGoals.missoes.map((missao, idx) => {
-                          const isAccepted = acceptedMissions.some(m => m.titulo === missao.titulo);
-                          return (
-                            <div key={idx} style={{ 
-                              background: isAccepted ? (isDark ? 'rgba(76, 175, 80, 0.05)' : 'rgba(76, 175, 80, 0.1)') : (isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.4)'), 
-                              padding: '1rem', 
-                              borderRadius: '8px', 
-                              border: `1px solid ${isAccepted ? (isDark ? 'rgba(76, 175, 80, 0.3)' : '#4caf50') : (isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)')}`, 
-                              display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-                              opacity: isAccepted ? 0.6 : 1,
-                              transition: 'all 0.3s ease'
-                            }}>
-                              <div>
-                                <h4 style={{ margin: '0 0 0.5rem 0', color: isAccepted ? (isDark ? '#81c784' : '#2e7d32') : (isDark ? '#d4af37' : '#6b4423'), fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                  {isAccepted ? <CheckCircle size={16} /> : <Flame size={16} />} {missao.titulo}
-                                </h4>
-                                <p style={{ margin: '0 0 1rem 0', color: isDark ? '#c8b896' : '#6b5744', fontSize: '0.9rem', lineHeight: '1.5' }}>{missao.descricao}</p>
-                              </div>
-                              <button 
-                                onClick={() => !isAccepted && setMissionToAccept(missao)} 
-                                disabled={isAccepted}
-                                style={{ 
-                                  alignSelf: 'flex-start', padding: '0.5rem 1rem', 
-                                  background: isAccepted ? (isDark ? 'rgba(76, 175, 80, 0.2)' : '#e8f5e9') : 'transparent', 
-                                  color: isAccepted ? (isDark ? '#81c784' : '#2e7d32') : (isDark ? '#FFD700' : '#996515'), 
-                                  border: `1px solid ${isAccepted ? (isDark ? 'rgba(76, 175, 80, 0.5)' : '#4caf50') : (isDark ? '#FFD700' : '#996515')}`, 
-                                  borderRadius: '6px', fontSize: '0.85rem', fontWeight: 'bold', 
-                                  cursor: isAccepted ? 'not-allowed' : 'pointer', 
-                                  display: 'flex', alignItems: 'center', gap: '0.4rem', transition: 'all 0.2s' 
-                                }} 
-                                onMouseOver={(e) => !isAccepted && (e.currentTarget.style.background = isDark ? 'rgba(255,215,0,0.1)' : 'rgba(153,101,21,0.1)')} 
-                                onMouseOut={(e) => !isAccepted && (e.currentTarget.style.background = 'transparent')}
-                              >
-                                {isAccepted ? <CheckCircle size={14} /> : <Shield size={14} />} 
-                                {isAccepted ? 'Missão Assumida' : 'Aceitar Missão'}
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-              </div>
-
-              {/* MODAL DE JURAMENTO (POP-UP) */}
-              {missionToAccept && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(5px)' }}>
-                  <div className="animate-fadeIn" style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '2.5rem', borderRadius: '16px', maxWidth: '450px', width: '100%', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }}>
-                    <Shield size={56} color={isDark ? '#d4af37' : '#6b4423'} style={{ margin: '0 auto 1rem' }} />
-                    <h2 style={{ margin: '0 0 1rem 0', fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.6rem' }}>Juramento de Missão</h2>
-                    
-                    <div style={{ background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.5)', padding: '1.5rem', borderRadius: '8px', borderLeft: `4px solid ${isDark ? '#FFD700' : '#996515'}`, marginBottom: '1.5rem', textAlign: 'left' }}>
-                      <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#d4af37' : '#6b4423', fontSize: '1.1rem' }}>{missionToAccept.titulo}</h4>
-                      <p style={{ margin: 0, color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.95rem', lineHeight: '1.5' }}>{missionToAccept.descricao}</p>
-                    </div>
-
-                    <p style={{ margin: '0 0 2rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.1rem', fontStyle: 'italic', fontWeight: 'bold', lineHeight: '1.6' }}>
-                      "Eu me comprometo comigo mesmo a trabalhar por esse objetivo, não por vaidade, mas pela minha própria lapidação interior."
-                    </p>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                      <button onClick={confirmAcceptMission} style={{ width: '100%', padding: '1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}>
-                        <CheckCircle size={20} /> Assumir a Missão
-                      </button>
-                      <button onClick={() => setMissionToAccept(null)} style={{ width: '100%', padding: '1rem', background: 'transparent', color: isDark ? '#b8a88a' : '#6b4423', border: 'none', fontSize: '1rem', cursor: 'pointer', fontFamily: 'Georgia, serif', textDecoration: 'underline' }}>
-                        Recuar
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
             </div>
           </div>
         )}
@@ -4049,20 +3496,9 @@ ${monthlyReport.desafioCrescimento || '-'}
               </div>
             )}
 
-            {/* BARRA DE FERRAMENTAS: NOVO LIVRO E ESCANER */}
+            {/* BARRA DE FERRAMENTAS: NOVO LIVRO */}
             <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', marginBottom: '2.5rem' }}>
               <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', position: 'relative', flexWrap: 'wrap' }}>
-                <label style={{ cursor: isAwaitingScan ? 'wait' : 'pointer', background: isAwaitingScan ? 'rgba(212,175,55,0.1)' : 'transparent', color: isDark ? '#b8a88a' : '#6b5744', border: `1px solid ${isAwaitingScan ? '#FFD700' : (isDark ? '#b8a88a' : '#6b5744')}`, padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.9rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.3s' }}>
-                  {isAwaitingScan ? <><Sparkles className="animate-spin" size={16} color="#FFD700" /> Identificando...</> : <><Search size={16} /> Escanear Estante</>}
-                  <input type="file" accept="image/*" capture="environment" onChange={handleShelfScan} disabled={isAwaitingScan} style={{ display: 'none' }} />
-                </label>
-                
-                {scanNotification?.show && (
-                  <div onClick={() => { setShowScannerModal(true); setScanNotification(prev => ({ ...prev, show: false })); }} className="animate-bounce" style={{ position: 'absolute', top: '-60px', left: 0, background: '#4caf50', color: 'white', padding: '0.6rem 1rem', borderRadius: '10px', fontSize: '0.85rem', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(0,0,0,0.3)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', zIndex: 10 }}>
-                    <Check size={16} /> {scanNotification.count} livros encontrados! Clique aqui.
-                  </div>
-                )}
-
                 <button onClick={() => setShowAddBook(true)} style={{ background: isDark ? '#FFD700' : '#996515', color: isDark ? '#000' : '#fff', border: 'none', padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Plus size={16} /> Adicionar Novo Livro
                 </button>
@@ -4208,78 +3644,6 @@ ${monthlyReport.desafioCrescimento || '-'}
                 >
                   <Save size={18} style={{ marginRight: '0.5rem' }}/> {editingBookId ? 'Salvar Alterações' : 'Guardar na Estante'}
                 </button>
-              </div>
-            )}
-
-            {/* ORÁCULO DE RECOMENDAÇÃO (MONETIZAÇÃO) */}
-            {books.length > 0 && (
-              <div style={{ marginBottom: '3rem', padding: '1.5rem', background: isDark ? 'linear-gradient(135deg, rgba(212,175,55,0.1) 0%, rgba(0,0,0,0.3) 100%)' : 'linear-gradient(135deg, #fffbf0 0%, #fff 100%)', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212,175,55,0.3)' : '#ffe082'}`, position: 'relative', overflow: 'hidden' }}>
-                {!bookRecommendation ? (
-                  <div style={{ textAlign: 'center', padding: '2rem' }}>
-                    <Sparkles className="animate-spin" size={24} color={isDark ? '#FFD700' : '#996515'} style={{ margin: '0 auto 1rem' }} />
-                    <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.9rem', fontStyle: 'italic' }}>O Oráculo está consultando os astros e sua estante...</p>
-                  </div>
-                ) : (
-                  <div className="animate-fadeIn" style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <div style={{ position: 'absolute', top: '10px', right: '15px', fontSize: '0.65rem', color: isDark ? '#b8a88a' : '#888', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>Sugestão do Oráculo</div>
-                    
-                    {/* CAPA INTELIGENTE (Sem links quebrados) */}
-                    {bookRecommendation.thumbnail && !bookRecommendation.thumbnail.includes('placehold') ? (
-                      <img src={bookRecommendation.thumbnail} alt="Capa" style={{ width: '70px', height: '105px', borderRadius: '6px', objectFit: 'cover', boxShadow: '0 4px 10px rgba(0,0,0,0.3)' }} />
-                    ) : (
-                      <div style={{ width: '70px', height: '105px', background: isDark ? 'rgba(0,0,0,0.4)' : '#eee', border: `1px solid ${isDark ? '#333' : '#ddd'}`, borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', fontSize: '0.7rem', color: isDark ? '#888' : '#aaa', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
-                        Sem Capa
-                      </div>
-                    )}
-                    
-                    {/* INFORMAÇÕES DA OBRA */}
-                    <div style={{ flex: 1, minWidth: '200px', display: 'flex', flexDirection: 'column' }}>
-                      <h4 style={{ margin: 0, color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif", fontSize: '1.2rem', lineHeight: '1.2' }}>{bookRecommendation.title}</h4>
-                      <p style={{ margin: '0.2rem 0 0.75rem 0', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.85rem', fontStyle: 'italic' }}>de {bookRecommendation.author}</p>
-                      <p style={{ margin: 0, color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem', fontStyle: 'italic', lineHeight: '1.5' }}>"{bookRecommendation.reason}"</p>
-                      
-                      {/* BOTÕES MINIMALISTAS */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '1.5rem', flexWrap: 'wrap' }}>
-                        <button 
-                          onClick={async () => {
-                            const newBook = { id: `book_${Date.now()}`, title: bookRecommendation.title, author: bookRecommendation.author, totalPages: 1, currentPage: 1, thumbnail: bookRecommendation.thumbnail, category: 'Filosofia', isPendingEnrichment: true, status: 'lido', finishedDate: new Date().toISOString() };
-                            saveBooksToDb([newBook, ...books]);
-                            const novaLista = [...discardedSuggestions, bookRecommendation.title];
-                            setDiscardedSuggestions(novaLista);
-                            if (user) await setDoc(doc(db, 'userBooks', user.uid), { discardedSuggestions: novaLista }, { merge: true });
-                            generateBookRecommendation(novaLista);
-                          }}
-                          disabled={isGeneratingRecommendation} 
-                          style={{ padding: '0.5rem 1rem', background: 'transparent', border: '1px solid #4caf50', color: '#4caf50', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer', borderRadius: '6px', transition: 'all 0.2s' }}
-                        >
-                          {isGeneratingRecommendation ? 'Gerando...' : 'Já Li'}
-                        </button>
-                        
-                        <button 
-                          onClick={async () => {
-                            const novaLista = [...discardedSuggestions, bookRecommendation.title];
-                            setDiscardedSuggestions(novaLista);
-                            if (user) await setDoc(doc(db, 'userBooks', user.uid), { discardedSuggestions: novaLista }, { merge: true });
-                            generateBookRecommendation(novaLista);
-                          }}
-                          disabled={isGeneratingRecommendation} 
-                          style={{ padding: '0.5rem 1rem', background: 'transparent', border: `1px solid #e74c3c`, color: '#e74c3c', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer', borderRadius: '6px', transition: 'all 0.2s' }}
-                        >
-                          {isGeneratingRecommendation ? 'Gerando...' : 'Descartar'}
-                        </button>
-
-                        <a 
-                          href={`https://www.amazon.com.br/s?k=${encodeURIComponent('livro ' + bookRecommendation.title + ' ' + bookRecommendation.author)}&tag=${AMAZON_AFFILIATE_ID}`}
-                          target="_blank" rel="noopener noreferrer"
-                          style={{ padding: '0.5rem 0.8rem', background: '#FF9900', color: '#000', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', marginLeft: 'auto' }}
-                          title="Comprar na Amazon"
-                        >
-                          <ShoppingCart size={16} />
-                        </a>
-                      </div>                    
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
@@ -4466,58 +3830,6 @@ ${monthlyReport.desafioCrescimento || '-'}
           </div>
         )}
 
-              {/* MODAL DO ESCANER DE ESTANTE (FASE 4) */}
-              {showScannerModal && (
-                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 10001, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(5px)' }}>
-                  <div className="animate-fadeIn" style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '2rem', borderRadius: '16px', maxWidth: '500px', width: '100%', border: `2px solid ${isDark ? '#FFD700' : '#996515'}`, textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.5)', maxHeight: '80vh', overflowY: 'auto' }}>
-                    
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                      <h3 style={{ margin: 0, fontFamily: "'Cinzel', serif", color: isDark ? '#FFD700' : '#996515', fontSize: '1.4rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <Search size={24} /> Olho de Argos
-                      </h3>
-                      <button onClick={() => setShowScannerModal(false)} style={{ background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}><X size={24} /></button>
-                    </div>
-
-                    {isScanningShelf ? (
-                      <div style={{ padding: '3rem 0' }}>
-                        <Sparkles className="animate-spin" size={48} color={isDark ? '#FFD700' : '#996515'} style={{ margin: '0 auto 1.5rem' }} />
-                        <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontSize: '1rem', fontStyle: 'italic' }}>
-                          O Oráculo está lendo as lombadas na sua foto... <br/>Isso pode levar alguns segundos.
-                        </p>
-                      </div>
-                    ) : detectedBooks.length > 0 ? (
-                      <div style={{ textAlign: 'left' }}>
-                        <p style={{ color: isDark ? '#f0e6d2' : '#2c1810', marginBottom: '1rem' }}>Os seguintes tomos foram revelados na imagem. Clique para adicioná-los à busca para registro:</p>
-                        
-                        <div style={{ display: 'grid', gap: '1rem' }}>
-                          {detectedBooks.map((b, idx) => (
-                            <div key={idx} style={{ display: 'flex', gap: '1rem', background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', padding: '1rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, alignItems: 'center', position: 'relative' }}>
-                              
-                              {/* BOTÃO DISMISS (X) */}
-                              <button onClick={() => dismissDetectedBook(b.title)} style={{ position: 'absolute', top: '-10px', right: '-10px', width: '24px', height: '24px', borderRadius: '50%', background: '#e74c3c', color: 'white', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 5px rgba(0,0,0,0.2)', zIndex: 2 }}><X size={14} /></button>
-
-                              <div style={{ flex: 1, textAlign: 'left' }}>
-                                <h4 style={{ margin: '0 0 0.2rem 0', color: isDark ? '#FFD700' : '#996515', fontSize: '1rem' }}>{b.title}</h4>
-                                <span style={{ fontSize: '0.8rem', color: isDark ? '#b8a88a' : '#6b5744', display: 'block', marginBottom: '0.5rem' }}>{b.author} {b.publisher ? `• ${b.publisher}` : ''}</span>
-                                
-                                <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                                  <button onClick={() => handleQuickAdd(b, 'lido')} style={{ flex: 1, padding: '0.4rem', background: isDark ? '#4caf50' : '#2e7d32', color: 'white', border: 'none', borderRadius: '6px', fontSize: '0.7rem', cursor: 'pointer', fontWeight: 'bold' }}>Já Li</button>
-                                  <button onClick={() => handleQuickAdd(b, 'lendo')} style={{ flex: 1, padding: '0.4rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '6px', fontSize: '0.7rem', cursor: 'pointer', fontWeight: 'bold' }}>Lendo</button>
-                                  <button onClick={() => handleQuickAdd(b, 'juro')} style={{ flex: 1, padding: '0.4rem', background: 'transparent', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '6px', fontSize: '0.7rem', cursor: 'pointer', fontWeight: 'bold' }}>Tenho (Vou Ler)</button>
-                                  <button onClick={() => handleQuickAdd(b, 'desejo')} style={{ flex: 1, padding: '0.4rem', background: 'transparent', color: isDark ? '#b8a88a' : '#6b5744', border: `1px solid ${isDark ? '#555' : '#ccc'}`, borderRadius: '6px', fontSize: '0.7rem', cursor: 'pointer', fontWeight: 'bold' }}>Desejo (Comprar)</button>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <p style={{ color: '#e74c3c' }}>Nenhum livro pôde ser lido. Tente melhorar a iluminação ou chegar mais perto da estante.</p>
-                    )}
-                  </div>
-                </div>
-              )}
-
         {/* SEÇÃO DA BIBLIOTECA DE VIRTUDES (AGORA FUNDIDA COM LEITURAS E EM GAVETA) */}
         {view === 'leituras' && (
           <div className="animate-fadeIn" style={{ marginTop: '2rem' }}>
@@ -4680,95 +3992,6 @@ ${monthlyReport.desafioCrescimento || '-'}
                             )}
                           </div>
 
-                          {/* PAINEL DE AUDITORIA ESTATÍSTICA (IA) */}
-                          <div style={{ background: isDark ? 'rgba(0,0,0,0.3)' : '#f8f9fa', padding: '2rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(74, 144, 226, 0.3)' : 'rgba(74, 144, 226, 0.3)'}`, marginTop: '2rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '2rem' }}>
-                              <div>
-                                <h3 style={{ margin: 0, color: isDark ? '#6cb2eb' : '#2980b9', fontSize: '1.4rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                  <Sparkles size={24} /> Auditoria do Ciclo
-                                </h3>
-                                <p style={{ fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744', margin: '0.5rem 0 0 0', fontStyle: 'italic' }}>Cruzamento analítico de dados estruturados e reflexões livres.</p>
-                              </div>
-                              <button onClick={generateTechnicalSynthesis} disabled={isGeneratingSynthesis} style={{ 
-                                padding: '0.8rem 1.5rem', 
-                                background: isGeneratingSynthesis ? (isDark ? 'rgba(255, 152, 0, 0.15)' : '#fff3e0') : (technicalSynthesis ? (isDark ? 'rgba(39, 174, 96, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(74, 144, 226, 0.1)' : 'rgba(74, 144, 226, 0.1)')), 
-                                color: isGeneratingSynthesis ? (isDark ? '#ff9800' : '#e65100') : (technicalSynthesis ? (isDark ? '#2ecc71' : '#27ae60') : (isDark ? '#6cb2eb' : '#2980b9')), 
-                                border: `2px solid ${isGeneratingSynthesis ? (isDark ? '#ff9800' : '#ffb74d') : (technicalSynthesis ? (isDark ? '#2ecc71' : '#27ae60') : '#4A90E2')}`, 
-                                borderRadius: '8px', cursor: isGeneratingSynthesis ? 'not-allowed' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', transition: 'all 0.3s ease', fontSize: '1.05rem'
-                              }}>
-                                {isGeneratingSynthesis ? <Sparkles className="animate-spin" size={18} /> : (technicalSynthesis ? <CheckCircle size={18} /> : <Target size={18} />)}
-                                {isGeneratingSynthesis ? 'Processando Dados...' : (technicalSynthesis ? 'Refazer Auditoria' : 'Gerar Auditoria')}
-                              </button>
-                            </div>
-
-                            <div style={{ background: isDark ? 'rgba(231, 76, 60, 0.1)' : 'rgba(231, 76, 60, 0.05)', padding: '1rem', borderRadius: '8px', borderLeft: '3px solid #e74c3c', marginBottom: '2rem' }}>
-                              <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.5', fontStyle: 'italic' }}>
-                                <strong>Aviso Importante:</strong> Esta auditoria utiliza Inteligência Artificial. Ela mapeia o passado para que você construa o futuro. Confirme os padrões com seu Mestre.
-                              </p>
-                            </div>
-
-                            {technicalSynthesis ? (
-                              <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                                
-                                {/* CAIXA 1: A GUARDA BAIXOU */}
-                                <div style={{ background: isDark ? 'rgba(231, 76, 60, 0.05)' : '#fff5f5', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(231, 76, 60, 0.3)' : 'rgba(231, 76, 60, 0.3)'}` }}>
-                                  <h4 style={{ margin: '0 0 0.75rem 0', color: isDark ? '#e74c3c' : '#c0392b', fontSize: '1.1rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Target size={18} /> Onde a Guarda Baixou</h4>
-                                  <p style={{ margin: 0, color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem', lineHeight: '1.6' }}>{aiGuarda}</p>
-                                </div>
-
-                                {/* CAIXA 2: CONQUISTAS */}
-                                <div style={{ background: isDark ? 'rgba(76, 175, 80, 0.05)' : '#f8fff8', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(76, 175, 80, 0.3)' : 'rgba(76, 175, 80, 0.3)'}` }}>
-                                  <h4 style={{ margin: '0 0 0.75rem 0', color: isDark ? '#81c784' : '#2e7d32', fontSize: '1.1rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Award size={18} /> Conquistas Forjadas</h4>
-                                  <p style={{ margin: 0, color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem', lineHeight: '1.6' }}>{aiConquistas}</p>
-                                </div>
-
-                                {/* CAIXA 3: INVESTIGAÇÕES */}
-                                <div style={{ background: isDark ? 'rgba(156, 39, 176, 0.05)' : '#faf5ff', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(156, 39, 176, 0.3)' : 'rgba(156, 39, 176, 0.3)'}` }}>
-                                  <h4 style={{ margin: '0 0 0.75rem 0', color: isDark ? '#c39bd3' : '#8e44ad', fontSize: '1.1rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Search size={18} /> Investigações e Padrões</h4>
-                                  <p style={{ margin: 0, color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem', lineHeight: '1.6' }}>{aiInvestigacoes}</p>
-                                </div>
-
-                                {/* CAIXA 4: SÍNTESE GERAL */}
-                                <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(74, 144, 226, 0.3)' : '#ccc'}`, whiteSpace: 'pre-wrap', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem', lineHeight: '1.7', fontFamily: 'Georgia, serif' }}>
-                                  <h4 style={{ margin: '0 0 1rem 0', color: isDark ? '#6cb2eb' : '#2980b9', fontSize: '1.1rem', fontFamily: "'Cinzel', serif" }}>Relatório Técnico Geral</h4>
-                                  {technicalSynthesis}
-                                </div>
-
-                                {/* BLOCO DE AVALIAÇÃO DA SÍNTESE */}
-                                <div style={{ marginTop: '1rem', padding: '1.5rem', background: isDark ? 'rgba(0,0,0,0.2)' : '#fdfbf7', borderRadius: '8px', border: `1px dashed ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`, textAlign: 'center' }}>
-                                  {feedbackSubmitted ? (
-                                    <p style={{ color: isDark ? '#81c784' : '#2e7d32', fontWeight: 'bold', margin: 0 }}>✓ Avaliação enviada anonimamente. Obrigado por ajudar a calibrar o sistema!</p>
-                                  ) : (
-                                    <>
-                                      <p style={{ margin: '0 0 1rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem', fontWeight: 'bold' }}>Esta síntese foi útil e precisa?</p>
-                                      <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                                        {[1, 2, 3, 4, 5].map((star) => (
-                                          <button key={star} onClick={() => setFeedbackRating(star)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0 }}>
-                                            <Star size={28} fill={feedbackRating >= star ? (isDark ? '#FFD700' : '#FFB300') : 'none'} color={feedbackRating >= star ? (isDark ? '#FFD700' : '#FFB300') : (isDark ? '#555' : '#ccc')} />
-                                          </button>
-                                        ))}
-                                      </div>
-                                      {feedbackRating > 0 && (
-                                        <div className="animate-fadeIn">
-                                          <textarea value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} placeholder="Opcional: Por que você deu esta nota? A IA foi precisa?" rows={3} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', fontSize: '0.9rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical', marginBottom: '1rem' }} />
-                                          <button 
-                                            onClick={() => submitSynthesisFeedback("Aberta")} 
-                                            disabled={isSubmittingFeedback}
-                                            style={{ padding: '0.6rem 1.5rem', background: isSubmittingFeedback ? (isDark ? '#555' : '#ccc') : (isDark ? '#d4af37' : '#6b4423'), color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: isSubmittingFeedback ? 'not-allowed' : 'pointer', fontWeight: 'bold', fontFamily: 'Georgia, serif', transition: 'all 0.2s' }}
-                                          >
-                                            {isSubmittingFeedback ? 'Enviando...' : 'Enviar Avaliação Anônima'}
-                                          </button>
-                                        </div>
-                                      )}
-                                    </>
-                                  )}
-                                </div>
-
-                              </div>
-                            ) : (
-                              <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', textAlign: 'center', margin: '3rem 0' }}>Os dados do seu ciclo aguardam processamento. Clique no botão acima para compilar seu dossiê.</p>
-                            )}
-                          </div>
                         </>
                       );
                    })()}
@@ -6296,33 +5519,6 @@ ${monthlyReport.desafioCrescimento || '-'}
               <div style={{ textAlign: 'left', marginBottom: '2rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.5rem', color: isDark ? '#d4af37' : '#6b4423', fontWeight: 'bold' }}>⚔️ Lembrete de Missões e Práticas</label>
                 <input type="time" value={taskReminderTime} onChange={(e) => setTaskReminderTime(e.target.value)} style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: `1px solid ${isDark ? '#d4af37' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.1rem' }} />
-              </div>
-
-              {/* Termo de Consentimento da IA */}
-              <div style={{ textAlign: 'left', marginBottom: '2rem', padding: '1rem', background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}` }}>
-                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', cursor: 'pointer' }}>
-                  <input 
-                    type="checkbox" 
-                    checked={aiConsent} 
-                    onChange={async (e) => {
-                      const consent = e.target.checked;
-                      setAiConsent(consent);
-                      if (user) {
-                        try {
-                          await setDoc(doc(db, 'fvData', user.uid), { aiConsent: consent }, { merge: true });
-                        } catch (err) {
-                          console.error('Erro ao salvar consentimento de IA:', err);
-                          setAiConsent(!consent);
-                          alert('⚠️ Não foi possível salvar sua escolha. Verifique sua conexão e tente novamente.');
-                        }
-                      }
-                    }}
-                    style={{ width: '24px', height: '24px', marginTop: '0.2rem', cursor: 'pointer', accentColor: '#d4af37', flexShrink: 0 }} 
-                  />
-                  <span style={{ fontSize: '0.9rem', color: isDark ? '#c8b896' : '#6b5744', lineHeight: '1.4' }}>
-                    <strong style={{ color: isDark ? '#d4af37' : '#6b4423' }}>Privacidade e Oráculo (IA):</strong> Autorizo o uso da Inteligência Artificial para ler meus registros de forma anônima <span style={{ textDecoration: 'underline' }}>apenas quando eu solicitar</span> uma análise (Batalha Interior, Missões ou Sínteses). Meus dados não são usados para treinar a máquina.
-                  </span>
-                </label>
               </div>
 
               {/* Botão de Salvar */}
