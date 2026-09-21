@@ -224,6 +224,15 @@ function App() {
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
+  // Frase do dia e dica de estudo: sorteadas assim que o app abre, sem
+  // depender do carregamento de dados do Firestore — antes isso ficava
+  // dentro de loadTodayEntry() e, se aquela leitura falhasse por qualquer
+  // motivo (rede, erro de parsing), a frase simplesmente nunca aparecia.
+  useEffect(() => {
+    setDailyQuote(philosophicalQuotes[Math.floor(Math.random() * philosophicalQuotes.length)]);
+    setDailyStudyTip(studyTips[Math.floor(Math.random() * studyTips.length)]);
+  }, []);
+
   const handleInstallClick = async () => {
     if (deferredPrompt) {
       deferredPrompt.prompt();
@@ -266,6 +275,8 @@ function App() {
   const [isTodayVirtueExpanded, setIsTodayVirtueExpanded] = useState(false);
   const [customVirtue, setCustomVirtue] = useState('');
   const [showCustomVirtue, setShowCustomVirtue] = useState(false);
+  const [isDrawingVirtue, setIsDrawingVirtue] = useState(false);
+  const [virtueDrawDisplay, setVirtueDrawDisplay] = useState('');
   const [dailyQuote, setDailyQuote] = useState(null);
   const [dailyStudyTip, setDailyStudyTip] = useState(null);
   const [dailyIntention, setDailyIntention] = useState('');
@@ -765,18 +776,35 @@ function App() {
   };
 
   const selectRandomVirtue = async () => {
+    if (isDrawingVirtue) return;
     if (!canDrawToday()) {
       alert('Você já sorteou sua virtude neste dia! Comprometa-se com ela até o fim do dia. 🎯');
       return;
     }
     const randomIndex = Math.floor(Math.random() * virtues.length);
     const selectedV = virtues[randomIndex].name;
-    setSelectedVirtue(selectedV);
+
     setShowCustomVirtue(false);
+    setSelectedVirtue('');
+    setIsDrawingVirtue(true);
+
+    // Efeito de "roleta": cicla nomes de virtudes, desacelerando até parar
+    // na sorteada — só um toque lúdico antes da revelação.
+    const totalSteps = 16;
+    for (let step = 0; step < totalSteps; step++) {
+      const isLastStep = step === totalSteps - 1;
+      setVirtueDrawDisplay(isLastStep ? selectedV : virtues[Math.floor(Math.random() * virtues.length)].name);
+      const progress = step / (totalSteps - 1);
+      const delay = 50 + Math.round(progress * progress * 200);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+
+    setSelectedVirtue(selectedV);
+    setIsDrawingVirtue(false);
     setLastDrawDate(selectedDate);
 
     if (user) {
-      try { await updateDoc(doc(db, 'users', user.uid), { lastDrawDate: selectedDate }); } 
+      try { await updateDoc(doc(db, 'users', user.uid), { lastDrawDate: selectedDate }); }
       catch (error) { console.log('Erro ao salvar data do sorteio'); }
     }
   };
@@ -1055,11 +1083,9 @@ function App() {
   };
 
   const createGroup = async () => {
-    const name = newGroupName.trim();
-    if (!name) return alert('Digite um nome para o grupo.');
     setIsCreatingGroup(true);
     try {
-      const { ok, data } = await callGdveGroups({ action: 'create', name });
+      const { ok, data } = await callGdveGroups({ action: 'create', name: newGroupName.trim() });
       if (!ok) { alert(data.error || 'Erro ao criar grupo.'); return; }
       setNewGroupName('');
       setShowCreateGroupModal(false);
@@ -1329,15 +1355,6 @@ function App() {
           horasVoluntariado: '', horasAulaAssistida: '', horasAulaMinistrada: '', gdveTasksStatus: {}, gdveAttendance: false,
           praticas: { tratak: false, recitarHonra: false, recitar7Fases: false, camara: false, templo: false, porta: false, patioAberto: false, patioColunas: false, santuario: false }
         });
-      }
-
-      if (!dailyQuote) {
-        const randomQuote = philosophicalQuotes[Math.floor(Math.random() * philosophicalQuotes.length)];
-        setDailyQuote(randomQuote);
-      }
-      if (!dailyStudyTip) {
-        const randomTip = studyTips[Math.floor(Math.random() * studyTips.length)];
-        setDailyStudyTip(randomTip);
       }
 
     } catch (error) {
@@ -3183,25 +3200,31 @@ ${monthlyReport.desafioCrescimento || '-'}
                             <div style={{ marginBottom: '1.5rem' }}>
                               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#f0e6d2' : '#2c1810' }}>Virtude do Dia:</label>
                               <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-                                <button onClick={selectRandomVirtue} disabled={!canDrawToday()} style={{ padding: '0.75rem 1.5rem', background: canDrawToday() ? (isDark ? '#d4af37' : '#6b4423') : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'), color: canDrawToday() ? 'white' : (isDark ? '#888' : '#999'), border: 'none', borderRadius: '8px', cursor: canDrawToday() ? 'pointer' : 'not-allowed', fontFamily: 'Georgia, serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: 'clamp(0.85rem, 2vw, 1rem)' }}>
-                                  <Shuffle size={18} /> {canDrawToday() ? 'Sortear Virtude' : 'Já sorteou hoje'}
+                                <button onClick={selectRandomVirtue} disabled={!canDrawToday() || isDrawingVirtue} style={{ padding: '0.75rem 1.5rem', background: (canDrawToday() && !isDrawingVirtue) ? (isDark ? '#d4af37' : '#6b4423') : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'), color: (canDrawToday() && !isDrawingVirtue) ? 'white' : (isDark ? '#888' : '#999'), border: 'none', borderRadius: '8px', cursor: (canDrawToday() && !isDrawingVirtue) ? 'pointer' : 'not-allowed', fontFamily: 'Georgia, serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: 'clamp(0.85rem, 2vw, 1rem)' }}>
+                                  <Shuffle size={18} className={isDrawingVirtue ? 'animate-spin' : ''} /> {isDrawingVirtue ? 'Sorteando...' : (canDrawToday() ? 'Sortear Virtude' : 'Já sorteou hoje')}
                                 </button>
-                                <button onClick={() => setShowCustomVirtue(!showCustomVirtue)} style={{ padding: '0.75rem 1.5rem', background: 'transparent', color: isDark ? '#d4af37' : '#6b4423', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 600, fontSize: 'clamp(0.85rem, 2vw, 1rem)' }}>
+                                <button onClick={() => setShowCustomVirtue(!showCustomVirtue)} disabled={isDrawingVirtue} style={{ padding: '0.75rem 1.5rem', background: 'transparent', color: isDark ? '#d4af37' : '#6b4423', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: isDrawingVirtue ? 'default' : 'pointer', opacity: isDrawingVirtue ? 0.5 : 1, fontFamily: 'Georgia, serif', fontWeight: 600, fontSize: 'clamp(0.85rem, 2vw, 1rem)' }}>
                                   {showCustomVirtue ? 'Escolher da Lista' : 'Escrever Própria'}
                                 </button>
                               </div>
 
-                              {showCustomVirtue ? (
+                              {isDrawingVirtue && (
+                                <div className="virtue-roulette-text" style={{ padding: '1rem', marginBottom: '1rem', textAlign: 'center', background: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(255, 245, 220, 0.5)', borderRadius: '8px', border: `1px dashed ${isDark ? '#d4af37' : '#6b4423'}` }}>
+                                  <h4 style={{ margin: 0, color: isDark ? '#d4af37' : '#6b4423', fontSize: '1.2rem', fontFamily: "'Cinzel', serif" }}>✨ {virtueDrawDisplay} ✨</h4>
+                                </div>
+                              )}
+
+                              {!isDrawingVirtue && (showCustomVirtue ? (
                                 <input type="text" placeholder="Digite sua virtude..." value={customVirtue} onChange={(e) => setCustomVirtue(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
                               ) : (
                                 <select value={selectedVirtue} onChange={(e) => setSelectedVirtue(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }}>
                                   <option value="">Selecione uma virtude...</option>
                                   {virtues.map((v, idx) => <option key={idx} value={v.name}>{v.name}</option>)}
                                 </select>
-                              )}
+                              ))}
 
-                              {selectedVirtue && !showCustomVirtue && (
-                                <div onClick={() => setIsTodayVirtueExpanded(!isTodayVirtueExpanded)} style={{ marginTop: '1rem', padding: '1rem', background: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(255, 245, 220, 0.5)', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`, cursor: 'pointer' }}>
+                              {!isDrawingVirtue && selectedVirtue && !showCustomVirtue && (
+                                <div key={selectedVirtue} className="virtue-pop-reveal" onClick={() => setIsTodayVirtueExpanded(!isTodayVirtueExpanded)} style={{ marginTop: '1rem', padding: '1rem', background: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(255, 245, 220, 0.5)', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`, cursor: 'pointer' }}>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <h4 style={{ margin: '0', color: isDark ? '#d4af37' : '#6b4423', fontSize: '1.1rem', fontFamily: "'Cinzel', serif" }}>{selectedVirtue}</h4>
                                     {isTodayVirtueExpanded ? <ChevronUp size={20} color={isDark ? '#d4af37' : '#6b4423'} /> : <ChevronDown size={20} color={isDark ? '#d4af37' : '#6b4423'} />}
@@ -5817,13 +5840,16 @@ ${monthlyReport.desafioCrescimento || '-'}
                 autoFocus
                 value={newGroupName}
                 onChange={(e) => setNewGroupName(e.target.value)}
-                placeholder="Nome do grupo (ex: Bastião da Filial X)"
-                style={{ width: '100%', padding: '0.7rem', borderRadius: '8px', border: '1px solid #ccc', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', marginBottom: '1rem' }}
+                placeholder="Nome do grupo (opcional — deixe em branco para um nome egípcio)"
+                style={{ width: '100%', padding: '0.7rem', borderRadius: '8px', border: '1px solid #ccc', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', marginBottom: '0.4rem' }}
               />
+              <p style={{ margin: '0 0 1rem', fontSize: '0.8rem', color: isDark ? '#b8a88a' : '#666' }}>
+                Não precisa pensar em um nome: se deixar em branco, o grupo recebe o nome de uma divindade egípcia.
+              </p>
               <button
-                disabled={isCreatingGroup || !newGroupName.trim()}
+                disabled={isCreatingGroup}
                 onClick={createGroup}
-                style={{ width: '100%', padding: '0.8rem', background: isDark ? '#4caf50' : '#2e7d32', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: isCreatingGroup ? 'default' : 'pointer', opacity: (isCreatingGroup || !newGroupName.trim()) ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                style={{ width: '100%', padding: '0.8rem', background: isDark ? '#4caf50' : '#2e7d32', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: isCreatingGroup ? 'default' : 'pointer', opacity: isCreatingGroup ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
               >
                 {isCreatingGroup ? <Sparkles className="animate-spin" size={18} /> : <Plus size={18} />}
                 {isCreatingGroup ? 'Criando...' : 'Criar Grupo'}

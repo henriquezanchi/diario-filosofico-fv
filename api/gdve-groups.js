@@ -19,6 +19,18 @@ const ITEM_TYPES = ['tarefa', 'bastiao', 'pratica'];
 // Sem 0/O/1/I/L, pra evitar confusão na hora de digitar o código à mão.
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
+// Nome do grupo é opcional — quem não quiser pensar em um recebe uma
+// divindade egípcia (não precisa ser único, só lúdico).
+const EGYPTIAN_GODS = [
+  'Rá', 'Osíris', 'Ísis', 'Hórus', 'Anúbis', 'Seth', 'Toth', 'Hathor',
+  'Sekhmet', 'Bastet', 'Ptah', 'Maat', 'Nut', 'Geb', 'Amon', 'Sobek',
+  'Khnum', 'Nefertum', 'Serket', 'Néftis', 'Aton', 'Shu', 'Tefnut', 'Mut',
+];
+
+function randomGodName() {
+  return `Grupo ${EGYPTIAN_GODS[Math.floor(Math.random() * EGYPTIAN_GODS.length)]}`;
+}
+
 function generateInviteCode() {
   let code = '';
   for (let i = 0; i < 6; i++) code += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)];
@@ -62,8 +74,7 @@ export default async function handler(req, res) {
 
   try {
     if (action === 'create') {
-      const name = String(req.body?.name || '').trim();
-      if (!name) return res.status(400).json({ error: 'Nome do grupo é obrigatório.' });
+      const name = String(req.body?.name || '').trim() || randomGodName();
 
       let inviteCode = null;
       for (let attempt = 0; attempt < 5 && !inviteCode; attempt++) {
