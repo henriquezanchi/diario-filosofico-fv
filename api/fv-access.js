@@ -42,10 +42,13 @@ export default async function handler(req, res) {
     const email = (decoded.email || '').toLowerCase();
 
     let isVip = false;
-    if (email) {
-      const whitelistDoc = await db.collection('admin').doc('whitelist').get();
-      if (whitelistDoc.exists) {
-        const allowedEmails = whitelistDoc.data().emails || [];
+    let units = [];
+    const whitelistDoc = await db.collection('admin').doc('whitelist').get();
+    if (whitelistDoc.exists) {
+      const whitelistData = whitelistDoc.data();
+      const allowedEmails = whitelistData.emails || [];
+      units = whitelistData.units || [];
+      if (email) {
         isVip = allowedEmails.map(e => String(e).toLowerCase()).includes(email);
       }
     }
@@ -80,7 +83,7 @@ export default async function handler(req, res) {
       }
     }
 
-    return res.status(200).json({ isVip, fvStatus, fvUnlocked });
+    return res.status(200).json({ isVip, fvStatus, fvUnlocked, units });
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }

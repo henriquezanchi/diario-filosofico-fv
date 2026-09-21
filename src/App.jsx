@@ -63,14 +63,23 @@ function App() {
   const [fvAccessStatus, setFvAccessStatus] = useState('checking'); // 'checking', 'approved', 'pending', 'unregistered'
   const [requestName, setRequestName] = useState('');
   const [requestUnit, setRequestUnit] = useState('');
+  const [requestEmail, setRequestEmail] = useState('');
 
   // --- PAINEL DE ADMINISTRAÇÃO DE ACESSOS ---
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [myAdminUnits, setMyAdminUnits] = useState([]);
   const [pendingRequests, setPendingRequests] = useState([]);
-  const [adminEmailsList, setAdminEmailsList] = useState([]);
+  const [adminRecordsList, setAdminRecordsList] = useState([]); // [{ email, units }]
+  const [unitsList, setUnitsList] = useState([]);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [isLoadingAdminPanel, setIsLoadingAdminPanel] = useState(false);
   const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [newAdminUnits, setNewAdminUnits] = useState([]);
+  const [newUnitName, setNewUnitName] = useState('');
+
+  // Unidades disponíveis pro formulário de "Solicitar Acesso" (vem de api/fv-access.js)
+  const [availableUnits, setAvailableUnits] = useState([]);
 
   // --- Estado da Central de Notificação (Guardião) ---
   const [notifSettings, setNotifSettings] = useState({
@@ -884,6 +893,7 @@ function App() {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
+        setRequestEmail(currentUser.email || '');
         await loadUserData(currentUser.uid);
         await loadTodayEntry(currentUser.uid);
         await loadAllEntries(currentUser.uid);
@@ -929,6 +939,7 @@ function App() {
           const data = await resp.json();
           fvAccessStatus = data.fvStatus || fvAccessStatus;
           fvUnlocked = !!data.fvUnlocked;
+          setAvailableUnits(data.units || []);
         } else {
           console.error('Erro ao verificar acesso FV: resposta', resp.status);
         }
@@ -976,8 +987,11 @@ function App() {
       const { ok, data } = await callFvAdmin({ action: 'list' });
       if (ok) {
         setIsAdmin(true);
+        setIsSuperAdmin(!!data.isSuperAdmin);
+        setMyAdminUnits(data.myUnits || []);
         setPendingRequests(data.pending || []);
-        setAdminEmailsList(data.admins || []);
+        setUnitsList(data.units || []);
+        if (data.admins) setAdminRecordsList(data.admins);
       } else {
         setIsAdmin(false);
       }
@@ -1007,10 +1021,11 @@ function App() {
     if (!email) return;
     setIsLoadingAdminPanel(true);
     try {
-      const { ok, data } = await callFvAdmin({ action: 'addAdmin', email });
+      const { ok, data } = await callFvAdmin({ action: 'addAdmin', email, units: newAdminUnits });
       if (ok) {
-        setAdminEmailsList(data.admins || []);
+        setAdminRecordsList(data.admins || []);
         setNewAdminEmail('');
+        setNewAdminUnits([]);
       } else {
         alert(data.error || 'Erro ao adicionar administrador.');
       }
@@ -1027,7 +1042,7 @@ function App() {
     try {
       const { ok, data } = await callFvAdmin({ action: 'removeAdmin', email });
       if (ok) {
-        setAdminEmailsList(data.admins || []);
+        setAdminRecordsList(data.admins || []);
       } else {
         alert(data.error || 'Erro ao remover administrador.');
       }
@@ -1038,23 +1053,63 @@ function App() {
     }
   };
 
+  const addUnit = async () => {
+    const unit = newUnitName.trim();
+    if (!unit) return;
+    setIsLoadingAdminPanel(true);
+    try {
+      const { ok, data } = await callFvAdmin({ action: 'addUnit', unit });
+      if (ok) {
+        setUnitsList(data.units || []);
+        setNewUnitName('');
+      } else {
+        alert(data.error || 'Erro ao adicionar unidade.');
+      }
+    } catch (e) {
+      alert('Erro ao adicionar unidade. Verifique sua conexão.');
+    } finally {
+      setIsLoadingAdminPanel(false);
+    }
+  };
+
+  const removeUnit = async (unit) => {
+    if (!window.confirm(`Remover a unidade "${unit}"? Admins vinculados a ela deixarão de ter essa unidade.`)) return;
+    setIsLoadingAdminPanel(true);
+    try {
+      const { ok, data } = await callFvAdmin({ action: 'removeUnit', unit });
+      if (ok) {
+        setUnitsList(data.units || []);
+        if (data.admins) setAdminRecordsList(data.admins);
+      } else {
+        alert(data.error || 'Erro ao remover unidade.');
+      }
+    } catch (e) {
+      alert('Erro ao remover unidade. Verifique sua conexão.');
+    } finally {
+      setIsLoadingAdminPanel(false);
+    }
+  };
+
 
   const handleRequestAccess = async () => {
-    if (!requestName.trim() || !requestUnit.trim()) return alert("Por favor, preencha seu nome e a unidade.");
+    const emailLimpo = requestEmail.trim();
+    if (!requestName.trim() || !requestUnit.trim() || !emailLimpo) return alert("Por favor, preencha seu nome, e-mail e a unidade.");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailLimpo)) return alert("Digite um e-mail válido.");
     try {
       // 1. Salva no banco de dados
       await setDoc(doc(db, 'users', user.uid), {
         fvStatus: 'pending',
         requestName: requestName.trim(),
         requestUnit: requestUnit.trim(),
+        requestEmail: emailLimpo,
         requestDate: Timestamp.now()
       }, { merge: true });
-      
+
       setFvAccessStatus('pending');
 
       // 2. Dispara o aviso para o Diretor via WhatsApp
       const adminPhone = "5562991729783"; // Seu número
-      const text = encodeURIComponent(`*Novo Pedido de Acesso - Diário FV* 🛡️\n\n*Nome:* ${requestName.trim()}\n*Unidade:* ${requestUnit.trim()}\n*E-mail:* ${user.email}\n\nPor favor, acesse o Firebase para liberar o meu perfil.`);
+      const text = encodeURIComponent(`*Novo Pedido de Acesso - Diário FV* 🛡️\n\n*Nome:* ${requestName.trim()}\n*Unidade:* ${requestUnit.trim()}\n*E-mail de acesso:* ${emailLimpo}\n\nPor favor, acesse o Firebase para liberar o meu perfil.`);
       window.open(`https://wa.me/${adminPhone}?text=${text}`, '_blank');
 
     } catch (e) {
@@ -2574,9 +2629,22 @@ ${monthlyReport.desafioCrescimento || '-'}
                   <input type="text" value={requestName} onChange={(e) => setRequestName(e.target.value)} placeholder="Seu nome..." style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', border: `1px solid ${isDark ? '#555' : '#ccc'}`, background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
                 </div>
 
+                <div style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', fontSize: '0.9rem' }}>E-mail de Acesso</label>
+                  <input type="email" value={requestEmail} onChange={(e) => setRequestEmail(e.target.value)} placeholder="seuemail@exemplo.com" style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', border: `1px solid ${isDark ? '#555' : '#ccc'}`, background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
+                  <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.8rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic' }}>Esse é o e-mail que você vai usar para entrar no Diário — confirme que está certo.</p>
+                </div>
+
                 <div style={{ textAlign: 'left', marginBottom: '2rem' }}>
                   <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', fontSize: '0.9rem' }}>Unidade (Sede/Filial)</label>
-                  <input type="text" value={requestUnit} onChange={(e) => setRequestUnit(e.target.value)} placeholder="Ex: Sede Nacional..." style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', border: `1px solid ${isDark ? '#555' : '#ccc'}`, background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
+                  {availableUnits.length > 0 ? (
+                    <select value={requestUnit} onChange={(e) => setRequestUnit(e.target.value)} style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', border: `1px solid ${isDark ? '#555' : '#ccc'}`, background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }}>
+                      <option value="">Selecione sua unidade...</option>
+                      {availableUnits.map(u => <option key={u} value={u}>{u}</option>)}
+                    </select>
+                  ) : (
+                    <input type="text" value={requestUnit} onChange={(e) => setRequestUnit(e.target.value)} placeholder="Ex: Sede Nacional..." style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', border: `1px solid ${isDark ? '#555' : '#ccc'}`, background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
+                  )}
                 </div>
 
                 <button onClick={handleRequestAccess} style={{ width: '100%', padding: '1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
@@ -5432,7 +5500,10 @@ ${monthlyReport.desafioCrescimento || '-'}
               </button>
 
               <ShieldAlert size={40} color={isDark ? '#d4af37' : '#6b4423'} style={{ marginBottom: '0.5rem' }} />
-              <h2 style={{ margin: '0 0 1.5rem 0', fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.5rem' }}>Pedidos de Acesso</h2>
+              <h2 style={{ margin: '0 0 0.3rem 0', fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.5rem' }}>Pedidos de Acesso</h2>
+              <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.8rem', color: isDark ? '#b8a88a' : '#666', fontStyle: 'italic' }}>
+                {isSuperAdmin ? 'Admin geral — você vê pedidos de todas as unidades.' : `Mostrando pedidos de: ${myAdminUnits.join(', ') || 'nenhuma unidade vinculada'}`}
+              </p>
 
               {pendingRequests.length === 0 ? (
                 <p style={{ color: isDark ? '#b8a88a' : '#666', textAlign: 'center', padding: '1rem 0' }}>Nenhum pedido pendente no momento.</p>
@@ -5444,7 +5515,10 @@ ${monthlyReport.desafioCrescimento || '-'}
                         <div style={{ textAlign: 'left' }}>
                           <strong style={{ color: isDark ? '#f0e6d2' : '#2c1810' }}>{req.requestName || 'Sem nome'}</strong>
                           <div style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#666' }}>{req.requestUnit || 'Unidade não informada'}</div>
-                          <div style={{ fontSize: '0.8rem', color: isDark ? '#888' : '#999' }}>{req.email || 'sem e-mail'}</div>
+                          <div style={{ fontSize: '0.8rem', color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 'bold' }}>{req.requestEmail || 'sem e-mail'}</div>
+                          {req.email && req.requestEmail && req.email !== req.requestEmail && (
+                            <div style={{ fontSize: '0.75rem', color: '#e74c3c' }}>⚠️ E-mail de login diferente: {req.email}</div>
+                          )}
                           {req.requestDate && <div style={{ fontSize: '0.75rem', color: isDark ? '#666' : '#aaa' }}>{new Date(req.requestDate).toLocaleString('pt-BR')}</div>}
                         </div>
                         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
@@ -5461,31 +5535,80 @@ ${monthlyReport.desafioCrescimento || '-'}
                 </div>
               )}
 
-              <div style={{ borderTop: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : '#eee'}`, paddingTop: '1.5rem', textAlign: 'left' }}>
-                <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px', color: isDark ? '#d4af37' : '#996515' }}>Administradores</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem' }}>
-                  {adminEmailsList.map(email => (
-                    <div key={email} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0.6rem', background: isDark ? 'rgba(255,255,255,0.03)' : '#f9f9f9', borderRadius: '6px' }}>
-                      <span style={{ fontSize: '0.85rem', color: isDark ? '#f0e6d2' : '#2c1810' }}>{email}</span>
-                      <button disabled={isLoadingAdminPanel} onClick={() => removeAdminEmail(email)} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: isLoadingAdminPanel ? 'default' : 'pointer' }} title="Remover admin">
-                        <Trash2 size={14}/>
+              {isSuperAdmin && (
+                <>
+                  <div style={{ borderTop: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : '#eee'}`, paddingTop: '1.5rem', textAlign: 'left', marginBottom: '1.5rem' }}>
+                    <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px', color: isDark ? '#d4af37' : '#996515' }}>Unidades</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem' }}>
+                      {unitsList.map(unit => (
+                        <div key={unit} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0.6rem', background: isDark ? 'rgba(255,255,255,0.03)' : '#f9f9f9', borderRadius: '6px' }}>
+                          <span style={{ fontSize: '0.85rem', color: isDark ? '#f0e6d2' : '#2c1810' }}>{unit}</span>
+                          <button disabled={isLoadingAdminPanel} onClick={() => removeUnit(unit)} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: isLoadingAdminPanel ? 'default' : 'pointer' }} title="Remover unidade">
+                            <Trash2 size={14}/>
+                          </button>
+                        </div>
+                      ))}
+                      {unitsList.length === 0 && <p style={{ margin: 0, fontSize: '0.8rem', color: isDark ? '#888' : '#999', fontStyle: 'italic' }}>Nenhuma unidade cadastrada ainda — o formulário de solicitação vai usar texto livre até você cadastrar a primeira.</p>}
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <input
+                        type="text"
+                        value={newUnitName}
+                        onChange={(e) => setNewUnitName(e.target.value)}
+                        placeholder="Nome da unidade..."
+                        style={{ flex: 1, padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? '#555' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }}
+                      />
+                      <button disabled={isLoadingAdminPanel || !newUnitName.trim()} onClick={addUnit} style={{ padding: '0.6rem 1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: isLoadingAdminPanel ? 'default' : 'pointer', opacity: isLoadingAdminPanel ? 0.6 : 1, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <Plus size={16}/> Adicionar
                       </button>
                     </div>
-                  ))}
-                </div>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <input
-                    type="email"
-                    value={newAdminEmail}
-                    onChange={(e) => setNewAdminEmail(e.target.value)}
-                    placeholder="novo-admin@exemplo.com"
-                    style={{ flex: 1, padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? '#555' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }}
-                  />
-                  <button disabled={isLoadingAdminPanel || !newAdminEmail.trim()} onClick={addAdminEmail} style={{ padding: '0.6rem 1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: isLoadingAdminPanel ? 'default' : 'pointer', opacity: isLoadingAdminPanel ? 0.6 : 1, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                    <Plus size={16}/> Adicionar
-                  </button>
-                </div>
-              </div>
+                  </div>
+
+                  <div style={{ borderTop: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : '#eee'}`, paddingTop: '1.5rem', textAlign: 'left' }}>
+                    <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px', color: isDark ? '#d4af37' : '#996515' }}>Administradores</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem' }}>
+                      {adminRecordsList.map(a => (
+                        <div key={a.email} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0.6rem', background: isDark ? 'rgba(255,255,255,0.03)' : '#f9f9f9', borderRadius: '6px', gap: '0.5rem' }}>
+                          <div>
+                            <div style={{ fontSize: '0.85rem', color: isDark ? '#f0e6d2' : '#2c1810' }}>{a.email}</div>
+                            <div style={{ fontSize: '0.7rem', color: isDark ? '#b8a88a' : '#666' }}>{a.units.length === 0 ? 'Admin geral (todas as unidades)' : a.units.join(', ')}</div>
+                          </div>
+                          <button disabled={isLoadingAdminPanel} onClick={() => removeAdminEmail(a.email)} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: isLoadingAdminPanel ? 'default' : 'pointer', flexShrink: 0 }} title="Remover admin">
+                            <Trash2 size={14}/>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <input
+                        type="email"
+                        value={newAdminEmail}
+                        onChange={(e) => setNewAdminEmail(e.target.value)}
+                        placeholder="novo-admin@exemplo.com"
+                        style={{ padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? '#555' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }}
+                      />
+                      {unitsList.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                          {unitsList.map(unit => (
+                            <label key={unit} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem', color: isDark ? '#c8b896' : '#6b5744', cursor: 'pointer' }}>
+                              <input
+                                type="checkbox"
+                                checked={newAdminUnits.includes(unit)}
+                                onChange={(e) => setNewAdminUnits(prev => e.target.checked ? [...prev, unit] : prev.filter(u => u !== unit))}
+                              />
+                              {unit}
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                      <p style={{ margin: 0, fontSize: '0.75rem', color: isDark ? '#888' : '#999', fontStyle: 'italic' }}>Sem nenhuma unidade marcada, o admin vê pedidos de todas as unidades.</p>
+                      <button disabled={isLoadingAdminPanel || !newAdminEmail.trim()} onClick={addAdminEmail} style={{ padding: '0.6rem 1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: isLoadingAdminPanel ? 'default' : 'pointer', opacity: isLoadingAdminPanel ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}>
+                        <Plus size={16}/> Adicionar Admin
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}

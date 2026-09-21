@@ -15,9 +15,22 @@ if (!admin.apps.length) {
   });
 }
 
+// Normaliza o formato antigo (array de strings) para o novo (array de
+// { email, units }) sem exigir migração manual — o formato novo é
+// persistido assim que alguém usar addAdmin/removeAdmin pela primeira vez.
+const normalizeAdmins = (raw) => (raw || []).map(a =>
+  typeof a === 'string'
+    ? { email: a.toLowerCase(), units: [] }
+    : { email: String(a.email || '').toLowerCase(), units: Array.isArray(a.units) ? a.units : [] }
+);
+
 // Painel de administração de pedidos de acesso ao módulo FV.
-// Único lugar autorizado a aprovar/recusar pedidos e a gerenciar a lista de
-// admins — tudo validado aqui no servidor, nunca confiando no cliente.
+// Único lugar autorizado a aprovar/recusar pedidos e a gerenciar admins e
+// unidades — tudo validado aqui no servidor, nunca confiando no cliente.
+//
+// Modelo: admin.units === [] => "admin geral" (vê e decide pedidos de
+// qualquer unidade). admin.units === ['Unidade X', ...] => só vê e decide
+// pedidos cuja requestUnit esteja nessa lista.
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -47,27 +60,40 @@ export default async function handler(req, res) {
   try {
     const whitelistSnap = await whitelistRef.get();
     const whitelistData = whitelistSnap.exists ? whitelistSnap.data() : {};
-    const admins = (whitelistData.admins || []).map(e => String(e).toLowerCase());
+    const admins = normalizeAdmins(whitelistData.admins);
+    const units = whitelistData.units || [];
 
-    if (!admins.includes(requesterEmail)) {
+    const me = admins.find(a => a.email === requesterEmail);
+    if (!me) {
       return res.status(403).json({ error: 'Você não tem permissão de administrador.' });
     }
+    const isSuperAdmin = me.units.length === 0;
 
     const { action } = req.body || {};
 
     if (action === 'list' || !action) {
       const pendingSnap = await db.collection('users').where('fvStatus', '==', 'pending').get();
-      const pending = pendingSnap.docs.map(d => {
+      let pending = pendingSnap.docs.map(d => {
         const data = d.data();
         return {
           uid: d.id,
           email: data.email || null,
+          requestEmail: data.requestEmail || data.email || null,
           requestName: data.requestName || null,
           requestUnit: data.requestUnit || null,
           requestDate: data.requestDate ? data.requestDate.toDate().toISOString() : null,
         };
       });
-      return res.status(200).json({ pending, admins });
+      if (!isSuperAdmin) {
+        pending = pending.filter(p => p.requestUnit && me.units.includes(p.requestUnit));
+      }
+      return res.status(200).json({
+        pending,
+        units,
+        isSuperAdmin,
+        myUnits: me.units,
+        admins: isSuperAdmin ? admins : undefined,
+      });
     }
 
     if (action === 'decide') {
@@ -76,6 +102,14 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Parâmetros inválidos' });
       }
       const userRef = db.collection('users').doc(uid);
+      const userSnap = await userRef.get();
+      if (!userSnap.exists) {
+        return res.status(404).json({ error: 'Usuário não encontrado' });
+      }
+      const requestUnit = userSnap.data().requestUnit || null;
+      if (!isSuperAdmin && !(requestUnit && me.units.includes(requestUnit))) {
+        return res.status(403).json({ error: 'Este pedido não é da sua unidade.' });
+      }
       if (decision === 'approve') {
         await userRef.set({ fvStatus: 'approved', fvUnlocked: true }, { merge: true });
       } else {
@@ -84,26 +118,56 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
+    // As ações abaixo (gerenciar admins e unidades) são exclusivas do admin geral.
+    if (!isSuperAdmin) {
+      return res.status(403).json({ error: 'Só o admin geral pode gerenciar administradores e unidades.' });
+    }
+
     if (action === 'addAdmin') {
-      const { email } = req.body || {};
+      const { email, units: adminUnits } = req.body || {};
       const clean = String(email || '').trim().toLowerCase();
       if (!clean || !clean.includes('@')) {
         return res.status(400).json({ error: 'E-mail inválido' });
       }
-      if (!admins.includes(clean)) admins.push(clean);
-      await whitelistRef.set({ admins }, { merge: true });
-      return res.status(200).json({ admins });
+      const cleanUnits = Array.isArray(adminUnits) ? adminUnits.filter(u => units.includes(u)) : [];
+      const updated = admins.filter(a => a.email !== clean);
+      updated.push({ email: clean, units: cleanUnits });
+      await whitelistRef.set({ admins: updated }, { merge: true });
+      return res.status(200).json({ admins: updated });
     }
 
     if (action === 'removeAdmin') {
       const { email } = req.body || {};
       const clean = String(email || '').trim().toLowerCase();
-      const updated = admins.filter(e => e !== clean);
-      if (updated.length === 0) {
-        return res.status(400).json({ error: 'Não é possível remover o último administrador.' });
+      const updated = admins.filter(a => a.email !== clean);
+      const remainingSuperAdmins = updated.filter(a => a.units.length === 0);
+      if (remainingSuperAdmins.length === 0) {
+        return res.status(400).json({ error: 'Não é possível remover o último admin geral.' });
       }
       await whitelistRef.set({ admins: updated }, { merge: true });
       return res.status(200).json({ admins: updated });
+    }
+
+    if (action === 'addUnit') {
+      const { unit } = req.body || {};
+      const clean = String(unit || '').trim();
+      if (!clean) {
+        return res.status(400).json({ error: 'Nome de unidade inválido' });
+      }
+      const updatedUnits = units.includes(clean) ? units : [...units, clean];
+      await whitelistRef.set({ units: updatedUnits }, { merge: true });
+      return res.status(200).json({ units: updatedUnits });
+    }
+
+    if (action === 'removeUnit') {
+      const { unit } = req.body || {};
+      const clean = String(unit || '').trim();
+      const updatedUnits = units.filter(u => u !== clean);
+      // Tira a unidade removida de qualquer admin que a tivesse — evita
+      // deixar um admin "órfão" preso a uma unidade que não existe mais.
+      const updatedAdmins = admins.map(a => ({ ...a, units: a.units.filter(u => u !== clean) }));
+      await whitelistRef.set({ units: updatedUnits, admins: updatedAdmins }, { merge: true });
+      return res.status(200).json({ units: updatedUnits, admins: updatedAdmins });
     }
 
     return res.status(400).json({ error: 'Ação desconhecida' });
