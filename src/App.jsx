@@ -84,6 +84,14 @@ function App() {
   const [requestName, setRequestName] = useState('');
   const [requestUnit, setRequestUnit] = useState('');
 
+  // --- PAINEL DE ADMINISTRAÇÃO DE ACESSOS ---
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [pendingRequests, setPendingRequests] = useState([]);
+  const [adminEmailsList, setAdminEmailsList] = useState([]);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [isLoadingAdminPanel, setIsLoadingAdminPanel] = useState(false);
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+
   // --- Estado da Central de Notificação (Guardião) ---
   const [notifSettings, setNotifSettings] = useState({
     whatsappNumber: '',
@@ -929,9 +937,12 @@ function App() {
         await loadLongTermGoals(currentUser.uid);
         await loadFVData(currentUser.uid);
         // ESTA LINHA É A ÂNCORA DOS SEUS LIVROS:
-        await loadBooks(currentUser.uid); 
+        await loadBooks(currentUser.uid);
+        fetchAdminPanelData(); // Silencioso: só ativa o painel se o usuário for admin
       } else {
         setUser(null);
+        setIsAdmin(false);
+        setPendingRequests([]);
         clearAllData();
       }
       setLoading(false);
@@ -995,8 +1006,85 @@ function App() {
     } catch (error) { console.error('Erro ao carregar dados:', error); }
   };
 
+  // --- PAINEL DE ADMINISTRAÇÃO DE ACESSOS (api/fv-admin.js) ---
+  const callFvAdmin = async (body) => {
+    const idToken = await auth.currentUser?.getIdToken();
+    const resp = await fetch('/api/fv-admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+      body: JSON.stringify(body)
+    });
+    return { ok: resp.ok, data: await resp.json().catch(() => ({})) };
+  };
 
-  
+  const fetchAdminPanelData = async () => {
+    try {
+      const { ok, data } = await callFvAdmin({ action: 'list' });
+      if (ok) {
+        setIsAdmin(true);
+        setPendingRequests(data.pending || []);
+        setAdminEmailsList(data.admins || []);
+      } else {
+        setIsAdmin(false);
+      }
+    } catch (e) {
+      setIsAdmin(false);
+    }
+  };
+
+  const decidePendingRequest = async (uid, decision) => {
+    setIsLoadingAdminPanel(true);
+    try {
+      const { ok, data } = await callFvAdmin({ action: 'decide', uid, decision });
+      if (ok) {
+        setPendingRequests(prev => prev.filter(r => r.uid !== uid));
+      } else {
+        alert(data.error || 'Erro ao processar o pedido.');
+      }
+    } catch (e) {
+      alert('Erro ao processar o pedido. Verifique sua conexão.');
+    } finally {
+      setIsLoadingAdminPanel(false);
+    }
+  };
+
+  const addAdminEmail = async () => {
+    const email = newAdminEmail.trim();
+    if (!email) return;
+    setIsLoadingAdminPanel(true);
+    try {
+      const { ok, data } = await callFvAdmin({ action: 'addAdmin', email });
+      if (ok) {
+        setAdminEmailsList(data.admins || []);
+        setNewAdminEmail('');
+      } else {
+        alert(data.error || 'Erro ao adicionar administrador.');
+      }
+    } catch (e) {
+      alert('Erro ao adicionar administrador. Verifique sua conexão.');
+    } finally {
+      setIsLoadingAdminPanel(false);
+    }
+  };
+
+  const removeAdminEmail = async (email) => {
+    if (!window.confirm(`Remover "${email}" da lista de administradores?`)) return;
+    setIsLoadingAdminPanel(true);
+    try {
+      const { ok, data } = await callFvAdmin({ action: 'removeAdmin', email });
+      if (ok) {
+        setAdminEmailsList(data.admins || []);
+      } else {
+        alert(data.error || 'Erro ao remover administrador.');
+      }
+    } catch (e) {
+      alert('Erro ao remover administrador. Verifique sua conexão.');
+    } finally {
+      setIsLoadingAdminPanel(false);
+    }
+  };
+
+
   const handleRequestAccess = async () => {
     if (!requestName.trim() || !requestUnit.trim()) return alert("Por favor, preencha seu nome e a unidade.");
     try {
@@ -3069,6 +3157,12 @@ ${monthlyReport.desafioCrescimento || '-'}
                   <div style={{ position: 'absolute', top: '100%', right: 0, paddingTop: '0.5rem', zIndex: 1000 }}>
                     <div className="animate-fadeIn" style={{ width: '180px', background: isDark ? 'rgba(26, 26, 46, 0.98)' : 'white', border: `1px solid ${isDark ? '#d4af37' : '#ccc'}`, borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
                       <button onClick={() => { setShowSettingsModal(true); setShowProfileMenu(false); }} style={{ padding: '0.8rem', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(139, 115, 85, 0.1)', color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Settings size={16}/> Configurações</button>
+                      {isAdmin && (
+                        <button onClick={() => { setShowAdminPanel(true); setShowProfileMenu(false); }} style={{ padding: '0.8rem', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(139, 115, 85, 0.1)', color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><ShieldAlert size={16}/> Pedidos de Acesso</span>
+                          {pendingRequests.length > 0 && <span style={{ background: '#e74c3c', color: 'white', borderRadius: '10px', padding: '0.1rem 0.5rem', fontSize: '0.7rem', fontWeight: 'bold' }}>{pendingRequests.length}</span>}
+                        </button>
+                      )}
                       <button onClick={() => { toggleTheme(); setShowProfileMenu(false); }} style={{ padding: '0.8rem', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(139, 115, 85, 0.1)', color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>{isDark ? <Sun size={16}/> : <Moon size={16}/>} {isDark ? 'Tema Claro' : 'Tema Escuro'}</button>
                       <button onClick={handleLogout} style={{ padding: '0.8rem', background: 'rgba(231, 76, 60, 0.1)', border: 'none', color: '#e74c3c', textAlign: 'left', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><LogOut size={16}/> Sair</button>
                     </div>
@@ -3125,6 +3219,12 @@ ${monthlyReport.desafioCrescimento || '-'}
               <button onClick={() => { setShowSettingsModal(true); setIsMobileMenuOpen(false); }} style={{ width: '100%', padding: '1rem', background: 'transparent', color: isDark ? '#d4af37' : '#6b4423', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '12px', fontSize: '1.1rem', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                 <Settings size={20} /> Configurações
               </button>
+
+              {isAdmin && (
+                <button onClick={() => { setShowAdminPanel(true); setIsMobileMenuOpen(false); }} style={{ width: '100%', padding: '1rem', background: 'transparent', color: isDark ? '#d4af37' : '#6b4423', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '12px', fontSize: '1.1rem', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                  <ShieldAlert size={20} /> Pedidos de Acesso {pendingRequests.length > 0 && `(${pendingRequests.length})`}
+                </button>
+              )}
 
               <button onClick={handleLogout} style={{ width: '100%', padding: '1rem', background: '#e74c3c', color: 'white', border: 'none', borderRadius: '12px', fontSize: '1.2rem', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                 <LogOut size={20} /> Sair do Diário
@@ -6089,6 +6189,74 @@ ${monthlyReport.desafioCrescimento || '-'}
               >
                 Cancelar e Voltar
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: PAINEL DE ADMINISTRAÇÃO DE ACESSOS */}
+        {showAdminPanel && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(5px)' }}>
+            <div className="animate-fadeIn" style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '2rem', borderRadius: '16px', maxWidth: '560px', width: '100%', maxHeight: '85vh', overflowY: 'auto', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, boxShadow: '0 10px 40px rgba(0,0,0,0.3)', position: 'relative' }}>
+
+              <button onClick={() => setShowAdminPanel(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}>
+                <X size={24} />
+              </button>
+
+              <ShieldAlert size={40} color={isDark ? '#d4af37' : '#6b4423'} style={{ marginBottom: '0.5rem' }} />
+              <h2 style={{ margin: '0 0 1.5rem 0', fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.5rem' }}>Pedidos de Acesso</h2>
+
+              {pendingRequests.length === 0 ? (
+                <p style={{ color: isDark ? '#b8a88a' : '#666', textAlign: 'center', padding: '1rem 0' }}>Nenhum pedido pendente no momento.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '2rem' }}>
+                  {pendingRequests.map(req => (
+                    <div key={req.uid} style={{ padding: '1rem', background: isDark ? 'rgba(255,255,255,0.03)' : '#f9f9f9', borderRadius: '10px', border: `1px solid ${isDark ? '#333' : '#eee'}` }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+                        <div style={{ textAlign: 'left' }}>
+                          <strong style={{ color: isDark ? '#f0e6d2' : '#2c1810' }}>{req.requestName || 'Sem nome'}</strong>
+                          <div style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#666' }}>{req.requestUnit || 'Unidade não informada'}</div>
+                          <div style={{ fontSize: '0.8rem', color: isDark ? '#888' : '#999' }}>{req.email || 'sem e-mail'}</div>
+                          {req.requestDate && <div style={{ fontSize: '0.75rem', color: isDark ? '#666' : '#aaa' }}>{new Date(req.requestDate).toLocaleString('pt-BR')}</div>}
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                          <button disabled={isLoadingAdminPanel} onClick={() => decidePendingRequest(req.uid, 'approve')} style={{ padding: '0.5rem 0.8rem', background: '#4caf50', color: 'white', border: 'none', borderRadius: '6px', cursor: isLoadingAdminPanel ? 'default' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.3rem', opacity: isLoadingAdminPanel ? 0.6 : 1 }}>
+                            <CheckCircle size={16}/> Aprovar
+                          </button>
+                          <button disabled={isLoadingAdminPanel} onClick={() => decidePendingRequest(req.uid, 'reject')} style={{ padding: '0.5rem 0.8rem', background: 'transparent', color: '#e74c3c', border: '1px solid #e74c3c', borderRadius: '6px', cursor: isLoadingAdminPanel ? 'default' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.3rem', opacity: isLoadingAdminPanel ? 0.6 : 1 }}>
+                            <XCircle size={16}/> Recusar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div style={{ borderTop: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : '#eee'}`, paddingTop: '1.5rem', textAlign: 'left' }}>
+                <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px', color: isDark ? '#d4af37' : '#996515' }}>Administradores</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem' }}>
+                  {adminEmailsList.map(email => (
+                    <div key={email} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0.6rem', background: isDark ? 'rgba(255,255,255,0.03)' : '#f9f9f9', borderRadius: '6px' }}>
+                      <span style={{ fontSize: '0.85rem', color: isDark ? '#f0e6d2' : '#2c1810' }}>{email}</span>
+                      <button disabled={isLoadingAdminPanel} onClick={() => removeAdminEmail(email)} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: isLoadingAdminPanel ? 'default' : 'pointer' }} title="Remover admin">
+                        <Trash2 size={14}/>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input
+                    type="email"
+                    value={newAdminEmail}
+                    onChange={(e) => setNewAdminEmail(e.target.value)}
+                    placeholder="novo-admin@exemplo.com"
+                    style={{ flex: 1, padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? '#555' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }}
+                  />
+                  <button disabled={isLoadingAdminPanel || !newAdminEmail.trim()} onClick={addAdminEmail} style={{ padding: '0.6rem 1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: isLoadingAdminPanel ? 'default' : 'pointer', opacity: isLoadingAdminPanel ? 0.6 : 1, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                    <Plus size={16}/> Adicionar
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}
