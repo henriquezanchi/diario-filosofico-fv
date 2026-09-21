@@ -1061,8 +1061,10 @@ function App() {
   };
 
   const addUnit = async () => {
-    // Aceita colar várias unidades de uma vez, uma por linha.
-    const units = newUnitName.split('\n').map(u => u.trim()).filter(Boolean);
+    // Aceita colar várias unidades de uma vez: uma por linha, separadas por
+    // vírgula, ou por ponto-e-vírgula (cópias de fora às vezes perdem a
+    // quebra de linha e viram uma linha só).
+    const units = newUnitName.split(/[\n,;]+/).map(u => u.trim()).filter(Boolean);
     if (units.length === 0) return;
     setIsLoadingAdminPanel(true);
     try {
@@ -5562,7 +5564,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                       <textarea
                         value={newUnitName}
                         onChange={(e) => setNewUnitName(e.target.value)}
-                        placeholder={"Nome da unidade...\n(pode colar várias, uma por linha)"}
+                        placeholder={"Nome da unidade...\n(pode colar várias — uma por linha ou separadas por vírgula)"}
                         rows={4}
                         style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? '#555' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'inherit', resize: 'vertical' }}
                       />
