@@ -349,6 +349,9 @@ function App() {
   const [fvNextCartaDate, setFvNextCartaDate] = useState('');
   const [fvMasterName, setFvMasterName] = useState('');
   const [fvLastMeetingDate, setFvLastMeetingDate] = useState('');
+  const [isGeneratingCartaDegrau, setIsGeneratingCartaDegrau] = useState(false);
+  const [cartaDegrauResult, setCartaDegrauResult] = useState(null);
+  const [showCartaDegrauModal, setShowCartaDegrauModal] = useState(false);
   const isEnrichingRef = useRef(false);
   const [fvGdveDesafios, setFvGdveDesafios] = useState([]);
   const [fvGdveReuniao, setFvGdveReuniao] = useState('');
@@ -1890,6 +1893,30 @@ function App() {
         
         alert('✅ Reflexões da Carta de Degrau salvas com sucesso!');
       } catch (error) { console.error(error); alert('Erro ao salvar os textos.'); }
+    }
+  };
+
+  const gerarCartaDegrau = async () => {
+    if (!user) return;
+    setIsGeneratingCartaDegrau(true);
+    try {
+      const idToken = await auth.currentUser?.getIdToken();
+      const resp = await fetch('/api/carta-degrau', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${idToken}` }
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        alert(data.error || 'Erro ao gerar a Carta de Degrau.');
+        return;
+      }
+      setCartaDegrauResult(data);
+      setShowCartaDegrauModal(true);
+    } catch (error) {
+      console.error('Erro ao gerar Carta de Degrau:', error);
+      alert('Erro ao gerar a Carta de Degrau. Verifique sua conexão.');
+    } finally {
+      setIsGeneratingCartaDegrau(false);
     }
   };
 
@@ -4214,7 +4241,18 @@ ${monthlyReport.desafioCrescimento || '-'}
                               <input type="date" value={fvNextCartaDate || ''} onChange={(e) => setFvNextCartaDate(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
                             </div>
                          </div>
-                         
+
+                         {/* EXPORTAR CARTA DE DEGRAU (SÍNTESE DO CICLO) */}
+                         <div style={{ marginBottom: '2rem', padding: '1.5rem', background: isDark ? 'rgba(0,0,0,0.2)' : '#f9f9f9', borderRadius: '12px', border: `1px dashed ${isDark ? 'rgba(212, 175, 55, 0.3)' : '#ccc'}` }}>
+                            <button onClick={gerarCartaDegrau} disabled={isGeneratingCartaDegrau} style={{ width: '100%', padding: '0.9rem', background: isGeneratingCartaDegrau ? (isDark ? 'rgba(255,152,0,0.15)' : '#fff3e0') : (isDark ? '#d4af37' : '#6b4423'), color: isGeneratingCartaDegrau ? (isDark ? '#ff9800' : '#e65100') : (isDark ? '#1a1a2e' : 'white'), border: 'none', borderRadius: '8px', fontSize: '1.05rem', fontWeight: 'bold', cursor: isGeneratingCartaDegrau ? 'not-allowed' : 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                              {isGeneratingCartaDegrau ? <Sparkles className="animate-spin" size={18} /> : <FileText size={18} />}
+                              {isGeneratingCartaDegrau ? 'Sintetizando seu ciclo...' : 'Exportar Carta de Degrau (Síntese do Ciclo)'}
+                            </button>
+                            <p style={{ margin: '0.75rem 0 0 0', fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', textAlign: 'center' }}>
+                              Gera um rascunho sintetizando suas respostas da "Escalada (Degrau)" desde {fvLastCartaDate ? `a última entrega (${new Date(fvLastCartaDate + 'T12:00:00').toLocaleDateString('pt-BR')})` : 'os últimos 30 dias'}. Revise com atenção antes de entregar ao seu Instrutor.
+                            </p>
+                         </div>
+
                          {/* CONFIGURAÇÃO DO CALENDÁRIO DE ATIVIDADES (Com Múltiplos Dias e Horas) */}
                          <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: `1px dashed ${isDark ? 'rgba(212, 175, 55, 0.3)' : '#ccc'}`, marginBottom: '2rem' }}>
                             <h4 style={{ margin: '0 0 1rem 0', color: isDark ? '#FFD700' : '#996515', fontSize: '1rem', fontFamily: "'Cinzel', serif" }}>Calendário Fixo de Atividades</h4>
@@ -5495,6 +5533,46 @@ ${monthlyReport.desafioCrescimento || '-'}
                 style={{ display: 'block', width: '100%', padding: '1rem', background: 'transparent', color: isDark ? '#b8a88a' : '#6b5744', border: 'none', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '1.1rem', textDecoration: 'underline' }}
               >
                 Cancelar e Voltar
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: CARTA DE DEGRAU (SÍNTESE GERADA) */}
+        {showCartaDegrauModal && cartaDegrauResult && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 10002, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2rem 1rem', overflowY: 'auto' }}>
+            <div id="cartaDegrauPrintArea" className="animate-fadeIn" style={{ background: 'white', color: '#111', maxWidth: '800px', width: '100%', borderRadius: '8px', padding: '3rem', fontFamily: 'Georgia, serif', position: 'relative', marginBottom: '2rem' }}>
+              <button onClick={() => setShowCartaDegrauModal(false)} className="no-print" style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', cursor: 'pointer', color: '#333' }}>
+                <X size={24} />
+              </button>
+
+              <h1 style={{ textAlign: 'center', fontSize: '1.3rem', textDecoration: 'underline', marginBottom: '0.5rem' }}>CARTA DE DEGRAU TERRA</h1>
+              <p style={{ textAlign: 'center', fontSize: '0.8rem', color: '#666', fontStyle: 'italic', marginBottom: '2rem' }}>
+                Rascunho gerado por IA — revise e ajuste antes de entregar.
+              </p>
+
+              <p><strong>Data:</strong> {new Date().toLocaleDateString('pt-BR')}</p>
+              {cartaDegrauResult.masterName && <p><strong>Instrutor:</strong> {cartaDegrauResult.masterName}</p>}
+              <p style={{ fontSize: '0.85rem', color: '#666' }}>
+                Síntese do período de {new Date(cartaDegrauResult.periodStart + 'T12:00:00').toLocaleDateString('pt-BR')} a {new Date(cartaDegrauResult.periodEnd + 'T12:00:00').toLocaleDateString('pt-BR')}.
+              </p>
+
+              {cartaDegrauResult.itens.map(item => (
+                <div key={item.id} style={{ marginTop: '1.5rem' }}>
+                  <p style={{ fontWeight: 'bold', margin: 0 }}>{item.label}</p>
+                  <p style={{ fontWeight: 'bold', margin: '0.5rem 0 0.2rem 0' }}>Comentários:</p>
+                  <p style={{ margin: 0, lineHeight: 1.6, textAlign: 'justify' }}>{item.comentario}</p>
+                </div>
+              ))}
+
+              <div style={{ marginTop: '3rem' }}>
+                <p>Brasília, {new Date().toLocaleDateString('pt-BR')}</p>
+                <p style={{ marginTop: '3rem', marginBottom: '0.2rem' }}>_______________________________</p>
+                <p style={{ margin: 0 }}>Assinatura</p>
+              </div>
+
+              <button onClick={() => window.print()} className="no-print" style={{ marginTop: '2.5rem', width: '100%', padding: '1rem', background: '#6b4423', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontFamily: 'Georgia, serif' }}>
+                <Download size={18} /> Imprimir / Salvar como PDF
               </button>
             </div>
           </div>

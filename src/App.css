@@ -19,3 +19,22 @@ button:hover {
   transform: translateY(-2px);
   transition: all 0.2s ease;
 }
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #cartaDegrauPrintArea, #cartaDegrauPrintArea * {
+    visibility: visible;
+  }
+  #cartaDegrauPrintArea {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    box-shadow: none !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
