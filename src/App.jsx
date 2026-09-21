@@ -695,7 +695,9 @@ function App() {
     setVirtueGoals([]);
     setProjectGoals([]);
     setAcceptedMissions([]);
-    setAiSuggestedGoals(null);
+    setFvAccessStatus('checking');
+    setIsAdmin(false);
+    setPendingRequests([]);
     setFvLastCartaDate('');
     setFvNextCartaDate('');
     setFvGdveReuniao('');
@@ -892,6 +894,11 @@ function App() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
+        // Zera qualquer estado que possa ter sobrado de uma sessão anterior
+        // (ex: troca de conta Google sem passar por "Sair" explícito) antes
+        // de carregar os dados do novo usuário — sem isso, a tela podia
+        // "piscar" com o app/status de acesso do usuário anterior.
+        clearAllData();
         setUser(currentUser);
         setRequestEmail(currentUser.email || '');
         await loadUserData(currentUser.uid);
