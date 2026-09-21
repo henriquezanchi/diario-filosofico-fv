@@ -2,17 +2,17 @@ import React, { useEffect } from 'react';
 
 export default function AdBanner({ slotId }) {
   useEffect(() => {
-    try {
-      // Evita carregar o mesmo anúncio duas vezes (o React em modo de desenvolvimento faz isso)
-      const pushAd = () => {
+    const pushAd = () => {
+      try {
         (window.adsbygoogle = window.adsbygoogle || []).push({});
-      };
-      
-      // Um pequeno atraso garante que o script do Google já carregou
-      setTimeout(pushAd, 300);
-    } catch (e) {
-      console.error("Erro ao carregar o anúncio:", e);
-    }
+      } catch (e) {
+        console.error("Erro ao carregar o anúncio:", e);
+      }
+    };
+
+    // Um pequeno atraso garante que o script do Google já carregou
+    const timerId = setTimeout(pushAd, 300);
+    return () => clearTimeout(timerId);
   }, []);
 
   return (

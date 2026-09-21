@@ -38,3 +38,20 @@ firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
 // O Firebase agora cuidará de tudo sozinho, sem duplicatas.
+
+// Ao clicar na notificação em segundo plano, foca uma aba já aberta ou abre o app.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const urlToOpen = event.notification.data?.FCM_MSG?.notification?.click_action
+    || event.notification.data?.url
+    || 'https://diario-filosofico-azure.vercel.app/';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url === urlToOpen && 'focus' in client) return client.focus();
+      }
+      if (clients.openWindow) return clients.openWindow(urlToOpen);
+    })
+  );
+});

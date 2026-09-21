@@ -39,6 +39,20 @@ import {
 import { translateCategory } from './constants/bookMetrics';
 import { AUTHOR_CANON, getReadingRank, getFavoriteTheme, getAuthorStats } from './constants/ranks';
 
+// Proxy server-side: a chave do Gemini nunca fica exposta no bundle do cliente.
+async function callGemini({ contents, generationConfig }) {
+  const idToken = await auth.currentUser?.getIdToken();
+  const response = await fetch('/api/gemini', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+    },
+    body: JSON.stringify({ contents, generationConfig }),
+  });
+  return response.json();
+}
+
 function App() {
   // Estados
   const [user, setUser] = useState(null);
@@ -365,6 +379,7 @@ function App() {
   const [editingGdveTaskId, setEditingGdveTaskId] = useState(null);
   const [newGdveTaskTarget, setNewGdveTaskTarget] = useState(1);
   const [newGdveTaskIsCycle, setNewGdveTaskIsCycle] = useState(false);
+  const [newGdveTaskCycleTouched, setNewGdveTaskCycleTouched] = useState(false);
   const [fvGdveCycleStatus, setFvGdveCycleStatus] = useState({});
   const [expandedCartaItems, setExpandedCartaItems] = useState({});
 
@@ -770,8 +785,9 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     // 2. Mantém a trava de segurança oculta dos cliques
-    setFvClickCount(prev => prev + 1);
-    if (fvClickCount >= 6) {
+    const newCount = fvClickCount + 1;
+    setFvClickCount(newCount);
+    if (newCount >= 6) {
       setFvUnlocked(true);
       loadMod2Config(user?.uid);
       setFvClickCount(0);
@@ -989,7 +1005,7 @@ function App() {
         await setDoc(doc(db, 'users', uid), {
           createdAt: Timestamp.now(), theme: 'light', lastDrawDate: null, 
           fvUnlocked: isVip,
-          fvStatus: initialStatus, email: user?.email || 'Sem e-mail'
+          fvStatus: initialStatus, email: currentUserLogado?.email || 'Sem e-mail'
         });
         
         setFvAccessStatus(initialStatus);
@@ -1113,8 +1129,10 @@ function App() {
       querySnapshot.forEach((doc) => {
         const data = doc.data();
         const hasFvData = data.fvDaily && (
-          data.fvDaily.item1 || data.fvDaily.item2 || data.fvDaily.item34 || data.fvDaily.item5 || data.fvDaily.item6 || data.fvDaily.item7 || 
-          (data.fvDaily.praticas && Object.values(data.fvDaily.praticas).some(v => v === true))
+          data.fvDaily.item1 || data.fvDaily.item2 || data.fvDaily.item34 || data.fvDaily.item5 || data.fvDaily.item6 || data.fvDaily.item7 ||
+          (data.fvDaily.praticas && Object.values(data.fvDaily.praticas).some(v => v === true)) ||
+          (data.fvDaily.gdveTasksStatus && Object.values(data.fvDaily.gdveTasksStatus).some(v => v)) ||
+          data.fvDaily.gdveAttendance
         );
         
         if (data.morningDone || data.eveningDone || hasFvData) { 
@@ -1263,11 +1281,10 @@ function App() {
       const prompt = `Atue como um bibliotecário especialista. Analise esta imagem de capas ou lombadas de livros. Identifique cada obra. Tente extrair: Título, Autor e Editora. Retorne ESTRITAMENTE um array JSON de objetos: [{"title": "Título", "author": "Autor", "publisher": "Editora"}]`;
 
       try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: file.type, data: base64String } }] }], generationConfig: { responseMimeType: "application/json" } })
+        const data = await callGemini({
+          contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: file.type, data: base64String } }] }],
+          generationConfig: { responseMimeType: "application/json" }
         });
-        const data = await response.json();
         const detected = JSON.parse(data.candidates[0].content.parts[0].text);
         
         // 2. Guarda os resultados mas NÃO abre o modal ainda
@@ -1351,8 +1368,9 @@ function App() {
     
     const tasksCorrigidas = fvGdveTasks.map(task => {
       const taskNameLower = task.name.toLowerCase();
-      const isBastiaoTask = taskNameLower.includes('bastião') || taskNameLower.includes('leitura');
-      
+      const taskNameSemAcento = taskNameLower.normalize('NFD').replace(/[̀-ͯ]/g, '');
+      const isBastiaoTask = taskNameSemAcento.includes('bastiao') || taskNameSemAcento.includes('leitura');
+
       if (isBastiaoTask) {
         const limpaTexto = (str) => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
         const textoLimpoTask = limpaTexto(task.name);
@@ -1428,13 +1446,11 @@ function App() {
     }`;
 
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json" } })
+      const data = await callGemini({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { responseMimeType: "application/json" }
       });
-      
-      const data = await response.json();
-      
+
       // Proteção 1: Impede que o app trave se a API atingir o limite
       if (data.error) {
          console.error("Erro da API Gemini:", data.error.message);
@@ -1654,8 +1670,11 @@ function App() {
   };
 
   const toggleTaskStatus = async (taskId) => {
-    const newStatus = { ...todayTasksStatus, [taskId]: !todayTasksStatus[taskId] };
-    setTodayTasksStatus(newStatus);
+    let newStatus;
+    setTodayTasksStatus(prev => {
+      newStatus = { ...prev, [taskId]: !prev[taskId] };
+      return newStatus;
+    });
 
     if (user) {
       const todayKey = selectedDate;
@@ -1869,12 +1888,10 @@ function App() {
       ]
       `;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, { 
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json" } }) 
+      const data = await callGemini({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { responseMimeType: "application/json" }
       });
-      
-      const data = await response.json();
       if (data.error) throw new Error(data.error.message);
 
       const parsedData = JSON.parse(data.candidates[0].content.parts[0].text);
@@ -1920,12 +1937,10 @@ function App() {
         ]
       }`;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, { 
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json" } }) 
+      const data = await callGemini({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { responseMimeType: "application/json" }
       });
-      
-      const data = await response.json();
       if (data.error) throw new Error(data.error.message);
 
       const parsedData = JSON.parse(data.candidates[0].content.parts[0].text);
@@ -1968,6 +1983,7 @@ function App() {
     setNewGdveTaskName('');
     setNewGdveTaskTarget(1);
     setNewGdveTaskIsCycle(false);
+    setNewGdveTaskCycleTouched(false);
     setEditingGdveTaskId(null);
     saveGdveTasksToDB(newTasks);
   };
@@ -1977,6 +1993,8 @@ function App() {
     setNewGdveTaskName(task.name);
     setNewGdveTaskTarget(task.target || 1);
     setNewGdveTaskIsCycle(task.isCycle || false);
+    // Tarefa já existente: não deixa a detecção automática sobrescrever a escolha original ao editar o nome.
+    setNewGdveTaskCycleTouched(true);
   };
 
   const removeGdveTask = (id) => {
@@ -2006,6 +2024,7 @@ function App() {
       
       const newFvDaily = { ...fvDaily, gdveTasksStatus: { ...fvDaily.gdveTasksStatus, [task.id]: newVal } };
       setFvDaily(newFvDaily);
+      if (selectedDate === getTodayKey()) setTodayFvDaily(newFvDaily);
       if (user) {
         await setDoc(doc(db, 'entries', `${user.uid}_${selectedDate}`), { fvDaily: newFvDaily }, { merge: true });
         await loadAllEntries(user.uid);
@@ -2017,7 +2036,8 @@ function App() {
     const isAttending = !fvDaily.gdveAttendance;
     const newFvDaily = { ...fvDaily, gdveAttendance: isAttending };
     setFvDaily(newFvDaily);
-    
+    if (selectedDate === getTodayKey()) setTodayFvDaily(newFvDaily);
+
     // A Mágica dos 15 dias e da Limpeza do Ciclo
     if (isAttending) {
       const confirmRecalc = window.confirm("Deseja marcar a próxima reunião para 15 dias APÓS ESTA DATA? (Isso também vai zerar as suas tarefas de 'Ciclo' pendentes).");
@@ -2140,16 +2160,10 @@ function App() {
       ${dossie}`;
 
       // Configuração forçando o Gemini a cuspir JSON puro
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`, { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ 
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { responseMimeType: "application/json" }
-        }) 
+      const data = await callGemini({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { responseMimeType: "application/json" }
       });
-      
-      const data = await response.json();
       if (data.error) throw new Error(data.error.message);
 
       // Parse do JSON recebido
@@ -2279,7 +2293,7 @@ function App() {
            if (task.completed) {
              const tName = task.name.toLowerCase();
              if (tName.includes('limpeza') || tName.includes('faxina') || tName.includes('mutirão')) countLimpeza++;
-             if (tName.includes('gn') || tName.includes('guarda noturna')) countGN++;
+             if (/\bgn\b/.test(tName) || tName.includes('guarda noturna')) countGN++;
              if (tName.includes('estudar') || tName.includes('matéria') || tName.includes('curso') || tName.includes('resumo')) countEstudos++;
              if (tName.includes('bastião') || tName.includes('bastiao') || tName.includes('leitura do ciclo')) countBastiao++;
            }
@@ -2382,7 +2396,8 @@ ${monthlyReport.desafioCrescimento || '-'}
       ...fvDaily,
       praticas: { ...fvDaily.praticas, [key]: true }
     };
-    setFvDaily(newFvDaily); 
+    setFvDaily(newFvDaily);
+    if (selectedDate === getTodayKey()) setTodayFvDaily(newFvDaily);
     setIsPracticeActive(false);
     exitFullScreen();
 
@@ -2405,6 +2420,7 @@ ${monthlyReport.desafioCrescimento || '-'}
       praticas: { ...fvDaily.praticas, ...temploSelections }
     };
     setFvDaily(newFvDaily);
+    if (selectedDate === getTodayKey()) setTodayFvDaily(newFvDaily);
     setIsPracticeActive(false);
     exitFullScreen();
 
@@ -2415,7 +2431,10 @@ ${monthlyReport.desafioCrescimento || '-'}
           fvDaily: newFvDaily
         }, { merge: true });
         await loadAllEntries(user.uid);
-      } catch (error) {}
+      } catch (error) {
+        console.error("Erro ao salvar prática do Templo:", error);
+        alert('⚠️ A prática não foi salva. Verifique sua conexão e tente novamente.');
+      }
     }
   };
 
@@ -2433,10 +2452,10 @@ ${monthlyReport.desafioCrescimento || '-'}
 
     try {
       await deleteDoc(doc(db, 'entries', `${user.uid}_${dateKey}`));
-      setEntries(entries.filter(e => e.date !== dateKey));
+      await loadAllEntries(user.uid);
       alert('🗑️ Registro excluído com sucesso.');
-    } catch (error) { 
-      alert('Erro ao excluir a entrada. Verifique sua conexão.'); 
+    } catch (error) {
+      alert('Erro ao excluir a entrada. Verifique sua conexão.');
     }
   };
 
@@ -2475,8 +2494,14 @@ ${monthlyReport.desafioCrescimento || '-'}
       return row;
     });
 
+    // Neutraliza f\u00F3rmulas (=, +, -, @) para evitar CSV injection ao abrir no Excel/Sheets
+    const sanitizeCell = (cell) => {
+      const str = String(cell);
+      return /^[=+\-@]/.test(str) ? `'${str}` : str;
+    };
+
     let csvContent = '\uFEFF' + headers.join(',') + '\n';
-    rows.forEach(row => { csvContent += row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',') + '\n'; });
+    rows.forEach(row => { csvContent += row.map(cell => `"${sanitizeCell(cell).replace(/"/g, '""')}"`).join(',') + '\n'; });
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a'); link.href = URL.createObjectURL(blob);
     link.download = fvUnlocked ? `relatorio-fv-${getTodayKey()}.csv` : `diario-filosofico-${getTodayKey()}.csv`; 
@@ -2707,7 +2732,7 @@ ${monthlyReport.desafioCrescimento || '-'}
            if (task.completed) {
              const tName = task.name.toLowerCase();
              if (tName.includes('limpeza') || tName.includes('faxina') || tName.includes('mutirão')) stats.countLimpeza++;
-             if (tName.includes('gn') || tName.includes('guarda noturna')) stats.countGN++;
+             if (/\bgn\b/.test(tName) || tName.includes('guarda noturna')) stats.countGN++;
            }
         });
       }
@@ -2802,29 +2827,6 @@ ${monthlyReport.desafioCrescimento || '-'}
       .replace(artigos, '')
       .replace(/\s+/g, ' ')
       .trim();
-  };
-
-  const getTokens = (str) => normalizarParaMatch(str).split(' ').filter(t => t.length > 2);
-
-  const titulosEquivalentes = (tituloA, tituloB) => {
-    const tA = getTokens(tituloA); const tB = getTokens(tituloB);
-    const menor = tA.length < tB.length ? tA : tB;
-    const maior = tA.length < tB.length ? tB : tA;
-    if (menor.length === 0) return 0;
-    const hits = menor.filter(t => maior.some(m => m.includes(t) || t.includes(m))).length;
-    return (hits / menor.length) >= 0.75;
-  };
-
-  const autoresEquivalentes = (autorA = '', autorB = '') => {
-    if (!autorA || !autorB) return true;
-    const tokA = getTokens(autorA); const tokB = getTokens(autorB);
-    if (tokA.length === 0 || tokB.length === 0) return true;
-    const sobrenomeA = tokA[tokA.length - 1]; const sobrenomeB = tokB[tokB.length - 1];
-    if (sobrenomeA.includes(sobrenomeB) || sobrenomeB.includes(sobrenomeA)) return true;
-    const menor = tokA.length < tokB.length ? tokA : tokB;
-    const maior = tokA.length < tokB.length ? tokB : tokA;
-    const hits = menor.filter(t => maior.some(m => m.includes(t) || t.includes(m))).length;
-    return (hits / menor.length) >= 0.5;
   };
 
   if (!user) {
@@ -4531,11 +4533,11 @@ ${monthlyReport.desafioCrescimento || '-'}
 
                       const preenchimentosAtual = cicloAtual.length;
                       const preenchimentosAnterior = cicloAnterior.length;
-                      const varPreenchimentos = preenchimentosAnterior === 0 ? 100 : Math.round(((preenchimentosAtual - preenchimentosAnterior) / preenchimentosAnterior) * 100);
+                      const varPreenchimentos = preenchimentosAnterior === 0 ? (preenchimentosAtual === 0 ? 0 : 100) : Math.round(((preenchimentosAtual - preenchimentosAnterior) / preenchimentosAnterior) * 100);
 
                       const praticasAtual = countPraticas(cicloAtual);
                       const praticasAnterior = countPraticas(cicloAnterior);
-                      const varPraticas = praticasAnterior === 0 ? 100 : Math.round(((praticasAtual - praticasAnterior) / praticasAnterior) * 100);
+                      const varPraticas = praticasAnterior === 0 ? (praticasAtual === 0 ? 0 : 100) : Math.round(((praticasAtual - praticasAnterior) / praticasAnterior) * 100);
 
                       return (
                         <>
@@ -4748,8 +4750,9 @@ ${monthlyReport.desafioCrescimento || '-'}
               // Juiz do Módulo GDVE (Bastião + Reunião + Práticas)
               const hasBastiao = fvGdveBastiaoName && fvGdveBastiaoName !== '';
               const hasMissoes = fvGdveTasks.length > 0;
-              const todayEntryBadge = entries.find(e => e.date === getTodayKey());
-              const todayGdveStatus = todayEntryBadge?.fvDaily?.gdveTasksStatus || {};
+              // Usa o state ao vivo (fvDaily), não o snapshot de `entries`, para não ficar
+              // dessincronizado da lista de tarefas logo abaixo ao marcar/desmarcar uma missão.
+              const todayGdveStatus = fvDaily?.gdveTasksStatus || {};
               const missoesCompletas = fvGdveTasks.filter(t => t.isCycle ? fvGdveCycleStatus[t.id] : (todayGdveStatus[t.id] >= t.target)).length;
               
               let gdveStatus = 'empty';
@@ -4965,8 +4968,9 @@ ${monthlyReport.desafioCrescimento || '-'}
                              let multiplosBastioes = null; 
                              let bastiaoUnico = null; // <- NOVA VARIÁVEL PARA GUARDAR A OBRA EXATA
                              const taskNameLower = task.name.toLowerCase();
-                             const isBastiaoTask = taskNameLower.includes('bastião') || taskNameLower.includes('leitura');
-                             
+                             const taskNameSemAcento = taskNameLower.normalize('NFD').replace(/[̀-ͯ]/g, '');
+                             const isBastiaoTask = taskNameSemAcento.includes('bastiao') || taskNameSemAcento.includes('leitura');
+
                              if (isBastiaoTask) {
                                 const limpaTexto = (str) => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
                                 const textoLimpoTask = limpaTexto(task.name);
@@ -5051,10 +5055,15 @@ ${monthlyReport.desafioCrescimento || '-'}
                                                  );
                                                  setFvGdveTasks(novasTasks);
                                                  if (user) {
-                                                   await setDoc(doc(db, 'fvData', user.uid), { fvGdveTasks: novasTasks }, { merge: true });
+                                                   try {
+                                                     await setDoc(doc(db, 'fvData', user.uid), { fvGdveTasks: novasTasks }, { merge: true });
+                                                   } catch (err) {
+                                                     console.error('Erro ao renomear tarefa GDVE:', err);
+                                                     alert('⚠️ Não foi possível salvar o nome corrigido da tarefa. Tente novamente.');
+                                                   }
                                                  }
                                               }
-                                            }} 
+                                            }}
                                             style={{ 
                                               fontSize: '0.65rem', padding: '2px 6px', background: isDark ? 'rgba(212,175,55,0.1)' : '#fffbf0', 
                                               color: isDark ? '#FFD700' : '#996515', border: `1px solid ${isDark ? '#FFD700' : '#996515'}`, 
@@ -5086,7 +5095,12 @@ ${monthlyReport.desafioCrescimento || '-'}
                                                    // 4. Salva a alteração na tela e no Firebase
                                                    setFvGdveTasks(novasTasks);
                                                    if (user) {
-                                                     await setDoc(doc(db, 'fvData', user.uid), { fvGdveTasks: novasTasks }, { merge: true });
+                                                     try {
+                                                       await setDoc(doc(db, 'fvData', user.uid), { fvGdveTasks: novasTasks }, { merge: true });
+                                                     } catch (err) {
+                                                       console.error('Erro ao renomear tarefa GDVE:', err);
+                                                       alert('⚠️ Não foi possível salvar o nome corrigido da tarefa. Tente novamente.');
+                                                     }
                                                    }
                                                 }
                                               }
@@ -5125,7 +5139,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                                {editingGdveTaskId ? 'Editar Prática' : 'Adicionar Nova Prática'}
                              </h5>
                              {editingGdveTaskId && (
-                               <button onClick={() => { setEditingGdveTaskId(null); setNewGdveTaskName(''); setNewGdveTaskTarget(1); setNewGdveTaskIsCycle(false); }} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer' }}>
+                               <button onClick={() => { setEditingGdveTaskId(null); setNewGdveTaskName(''); setNewGdveTaskTarget(1); setNewGdveTaskIsCycle(false); setNewGdveTaskCycleTouched(false); }} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer' }}>
                                  <X size={16}/>
                                </button>
                              )}
@@ -5141,11 +5155,11 @@ ${monthlyReport.desafioCrescimento || '-'}
                                
                                // INTELIGÊNCIA: Se detectar que é leitura, muda o status automaticamente!
                                const valLimpo = val.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-                               if (valLimpo.includes('bastiao') || valLimpo.includes('leitura') || valLimpo.includes('ler')) {
+                               if (!newGdveTaskCycleTouched && (valLimpo.includes('bastiao') || valLimpo.includes('leitura') || /\bler\b/.test(valLimpo))) {
                                  setNewGdveTaskIsCycle(true);
                                  setNewGdveTaskTarget(1);
                                }
-                             }} 
+                             }}
                              placeholder="Ex: Ler Bastião / Eu sou Discípulo..." 
                              style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.4)' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} 
                            />
@@ -5153,7 +5167,7 @@ ${monthlyReport.desafioCrescimento || '-'}
 
                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', marginTop: '0.5rem' }}>
                               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#666' }}>
-                                 <input type="checkbox" checked={newGdveTaskIsCycle} onChange={(e) => { setNewGdveTaskIsCycle(e.target.checked); if(e.target.checked) setNewGdveTaskTarget(1); }} style={{ width: '16px', height: '16px', accentColor: '#FFD700', cursor: 'pointer' }} />
+                                 <input type="checkbox" checked={newGdveTaskIsCycle} onChange={(e) => { setNewGdveTaskIsCycle(e.target.checked); setNewGdveTaskCycleTouched(true); if(e.target.checked) setNewGdveTaskTarget(1); }} style={{ width: '16px', height: '16px', accentColor: '#FFD700', cursor: 'pointer' }} />
                                  Missão Única do Ciclo (Não zera diariamente)
                               </label>
                               
@@ -6146,8 +6160,16 @@ ${monthlyReport.desafioCrescimento || '-'}
                     onChange={async (e) => {
                       const consent = e.target.checked;
                       setAiConsent(consent);
-                      if (user) await setDoc(doc(db, 'fvData', user.uid), { aiConsent: consent }, { merge: true });
-                    }} 
+                      if (user) {
+                        try {
+                          await setDoc(doc(db, 'fvData', user.uid), { aiConsent: consent }, { merge: true });
+                        } catch (err) {
+                          console.error('Erro ao salvar consentimento de IA:', err);
+                          setAiConsent(!consent);
+                          alert('⚠️ Não foi possível salvar sua escolha. Verifique sua conexão e tente novamente.');
+                        }
+                      }
+                    }}
                     style={{ width: '24px', height: '24px', marginTop: '0.2rem', cursor: 'pointer', accentColor: '#d4af37', flexShrink: 0 }} 
                   />
                   <span style={{ fontSize: '0.9rem', color: isDark ? '#c8b896' : '#6b5744', lineHeight: '1.4' }}>
@@ -6247,10 +6269,18 @@ ${monthlyReport.desafioCrescimento || '-'}
                     <span style={{ display: 'block', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem', fontWeight: 'bold', marginBottom: '0.8rem', lineHeight: '1.3' }}>{fvGdveBastiaoName}</span>
                     
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button onClick={() => {
+                      <button onClick={async () => {
                          const newStatus = { ...fvGdveCycleStatus, bastiao: !fvGdveCycleStatus['bastiao'] };
                          setFvGdveCycleStatus(newStatus);
-                         if(user) setDoc(doc(db, 'fvData', user.uid), { gdveCycleStatus: newStatus }, { merge: true });
+                         if (user) {
+                           try {
+                             await setDoc(doc(db, 'fvData', user.uid), { gdveCycleStatus: newStatus }, { merge: true });
+                           } catch (err) {
+                             console.error('Erro ao salvar status de leitura do Bastião:', err);
+                             setFvGdveCycleStatus(fvGdveCycleStatus);
+                             alert('⚠️ Não foi possível salvar. Verifique sua conexão e tente novamente.');
+                           }
+                         }
                       }} style={{ flex: 1, padding: '0.5rem', background: fvGdveCycleStatus['bastiao'] ? '#4caf50' : 'transparent', color: fvGdveCycleStatus['bastiao'] ? 'white' : (isDark ? '#f0e6d2' : '#2c1810'), border: `1px solid ${fvGdveCycleStatus['bastiao'] ? '#4caf50' : (isDark ? '#555' : '#ccc')}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', transition: 'all 0.2s' }}>
                          {fvGdveCycleStatus['bastiao'] ? <CheckCircle size={14}/> : <div style={{width:'14px', height:'14px', borderRadius:'50%', border:'1px solid currentColor'}}></div>}
                          {fvGdveCycleStatus['bastiao'] ? 'Já Li' : 'Marcar Lido'}

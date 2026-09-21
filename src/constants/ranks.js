@@ -44,10 +44,9 @@ export const getAuthorStats = (books) => {
 
     if (!stats[b.author]) stats[b.author] = { totalPages: 0, readPages: 0, readBooks: 0 };
 
-    stats[b.author].totalPages += (b.totalPages || 0);
-    stats[b.author].readPages += (b.currentPage || 0);
-
     if (isFinished || isReading) {
+      stats[b.author].totalPages += (b.totalPages || 0);
+      stats[b.author].readPages += (b.currentPage || 0);
       stats[b.author].readBooks += 1;
     }
   });

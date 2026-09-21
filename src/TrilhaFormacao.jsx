@@ -21,13 +21,13 @@ export default function TrilhaFormacao({ books, isDark, setNewBook, setShowAddBo
 
   const getTokens = (str) => normalizar(str).split(' ').filter(t => t.length > 2);
 
-  const matchInteligente = (tituloA, tituloB) => {
+  const matchInteligente = (tituloA, tituloB, limiar = 0.75) => {
     const tA = getTokens(tituloA); const tB = getTokens(tituloB);
     if (tA.length === 0 || tB.length === 0) return false;
     const menor = tA.length < tB.length ? tA : tB;
     const maior = tA.length < tB.length ? tB : tA;
     const hits = menor.filter(t => maior.some(m => m.includes(t) || t.includes(m))).length;
-    return (hits / menor.length) >= 0.75;
+    return (hits / menor.length) >= limiar;
   };
 
   const handleJaLi = (livro) => {
@@ -49,12 +49,9 @@ export default function TrilhaFormacao({ books, isDark, setNewBook, setShowAddBo
   const getProgressoGrade = () => {
     return GRADE_CURRICULAR.map(livroCanon => {
       // Cruzamento de dados com tolerância para obras clássicas
-      const livroNaEstante = books.find(b => {
-        const tituloOk = matchInteligente(livroCanon.title, b.title);
-        const obrasMilenares = ['bhagavad gita', 'dhammapada', 'analectos', 'republica', 'voz do silêncio'];
-        const isMilenar = obrasMilenares.some(o => livroCanon.title.toLowerCase().includes(o));
-        return tituloOk; // Aqui o título manda, facilitando o match
-      });
+      const obrasMilenares = ['bhagavad gita', 'dhammapada', 'analectos', 'republica', 'voz do silêncio'];
+      const isMilenar = obrasMilenares.some(o => livroCanon.title.toLowerCase().includes(o));
+      const livroNaEstante = books.find(b => matchInteligente(livroCanon.title, b.title, isMilenar ? 0.5 : 0.75));
 
       return {
         ...livroCanon,
