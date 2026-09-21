@@ -943,74 +943,50 @@ function App() {
   
   const loadUserData = async (uid) => {
     try {
-      const userDoc = await getDoc(doc(db, 'users', uid));
-      let userData = userDoc.exists() ? userDoc.data() : null;
-
-      // O LEÃO DE CHÁCARA: Verifica se o e-mail está na Lista VIP
-        let isVip = false;
-        // Pega o usuário DIRETAMENTE da catraca de autenticação, evitando o atraso do React
-        const currentUserLogado = auth.currentUser; 
-        
-        if (currentUserLogado && currentUserLogado.email) {
-          const whitelistDoc = await getDoc(doc(db, 'admin', 'whitelist'));
-          if (whitelistDoc.exists()) {
-            const allowedEmails = whitelistDoc.data().emails || [];
-            // Converte tudo para minúsculo para evitar erros de digitação
-            if (allowedEmails.map(e => e.toLowerCase()).includes(currentUserLogado.email.toLowerCase())) {
-              isVip = true;
-            }
-          }
+      // A verificação da Lista VIP e a liberação do fvStatus são feitas no servidor
+      // (api/fv-access.js): as regras do Firestore não deixam mais o cliente ler
+      // admin/whitelist nem escrever fvStatus/fvUnlocked diretamente.
+      let fvAccessStatus = 'unregistered';
+      let fvUnlocked = false;
+      try {
+        const idToken = await auth.currentUser?.getIdToken();
+        const resp = await fetch('/api/fv-access', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${idToken}` }
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          fvAccessStatus = data.fvStatus || 'unregistered';
+          fvUnlocked = !!data.fvUnlocked;
         }
+      } catch (e) {
+        console.error('Erro ao verificar acesso FV:', e);
+      }
 
-        if (userData) {
+      setFvAccessStatus(fvAccessStatus);
+      setFvUnlocked(fvUnlocked);
+      if (fvUnlocked) loadMod2Config(uid); // Inicia o motor GDVE
+
+      // O endpoint acima já garante que o documento existe (cria com os padrões
+      // se for a primeira vez); aqui só carregamos o restante do perfil.
+      const userDoc = await getDoc(doc(db, 'users', uid));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
         setTheme(userData.theme || 'light');
         setLastDrawDate(userData.lastDrawDate || null);
-        setMorningTime(userData.morningTime || '06:00'); 
+        setMorningTime(userData.morningTime || '06:00');
         setEveningTime(userData.eveningTime || '22:00');
-        
+
         // Carrega as configurações do Guardião salvas
         if (userData.notifications) {
           setNotifSettings(userData.notifications);
         }
-        
+
         if ('Notification' in window && Notification.permission === 'granted') {
           setNotificationsActive(!!userData.fcmToken);
         } else {
           setNotificationsActive(false);
         }
-
-        // Se o usuário está na lista VIP, mas o perfil dele ainda não sabe, aprovamos na marra!
-        if (isVip && userData.fvStatus !== 'approved') {
-          await updateDoc(doc(db, 'users', uid), { fvStatus: 'approved' });
-          userData.fvStatus = 'approved';
-        }
-
-        // LÓGICA DA ANTE-SALA FV
-        if (userData.fvStatus === 'approved') {
-          setFvAccessStatus('approved');
-          setFvUnlocked(true); // Destranca as portas do Templo
-          loadMod2Config(uid);    // Inicia o motor GDVE
-        } else if (userData.fvStatus === 'pending') {
-          setFvAccessStatus('pending');
-          setFvUnlocked(false);
-        } else {
-          setFvAccessStatus('unregistered');
-          setFvUnlocked(false);
-        }
-
-      } else {
-        // Usuário totalmente novo criando conta
-        const initialStatus = isVip ? 'approved' : 'unregistered';
-        
-        await setDoc(doc(db, 'users', uid), {
-          createdAt: Timestamp.now(), theme: 'light', lastDrawDate: null, 
-          fvUnlocked: isVip,
-          fvStatus: initialStatus, email: currentUserLogado?.email || 'Sem e-mail'
-        });
-        
-        setFvAccessStatus(initialStatus);
-        setFvUnlocked(isVip);
-        if (isVip) loadMod2Config(uid);
       }
     } catch (error) { console.error('Erro ao carregar dados:', error); }
   };
@@ -1684,8 +1660,8 @@ function App() {
 
       try {
         await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), {
-          tasksStatus: newStatus, tasksSnapshot: updatedSnapshot
-        }, { merge: true }); 
+          userId: user.uid, date: todayKey, tasksStatus: newStatus, tasksSnapshot: updatedSnapshot
+        }, { merge: true });
         await loadAllEntries(user.uid);
       } catch (error) { console.error('Erro ao salvar o status da tarefa:', error); }
     }
@@ -2026,7 +2002,7 @@ function App() {
       setFvDaily(newFvDaily);
       if (selectedDate === getTodayKey()) setTodayFvDaily(newFvDaily);
       if (user) {
-        await setDoc(doc(db, 'entries', `${user.uid}_${selectedDate}`), { fvDaily: newFvDaily }, { merge: true });
+        await setDoc(doc(db, 'entries', `${user.uid}_${selectedDate}`), { userId: user.uid, date: selectedDate, fvDaily: newFvDaily }, { merge: true });
         await loadAllEntries(user.uid);
       }
     }
@@ -2069,7 +2045,7 @@ function App() {
     }
 
     if (user) {
-      await setDoc(doc(db, 'entries', `${user.uid}_${selectedDate}`), { fvDaily: newFvDaily }, { merge: true });
+      await setDoc(doc(db, 'entries', `${user.uid}_${selectedDate}`), { userId: user.uid, date: selectedDate, fvDaily: newFvDaily }, { merge: true });
       await loadAllEntries(user.uid);
     }
   };
@@ -2405,9 +2381,9 @@ ${monthlyReport.desafioCrescimento || '-'}
       const todayKey = selectedDate;
       try {
         await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), {
-          fvDaily: newFvDaily
+          userId: user.uid, date: todayKey, fvDaily: newFvDaily
         }, { merge: true });
-        await loadAllEntries(user.uid); 
+        await loadAllEntries(user.uid);
         // Feedback visual para o usuário saber que salvou no FV
         alert('✅ Prática concluída e registrada com sucesso no seu Diário (FV)!');
       } catch (error) { console.error("Erro ao salvar prática:", error); }
@@ -2428,7 +2404,7 @@ ${monthlyReport.desafioCrescimento || '-'}
       const todayKey = selectedDate;
       try {
         await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), {
-          fvDaily: newFvDaily
+          userId: user.uid, date: todayKey, fvDaily: newFvDaily
         }, { merge: true });
         await loadAllEntries(user.uid);
       } catch (error) {
@@ -2648,13 +2624,12 @@ ${monthlyReport.desafioCrescimento || '-'}
     }
   };
 
-  const handleLogout = async () => { 
-    if (user && fvUnlocked) {
-      try { await updateDoc(doc(db, 'users', user.uid), { fvUnlocked: false }); } catch(err) {}
-    }
-    setFvUnlocked(false); 
-    await signOut(auth); 
-    setView('today'); 
+  const handleLogout = async () => {
+    // fvUnlocked é sempre recalculado a partir de fvStatus no próximo login
+    // (api/fv-access.js), então não precisa (nem pode mais) ser zerado aqui.
+    setFvUnlocked(false);
+    await signOut(auth);
+    setView('today');
   };
 
   const toggleTheme = async () => {
