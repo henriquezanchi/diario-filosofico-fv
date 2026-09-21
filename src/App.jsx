@@ -943,11 +943,17 @@ function App() {
   
   const loadUserData = async (uid) => {
     try {
-      // A verificação da Lista VIP e a liberação do fvStatus são feitas no servidor
-      // (api/fv-access.js): as regras do Firestore não deixam mais o cliente ler
-      // admin/whitelist nem escrever fvStatus/fvUnlocked diretamente.
-      let fvAccessStatus = 'unregistered';
-      let fvUnlocked = false;
+      // 1. Lê primeiro o doc do usuário — isso é sempre permitido e serve de base/
+      // fallback caso o endpoint abaixo falhe (rede, cold start, etc.), pra nunca
+      // travar quem já está aprovado por causa de uma falha temporária do backend.
+      const userDoc = await getDoc(doc(db, 'users', uid));
+      const userData = userDoc.exists() ? userDoc.data() : null;
+      let fvAccessStatus = userData?.fvStatus || 'unregistered';
+      let fvUnlocked = fvAccessStatus === 'approved';
+
+      // 2. Chama o servidor (api/fv-access.js): confere a whitelist e libera o
+      // fvStatus se for o caso, e cria o doc do usuário se for a primeira vez.
+      // As regras do Firestore não deixam mais o cliente fazer isso diretamente.
       try {
         const idToken = await auth.currentUser?.getIdToken();
         const resp = await fetch('/api/fv-access', {
@@ -956,8 +962,10 @@ function App() {
         });
         if (resp.ok) {
           const data = await resp.json();
-          fvAccessStatus = data.fvStatus || 'unregistered';
+          fvAccessStatus = data.fvStatus || fvAccessStatus;
           fvUnlocked = !!data.fvUnlocked;
+        } else {
+          console.error('Erro ao verificar acesso FV: resposta', resp.status);
         }
       } catch (e) {
         console.error('Erro ao verificar acesso FV:', e);
@@ -967,11 +975,7 @@ function App() {
       setFvUnlocked(fvUnlocked);
       if (fvUnlocked) loadMod2Config(uid); // Inicia o motor GDVE
 
-      // O endpoint acima já garante que o documento existe (cria com os padrões
-      // se for a primeira vez); aqui só carregamos o restante do perfil.
-      const userDoc = await getDoc(doc(db, 'users', uid));
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
+      if (userData) {
         setTheme(userData.theme || 'light');
         setLastDrawDate(userData.lastDrawDate || null);
         setMorningTime(userData.morningTime || '06:00');
