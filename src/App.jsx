@@ -2642,8 +2642,11 @@ ${monthlyReport.desafioCrescimento || '-'}
                 </div>
               )}
               
-              <button onClick={() => setIsMobileMenuOpen(true)} style={{ padding: '0.3rem', background: 'transparent', border: 'none', cursor: 'pointer', marginLeft: '0.2rem' }}>
+              <button onClick={() => setIsMobileMenuOpen(true)} style={{ position: 'relative', padding: '0.3rem', background: 'transparent', border: 'none', cursor: 'pointer', marginLeft: '0.2rem' }}>
                 <Menu size={28} color={isDark ? '#d4af37' : '#6b4423'} />
+                {isAdmin && pendingRequests.length > 0 && (
+                  <span style={{ position: 'absolute', top: '0', right: '0', width: '12px', height: '12px', borderRadius: '50%', background: '#e74c3c', border: `2px solid ${isDark ? '#1a1a2e' : '#fdfbf7'}` }} />
+                )}
               </button>
             </div>
           ) : (
@@ -2696,8 +2699,11 @@ ${monthlyReport.desafioCrescimento || '-'}
 
               {/* BOTÃO OPÇÕES DROPDOWN */}
               <div style={{ position: 'relative' }} onMouseLeave={() => setShowProfileMenu(false)}>
-                <button onMouseEnter={() => setShowProfileMenu(true)} onClick={() => setShowProfileMenu(!showProfileMenu)} style={{ padding: '0.5rem', background: 'transparent', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer' }}>
+                <button onMouseEnter={() => setShowProfileMenu(true)} onClick={() => setShowProfileMenu(!showProfileMenu)} style={{ position: 'relative', padding: '0.5rem', background: 'transparent', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer' }}>
                   <Settings size={18} color={isDark ? '#d4af37' : '#6b4423'} />
+                  {isAdmin && pendingRequests.length > 0 && (
+                    <span style={{ position: 'absolute', top: '-4px', right: '-4px', width: '12px', height: '12px', borderRadius: '50%', background: '#e74c3c', border: `2px solid ${isDark ? '#1a1a2e' : 'white'}` }} />
+                  )}
                 </button>
                 {showProfileMenu && (
                   <div style={{ position: 'absolute', top: '100%', right: 0, paddingTop: '0.5rem', zIndex: 1000 }}>
