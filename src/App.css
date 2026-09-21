@@ -60,10 +60,10 @@ button:hover {
   body * {
     visibility: hidden;
   }
-  #cartaDegrauPrintArea, #cartaDegrauPrintArea * {
+  .print-area, .print-area * {
     visibility: visible;
   }
-  #cartaDegrauPrintArea {
+  .print-area {
     position: absolute;
     left: 0;
     top: 0;

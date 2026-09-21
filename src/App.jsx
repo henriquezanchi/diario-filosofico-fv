@@ -169,8 +169,20 @@ function App() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   });
 
+  // Só deixa preencher/editar os últimos 3 dias — evita que alguém preencha
+  // dias muito antigos só para recuperar a ofensiva (streak).
+  const getMinEditableDateKey = () => {
+    const d = new Date();
+    d.setDate(d.getDate() - 3);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
   const handleDateChange = async (newDate) => {
     if (!newDate) return;
+    if (newDate < getMinEditableDateKey()) {
+      alert('Só é possível preencher ou editar os últimos 3 dias do diário. Dias mais antigos ficam disponíveis apenas para consulta no Histórico.');
+      return;
+    }
     setSelectedDate(newDate);
     if (user) {
       await loadTodayEntry(user.uid, newDate);
@@ -197,6 +209,7 @@ function App() {
   const [showDiaryMenu, setShowDiaryMenu] = useState(false);
   const [showPracticesMenu, setShowPracticesMenu] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 850);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
  
   useEffect(() => {
@@ -216,6 +229,17 @@ function App() {
     };
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  useEffect(() => {
+    const goOnline = () => setIsOffline(false);
+    const goOffline = () => setIsOffline(true);
+    window.addEventListener('online', goOnline);
+    window.addEventListener('offline', goOffline);
+    return () => {
+      window.removeEventListener('online', goOnline);
+      window.removeEventListener('offline', goOffline);
+    };
   }, []);
 
   // Frase do dia e dica de estudo: sorteadas assim que o app abre, sem
@@ -372,6 +396,9 @@ function App() {
   const [isGeneratingCartaDegrau, setIsGeneratingCartaDegrau] = useState(false);
   const [cartaDegrauResult, setCartaDegrauResult] = useState(null);
   const [showCartaDegrauModal, setShowCartaDegrauModal] = useState(false);
+  const [isGeneratingBookReflection, setIsGeneratingBookReflection] = useState(false);
+  const [bookReflectionResult, setBookReflectionResult] = useState(null);
+  const [showBookReflectionModal, setShowBookReflectionModal] = useState(false);
   const isEnrichingRef = useRef(false);
   const [fvGdveDesafios, setFvGdveDesafios] = useState([]);
   const [fvGdveReuniao, setFvGdveReuniao] = useState('');
@@ -406,6 +433,10 @@ function App() {
   // --- ESTADOS DE LEITURA E ESTUDOS ---
   const [books, setBooks] = useState([]);
   const [showAddBook, setShowAddBook] = useState(false);
+  const [showBarcodeScanner, setShowBarcodeScanner] = useState(false);
+  const [barcodeScanError, setBarcodeScanError] = useState('');
+  const barcodeVideoRef = useRef(null);
+  const barcodeControlsRef = useRef(null);
   const [newBook, setNewBook] = useState({ title: '', author: '', currentPage: 0, totalPages: 0, link: '', notes: '' });
   const [shelfSearchTerm, setShelfSearchTerm] = useState(''); // Estado para busca na estante
   const [editingBookId, setEditingBookId] = useState(null);
@@ -465,7 +496,7 @@ function App() {
           return {
             ...b,
             totalPages: info?.pageCount || b.totalPages,
-            currentPage: b.status === 'lido' ? (info?.pageCount || 0) : b.currentPage,
+            currentPage: b.status === 'lido' ? (info?.pageCount || b.currentPage || 0) : b.currentPage,
             thumbnail: info?.imageLinks?.thumbnail?.replace('http:', 'https:') || b.thumbnail,
             category: translateCategory(info?.categories?.[0] || b.category),
             isPendingEnrichment: false
@@ -631,7 +662,7 @@ function App() {
       setPracticePhase('intro'); 
       setIsPracticeActive(true); 
     } 
-    else if (key === 'recitarHonra' || key === 'recitar7Fases') {
+    else if (key === 'recitarHonra' || key === 'recitar7Fases' || key === 'formasGeometricas') {
       setActivePracticeId(key);
       setPracticePhase('practice'); // Pula a intro e vai direto pra tela
       setIsPracticeActive(true);
@@ -1513,6 +1544,69 @@ function App() {
     }
   };
 
+  // Busca exata por ISBN (do código de barras) — sem langRestrict, porque
+  // isso filtraria por idioma e poderia esconder um resultado válido de um
+  // livro em outro idioma que tenha exatamente aquele ISBN.
+  const searchBookByIsbn = async (isbn) => {
+    setIsSearchingBooks(true);
+    try {
+      const response = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${encodeURIComponent(isbn)}&maxResults=5`);
+      const data = await response.json();
+      const formattedResults = data.items?.filter(item => item.volumeInfo?.title).map(item => ({
+        id: item.id,
+        title: item.volumeInfo.title,
+        author: item.volumeInfo.authors?.join(', ') || 'Autor desconhecido',
+        totalPages: item.volumeInfo.pageCount || 0,
+        thumbnail: item.volumeInfo.imageLinks?.thumbnail?.replace('http:', 'https:'),
+        category: item.volumeInfo.categories?.[0] || 'Filosofia'
+      })) || [];
+      setBookSearchQuery(isbn);
+      setBookSearchResults(formattedResults);
+      if (formattedResults.length === 0) {
+        alert(`Nenhum livro encontrado para o código ${isbn}. Preencha os dados manualmente.`);
+      }
+    } catch (error) {
+      console.error('Erro na busca por ISBN:', error);
+      alert('Erro ao buscar o livro pelo código. Preencha os dados manualmente.');
+    } finally {
+      setIsSearchingBooks(false);
+    }
+  };
+
+  // Câmera + leitor de código de barras: liga/desliga junto com o modal,
+  // e o cleanup do effect garante que a câmera é sempre liberada (some
+  // sozinha se o usuário fechar o modal antes de achar um código).
+  useEffect(() => {
+    if (!showBarcodeScanner) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { BrowserMultiFormatReader } = await import('@zxing/browser');
+        const reader = new BrowserMultiFormatReader();
+        const controls = await reader.decodeFromVideoDevice(undefined, barcodeVideoRef.current, (result, error, ctrls) => {
+          if (result && !cancelled) {
+            ctrls.stop();
+            barcodeControlsRef.current = null;
+            setShowBarcodeScanner(false);
+            setShowAddBook(true);
+            setEditingBookId(null);
+            searchBookByIsbn(result.getText());
+          }
+        });
+        if (cancelled) { controls.stop(); return; }
+        barcodeControlsRef.current = controls;
+      } catch (e) {
+        console.error('Erro ao acessar câmera:', e);
+        setBarcodeScanError('Não foi possível acessar a câmera. Verifique se você concedeu permissão de câmera ao navegador.');
+      }
+    })();
+    return () => {
+      cancelled = true;
+      barcodeControlsRef.current?.stop();
+      barcodeControlsRef.current = null;
+    };
+  }, [showBarcodeScanner]);
+
   // =========================================================================
   // OBSERVADOR: AUTO-CORRETOR DE BASTIÕES
   // =========================================================================
@@ -1638,7 +1732,15 @@ function App() {
       const docSnap = await getDoc(docRef);
       
       if (docSnap.exists() && docSnap.data().config) {
-        setFvConfig(docSnap.data().config);
+        const loadedConfig = docSnap.data().config;
+        // Migração transparente: quem já tinha um config salvo antes da prática
+        // "Formas Geométricas" existir não ganha ela automaticamente — completa
+        // a lista aqui, uma vez, sem precisar de tela de admin pra isso.
+        if (Array.isArray(loadedConfig.praticas) && !loadedConfig.praticas.some(p => p.key === 'formasGeometricas')) {
+          loadedConfig.praticas = [...loadedConfig.praticas, { key: 'formasGeometricas', label: 'Formas Geométricas' }];
+          setDoc(docRef, { config: loadedConfig }, { merge: true }).catch(e => console.error('Erro ao migrar config (formasGeometricas):', e));
+        }
+        setFvConfig(loadedConfig);
       } else {
         const initialConfig = {
           tituloAba: "Registro de Ciclo",
@@ -1655,7 +1757,8 @@ function App() {
             { key: 'tratack', label: 'Tratak' },
             { key: 'recitarHonra', label: 'Recitar Código de Dignidade' },
             { key: 'recitar7Fases', label: 'Recitar 7 fases da ED' },
-            { key: 'camara', label: 'Câmara de Purificação' }
+            { key: 'camara', label: 'Câmara de Purificação' },
+            { key: 'formasGeometricas', label: 'Formas Geométricas' }
           ],
           modulo2: {
             titulo: "Módulo GDVE",
@@ -2061,6 +2164,30 @@ function App() {
       alert('Erro ao gerar a Carta de Degrau. Verifique sua conexão.');
     } finally {
       setIsGeneratingCartaDegrau(false);
+    }
+  };
+
+  const gerarReflexaoCruzada = async () => {
+    if (!user) return;
+    setIsGeneratingBookReflection(true);
+    try {
+      const idToken = await auth.currentUser?.getIdToken();
+      const resp = await fetch('/api/book-reflection', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${idToken}` }
+      });
+      const data = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        alert(data.error || 'Erro ao gerar a reflexão cruzada.');
+        return;
+      }
+      setBookReflectionResult(data);
+      setShowBookReflectionModal(true);
+    } catch (error) {
+      console.error('Erro ao gerar reflexão cruzada:', error);
+      alert('Erro ao gerar a reflexão cruzada. Verifique sua conexão.');
+    } finally {
+      setIsGeneratingBookReflection(false);
     }
   };
 
@@ -2861,6 +2988,11 @@ ${monthlyReport.desafioCrescimento || '-'}
 
   return (
     <div style={{ minHeight: '100vh', background: isDark ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)' : 'linear-gradient(135deg, #f0e6d2 0%, #e8dcc4 100%)', fontFamily: 'Georgia, serif', transition: 'background 0.3s ease' }}>
+      {isOffline && (
+        <div style={{ position: 'sticky', top: 0, zIndex: 101, background: '#e65100', color: 'white', textAlign: 'center', padding: '0.4rem', fontSize: '0.8rem', fontWeight: 'bold' }}>
+          Você está offline — suas anotações continuam sendo salvas neste aparelho e serão sincronizadas assim que a internet voltar.
+        </div>
+      )}
       <header style={{ padding: '1rem 2rem', borderBottom: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, background: isDark ? 'rgba(26, 26, 46, 0.95)' : 'rgba(240, 230, 210, 0.95)', backdropFilter: 'blur(10px)', position: 'sticky', top: 0, zIndex: 100 }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           
@@ -3055,23 +3187,26 @@ ${monthlyReport.desafioCrescimento || '-'}
               
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', alignItems: 'center', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', border: `1px solid ${isDark ? '#d4af37' : '#ccc'}`, borderRadius: '8px', padding: '0.2rem' }}>
-                      <button 
+                      <button
                         onClick={() => {
+                          if (selectedDate <= getMinEditableDateKey()) return;
                           const d = new Date(selectedDate + 'T12:00:00');
                           d.setDate(d.getDate() - 1);
                           handleDateChange(d.toISOString().split('T')[0]);
                         }}
-                        style={{ background: 'transparent', border: 'none', color: isDark ? '#d4af37' : '#2c1810', cursor: 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        disabled={selectedDate <= getMinEditableDateKey()}
+                        style={{ background: 'transparent', border: 'none', color: selectedDate <= getMinEditableDateKey() ? (isDark ? '#555' : '#ccc') : (isDark ? '#d4af37' : '#2c1810'), cursor: selectedDate <= getMinEditableDateKey() ? 'not-allowed' : 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                         title="Dia Anterior"
                       >
                         <ChevronLeft size={20} />
                       </button>
 
-                      <input 
-                        type="date" 
-                        value={selectedDate} 
-                        onChange={(e) => handleDateChange(e.target.value)} 
-                        max={getTodayKey()} 
+                      <input
+                        type="date"
+                        value={selectedDate}
+                        onChange={(e) => handleDateChange(e.target.value)}
+                        max={getTodayKey()}
+                        min={getMinEditableDateKey()}
                         style={{ background: 'transparent', color: isDark ? '#f0e6d2' : '#2c1810', border: 'none', padding: '0.5rem', fontSize: '1rem', fontFamily: 'Georgia, serif', outline: 'none', cursor: 'pointer' }}
                       />
 
@@ -3764,6 +3899,9 @@ ${monthlyReport.desafioCrescimento || '-'}
                 <button onClick={() => setShowAddBook(true)} style={{ background: isDark ? '#FFD700' : '#996515', color: isDark ? '#000' : '#fff', border: 'none', padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Plus size={16} /> Adicionar Novo Livro
                 </button>
+                <button onClick={() => { setBarcodeScanError(''); setShowBarcodeScanner(true); }} style={{ background: 'transparent', color: isDark ? '#d4af37' : '#6b4423', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Camera size={16} /> Escanear Código de Barras
+                </button>
               </div>
             </div>
 
@@ -3817,6 +3955,19 @@ ${monthlyReport.desafioCrescimento || '-'}
                 </div>
               );
             })()}
+
+            {/* REFLEXÃO CRUZADA ENTRE LIVROS LIDOS (IA) */}
+            {finishedBooksCount >= 2 && (
+              <div style={{ padding: '1.5rem', background: isDark ? 'rgba(0,0,0,0.2)' : '#f9f9f9', borderRadius: '12px', border: `1px dashed ${isDark ? 'rgba(212, 175, 55, 0.3)' : '#ccc'}`, marginBottom: '2.5rem' }}>
+                <button onClick={gerarReflexaoCruzada} disabled={isGeneratingBookReflection} style={{ padding: '0.75rem 1.5rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: isGeneratingBookReflection ? 'default' : 'pointer', opacity: isGeneratingBookReflection ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: '0.5rem', fontFamily: 'Georgia, serif' }}>
+                  {isGeneratingBookReflection ? <Sparkles className="animate-spin" size={18} /> : <Sparkles size={18} />}
+                  {isGeneratingBookReflection ? 'Conectando ideias...' : 'Gerar Reflexão Cruzada (IA)'}
+                </button>
+                <p style={{ margin: '0.75rem 0 0', fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#666' }}>
+                  Encontra conexões e tensões entre os {finishedBooksCount} livros que você já concluiu na estante.
+                </p>
+              </div>
+            )}
 
             {/* FORMULÁRIO DE LIVRO (OCULTO POR PADRÃO) */}
             {showAddBook && (
@@ -3969,7 +4120,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                                   if (inputPagina && !isNaN(inputPagina)) {
                                     const novaPag = Math.min(book.totalPages, parseInt(inputPagina));
                                     const acabouAgora = (novaPag >= book.totalPages);
-                                    saveBooksToDb(books.map(b => b.id === book.id ? { ...book, currentPage: novaPag, finishedDate: acabouAgora ? new Date().toISOString() : null } : b));
+                                    saveBooksToDb(books.map(b => b.id === book.id ? { ...b, currentPage: novaPag, finishedDate: acabouAgora ? new Date().toISOString() : null } : b));
                                   }
                                 }} style={{ flex: 1, padding: '0.5rem', background: 'transparent', color: isDark ? '#d4af37' : '#6b4423', border: `1px solid ${isDark ? 'rgba(212,175,55,0.4)' : '#ccc'}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}>+ Atualizar</button>
                               </div>
@@ -5723,33 +5874,46 @@ ${monthlyReport.desafioCrescimento || '-'}
         )}
 
         {/* --- 4. PRÁTICA: RECITAÇÕES EM TELA CHEIA --- */}
-        {isPracticeActive && (activePracticeId === 'recitarHonra' || activePracticeId === 'recitar7Fases') && (
+        {isPracticeActive && (activePracticeId === 'recitarHonra' || activePracticeId === 'recitar7Fases' || activePracticeId === 'formasGeometricas') && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: isDark ? '#0a0a14' : '#fdfbf7', zIndex: 10001, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
             <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '2rem', maxWidth: '600px', width: '100%' }}>
-              <BookOpen size={64} color={isDark ? '#d4af37' : '#6b4423'} style={{ margin: '0 auto 1.5rem', opacity: 0.8 }} />
-              
+              {activePracticeId === 'formasGeometricas'
+                ? <Landmark size={64} color={isDark ? '#d4af37' : '#6b4423'} style={{ margin: '0 auto 1.5rem', opacity: 0.8 }} />
+                : <BookOpen size={64} color={isDark ? '#d4af37' : '#6b4423'} style={{ margin: '0 auto 1.5rem', opacity: 0.8 }} />
+              }
+
               <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? '#d4af37' : '#6b4423', fontSize: '2.5rem', margin: '0 0 1.5rem 0' }}>
-                {activePracticeId === 'recitarHonra' ? 'Código de Dignidade' : '7 Fases da ED'}
+                {activePracticeId === 'recitarHonra' ? 'Código de Dignidade' : (activePracticeId === 'recitar7Fases' ? '7 Fases da ED' : 'Formas Geométricas')}
               </h2>
-              
+
               <div style={{ background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(139, 115, 85, 0.05)', padding: '2rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, marginBottom: '3rem' }}>
                 <p style={{ fontSize: '1.2rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.8', margin: 0, fontStyle: 'italic' }}>
-                  Esta é uma prática de foro íntimo e sagrado. Faça sua recitação com atenção plena e propósito.
-                  <br/><br/>
-                  A tela permanecerá ativa para que o celular não bloqueie durante sua prática.
+                  {activePracticeId === 'formasGeometricas' ? (
+                    <>
+                      Visualize e trace mentalmente as formas geométricas básicas (círculo, quadrado, triângulo) com atenção plena, sustentando cada forma na mente antes de passar à seguinte.
+                      <br/><br/>
+                      A tela permanecerá ativa para que o celular não bloqueie durante sua prática.
+                    </>
+                  ) : (
+                    <>
+                      Esta é uma prática de foro íntimo e sagrado. Faça sua recitação com atenção plena e propósito.
+                      <br/><br/>
+                      A tela permanecerá ativa para que o celular não bloqueie durante sua prática.
+                    </>
+                  )}
                 </p>
               </div>
 
-              <button 
+              <button
                 onClick={() => {
                   confirmImmersivePractice(activePracticeId);
-                }} 
+                }}
                 style={{ width: '100%', padding: '1.2rem', fontSize: '1.3rem', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: '#000', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(255, 215, 0, 0.3)', transition: 'transform 0.2s', marginBottom: '1.5rem' }}
                 onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
                 onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
               >
                 <CheckCircle size={24} style={{ verticalAlign: 'middle', marginRight: '0.5rem', marginBottom: '2px' }} />
-                Recitação Concluída
+                {activePracticeId === 'formasGeometricas' ? 'Prática Concluída' : 'Recitação Concluída'}
               </button>
               
               <button 
@@ -5765,7 +5929,7 @@ ${monthlyReport.desafioCrescimento || '-'}
         {/* MODAL: CARTA DE DEGRAU (SÍNTESE GERADA) */}
         {showCartaDegrauModal && cartaDegrauResult && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 10002, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2rem 1rem', overflowY: 'auto' }}>
-            <div id="cartaDegrauPrintArea" className="animate-fadeIn" style={{ background: 'white', color: '#111', maxWidth: '800px', width: '100%', borderRadius: '8px', padding: '3rem', fontFamily: 'Georgia, serif', position: 'relative', marginBottom: '2rem' }}>
+            <div className="animate-fadeIn print-area" style={{ background: 'white', color: '#111', maxWidth: '800px', width: '100%', borderRadius: '8px', padding: '3rem', fontFamily: 'Georgia, serif', position: 'relative', marginBottom: '2rem' }}>
               <button onClick={() => setShowCartaDegrauModal(false)} className="no-print" style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', cursor: 'pointer', color: '#333' }}>
                 <X size={24} />
               </button>
@@ -5802,6 +5966,34 @@ ${monthlyReport.desafioCrescimento || '-'}
           </div>
         )}
 
+        {/* MODAL: REFLEXÃO CRUZADA ENTRE LIVROS (IA) */}
+        {showBookReflectionModal && bookReflectionResult && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 10002, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2rem 1rem', overflowY: 'auto' }}>
+            <div className="animate-fadeIn print-area" style={{ background: 'white', color: '#111', maxWidth: '700px', width: '100%', borderRadius: '8px', padding: '3rem', fontFamily: 'Georgia, serif', position: 'relative', marginBottom: '2rem' }}>
+              <button onClick={() => setShowBookReflectionModal(false)} className="no-print" style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', cursor: 'pointer', color: '#333' }}>
+                <X size={24} />
+              </button>
+
+              <h1 style={{ textAlign: 'center', fontSize: '1.3rem', textDecoration: 'underline', marginBottom: '0.5rem' }}>REFLEXÃO CRUZADA</h1>
+              <p style={{ textAlign: 'center', fontSize: '0.8rem', color: '#666', fontStyle: 'italic', marginBottom: '1.5rem' }}>
+                Gerado por IA a partir dos livros concluídos na sua estante — revise com espírito crítico.
+              </p>
+
+              <p style={{ fontSize: '0.8rem', color: '#666', marginBottom: '1.5rem' }}>
+                <strong>Livros considerados:</strong> {bookReflectionResult.books.map(b => b.title).join(', ')}
+              </p>
+
+              {bookReflectionResult.reflection.split('\n').filter(p => p.trim()).map((paragraph, i) => (
+                <p key={i} style={{ margin: '0 0 1.2rem', lineHeight: 1.7, textAlign: 'justify' }}>{paragraph}</p>
+              ))}
+
+              <button onClick={() => window.print()} className="no-print" style={{ marginTop: '1.5rem', width: '100%', padding: '1rem', background: '#6b4423', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontFamily: 'Georgia, serif' }}>
+                <Download size={18} /> Imprimir / Salvar como PDF
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* MODAL: CRIAR GRUPO DE ESTUDO (GDVE) */}
         {showCreateGroupModal && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(3px)' }} onClick={() => setShowCreateGroupModal(false)}>
@@ -5828,6 +6020,20 @@ ${monthlyReport.desafioCrescimento || '-'}
                 {isCreatingGroup ? 'Criando...' : 'Criar Grupo'}
               </button>
             </div>
+          </div>
+        )}
+
+        {/* MODAL: ESCANEAR CÓDIGO DE BARRAS DO LIVRO */}
+        {showBarcodeScanner && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.9)', zIndex: 10003, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+            <button onClick={() => setShowBarcodeScanner(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}><X size={28} /></button>
+            <h3 style={{ color: 'white', fontFamily: "'Cinzel', serif", marginBottom: '1rem', textAlign: 'center' }}>Aponte a câmera para o código de barras</h3>
+            {barcodeScanError ? (
+              <p style={{ color: '#ff6b6b', textAlign: 'center', maxWidth: '360px' }}>{barcodeScanError}</p>
+            ) : (
+              <video ref={barcodeVideoRef} autoPlay muted playsInline style={{ width: '100%', maxWidth: '480px', borderRadius: '12px', border: '2px solid #FFD700', background: '#000' }} />
+            )}
+            <p style={{ color: '#ccc', fontSize: '0.8rem', marginTop: '1rem', textAlign: 'center' }}>Geralmente fica na contracapa, perto do ISBN.</p>
           </div>
         )}
 
