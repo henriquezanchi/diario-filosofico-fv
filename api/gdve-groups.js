@@ -15,7 +15,6 @@ if (!admin.apps.length) {
   });
 }
 
-const ITEM_TYPES = ['tarefa', 'bastiao', 'pratica'];
 // Sem 0/O/1/I/L, pra evitar confusão na hora de digitar o código à mão.
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
@@ -41,12 +40,12 @@ function displayName(decoded) {
   return decoded.name || (decoded.email ? decoded.email.split('@')[0] : 'Alguém');
 }
 
-// Grupos de estudo GDVE: qualquer usuário aprovado pode criar um (vira
-// coordenador) e convidar colegas por link/código. O coordenador cadastra
-// tarefas/bastiões/práticas; qualquer membro marca sua própria conclusão, o
-// que avisa os demais por push (respeitando a preferência de cada um).
-// Tudo mediado aqui, como em fv-admin.js — o cliente nunca lê/escreve
-// gdveGroups/gdveGroupItems diretamente.
+// Grupos do Módulo GDVE: só um roster de participantes + gatilho de aviso.
+// Cada membro continua controlando suas próprias tarefas/bastiões/presença
+// exatamente como no módulo pessoal (mesma lógica de sempre, sem duplicar
+// nada) — o grupo só existe pra saber quem avisar quando alguém completa
+// algo. Tudo mediado aqui, como em fv-admin.js: o cliente nunca lê/escreve
+// gdveGroups diretamente.
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -68,7 +67,6 @@ export default async function handler(req, res) {
   const uid = decoded.uid;
   const db = admin.firestore();
   const groupsRef = db.collection('gdveGroups');
-  const itemsRef = db.collection('gdveGroupItems');
 
   const { action } = req.body || {};
 
@@ -114,27 +112,9 @@ export default async function handler(req, res) {
 
     if (action === 'listMine') {
       const snap = await groupsRef.where('memberUids', 'array-contains', uid).get();
-      const groups = [];
-      for (const groupDoc of snap.docs) {
+      const groups = snap.docs.map(groupDoc => {
         const group = groupDoc.data();
-        const itemsSnap = await itemsRef.where('groupId', '==', groupDoc.id).get();
-        const items = itemsSnap.docs
-          .map(d => {
-            const it = d.data();
-            return {
-              id: d.id,
-              type: it.type,
-              title: it.title,
-              description: it.description || '',
-              createdBy: it.createdBy,
-              completedBy: it.completedBy || [],
-              _createdAtMs: it.createdAt ? it.createdAt.toMillis() : 0,
-            };
-          })
-          .sort((a, b) => b._createdAtMs - a._createdAtMs)
-          .map(({ _createdAtMs, ...rest }) => rest);
-
-        groups.push({
+        return {
           id: groupDoc.id,
           name: group.name,
           coordinatorUid: group.coordinatorUid,
@@ -142,16 +122,16 @@ export default async function handler(req, res) {
           memberUids: group.memberUids,
           memberNames: group.memberNames || {},
           inviteCode: group.inviteCode,
-          items,
-        });
-      }
+        };
+      });
       return res.status(200).json({ groups });
     }
 
     // Ações abaixo exigem carregar o grupo e conferir que o requisitante é membro.
     const groupId = req.body?.groupId;
     if (!groupId) return res.status(400).json({ error: 'groupId é obrigatório.' });
-    const groupSnap = await groupsRef.doc(groupId).get();
+    const groupRef = groupsRef.doc(groupId);
+    const groupSnap = await groupRef.get();
     if (!groupSnap.exists) return res.status(404).json({ error: 'Grupo não encontrado.' });
     const group = groupSnap.data();
     if (!group.memberUids.includes(uid)) {
@@ -159,74 +139,53 @@ export default async function handler(req, res) {
     }
     const isCoordinator = group.coordinatorUid === uid;
 
-    if (action === 'addItem') {
-      if (!isCoordinator) return res.status(403).json({ error: 'Só o coordenador do grupo pode adicionar itens.' });
-      const type = ITEM_TYPES.includes(req.body?.type) ? req.body.type : 'tarefa';
-      const title = String(req.body?.title || '').trim();
-      if (!title) return res.status(400).json({ error: 'Título é obrigatório.' });
-      const description = String(req.body?.description || '').trim();
-      await itemsRef.add({
-        groupId, type, title, description,
-        createdBy: uid,
-        completedBy: [],
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      });
-      return res.status(200).json({ success: true });
-    }
-
-    if (action === 'removeItem') {
-      if (!isCoordinator) return res.status(403).json({ error: 'Só o coordenador do grupo pode remover itens.' });
-      const itemId = req.body?.itemId;
-      if (!itemId) return res.status(400).json({ error: 'itemId é obrigatório.' });
-      await itemsRef.doc(itemId).delete();
-      return res.status(200).json({ success: true });
-    }
-
-    if (action === 'toggleCompletion') {
-      const itemId = req.body?.itemId;
-      if (!itemId) return res.status(400).json({ error: 'itemId é obrigatório.' });
-      const itemRef = itemsRef.doc(itemId);
-      const itemSnap = await itemRef.get();
-      if (!itemSnap.exists || itemSnap.data().groupId !== groupId) {
-        return res.status(404).json({ error: 'Item não encontrado.' });
-      }
-      const item = itemSnap.data();
-      const alreadyDone = (item.completedBy || []).includes(uid);
-      await itemRef.update({
-        completedBy: alreadyDone
-          ? admin.firestore.FieldValue.arrayRemove(uid)
-          : admin.firestore.FieldValue.arrayUnion(uid),
-      });
-
-      // Só avisa os demais ao MARCAR como concluído, nunca ao desmarcar.
-      if (!alreadyDone) {
-        const others = group.memberUids.filter(m => m !== uid);
-        if (others.length > 0) {
-          const usersSnap = await db.getAll(...others.map(m => db.collection('users').doc(m)));
-          const messages = usersSnap
-            .filter(s => s.exists && s.data().fcmToken && s.data().notifications?.alerts?.groupActivity !== false)
-            .map(s => ({
-              token: s.data().fcmToken,
-              notification: {
-                title: `✅ ${group.name}`,
-                body: `${displayName(decoded)} concluiu: ${item.title}`,
-              },
-              webpush: { fcmOptions: { link: 'https://diario-filosofico-azure.vercel.app/' } },
-            }));
-          if (messages.length > 0) {
-            await Promise.allSettled(messages.map(msg => admin.messaging().send(msg)));
-          }
+    if (action === 'notify') {
+      const activity = String(req.body?.activity || '').trim();
+      if (!activity) return res.status(400).json({ error: 'activity é obrigatório.' });
+      const others = group.memberUids.filter(m => m !== uid);
+      if (others.length > 0) {
+        const usersSnap = await db.getAll(...others.map(m => db.collection('users').doc(m)));
+        const messages = usersSnap
+          .filter(s => s.exists && s.data().fcmToken && s.data().notifications?.alerts?.groupActivity !== false)
+          .map(s => ({
+            token: s.data().fcmToken,
+            notification: {
+              title: `✅ ${group.name}`,
+              body: `${displayName(decoded)} ${activity}`,
+            },
+            webpush: { fcmOptions: { link: 'https://diario-filosofico-azure.vercel.app/' } },
+          }));
+        if (messages.length > 0) {
+          await Promise.allSettled(messages.map(msg => admin.messaging().send(msg)));
         }
       }
       return res.status(200).json({ success: true });
     }
 
+    if (action === 'removeMember') {
+      if (!isCoordinator) return res.status(403).json({ error: 'Só o coordenador pode remover participantes.' });
+      const memberUid = req.body?.memberUid;
+      if (!memberUid) return res.status(400).json({ error: 'memberUid é obrigatório.' });
+      if (memberUid === uid) return res.status(400).json({ error: 'O coordenador não pode remover a si mesmo.' });
+      await groupRef.update({
+        memberUids: admin.firestore.FieldValue.arrayRemove(memberUid),
+        [`memberNames.${memberUid}`]: admin.firestore.FieldValue.delete(),
+      });
+      return res.status(200).json({ success: true });
+    }
+
     if (action === 'leaveGroup') {
-      if (isCoordinator) return res.status(400).json({ error: 'O coordenador não pode sair do grupo.' });
-      await groupsRef.doc(groupId).update({
+      if (isCoordinator) return res.status(400).json({ error: 'O coordenador não pode sair do grupo. Você pode excluí-lo.' });
+      await groupRef.update({
         memberUids: admin.firestore.FieldValue.arrayRemove(uid),
         [`memberNames.${uid}`]: admin.firestore.FieldValue.delete(),
       });
+      return res.status(200).json({ success: true });
+    }
+
+    if (action === 'deleteGroup') {
+      if (!isCoordinator) return res.status(403).json({ error: 'Só o coordenador pode excluir o grupo.' });
+      await groupRef.delete();
       return res.status(200).json({ success: true });
     }
 

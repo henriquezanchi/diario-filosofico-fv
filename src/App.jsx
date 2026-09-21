@@ -11,12 +11,6 @@ import {
   Users, Link2, Copy
 } from 'lucide-react';
 
-const GDVE_GROUP_ITEM_TYPES = {
-  tarefa: 'Tarefa',
-  bastiao: 'Bastião',
-  pratica: 'Prática',
-};
-
 function extractInviteCode(raw) {
   const trimmed = (raw || '').trim();
   const match = trimmed.match(/joinGroup=([^&\s]+)/);
@@ -293,7 +287,6 @@ function App() {
   // Controles de Expansão dos Blocos do Discipulado (Iniciam Fechados)
   const [isGdvePlanOpen, setIsGdvePlanOpen] = useState(false);
   const [isGdveMóduloOpen, setIsGdveMóduloOpen] = useState(false);
-  const [isGdveGroupOpen, setIsGdveGroupOpen] = useState(false);
   const [isGdveDesafiosOpen, setIsGdveDesafiosOpen] = useState(false);
 
   // --- ESTADOS FIXOS (PERFIL FV - Preenchidos apenas uma vez) ---
@@ -394,18 +387,15 @@ function App() {
   const [fvGdveCycleStatus, setFvGdveCycleStatus] = useState({});
   const [expandedCartaItems, setExpandedCartaItems] = useState({});
 
-  // Estados do Grupo de Estudo (GDVE colaborativo)
+  // Estados do Grupo de Estudo (GDVE colaborativo) — o grupo é só um roster
+  // de participantes: cada um continua com suas próprias tarefas/bastiões/
+  // presença no Módulo GDVE, o grupo só serve pra saber quem avisar.
   const [myGroups, setMyGroups] = useState([]);
   const [isLoadingGroups, setIsLoadingGroups] = useState(false);
   const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
   const [isJoiningGroup, setIsJoiningGroup] = useState(false);
-  const [showAddGroupItemModal, setShowAddGroupItemModal] = useState(null); // groupId, ou null
-  const [newGroupItemType, setNewGroupItemType] = useState('tarefa');
-  const [newGroupItemTitle, setNewGroupItemTitle] = useState('');
-  const [newGroupItemDesc, setNewGroupItemDesc] = useState('');
-  const [isSavingGroupItem, setIsSavingGroupItem] = useState(false);
 
   // Controles de Expansão dos Blocos do Diário (Iniciam Fechados)
   const [isPrologoOpen, setIsPrologoOpen] = useState(true);
@@ -1121,36 +1111,33 @@ function App() {
     }
   };
 
-  const addGroupItem = async (groupId) => {
-    const title = newGroupItemTitle.trim();
-    if (!title) return alert('Digite um título para o item.');
-    setIsSavingGroupItem(true);
-    try {
-      const { ok, data } = await callGdveGroups({
-        action: 'addItem', groupId, type: newGroupItemType, title, description: newGroupItemDesc.trim()
-      });
-      if (!ok) { alert(data.error || 'Erro ao adicionar item.'); return; }
-      setNewGroupItemTitle('');
-      setNewGroupItemDesc('');
-      setNewGroupItemType('tarefa');
-      setShowAddGroupItemModal(null);
-      await loadMyGroups();
-    } finally {
-      setIsSavingGroupItem(false);
-    }
-  };
-
-  const removeGroupItem = async (groupId, itemId) => {
-    if (!window.confirm('Remover este item do grupo?')) return;
-    const { ok, data } = await callGdveGroups({ action: 'removeItem', groupId, itemId });
-    if (!ok) return alert(data.error || 'Erro ao remover item.');
+  const removeGroupMember = async (groupId, memberUid) => {
+    if (!window.confirm('Remover este participante do grupo?')) return;
+    const { ok, data } = await callGdveGroups({ action: 'removeMember', groupId, memberUid });
+    if (!ok) return alert(data.error || 'Erro ao remover participante.');
     await loadMyGroups();
   };
 
-  const toggleGroupItemCompletion = async (groupId, itemId) => {
-    const { ok, data } = await callGdveGroups({ action: 'toggleCompletion', groupId, itemId });
-    if (!ok) return alert(data.error || 'Erro ao atualizar.');
+  const leaveGroupHandler = async (groupId) => {
+    if (!window.confirm('Sair deste grupo?')) return;
+    const { ok, data } = await callGdveGroups({ action: 'leaveGroup', groupId });
+    if (!ok) return alert(data.error || 'Erro ao sair do grupo.');
     await loadMyGroups();
+  };
+
+  const deleteGroupHandler = async (groupId, groupName) => {
+    if (!window.confirm(`Excluir o grupo "${groupName}"? Essa ação não pode ser desfeita.`)) return;
+    const { ok, data } = await callGdveGroups({ action: 'deleteGroup', groupId });
+    if (!ok) return alert(data.error || 'Erro ao excluir grupo.');
+    await loadMyGroups();
+  };
+
+  // Avisa os colegas de grupo (fire-and-forget) quando o usuário conclui
+  // algo no Módulo GDVE — tarefa, bastião ou presença na reunião.
+  const notifyGroupActivity = (activity) => {
+    myGroups.forEach(g => {
+      callGdveGroups({ action: 'notify', groupId: g.id, activity }).catch(() => {});
+    });
   };
 
   const fetchAdminPanelData = async () => {
@@ -1942,14 +1929,16 @@ function App() {
   const toggleGdveTask = async (task) => {
     if (task.isCycle) {
       // Tarefas de Ciclo: Ficam salvas globalmente e não zeram todo dia
-      const newStatus = { ...fvGdveCycleStatus, [task.id]: !fvGdveCycleStatus[task.id] };
+      const willComplete = !fvGdveCycleStatus[task.id];
+      const newStatus = { ...fvGdveCycleStatus, [task.id]: willComplete };
       setFvGdveCycleStatus(newStatus);
       if (user) { await setDoc(doc(db, 'fvData', user.uid), { gdveCycleStatus: newStatus }, { merge: true }); }
+      if (willComplete) notifyGroupActivity(`concluiu: "${task.name}"`);
     } else {
       // Tarefas Diárias (Contador Numérico ou Checkbox)
       let currentVal = fvDaily.gdveTasksStatus?.[task.id] || 0;
       if (typeof currentVal === 'boolean') currentVal = currentVal ? 1 : 0; // Prevenção para dados antigos
-      
+
       let newVal;
       if (task.target > 1) {
          newVal = currentVal + 1;
@@ -1957,7 +1946,7 @@ function App() {
       } else {
          newVal = currentVal ? 0 : 1; // 0 ou 1 normal
       }
-      
+
       const newFvDaily = { ...fvDaily, gdveTasksStatus: { ...fvDaily.gdveTasksStatus, [task.id]: newVal } };
       setFvDaily(newFvDaily);
       if (selectedDate === getTodayKey()) setTodayFvDaily(newFvDaily);
@@ -1965,6 +1954,8 @@ function App() {
         await setDoc(doc(db, 'entries', `${user.uid}_${selectedDate}`), { userId: user.uid, date: selectedDate, fvDaily: newFvDaily }, { merge: true });
         await loadAllEntries(user.uid);
       }
+      const target = task.target || 1;
+      if (newVal >= target && currentVal < target) notifyGroupActivity(`concluiu: "${task.name}"`);
     }
   };
 
@@ -1976,6 +1967,7 @@ function App() {
 
     // A Mágica dos 15 dias e da Limpeza do Ciclo
     if (isAttending) {
+      notifyGroupActivity('confirmou presença na Reunião do GDVE');
       const confirmRecalc = window.confirm("Deseja marcar a próxima reunião para 15 dias APÓS ESTA DATA? (Isso também vai zerar as suas tarefas de 'Ciclo' pendentes).");
       if (confirmRecalc) {
          // 1. Calcula os 15 dias a partir da data que o usuário selecionou na tela!
@@ -4528,7 +4520,79 @@ ${monthlyReport.desafioCrescimento || '-'}
 
                     {isGdveMóduloOpen && (
                       <div className="animate-fadeIn" style={{ padding: '0 2rem 2rem 2rem' }}>
-                        
+
+                        {/* Seção Grupo: cada participante continua controlando suas próprias
+                            tarefas/bastiões/presença abaixo (nada muda nisso) — o grupo só serve
+                            pra avisar os colegas quando alguém concluir algo. */}
+                        <div style={{ padding: '1rem', background: isDark ? 'rgba(76, 175, 80, 0.05)' : 'rgba(232, 245, 233, 0.5)', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(76,175,80,0.3)' : '#c8e6c9'}`, marginBottom: '2rem' }}>
+                          {isLoadingGroups ? (
+                            <p style={{ margin: 0, color: isDark ? '#b8a88a' : '#666', fontSize: '0.9rem' }}>Carregando grupo...</p>
+                          ) : myGroups.length === 0 ? (
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                                <Users size={20} color={isDark ? '#81c784' : '#2e7d32'} />
+                                <strong style={{ color: isDark ? '#f0e6d2' : '#2c1810' }}>Grupo de Estudo</strong>
+                              </div>
+                              <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#666', marginBottom: '1rem' }}>
+                                Junte-se a colegas de degrau para serem avisados quando alguém concluir uma tarefa aqui embaixo.
+                              </p>
+                              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                                <button onClick={() => setShowCreateGroupModal(true)} style={{ padding: '0.6rem 1.2rem', background: isDark ? '#4caf50' : '#2e7d32', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}>
+                                  <Plus size={16} /> Criar Grupo
+                                </button>
+                                <button
+                                  disabled={isJoiningGroup}
+                                  onClick={() => {
+                                    const code = window.prompt('Cole aqui o código de convite (ou o link inteiro):');
+                                    if (code) joinGroupByCode(code);
+                                  }}
+                                  style={{ padding: '0.6rem 1.2rem', background: 'transparent', color: isDark ? '#81c784' : '#2e7d32', border: `1px solid ${isDark ? '#81c784' : '#2e7d32'}`, borderRadius: '6px', fontWeight: 'bold', cursor: isJoiningGroup ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', opacity: isJoiningGroup ? 0.6 : 1, fontSize: '0.85rem' }}
+                                >
+                                  <Link2 size={16} /> Entrar com Código
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            myGroups.map(group => (
+                              <div key={group.id} style={{ marginBottom: myGroups.length > 1 ? '1rem' : 0, paddingBottom: myGroups.length > 1 ? '1rem' : 0, borderBottom: myGroups.length > 1 ? `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#eee'}` : 'none' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                                  <div>
+                                    <strong style={{ color: isDark ? '#f0e6d2' : '#2c1810' }}>{group.name}</strong>
+                                    <div style={{ fontSize: '0.8rem', color: isDark ? '#b8a88a' : '#666' }}>
+                                      {group.memberUids.length} {group.memberUids.length === 1 ? 'membro' : 'membros'}
+                                      {group.isCoordinator && ' · você coordena'}
+                                    </div>
+                                  </div>
+                                  <button onClick={() => copyInviteLink(group.inviteCode)} style={{ padding: '0.4rem 0.8rem', background: 'transparent', color: isDark ? '#81c784' : '#2e7d32', border: `1px solid ${isDark ? '#81c784' : '#2e7d32'}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                    <Copy size={13} /> Convite: {group.inviteCode}
+                                  </button>
+                                </div>
+
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.5rem' }}>
+                                  {group.memberUids.map(mUid => (
+                                    <span key={mUid} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.2rem 0.5rem', background: isDark ? 'rgba(0,0,0,0.25)' : 'white', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#ddd'}`, borderRadius: '999px', fontSize: '0.75rem', color: isDark ? '#f0e6d2' : '#2c1810' }}>
+                                      {group.memberNames?.[mUid] || 'Membro'}{mUid === group.coordinatorUid && ' 👑'}
+                                      {group.isCoordinator && mUid !== user.uid && (
+                                        <button onClick={() => removeGroupMember(group.id, mUid)} title="Remover do grupo" style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer', padding: 0, display: 'flex' }}><X size={12} /></button>
+                                      )}
+                                    </span>
+                                  ))}
+                                </div>
+
+                                {group.isCoordinator ? (
+                                  <button onClick={() => deleteGroupHandler(group.id, group.name)} style={{ padding: '0.4rem 0.8rem', background: 'transparent', color: '#e74c3c', border: '1px solid #e74c3c', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                    <Trash2 size={13} /> Excluir Grupo
+                                  </button>
+                                ) : (
+                                  <button onClick={() => leaveGroupHandler(group.id)} style={{ padding: '0.4rem 0.8rem', background: 'transparent', color: isDark ? '#b8a88a' : '#666', border: `1px solid ${isDark ? '#555' : '#ccc'}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem' }}>
+                                    Sair do Grupo
+                                  </button>
+                                )}
+                              </div>
+                            ))
+                          )}
+                        </div>
+
                         {/* Seção Reunião */}
                         <div style={{ padding: '1rem', background: fvDaily.gdveAttendance ? 'rgba(76, 175, 80, 0.1)' : 'rgba(255, 215, 0, 0.05)', borderRadius: '12px', border: `1px solid ${fvDaily.gdveAttendance ? '#4caf50' : '#FFD700'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                            <span style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 'bold' }}>Reunião Quinzenal:</span>
@@ -4780,97 +4844,6 @@ ${monthlyReport.desafioCrescimento || '-'}
                     )}
                   </div>
 
-                  {/* GAVETA: GRUPO DE ESTUDO (GDVE colaborativo) */}
-                  <div style={getBlockStyle(myGroups.length > 0 ? 'full' : 'empty', isGdveGroupOpen, isDark ? '#4caf50' : '#2e7d32')}>
-                    <div onClick={() => setIsGdveGroupOpen(!isGdveGroupOpen)} style={getHeaderStyle(myGroups.length > 0 ? 'full' : 'empty', isGdveGroupOpen)}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <Users size={28} color={isDark ? '#81c784' : '#2e7d32'} />
-                        <h2 style={{ margin: 0, fontSize: 'clamp(1.1rem, 3vw, 1.4rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif" }}>
-                          Grupo de Estudo (GDVE) {myGroups.length > 0 && <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>({myGroups.length})</span>}
-                        </h2>
-                      </div>
-                      {isGdveGroupOpen ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
-                    </div>
-                    {isGdveGroupOpen && (
-                      <div className="animate-fadeIn" style={{ padding: '0 2rem 2rem 2rem' }}>
-                        <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#666', marginBottom: '1.5rem' }}>
-                          Crie um grupo com seus colegas de degrau para trocar tarefas, bastiões e práticas. Quando alguém concluir algo, o grupo é avisado.
-                        </p>
-
-                        <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-                          <button onClick={() => setShowCreateGroupModal(true)} style={{ padding: '0.6rem 1.2rem', background: isDark ? '#4caf50' : '#2e7d32', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                            <Plus size={16} /> Criar Grupo
-                          </button>
-                          <button
-                            disabled={isJoiningGroup}
-                            onClick={() => {
-                              const code = window.prompt('Cole aqui o código de convite (ou o link inteiro):');
-                              if (code) joinGroupByCode(code);
-                            }}
-                            style={{ padding: '0.6rem 1.2rem', background: 'transparent', color: isDark ? '#81c784' : '#2e7d32', border: `1px solid ${isDark ? '#81c784' : '#2e7d32'}`, borderRadius: '6px', fontWeight: 'bold', cursor: isJoiningGroup ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', opacity: isJoiningGroup ? 0.6 : 1 }}
-                          >
-                            <Link2 size={16} /> Entrar com Código
-                          </button>
-                        </div>
-
-                        {isLoadingGroups && <p style={{ color: isDark ? '#b8a88a' : '#666' }}>Carregando grupos...</p>}
-                        {!isLoadingGroups && myGroups.length === 0 && (
-                          <p style={{ color: isDark ? '#b8a88a' : '#666', fontStyle: 'italic' }}>Você ainda não faz parte de nenhum grupo.</p>
-                        )}
-
-                        {myGroups.map(group => (
-                          <div key={group.id} style={{ background: isDark ? 'rgba(0,0,0,0.2)' : '#f9f9f9', borderRadius: '10px', padding: '1.2rem', marginBottom: '1.2rem', border: `1px solid ${isDark ? 'rgba(76,175,80,0.3)' : '#c8e6c9'}` }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                              <div>
-                                <strong style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.1rem' }}>{group.name}</strong>
-                                <div style={{ fontSize: '0.8rem', color: isDark ? '#b8a88a' : '#666' }}>
-                                  {group.memberUids.length} {group.memberUids.length === 1 ? 'membro' : 'membros'}
-                                  {group.isCoordinator && ' · você coordena'}
-                                </div>
-                              </div>
-                              <button onClick={() => copyInviteLink(group.inviteCode)} style={{ padding: '0.4rem 0.8rem', background: 'transparent', color: isDark ? '#81c784' : '#2e7d32', border: `1px solid ${isDark ? '#81c784' : '#2e7d32'}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                                <Copy size={14} /> Convite: {group.inviteCode}
-                              </button>
-                            </div>
-
-                            {group.items.length === 0 && (
-                              <p style={{ fontSize: '0.85rem', color: isDark ? '#8a8a8a' : '#999', fontStyle: 'italic' }}>Nenhuma tarefa, bastião ou prática cadastrada ainda.</p>
-                            )}
-
-                            {group.items.map(item => {
-                              const done = item.completedBy.includes(user.uid);
-                              return (
-                                <div key={item.id} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '0.6rem 0', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : '#eee'}` }}>
-                                  <div onClick={() => toggleGroupItemCompletion(group.id, item.id)} style={{ flex: 1, cursor: 'pointer', display: 'flex', gap: '0.6rem', alignItems: 'flex-start' }}>
-                                    <input type="checkbox" checked={done} readOnly style={{ marginTop: '0.2rem', width: '16px', height: '16px' }} />
-                                    <div>
-                                      <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 'bold', color: isDark ? '#81c784' : '#2e7d32' }}>
-                                        {GDVE_GROUP_ITEM_TYPES[item.type] || item.type}
-                                      </span>
-                                      <div style={{ color: isDark ? '#f0e6d2' : '#2c1810' }}>{item.title}</div>
-                                      {item.description && <div style={{ fontSize: '0.8rem', color: isDark ? '#b8a88a' : '#666' }}>{item.description}</div>}
-                                      <div style={{ fontSize: '0.75rem', color: isDark ? '#888' : '#999', marginTop: '0.2rem' }}>
-                                        {item.completedBy.length} de {group.memberUids.length} concluíram
-                                      </div>
-                                    </div>
-                                  </div>
-                                  {group.isCoordinator && (
-                                    <button onClick={() => removeGroupItem(group.id, item.id)} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer' }}><Trash2 size={16} /></button>
-                                  )}
-                                </div>
-                              );
-                            })}
-
-                            {group.isCoordinator && (
-                              <button onClick={() => setShowAddGroupItemModal(group.id)} style={{ marginTop: '1rem', padding: '0.5rem 1rem', background: 'transparent', color: isDark ? '#81c784' : '#2e7d32', border: `1px dashed ${isDark ? '#81c784' : '#2e7d32'}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem' }}>
-                                + Adicionar Tarefa / Bastião / Prática
-                              </button>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
 
                   {/* GAVETA: DESAFIOS PESSOAIS */}
                   <div style={getBlockStyle(desafiosStatus, isGdveDesafiosOpen, isDark ? '#6cb2eb' : '#2980b9')}>
@@ -5858,52 +5831,6 @@ ${monthlyReport.desafioCrescimento || '-'}
           </div>
         )}
 
-        {/* MODAL: ADICIONAR TAREFA/BASTIÃO/PRÁTICA AO GRUPO */}
-        {showAddGroupItemModal && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(3px)' }} onClick={() => setShowAddGroupItemModal(null)}>
-            <div style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '1.5rem', borderRadius: '16px', maxWidth: '420px', width: '100%', border: `2px solid ${isDark ? '#4caf50' : '#2e7d32'}`, position: 'relative', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setShowAddGroupItemModal(null)} style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}><X size={20} /></button>
-              <h2 style={{ margin: '0 0 1rem', fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.3rem' }}>Novo Item do Grupo</h2>
-
-              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-                {Object.entries(GDVE_GROUP_ITEM_TYPES).map(([key, label]) => (
-                  <button
-                    key={key}
-                    onClick={() => setNewGroupItemType(key)}
-                    style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: `1px solid ${isDark ? '#4caf50' : '#2e7d32'}`, background: newGroupItemType === key ? (isDark ? '#4caf50' : '#2e7d32') : 'transparent', color: newGroupItemType === key ? 'white' : (isDark ? '#81c784' : '#2e7d32'), cursor: 'pointer', fontWeight: 'bold', fontSize: '0.85rem' }}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-
-              <input
-                type="text"
-                autoFocus
-                value={newGroupItemTitle}
-                onChange={(e) => setNewGroupItemTitle(e.target.value)}
-                placeholder="Título (ex: Ler capítulo 3)"
-                style={{ width: '100%', padding: '0.7rem', borderRadius: '8px', border: '1px solid #ccc', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', marginBottom: '0.75rem' }}
-              />
-              <textarea
-                value={newGroupItemDesc}
-                onChange={(e) => setNewGroupItemDesc(e.target.value)}
-                placeholder="Detalhes (opcional)"
-                rows={3}
-                style={{ width: '100%', padding: '0.7rem', borderRadius: '8px', border: '1px solid #ccc', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', marginBottom: '1rem', fontFamily: 'inherit', resize: 'vertical' }}
-              />
-              <button
-                disabled={isSavingGroupItem || !newGroupItemTitle.trim()}
-                onClick={() => addGroupItem(showAddGroupItemModal)}
-                style={{ width: '100%', padding: '0.8rem', background: isDark ? '#4caf50' : '#2e7d32', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: isSavingGroupItem ? 'default' : 'pointer', opacity: (isSavingGroupItem || !newGroupItemTitle.trim()) ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-              >
-                {isSavingGroupItem ? <Sparkles className="animate-spin" size={18} /> : <Plus size={18} />}
-                {isSavingGroupItem ? 'Salvando...' : 'Adicionar ao Grupo'}
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* MODAL: PAINEL DE ADMINISTRAÇÃO DE ACESSOS */}
         {showAdminPanel && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(5px)' }}>
@@ -6156,11 +6083,13 @@ ${monthlyReport.desafioCrescimento || '-'}
                     
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                       <button onClick={async () => {
-                         const newStatus = { ...fvGdveCycleStatus, bastiao: !fvGdveCycleStatus['bastiao'] };
+                         const willBeRead = !fvGdveCycleStatus['bastiao'];
+                         const newStatus = { ...fvGdveCycleStatus, bastiao: willBeRead };
                          setFvGdveCycleStatus(newStatus);
                          if (user) {
                            try {
                              await setDoc(doc(db, 'fvData', user.uid), { gdveCycleStatus: newStatus }, { merge: true });
+                             if (willBeRead) notifyGroupActivity(`concluiu a leitura: "${fvGdveBastiaoName}"`);
                            } catch (err) {
                              console.error('Erro ao salvar status de leitura do Bastião:', err);
                              setFvGdveCycleStatus(fvGdveCycleStatus);
