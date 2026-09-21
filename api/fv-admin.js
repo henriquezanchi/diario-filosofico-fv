@@ -149,12 +149,18 @@ export default async function handler(req, res) {
     }
 
     if (action === 'addUnit') {
-      const { unit } = req.body || {};
-      const clean = String(unit || '').trim();
-      if (!clean) {
-        return res.status(400).json({ error: 'Nome de unidade inválido' });
+      // Aceita tanto uma unidade única (`unit`) quanto várias de uma vez
+      // (`units`, array) — útil pra importar a lista inteira da rede de uma vez.
+      const { unit, units: bulkUnits } = req.body || {};
+      const incoming = Array.isArray(bulkUnits) ? bulkUnits : [unit];
+      const cleanIncoming = [...new Set(incoming.map(u => String(u || '').trim()).filter(Boolean))];
+      if (cleanIncoming.length === 0) {
+        return res.status(400).json({ error: 'Nenhum nome de unidade válido informado' });
       }
-      const updatedUnits = units.includes(clean) ? units : [...units, clean];
+      const updatedUnits = [...units];
+      for (const u of cleanIncoming) {
+        if (!updatedUnits.includes(u)) updatedUnits.push(u);
+      }
       await whitelistRef.set({ units: updatedUnits }, { merge: true });
       return res.status(200).json({ units: updatedUnits });
     }

@@ -1061,19 +1061,20 @@ function App() {
   };
 
   const addUnit = async () => {
-    const unit = newUnitName.trim();
-    if (!unit) return;
+    // Aceita colar várias unidades de uma vez, uma por linha.
+    const units = newUnitName.split('\n').map(u => u.trim()).filter(Boolean);
+    if (units.length === 0) return;
     setIsLoadingAdminPanel(true);
     try {
-      const { ok, data } = await callFvAdmin({ action: 'addUnit', unit });
+      const { ok, data } = await callFvAdmin({ action: 'addUnit', units });
       if (ok) {
         setUnitsList(data.units || []);
         setNewUnitName('');
       } else {
-        alert(data.error || 'Erro ao adicionar unidade.');
+        alert(data.error || 'Erro ao adicionar unidade(s).');
       }
     } catch (e) {
-      alert('Erro ao adicionar unidade. Verifique sua conexão.');
+      alert('Erro ao adicionar unidade(s). Verifique sua conexão.');
     } finally {
       setIsLoadingAdminPanel(false);
     }
@@ -5557,15 +5558,15 @@ ${monthlyReport.desafioCrescimento || '-'}
                       ))}
                       {unitsList.length === 0 && <p style={{ margin: 0, fontSize: '0.8rem', color: isDark ? '#888' : '#999', fontStyle: 'italic' }}>Nenhuma unidade cadastrada ainda — o formulário de solicitação vai usar texto livre até você cadastrar a primeira.</p>}
                     </div>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <input
-                        type="text"
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <textarea
                         value={newUnitName}
                         onChange={(e) => setNewUnitName(e.target.value)}
-                        placeholder="Nome da unidade..."
-                        style={{ flex: 1, padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? '#555' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }}
+                        placeholder={"Nome da unidade...\n(pode colar várias, uma por linha)"}
+                        rows={4}
+                        style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? '#555' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'inherit', resize: 'vertical' }}
                       />
-                      <button disabled={isLoadingAdminPanel || !newUnitName.trim()} onClick={addUnit} style={{ padding: '0.6rem 1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: isLoadingAdminPanel ? 'default' : 'pointer', opacity: isLoadingAdminPanel ? 0.6 : 1, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                      <button disabled={isLoadingAdminPanel || !newUnitName.trim()} onClick={addUnit} style={{ padding: '0.6rem 1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: isLoadingAdminPanel ? 'default' : 'pointer', opacity: isLoadingAdminPanel ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}>
                         <Plus size={16}/> Adicionar
                       </button>
                     </div>
