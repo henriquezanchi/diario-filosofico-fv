@@ -396,9 +396,6 @@ function App() {
   const [isGeneratingCartaDegrau, setIsGeneratingCartaDegrau] = useState(false);
   const [cartaDegrauResult, setCartaDegrauResult] = useState(null);
   const [showCartaDegrauModal, setShowCartaDegrauModal] = useState(false);
-  const [isGeneratingBookReflection, setIsGeneratingBookReflection] = useState(false);
-  const [bookReflectionResult, setBookReflectionResult] = useState(null);
-  const [showBookReflectionModal, setShowBookReflectionModal] = useState(false);
   const isEnrichingRef = useRef(false);
   const [fvGdveDesafios, setFvGdveDesafios] = useState([]);
   const [fvGdveReuniao, setFvGdveReuniao] = useState('');
@@ -2167,29 +2164,6 @@ function App() {
     }
   };
 
-  const gerarReflexaoCruzada = async () => {
-    if (!user) return;
-    setIsGeneratingBookReflection(true);
-    try {
-      const idToken = await auth.currentUser?.getIdToken();
-      const resp = await fetch('/api/book-reflection', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${idToken}` }
-      });
-      const data = await resp.json().catch(() => ({}));
-      if (!resp.ok) {
-        alert(data.error || 'Erro ao gerar a reflexão cruzada.');
-        return;
-      }
-      setBookReflectionResult(data);
-      setShowBookReflectionModal(true);
-    } catch (error) {
-      console.error('Erro ao gerar reflexão cruzada:', error);
-      alert('Erro ao gerar a reflexão cruzada. Verifique sua conexão.');
-    } finally {
-      setIsGeneratingBookReflection(false);
-    }
-  };
 
   const saveFvPractices = async () => {
     if (user) {
@@ -3956,18 +3930,6 @@ ${monthlyReport.desafioCrescimento || '-'}
               );
             })()}
 
-            {/* REFLEXÃO CRUZADA ENTRE LIVROS LIDOS (IA) */}
-            {finishedBooksCount >= 2 && (
-              <div style={{ padding: '1.5rem', background: isDark ? 'rgba(0,0,0,0.2)' : '#f9f9f9', borderRadius: '12px', border: `1px dashed ${isDark ? 'rgba(212, 175, 55, 0.3)' : '#ccc'}`, marginBottom: '2.5rem' }}>
-                <button onClick={gerarReflexaoCruzada} disabled={isGeneratingBookReflection} style={{ padding: '0.75rem 1.5rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: isGeneratingBookReflection ? 'default' : 'pointer', opacity: isGeneratingBookReflection ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: '0.5rem', fontFamily: 'Georgia, serif' }}>
-                  {isGeneratingBookReflection ? <Sparkles className="animate-spin" size={18} /> : <Sparkles size={18} />}
-                  {isGeneratingBookReflection ? 'Conectando ideias...' : 'Gerar Reflexão Cruzada (IA)'}
-                </button>
-                <p style={{ margin: '0.75rem 0 0', fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#666' }}>
-                  Encontra conexões e tensões entre os {finishedBooksCount} livros que você já concluiu na estante.
-                </p>
-              </div>
-            )}
 
             {/* FORMULÁRIO DE LIVRO (OCULTO POR PADRÃO) */}
             {showAddBook && (
@@ -5960,34 +5922,6 @@ ${monthlyReport.desafioCrescimento || '-'}
               </div>
 
               <button onClick={() => window.print()} className="no-print" style={{ marginTop: '2.5rem', width: '100%', padding: '1rem', background: '#6b4423', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontFamily: 'Georgia, serif' }}>
-                <Download size={18} /> Imprimir / Salvar como PDF
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* MODAL: REFLEXÃO CRUZADA ENTRE LIVROS (IA) */}
-        {showBookReflectionModal && bookReflectionResult && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 10002, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '2rem 1rem', overflowY: 'auto' }}>
-            <div className="animate-fadeIn print-area" style={{ background: 'white', color: '#111', maxWidth: '700px', width: '100%', borderRadius: '8px', padding: '3rem', fontFamily: 'Georgia, serif', position: 'relative', marginBottom: '2rem' }}>
-              <button onClick={() => setShowBookReflectionModal(false)} className="no-print" style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', cursor: 'pointer', color: '#333' }}>
-                <X size={24} />
-              </button>
-
-              <h1 style={{ textAlign: 'center', fontSize: '1.3rem', textDecoration: 'underline', marginBottom: '0.5rem' }}>REFLEXÃO CRUZADA</h1>
-              <p style={{ textAlign: 'center', fontSize: '0.8rem', color: '#666', fontStyle: 'italic', marginBottom: '1.5rem' }}>
-                Gerado por IA a partir dos livros concluídos na sua estante — revise com espírito crítico.
-              </p>
-
-              <p style={{ fontSize: '0.8rem', color: '#666', marginBottom: '1.5rem' }}>
-                <strong>Livros considerados:</strong> {bookReflectionResult.books.map(b => b.title).join(', ')}
-              </p>
-
-              {bookReflectionResult.reflection.split('\n').filter(p => p.trim()).map((paragraph, i) => (
-                <p key={i} style={{ margin: '0 0 1.2rem', lineHeight: 1.7, textAlign: 'justify' }}>{paragraph}</p>
-              ))}
-
-              <button onClick={() => window.print()} className="no-print" style={{ marginTop: '1.5rem', width: '100%', padding: '1rem', background: '#6b4423', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontFamily: 'Georgia, serif' }}>
                 <Download size={18} /> Imprimir / Salvar como PDF
               </button>
             </div>
