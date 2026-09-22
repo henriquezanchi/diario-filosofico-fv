@@ -694,10 +694,10 @@ function App() {
 // MÁQUINA DE CORES: Vermelho -> Laranja -> Amarelo -> Verde
   const getTaskColor = (current, target, isDark) => {
     if (current === 0) return isDark ? '#c62828' : '#e53935'; 
-    if (current >= target) return isDark ? '#2e7d32' : '#4caf50'; 
+    if (current >= target) return isDark ? 'var(--success-strong)' : 'var(--success)'; 
     
     const ratio = current / target;
-    if (ratio <= 0.34) return isDark ? '#e65100' : '#ff9800'; 
+    if (ratio <= 0.34) return isDark ? 'var(--orange-strong)' : 'var(--orange)'; 
     if (ratio <= 0.67) return isDark ? '#f57f17' : '#ffb300'; 
     return isDark ? '#afb42b' : '#c0ca33'; 
   };
@@ -2700,18 +2700,18 @@ ${monthlyReport.desafioCrescimento || '-'}
 
   // --- TRADUTOR DO BADGE DE PRÁTICAS ---
   const getPraticasBadgeInfo = (dias) => {
-    if (dias >= 28) return { label: 'Sempre', color: '#FFD700', icon: Sun };
-    if (dias >= 20) return { label: 'Frequente', color: '#ff9800', icon: Flame };
-    if (dias >= 12) return { label: 'Às vezes', color: '#4caf50', icon: Target };
-    if (dias > 0) return { label: 'Raramente', color: '#e74c3c', icon: Sparkles };
-    return { label: 'Nunca', color: isDark ? '#555' : '#999', icon: Moon };
+    if (dias >= 28) return { label: 'Sempre', color: 'var(--gold-bright)', icon: Sun };
+    if (dias >= 20) return { label: 'Frequente', color: 'var(--orange)', icon: Flame };
+    if (dias >= 12) return { label: 'Às vezes', color: 'var(--success)', icon: Target };
+    if (dias > 0) return { label: 'Raramente', color: 'var(--danger)', icon: Sparkles };
+    return { label: 'Nunca', color: isDark ? 'var(--gray-strong)' : '#999', icon: Moon };
   };
 
   // --- PINCEL MÁGICO UNIVERSAL (Acessível por todas as abas) ---
   const getBlockStyle = (status, isOpen, activeBorder) => {
-    const corPadrao = activeBorder || (isDark ? '#FFD700' : '#996515');
+    const corPadrao = activeBorder || (isDark ? 'var(--gold-bright)' : 'var(--umber-bright)');
     const corConcluido = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)';
-    const corAtrasado = '#e74c3c'; // Vermelho Urgência
+    const corAtrasado = 'var(--danger)'; // Vermelho Urgência
 
     let border = `2px solid ${corPadrao}`;
     let filter = 'none';
@@ -2737,7 +2737,7 @@ ${monthlyReport.desafioCrescimento || '-'}
   };
 
   const getHeaderStyle = (status, isOpen) => {
-    let bg = isOpen ? 'transparent' : (isDark ? 'rgba(0,0,0,0.2)' : '#fdfbf7');
+    let bg = isOpen ? 'transparent' : (isDark ? 'rgba(0,0,0,0.2)' : 'var(--bg-light)');
     if (status === 'full' && !isOpen) bg = 'transparent';
     if (status === 'partial' && !isOpen) bg = isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)';
     if (status === 'overdue' && !isOpen) bg = isDark ? 'rgba(231, 76, 60, 0.1)' : 'rgba(231, 76, 60, 0.05)';
@@ -2749,8 +2749,8 @@ ${monthlyReport.desafioCrescimento || '-'}
   };
 
   const renderTitle = (text, status, isOpen, icon) => {
-    let titleColor = isDark ? '#f0e6d2' : '#2c1810';
-    if (status === 'overdue') titleColor = '#e74c3c';
+    let titleColor = isDark ? 'var(--parchment)' : 'var(--ink)';
+    if (status === 'overdue') titleColor = 'var(--danger)';
     
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -2758,7 +2758,7 @@ ${monthlyReport.desafioCrescimento || '-'}
         <h2 style={{ margin: 0, fontSize: 'clamp(1.2rem, 3vw, 1.5rem)', color: titleColor, fontFamily: "'Cinzel', serif", textDecoration: status === 'full' && !isOpen ? 'line-through' : 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           {text}
           {status === 'partial' && !isOpen && <span style={{fontSize: '0.8rem', opacity: 0.8, fontStyle: 'italic', fontFamily: 'Georgia, serif'}}>(Em Andamento)</span>}
-          {status === 'overdue' && <span style={{fontSize: '0.8rem', color: '#e74c3c', fontStyle: 'italic', fontFamily: 'Georgia, serif'}}>(Atrasada!)</span>}
+          {status === 'overdue' && <span style={{fontSize: '0.8rem', color: 'var(--danger)', fontStyle: 'italic', fontFamily: 'Georgia, serif'}}>(Atrasada!)</span>}
         </h2>
       </div>
     );
@@ -2781,13 +2781,13 @@ ${monthlyReport.desafioCrescimento || '-'}
 
   if (!user) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'linear-gradient(135deg, #f0e6d2 0%, #e8dcc4 100%)', fontFamily: 'Georgia, serif' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'linear-gradient(135deg, var(--parchment) 0%, var(--bg-light-alt) 100%)', fontFamily: 'Georgia, serif' }}>
         
         {/* CABEÇALHO DA LANDING PAGE */}
         <header style={{ padding: '1.5rem 2rem', background: 'rgba(255, 255, 255, 0.5)', borderBottom: '1px solid rgba(139, 115, 85, 0.2)' }}>
           <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <BookOpen size={32} color="#8b7355" />
-            <h1 style={{ margin: 0, color: '#2c1810', fontSize: '1.5rem', fontWeight: 'bold' }}>Diário Filosófico</h1>
+            <BookOpen size={32} color="var(--umber-soft)" />
+            <h1 style={{ margin: 0, color: 'var(--ink)', fontSize: '1.5rem', fontWeight: 'bold' }}>Diário Filosófico</h1>
           </div>
         </header>
 
@@ -2799,27 +2799,27 @@ ${monthlyReport.desafioCrescimento || '-'}
             <div style={{ flex: '1 1 400px', maxWidth: '450px', margin: '0 auto' }}>
               <div style={{ background: 'white', padding: '2.5rem 2rem', borderRadius: '16px', boxShadow: '0 12px 40px rgba(0,0,0,0.08)', border: '1px solid rgba(139, 115, 85, 0.1)' }}>
                 <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                  <h2 style={{ margin: '0 0 0.5rem 0', fontFamily: "'Cinzel', serif", color: '#2c1810', fontSize: '1.8rem' }}>{isLogin ? 'Bem-vindo de volta' : 'Iniciar Jornada'}</h2>
-                  <p style={{ color: '#6b5744', fontSize: '0.95rem', margin: 0 }}>Entre para acessar seus registros</p>
+                  <h2 style={{ margin: '0 0 0.5rem 0', fontFamily: "'Cinzel', serif", color: 'var(--ink)', fontSize: '1.8rem' }}>{isLogin ? 'Bem-vindo de volta' : 'Iniciar Jornada'}</h2>
+                  <p style={{ color: 'var(--umber-muted)', fontSize: '0.95rem', margin: 0 }}>Entre para acessar seus registros</p>
                 </div>
 
                 <form onSubmit={handleAuth}>
-                  <input type="email" placeholder="Seu E-mail" value={email} onChange={(e) => setEmail(e.target.value)} required style={{ width: '100%', padding: '0.85rem', marginBottom: '1rem', border: '2px solid #e8dcc4', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', transition: 'border-color 0.3s', outline: 'none' }} onFocus={(e) => e.target.style.borderColor = '#8b7355'} onBlur={(e) => e.target.style.borderColor = '#e8dcc4'} />
+                  <input type="email" placeholder="Seu E-mail" value={email} onChange={(e) => setEmail(e.target.value)} required style={{ width: '100%', padding: '0.85rem', marginBottom: '1rem', border: '2px solid var(--bg-light-alt)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', transition: 'border-color 0.3s', outline: 'none' }} onFocus={(e) => e.target.style.borderColor = 'var(--umber-soft)'} onBlur={(e) => e.target.style.borderColor = 'var(--bg-light-alt)'} />
                   <div style={{ position: 'relative', marginBottom: '1.5rem' }}>
-                    <input type={showPassword ? 'text' : 'password'} placeholder="Sua Senha" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ width: '100%', padding: '0.85rem', paddingRight: '3rem', border: '2px solid #e8dcc4', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', transition: 'border-color 0.3s', outline: 'none' }} onFocus={(e) => e.target.style.borderColor = '#8b7355'} onBlur={(e) => e.target.style.borderColor = '#e8dcc4'} />
+                    <input type={showPassword ? 'text' : 'password'} placeholder="Sua Senha" value={password} onChange={(e) => setPassword(e.target.value)} required style={{ width: '100%', padding: '0.85rem', paddingRight: '3rem', border: '2px solid var(--bg-light-alt)', borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', transition: 'border-color 0.3s', outline: 'none' }} onFocus={(e) => e.target.style.borderColor = 'var(--umber-soft)'} onBlur={(e) => e.target.style.borderColor = 'var(--bg-light-alt)'} />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '0.5rem', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', cursor: 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {showPassword ? <EyeOff size={20} color="#8b7355" /> : <Eye size={20} color="#8b7355" />}
+                      {showPassword ? <EyeOff size={20} color="var(--umber-soft)" /> : <Eye size={20} color="var(--umber-soft)" />}
                     </button>
                   </div>
                   
                   {error && <div className="animate-fadeIn" style={{ background: '#fee', color: '#c33', padding: '0.75rem', borderRadius: '8px', fontSize: '0.9rem', marginBottom: '1.5rem', border: '1px solid #fcc', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><AlertCircle size={16} /> {error}</div>}
                   
-                  <button type="submit" style={{ width: '100%', padding: '0.85rem', background: '#6b4423', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1.05rem', fontWeight: 'bold', cursor: 'pointer', marginBottom: '1rem', fontFamily: 'Georgia, serif', transition: 'background 0.2s, transform 0.1s' }} onMouseDown={(e) => e.target.style.transform = 'scale(0.98)'} onMouseUp={(e) => e.target.style.transform = 'scale(1)'}>{isLogin ? 'Acessar Diário' : 'Criar Nova Conta'}</button>
-                  <button type="button" onClick={() => { setIsLogin(!isLogin); setError(''); }} style={{ width: '100%', padding: '0.85rem', background: 'transparent', color: '#6b4423', border: '2px solid #8b7355', borderRadius: '8px', fontSize: '1rem', cursor: 'pointer', fontFamily: 'Georgia, serif', transition: 'background 0.2s' }} onMouseOver={(e) => e.target.style.background = 'rgba(139, 115, 85, 0.05)'} onMouseOut={(e) => e.target.style.background = 'transparent'}>{isLogin ? 'Não tem conta? Cadastre-se' : 'Já tenho conta'}</button>
+                  <button type="submit" style={{ width: '100%', padding: '0.85rem', background: 'var(--umber)', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1.05rem', fontWeight: 'bold', cursor: 'pointer', marginBottom: '1rem', fontFamily: 'Georgia, serif', transition: 'background 0.2s, transform 0.1s' }} onMouseDown={(e) => e.target.style.transform = 'scale(0.98)'} onMouseUp={(e) => e.target.style.transform = 'scale(1)'}>{isLogin ? 'Acessar Diário' : 'Criar Nova Conta'}</button>
+                  <button type="button" onClick={() => { setIsLogin(!isLogin); setError(''); }} style={{ width: '100%', padding: '0.85rem', background: 'transparent', color: 'var(--umber)', border: '2px solid var(--umber-soft)', borderRadius: '8px', fontSize: '1rem', cursor: 'pointer', fontFamily: 'Georgia, serif', transition: 'background 0.2s' }} onMouseOver={(e) => e.target.style.background = 'rgba(139, 115, 85, 0.05)'} onMouseOut={(e) => e.target.style.background = 'transparent'}>{isLogin ? 'Não tem conta? Cadastre-se' : 'Já tenho conta'}</button>
                   
-                  <div style={{ display: 'flex', alignItems: 'center', margin: '1.5rem 0', color: '#a89c8a' }}><div style={{ flex: 1, height: '1px', background: '#e8dcc4' }}></div><span style={{ padding: '0 1rem', fontSize: '0.85rem', fontStyle: 'italic' }}>ou continue com</span><div style={{ flex: 1, height: '1px', background: '#e8dcc4' }}></div></div>
+                  <div style={{ display: 'flex', alignItems: 'center', margin: '1.5rem 0', color: '#a89c8a' }}><div style={{ flex: 1, height: '1px', background: 'var(--bg-light-alt)' }}></div><span style={{ padding: '0 1rem', fontSize: '0.85rem', fontStyle: 'italic' }}>ou continue com</span><div style={{ flex: 1, height: '1px', background: 'var(--bg-light-alt)' }}></div></div>
                   
-                  <button type="button" onClick={handleGoogleLogin} style={{ width: '100%', padding: '0.85rem', background: '#fff', color: '#444', border: '1px solid #ddd', borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', transition: 'background 0.2s' }} onMouseOver={(e) => e.target.style.background = '#f9f9f9'} onMouseOut={(e) => e.target.style.background = '#fff'}>
+                  <button type="button" onClick={handleGoogleLogin} style={{ width: '100%', padding: '0.85rem', background: 'var(--white)', color: '#444', border: '1px solid #ddd', borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', transition: 'background 0.2s' }} onMouseOver={(e) => e.target.style.background = 'var(--gray-bg)'} onMouseOut={(e) => e.target.style.background = 'var(--white)'}>
                     <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo" style={{ width: '20px', height: '20px' }} /> Entrar com Google
                   </button>
                 </form>
@@ -2827,7 +2827,7 @@ ${monthlyReport.desafioCrescimento || '-'}
             </div>
 
             {/* LADO ESQUERDO: CONTEÚDO PARA O GOOGLE ADSENSE E NOVOS USUÁRIOS */}
-            <div style={{ flex: '1 1 500px', color: '#2c1810' }}>
+            <div style={{ flex: '1 1 500px', color: 'var(--ink)' }}>
               <h2 style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontFamily: "'Cinzel', serif", marginBottom: '1.5rem', lineHeight: '1.2', color: '#4a3320' }}>
                 Conhece-te a ti mesmo.
               </h2>
@@ -2835,7 +2835,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                 O <strong>Diário Filosófico</strong> é um ambiente digital minimalista inspirado nas práticas de autoexame das escolas de sabedoria clássica. Desenvolvido para auxiliar no forjamento do caráter, ele permite que você registre suas reflexões, avalie seus erros e cultive a clareza mental diariamente.
               </p>
               
-              <blockquote style={{ borderLeft: '4px solid #8b7355', paddingLeft: '1.5rem', margin: '2rem 0', fontStyle: 'italic', fontSize: '1.2rem', color: '#6b5744' }}>
+              <blockquote style={{ borderLeft: '4px solid var(--umber-soft)', paddingLeft: '1.5rem', margin: '2rem 0', fontStyle: 'italic', fontSize: '1.2rem', color: 'var(--umber-muted)' }}>
                 "Que ninguém hesite em se dedicar à filosofia enquanto jovem, nem se canse de fazê-lo depois de velho." — Epicuro
               </blockquote>
 
@@ -2848,8 +2848,8 @@ ${monthlyReport.desafioCrescimento || '-'}
                   { nome: 'Temperança', desc: 'Moderação, disciplina e autodomínio.' }
                 ].map(v => (
                   <li key={v.nome} style={{ background: 'rgba(255, 255, 255, 0.6)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(139, 115, 85, 0.2)' }}>
-                    <strong style={{ display: 'block', color: '#8b7355', marginBottom: '0.25rem' }}>{v.nome}</strong>
-                    <span style={{ fontSize: '0.9rem', color: '#6b5744' }}>{v.desc}</span>
+                    <strong style={{ display: 'block', color: 'var(--umber-soft)', marginBottom: '0.25rem' }}>{v.nome}</strong>
+                    <span style={{ fontSize: '0.9rem', color: 'var(--umber-muted)' }}>{v.desc}</span>
                   </li>
                 ))}
               </ul>
@@ -2861,7 +2861,7 @@ ${monthlyReport.desafioCrescimento || '-'}
         </main>
 
         {/* RODAPÉ SIMPLES PARA O ROBÔ */}
-        <footer style={{ padding: '2rem', textAlign: 'center', color: '#8b7355', fontSize: '0.9rem', borderTop: '1px solid rgba(139, 115, 85, 0.2)' }}>
+        <footer style={{ padding: '2rem', textAlign: 'center', color: 'var(--umber-soft)', fontSize: '0.9rem', borderTop: '1px solid rgba(139, 115, 85, 0.2)' }}>
           <p style={{ margin: 0 }}>© {new Date().getFullYear()} Diário Filosófico. Desenvolvido para a clareza e autoconhecimento.</p>
         </footer>
 
@@ -2873,25 +2873,25 @@ ${monthlyReport.desafioCrescimento || '-'}
   // --- A ANTE-SALA DE ESPERA (GUARDIÃO DA PORTA) ---
   if (user && fvAccessStatus !== 'approved') {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: isDark ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)' : 'linear-gradient(135deg, #f0e6d2 0%, #e8dcc4 100%)', fontFamily: 'Georgia, serif', color: isDark ? '#f0e6d2' : '#2c1810' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: isDark ? 'linear-gradient(135deg, var(--bg-dark) 0%, #16213e 100%)' : 'linear-gradient(135deg, var(--parchment) 0%, var(--bg-light-alt) 100%)', fontFamily: 'Georgia, serif', color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>
         <header style={{ padding: '1.5rem 2rem', background: isDark ? 'rgba(26, 26, 46, 0.9)' : 'rgba(255, 255, 255, 0.5)', borderBottom: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <Shield size={32} color={isDark ? '#d4af37' : '#8b7355'} />
+            <Shield size={32} color={isDark ? 'var(--gold)' : 'var(--umber-soft)'} />
             <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold', fontFamily: "'Cinzel', serif" }}>Acesso Restrito</h1>
           </div>
-          <button onClick={handleLogout} style={{ padding: '0.5rem 1rem', background: 'transparent', border: `1px solid ${isDark ? '#d4af37' : '#8b7355'}`, color: isDark ? '#d4af37' : '#8b7355', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button onClick={handleLogout} style={{ padding: '0.5rem 1rem', background: 'transparent', border: `1px solid ${isDark ? 'var(--gold)' : 'var(--umber-soft)'}`, color: isDark ? 'var(--gold)' : 'var(--umber-soft)', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <LogOut size={16} /> Sair
           </button>
         </header>
 
         <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem' }}>
-          <div className="animate-fadeIn" style={{ background: isDark ? 'rgba(0,0,0,0.4)' : 'white', padding: '2.5rem 2rem', borderRadius: '16px', maxWidth: '450px', width: '100%', border: `2px solid ${isDark ? '#d4af37' : '#8b7355'}`, textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.1)' }}>
+          <div className="animate-fadeIn" style={{ background: isDark ? 'rgba(0,0,0,0.4)' : 'white', padding: '2.5rem 2rem', borderRadius: '16px', maxWidth: '450px', width: '100%', border: `2px solid ${isDark ? 'var(--gold)' : 'var(--umber-soft)'}`, textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.1)' }}>
             
             {fvAccessStatus === 'pending' ? (
               <>
-                <Clock size={56} color={isDark ? '#FFD700' : '#996515'} style={{ margin: '0 auto 1.5rem' }} />
+                <Clock size={56} color={isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'} style={{ margin: '0 auto 1.5rem' }} />
                 <h2 style={{ margin: '0 0 1rem 0', fontFamily: "'Cinzel', serif", fontSize: '1.6rem' }}>Em Análise</h2>
-                <p style={{ lineHeight: '1.6', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2rem' }}>
+                <p style={{ lineHeight: '1.6', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', marginBottom: '2rem' }}>
                   Sua solicitação foi enviada. O instrutor responsável verificará seus dados e liberará o acesso à plataforma em breve.
                 </p>
                 <div style={{ padding: '1rem', background: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(139, 115, 85, 0.1)', borderRadius: '8px', fontStyle: 'italic', fontSize: '0.9rem' }}>
@@ -2900,36 +2900,36 @@ ${monthlyReport.desafioCrescimento || '-'}
               </>
             ) : (
               <>
-                <Lock size={56} color={isDark ? '#d4af37' : '#8b7355'} style={{ margin: '0 auto 1.5rem' }} />
+                <Lock size={56} color={isDark ? 'var(--gold)' : 'var(--umber-soft)'} style={{ margin: '0 auto 1.5rem' }} />
                 <h2 style={{ margin: '0 0 1rem 0', fontFamily: "'Cinzel', serif", fontSize: '1.6rem' }}>Identifique-se</h2>
-                <p style={{ lineHeight: '1.6', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2rem' }}>
+                <p style={{ lineHeight: '1.6', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', marginBottom: '2rem' }}>
                   Esta é uma ferramenta de uso interno. Para solicitar a liberação do seu perfil, preencha os dados abaixo.
                 </p>
 
                 <div style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
                   <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', fontSize: '0.9rem' }}>Nome Completo</label>
-                  <input type="text" value={requestName} onChange={(e) => setRequestName(e.target.value)} placeholder="Seu nome..." style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', border: `1px solid ${isDark ? '#555' : '#ccc'}`, background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
+                  <input type="text" value={requestName} onChange={(e) => setRequestName(e.target.value)} placeholder="Seu nome..." style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', border: `1px solid ${isDark ? 'var(--gray-strong)' : 'var(--border-light)'}`, background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }} />
                 </div>
 
                 <div style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
                   <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', fontSize: '0.9rem' }}>E-mail de Acesso</label>
-                  <input type="email" value={requestEmail} onChange={(e) => setRequestEmail(e.target.value)} placeholder="seuemail@exemplo.com" style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', border: `1px solid ${isDark ? '#555' : '#ccc'}`, background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
-                  <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.8rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic' }}>Esse é o e-mail que você vai usar para entrar no Diário — confirme que está certo.</p>
+                  <input type="email" value={requestEmail} onChange={(e) => setRequestEmail(e.target.value)} placeholder="seuemail@exemplo.com" style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', border: `1px solid ${isDark ? 'var(--gray-strong)' : 'var(--border-light)'}`, background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }} />
+                  <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.8rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontStyle: 'italic' }}>Esse é o e-mail que você vai usar para entrar no Diário — confirme que está certo.</p>
                 </div>
 
                 <div style={{ textAlign: 'left', marginBottom: '2rem' }}>
                   <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', fontSize: '0.9rem' }}>Unidade (Sede/Filial)</label>
                   {availableUnits.length > 0 ? (
-                    <select value={requestUnit} onChange={(e) => setRequestUnit(e.target.value)} style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', border: `1px solid ${isDark ? '#555' : '#ccc'}`, background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }}>
+                    <select value={requestUnit} onChange={(e) => setRequestUnit(e.target.value)} style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', border: `1px solid ${isDark ? 'var(--gray-strong)' : 'var(--border-light)'}`, background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }}>
                       <option value="">Selecione sua unidade...</option>
                       {availableUnits.map(u => <option key={u} value={u}>{u}</option>)}
                     </select>
                   ) : (
-                    <input type="text" value={requestUnit} onChange={(e) => setRequestUnit(e.target.value)} placeholder="Ex: Sede Nacional..." style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', border: `1px solid ${isDark ? '#555' : '#ccc'}`, background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
+                    <input type="text" value={requestUnit} onChange={(e) => setRequestUnit(e.target.value)} placeholder="Ex: Sede Nacional..." style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', border: `1px solid ${isDark ? 'var(--gray-strong)' : 'var(--border-light)'}`, background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }} />
                   )}
                 </div>
 
-                <button onClick={handleRequestAccess} style={{ width: '100%', padding: '1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
+                <button onClick={handleRequestAccess} style={{ width: '100%', padding: '1rem', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
                   Solicitar Acesso
                 </button>
 
@@ -2961,19 +2961,19 @@ ${monthlyReport.desafioCrescimento || '-'}
   const missoesCompletas = fvGdveTasks.filter(t => t.isCycle ? !!fvGdveCycleStatus[t.id] : ((todayFvDaily.gdveTasksStatus?.[t.id] || 0) >= (t.target || 1))).length;
 
   return (
-    <div style={{ minHeight: '100vh', background: isDark ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)' : 'linear-gradient(135deg, #f0e6d2 0%, #e8dcc4 100%)', fontFamily: 'Georgia, serif', transition: 'background 0.3s ease' }}>
+    <div style={{ minHeight: '100vh', background: isDark ? 'linear-gradient(135deg, var(--bg-dark) 0%, #16213e 100%)' : 'linear-gradient(135deg, var(--parchment) 0%, var(--bg-light-alt) 100%)', fontFamily: 'Georgia, serif', transition: 'background 0.3s ease' }}>
       {isOffline && (
-        <div style={{ position: 'sticky', top: 0, zIndex: 101, background: '#e65100', color: 'white', textAlign: 'center', padding: '0.4rem', fontSize: '0.8rem', fontWeight: 'bold' }}>
+        <div style={{ position: 'sticky', top: 0, zIndex: 101, background: 'var(--orange-strong)', color: 'white', textAlign: 'center', padding: '0.4rem', fontSize: '0.8rem', fontWeight: 'bold' }}>
           Você está offline — suas anotações continuam sendo salvas neste aparelho e serão sincronizadas assim que a internet voltar.
         </div>
       )}
-      <header style={{ padding: '1rem 2rem', borderBottom: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, background: isDark ? 'rgba(26, 26, 46, 0.95)' : 'rgba(240, 230, 210, 0.95)', backdropFilter: 'blur(10px)', position: 'sticky', top: 0, zIndex: 100 }}>
+      <header style={{ padding: '1rem 2rem', borderBottom: `2px solid ${isDark ? 'var(--gold)' : 'var(--umber)'}`, background: isDark ? 'rgba(26, 26, 46, 0.95)' : 'rgba(240, 230, 210, 0.95)', backdropFilter: 'blur(10px)', position: 'sticky', top: 0, zIndex: 100 }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           
           {/* LOGO */}
           <div onClick={handleLogoClick} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
-            <BookOpen size={32} color={isDark ? '#d4af37' : '#6b4423'} />
-            <h1 style={{ margin: 0, fontFamily: 'Georgia, serif', fontSize: 'clamp(1rem, 3.5vw, 1.5rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 700 }}>
+            <BookOpen size={32} color={isDark ? 'var(--gold)' : 'var(--umber)'} />
+            <h1 style={{ margin: 0, fontFamily: 'Georgia, serif', fontSize: 'clamp(1rem, 3.5vw, 1.5rem)', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontWeight: 700 }}>
               Diário Filosófico <span style={{ fontWeight: 'normal', fontStyle: 'italic', fontSize: '0.85em', opacity: 0.9 }}>de {getUserFirstName()}</span>
             </h1>
           </div>
@@ -2983,24 +2983,24 @@ ${monthlyReport.desafioCrescimento || '-'}
             // VERSÃO CELULAR (Badges Interativos + Menu)
             <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
               
-              <div onClick={() => setShowStreakModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.4rem 0.5rem', background: streak > 0 ? (isDark ? 'rgba(255, 100, 0, 0.15)' : '#fff3e0') : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f0f0f0'), border: `1px solid ${streak > 0 ? (isDark ? '#ff9800' : '#ffb74d') : (isDark ? '#555' : '#ccc')}`, borderRadius: '12px', color: streak > 0 ? (isDark ? '#ffb74d' : '#e65100') : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontSize: '0.75rem', cursor: 'pointer', flexShrink: 0 }}>
-                <StreakIcon size={14} fill={streak > 0 ? (isDark ? '#ff9800' : '#e65100') : 'none'} /> {streak}
+              <div onClick={() => setShowStreakModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.4rem 0.5rem', background: streak > 0 ? (isDark ? 'rgba(255, 100, 0, 0.15)' : '#fff3e0') : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f0f0f0'), border: `1px solid ${streak > 0 ? (isDark ? 'var(--orange)' : 'var(--orange-soft)') : (isDark ? 'var(--gray-strong)' : 'var(--border-light)')}`, borderRadius: '12px', color: streak > 0 ? (isDark ? 'var(--orange-soft)' : 'var(--orange-strong)') : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontSize: '0.75rem', cursor: 'pointer', flexShrink: 0 }}>
+                <StreakIcon size={14} fill={streak > 0 ? (isDark ? 'var(--orange)' : 'var(--orange-strong)') : 'none'} /> {streak}
               </div>
 
-              <div onClick={() => setShowPracticesModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.4rem 0.5rem', background: isDark ? 'rgba(0,0,0,0.3)' : '#fdfbf7', border: `1px solid ${pb.color}`, borderRadius: '12px', color: pb.color, fontWeight: 'bold', fontSize: '0.75rem', cursor: 'pointer' }}>
+              <div onClick={() => setShowPracticesModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.4rem 0.5rem', background: isDark ? 'rgba(0,0,0,0.3)' : 'var(--bg-light)', border: `1px solid ${pb.color}`, borderRadius: '12px', color: pb.color, fontWeight: 'bold', fontSize: '0.75rem', cursor: 'pointer' }}>
                 <PraticaIcon size={14} /> <span>{pb.label}</span>
               </div>
 
               {fvUnlocked && fvGdveTasks.length > 0 && (
-                <div onClick={() => setShowQuickFv(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.4rem 0.5rem', background: missoesCompletas === fvGdveTasks.length ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(0,0,0,0.3)' : '#fdfbf7'), border: `1px solid ${missoesCompletas === fvGdveTasks.length ? '#4caf50' : (isDark ? '#555' : '#ccc')}`, borderRadius: '12px', color: missoesCompletas === fvGdveTasks.length ? '#4caf50' : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontSize: '0.75rem', cursor: 'pointer' }}>
+                <div onClick={() => setShowQuickFv(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.4rem 0.5rem', background: missoesCompletas === fvGdveTasks.length ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(0,0,0,0.3)' : 'var(--bg-light)'), border: `1px solid ${missoesCompletas === fvGdveTasks.length ? 'var(--success)' : (isDark ? 'var(--gray-strong)' : 'var(--border-light)')}`, borderRadius: '12px', color: missoesCompletas === fvGdveTasks.length ? 'var(--success)' : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontSize: '0.75rem', cursor: 'pointer' }}>
                   <Shield size={14} /> <span>{missoesCompletas}</span>
                 </div>
               )}
               
               <button onClick={() => setIsMobileMenuOpen(true)} style={{ position: 'relative', padding: '0.3rem', background: 'transparent', border: 'none', cursor: 'pointer', marginLeft: '0.2rem' }}>
-                <Menu size={28} color={isDark ? '#d4af37' : '#6b4423'} />
+                <Menu size={28} color={isDark ? 'var(--gold)' : 'var(--umber)'} />
                 {isAdmin && pendingRequests.length > 0 && (
-                  <span style={{ position: 'absolute', top: '0', right: '0', width: '12px', height: '12px', borderRadius: '50%', background: '#e74c3c', border: `2px solid ${isDark ? '#1a1a2e' : '#fdfbf7'}` }} />
+                  <span style={{ position: 'absolute', top: '0', right: '0', width: '12px', height: '12px', borderRadius: '50%', background: 'var(--danger)', border: `2px solid ${isDark ? 'var(--bg-dark)' : 'var(--bg-light)'}` }} />
                 )}
               </button>
             </div>
@@ -3008,29 +3008,29 @@ ${monthlyReport.desafioCrescimento || '-'}
             // VERSÃO COMPUTADOR (Badges Interativos + Menu Agrupado)
             <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center', flexWrap: 'wrap' }}>
               
-              <div onClick={() => setShowStreakModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: streak > 0 ? (isDark ? 'rgba(255, 100, 0, 0.15)' : '#fff3e0') : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f0f0f0'), border: `1px solid ${streak > 0 ? (isDark ? '#ff9800' : '#ffb74d') : (isDark ? '#555' : '#ccc')}`, borderRadius: '20px', color: streak > 0 ? (isDark ? '#ffb74d' : '#e65100') : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontFamily: 'Georgia, serif', fontSize: '0.85rem', cursor: 'pointer', boxShadow: streak > 0 && isDark ? '0 0 10px rgba(255, 152, 0, 0.2)' : 'none' }}>
-                <StreakIcon size={16} fill={streak > 0 ? (isDark ? '#ff9800' : '#e65100') : 'none'} />
+              <div onClick={() => setShowStreakModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: streak > 0 ? (isDark ? 'rgba(255, 100, 0, 0.15)' : '#fff3e0') : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f0f0f0'), border: `1px solid ${streak > 0 ? (isDark ? 'var(--orange)' : 'var(--orange-soft)') : (isDark ? 'var(--gray-strong)' : 'var(--border-light)')}`, borderRadius: '20px', color: streak > 0 ? (isDark ? 'var(--orange-soft)' : 'var(--orange-strong)') : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontFamily: 'Georgia, serif', fontSize: '0.85rem', cursor: 'pointer', boxShadow: streak > 0 && isDark ? '0 0 10px rgba(255, 152, 0, 0.2)' : 'none' }}>
+                <StreakIcon size={16} fill={streak > 0 ? (isDark ? 'var(--orange)' : 'var(--orange-strong)') : 'none'} />
                 <span>{streak} {streak === 1 ? 'dia' : 'dias'}</span>
               </div>
 
-              <div onClick={() => setShowPracticesModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: isDark ? 'rgba(0,0,0,0.3)' : '#fdfbf7', border: `1px solid ${pb.color}`, borderRadius: '20px', color: pb.color, fontWeight: 'bold', fontFamily: 'Georgia, serif', fontSize: '0.85rem', cursor: 'pointer', transition: 'transform 0.2s' }} onMouseDown={(e) => e.currentTarget.style.transform='scale(0.95)'} onMouseUp={(e) => e.currentTarget.style.transform='scale(1)'}>
+              <div onClick={() => setShowPracticesModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: isDark ? 'rgba(0,0,0,0.3)' : 'var(--bg-light)', border: `1px solid ${pb.color}`, borderRadius: '20px', color: pb.color, fontWeight: 'bold', fontFamily: 'Georgia, serif', fontSize: '0.85rem', cursor: 'pointer', transition: 'transform 0.2s' }} onMouseDown={(e) => e.currentTarget.style.transform='scale(0.95)'} onMouseUp={(e) => e.currentTarget.style.transform='scale(1)'}>
                 <PraticaIcon size={16} /> <span>{pb.label}</span>
               </div>
 
               {fvUnlocked && fvGdveTasks.length > 0 && (
-                <div onClick={() => setShowQuickFv(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: missoesCompletas === fvGdveTasks.length ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(0,0,0,0.3)' : '#fdfbf7'), border: `1px solid ${missoesCompletas === fvGdveTasks.length ? '#4caf50' : (isDark ? '#555' : '#ccc')}`, borderRadius: '20px', color: missoesCompletas === fvGdveTasks.length ? '#4caf50' : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontFamily: 'Georgia, serif', fontSize: '0.85rem', cursor: 'pointer', transition: 'transform 0.2s' }} onMouseDown={(e) => e.currentTarget.style.transform='scale(0.95)'} onMouseUp={(e) => e.currentTarget.style.transform='scale(1)'}>
+                <div onClick={() => setShowQuickFv(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: missoesCompletas === fvGdveTasks.length ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(0,0,0,0.3)' : 'var(--bg-light)'), border: `1px solid ${missoesCompletas === fvGdveTasks.length ? 'var(--success)' : (isDark ? 'var(--gray-strong)' : 'var(--border-light)')}`, borderRadius: '20px', color: missoesCompletas === fvGdveTasks.length ? 'var(--success)' : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontFamily: 'Georgia, serif', fontSize: '0.85rem', cursor: 'pointer', transition: 'transform 0.2s' }} onMouseDown={(e) => e.currentTarget.style.transform='scale(0.95)'} onMouseUp={(e) => e.currentTarget.style.transform='scale(1)'}>
                   <Shield size={16} /> <span>{missoesCompletas}/{fvGdveTasks.length}</span>
                 </div>
               )}
 
               {/* BOTÃO MENU DROPDOWN */}
               <div style={{ position: 'relative', marginLeft: '0.5rem' }} onMouseLeave={() => setShowDiaryMenu(false)}>
-                <button onMouseEnter={() => setShowDiaryMenu(true)} onClick={() => setShowDiaryMenu(!showDiaryMenu)} style={{ padding: '0.5rem 1rem', background: 'transparent', color: isDark ? '#d4af37' : '#6b4423', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button onMouseEnter={() => setShowDiaryMenu(true)} onClick={() => setShowDiaryMenu(!showDiaryMenu)} style={{ padding: '0.5rem 1rem', background: 'transparent', color: isDark ? 'var(--gold)' : 'var(--umber)', border: `2px solid ${isDark ? 'var(--gold)' : 'var(--umber)'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Menu size={16} /> Menu <ChevronDown size={14} />
                 </button>
                 {showDiaryMenu && (
                   <div style={{ position: 'absolute', top: '100%', right: 0, paddingTop: '0.5rem', zIndex: 1000 }}>
-                    <div className="animate-fadeIn" style={{ width: '200px', background: isDark ? 'rgba(26, 26, 46, 0.98)' : 'white', border: `1px solid ${isDark ? '#d4af37' : '#ccc'}`, borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+                    <div className="animate-fadeIn" style={{ width: '200px', background: isDark ? 'rgba(26, 26, 46, 0.98)' : 'white', border: `1px solid ${isDark ? 'var(--gold)' : 'var(--border-light)'}`, borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
                       {[
                         { id: 'today', icon: <BookOpen size={16}/>, label: 'Hoje' },
                         { id: 'history', icon: <Calendar size={16}/>, label: 'Histórico' },
@@ -3042,7 +3042,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                         if (btn.fvOnly && !fvUnlocked) return null;
                         const isActive = view === btn.id;
                         return (
-                          <button key={btn.id} onClick={() => { setView(btn.id); setShowDiaryMenu(false); }} style={{ padding: '0.8rem', background: isActive ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent', border: 'none', borderBottom: '1px solid rgba(139, 115, 85, 0.1)', color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontWeight: isActive ? 'bold' : 'normal' }}>
+                          <button key={btn.id} onClick={() => { setView(btn.id); setShowDiaryMenu(false); }} style={{ padding: '0.8rem', background: isActive ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent', border: 'none', borderBottom: '1px solid rgba(139, 115, 85, 0.1)', color: isDark ? 'var(--parchment)' : 'var(--ink)', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontWeight: isActive ? 'bold' : 'normal' }}>
                             {btn.icon} {btn.label}
                           </button>
                         );
@@ -3054,24 +3054,24 @@ ${monthlyReport.desafioCrescimento || '-'}
 
               {/* BOTÃO OPÇÕES DROPDOWN */}
               <div style={{ position: 'relative' }} onMouseLeave={() => setShowProfileMenu(false)}>
-                <button onMouseEnter={() => setShowProfileMenu(true)} onClick={() => setShowProfileMenu(!showProfileMenu)} style={{ position: 'relative', padding: '0.5rem', background: 'transparent', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer' }}>
-                  <Settings size={18} color={isDark ? '#d4af37' : '#6b4423'} />
+                <button onMouseEnter={() => setShowProfileMenu(true)} onClick={() => setShowProfileMenu(!showProfileMenu)} style={{ position: 'relative', padding: '0.5rem', background: 'transparent', border: `2px solid ${isDark ? 'var(--gold)' : 'var(--umber)'}`, borderRadius: '8px', cursor: 'pointer' }}>
+                  <Settings size={18} color={isDark ? 'var(--gold)' : 'var(--umber)'} />
                   {isAdmin && pendingRequests.length > 0 && (
-                    <span style={{ position: 'absolute', top: '-4px', right: '-4px', width: '12px', height: '12px', borderRadius: '50%', background: '#e74c3c', border: `2px solid ${isDark ? '#1a1a2e' : 'white'}` }} />
+                    <span style={{ position: 'absolute', top: '-4px', right: '-4px', width: '12px', height: '12px', borderRadius: '50%', background: 'var(--danger)', border: `2px solid ${isDark ? 'var(--bg-dark)' : 'white'}` }} />
                   )}
                 </button>
                 {showProfileMenu && (
                   <div style={{ position: 'absolute', top: '100%', right: 0, paddingTop: '0.5rem', zIndex: 1000 }}>
-                    <div className="animate-fadeIn" style={{ width: '180px', background: isDark ? 'rgba(26, 26, 46, 0.98)' : 'white', border: `1px solid ${isDark ? '#d4af37' : '#ccc'}`, borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
-                      <button onClick={() => { setShowSettingsModal(true); setShowProfileMenu(false); }} style={{ padding: '0.8rem', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(139, 115, 85, 0.1)', color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Settings size={16}/> Configurações</button>
+                    <div className="animate-fadeIn" style={{ width: '180px', background: isDark ? 'rgba(26, 26, 46, 0.98)' : 'white', border: `1px solid ${isDark ? 'var(--gold)' : 'var(--border-light)'}`, borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+                      <button onClick={() => { setShowSettingsModal(true); setShowProfileMenu(false); }} style={{ padding: '0.8rem', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(139, 115, 85, 0.1)', color: isDark ? 'var(--parchment)' : 'var(--ink)', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Settings size={16}/> Configurações</button>
                       {isAdmin && (
-                        <button onClick={() => { setShowAdminPanel(true); setShowProfileMenu(false); }} style={{ padding: '0.8rem', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(139, 115, 85, 0.1)', color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                        <button onClick={() => { setShowAdminPanel(true); setShowProfileMenu(false); }} style={{ padding: '0.8rem', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(139, 115, 85, 0.1)', color: isDark ? 'var(--parchment)' : 'var(--ink)', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
                           <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><ShieldAlert size={16}/> Pedidos de Acesso</span>
-                          {pendingRequests.length > 0 && <span style={{ background: '#e74c3c', color: 'white', borderRadius: '10px', padding: '0.1rem 0.5rem', fontSize: '0.7rem', fontWeight: 'bold' }}>{pendingRequests.length}</span>}
+                          {pendingRequests.length > 0 && <span style={{ background: 'var(--danger)', color: 'white', borderRadius: '10px', padding: '0.1rem 0.5rem', fontSize: '0.7rem', fontWeight: 'bold' }}>{pendingRequests.length}</span>}
                         </button>
                       )}
-                      <button onClick={() => { toggleTheme(); setShowProfileMenu(false); }} style={{ padding: '0.8rem', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(139, 115, 85, 0.1)', color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>{isDark ? <Sun size={16}/> : <Moon size={16}/>} {isDark ? 'Tema Claro' : 'Tema Escuro'}</button>
-                      <button onClick={handleLogout} style={{ padding: '0.8rem', background: 'rgba(231, 76, 60, 0.1)', border: 'none', color: '#e74c3c', textAlign: 'left', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><LogOut size={16}/> Sair</button>
+                      <button onClick={() => { toggleTheme(); setShowProfileMenu(false); }} style={{ padding: '0.8rem', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(139, 115, 85, 0.1)', color: isDark ? 'var(--parchment)' : 'var(--ink)', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>{isDark ? <Sun size={16}/> : <Moon size={16}/>} {isDark ? 'Tema Claro' : 'Tema Escuro'}</button>
+                      <button onClick={handleLogout} style={{ padding: '0.8rem', background: 'rgba(231, 76, 60, 0.1)', border: 'none', color: 'var(--danger)', textAlign: 'left', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><LogOut size={16}/> Sair</button>
                     </div>
                   </div>
                 )}
@@ -3087,8 +3087,8 @@ ${monthlyReport.desafioCrescimento || '-'}
           <div style={{ padding: '1.5rem', paddingBottom: '120px', minHeight: '101%', display: 'flex', flexDirection: 'column' }}>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '2rem', borderBottom: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, marginBottom: '2rem' }}>
-              <h2 style={{ margin: 0, fontFamily: 'Georgia, serif', color: isDark ? '#d4af37' : '#6b4423', fontSize: '1.5rem' }}>Menu</h2>
-              <button onClick={() => setIsMobileMenuOpen(false)} style={{ background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}><X size={32} /></button>
+              <h2 style={{ margin: 0, fontFamily: 'Georgia, serif', color: isDark ? 'var(--gold)' : 'var(--umber)', fontSize: '1.5rem' }}>Menu</h2>
+              <button onClick={() => setIsMobileMenuOpen(false)} style={{ background: 'transparent', border: 'none', color: isDark ? 'var(--parchment)' : 'var(--ink)', cursor: 'pointer' }}><X size={32} /></button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', flex: 1 }}>
@@ -3106,34 +3106,34 @@ ${monthlyReport.desafioCrescimento || '-'}
                   <button 
                     key={item.id}
                     onClick={() => { setView(item.id); setIsMobileMenuOpen(false); }} 
-                    style={{ width: '100%', padding: '1rem', textAlign: 'left', background: isActive ? (isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)') : 'transparent', color: isActive ? (isDark ? '#FFD700' : '#6b4423') : (isDark ? '#f0e6d2' : '#2c1810'), border: `1px solid ${isActive ? (isDark ? '#d4af37' : '#6b4423') : 'transparent'}`, borderRadius: '12px', fontSize: '1.1rem', fontFamily: 'Georgia, serif', fontWeight: isActive ? 'bold' : 'normal', display: 'flex', alignItems: 'center', gap: '1rem' }}
+                    style={{ width: '100%', padding: '1rem', textAlign: 'left', background: isActive ? (isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)') : 'transparent', color: isActive ? (isDark ? 'var(--gold-bright)' : 'var(--umber)') : (isDark ? 'var(--parchment)' : 'var(--ink)'), border: `1px solid ${isActive ? (isDark ? 'var(--gold)' : 'var(--umber)') : 'transparent'}`, borderRadius: '12px', fontSize: '1.1rem', fontFamily: 'Georgia, serif', fontWeight: isActive ? 'bold' : 'normal', display: 'flex', alignItems: 'center', gap: '1rem' }}
                   >
                     {item.icon} {item.label}
                   </button>
                 );
               })}
 
-              <button onClick={() => { setIsMobileMenuOpen(false); setActivePracticeId('tratack'); setPracticePhase('intro'); setIsPracticeActive(true); }} style={{ width: '100%', padding: '1rem', textAlign: 'left', background: 'transparent', color: isDark ? '#f0e6d2' : '#2c1810', border: '1px solid transparent', borderRadius: '12px', fontSize: '1.1rem', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <Target size={22} color={isDark ? '#f0e6d2' : '#2c1810'} /> Fazer Tratak
+              <button onClick={() => { setIsMobileMenuOpen(false); setActivePracticeId('tratack'); setPracticePhase('intro'); setIsPracticeActive(true); }} style={{ width: '100%', padding: '1rem', textAlign: 'left', background: 'transparent', color: isDark ? 'var(--parchment)' : 'var(--ink)', border: '1px solid transparent', borderRadius: '12px', fontSize: '1.1rem', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <Target size={22} color={isDark ? 'var(--parchment)' : 'var(--ink)'} /> Fazer Tratak
               </button>
             </div>
 
             <div style={{ marginTop: '4rem', display: 'flex', flexDirection: 'column', gap: '1rem', paddingTop: '2rem', borderTop: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}` }}>
-              <button onClick={() => { setShowSuggestionModal(true); setIsMobileMenuOpen(false); }} style={{ width: '100%', padding: '1rem', background: 'transparent', color: isDark ? '#d4af37' : '#6b4423', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '12px', fontSize: '1.1rem', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+              <button onClick={() => { setShowSuggestionModal(true); setIsMobileMenuOpen(false); }} style={{ width: '100%', padding: '1rem', background: 'transparent', color: isDark ? 'var(--gold)' : 'var(--umber)', border: `2px solid ${isDark ? 'var(--gold)' : 'var(--umber)'}`, borderRadius: '12px', fontSize: '1.1rem', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                 <MessageSquare size={20} /> Enviar Sugestão
               </button>
               
-              <button onClick={() => { setShowSettingsModal(true); setIsMobileMenuOpen(false); }} style={{ width: '100%', padding: '1rem', background: 'transparent', color: isDark ? '#d4af37' : '#6b4423', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '12px', fontSize: '1.1rem', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+              <button onClick={() => { setShowSettingsModal(true); setIsMobileMenuOpen(false); }} style={{ width: '100%', padding: '1rem', background: 'transparent', color: isDark ? 'var(--gold)' : 'var(--umber)', border: `2px solid ${isDark ? 'var(--gold)' : 'var(--umber)'}`, borderRadius: '12px', fontSize: '1.1rem', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                 <Settings size={20} /> Configurações
               </button>
 
               {isAdmin && (
-                <button onClick={() => { setShowAdminPanel(true); setIsMobileMenuOpen(false); }} style={{ width: '100%', padding: '1rem', background: 'transparent', color: isDark ? '#d4af37' : '#6b4423', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '12px', fontSize: '1.1rem', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                <button onClick={() => { setShowAdminPanel(true); setIsMobileMenuOpen(false); }} style={{ width: '100%', padding: '1rem', background: 'transparent', color: isDark ? 'var(--gold)' : 'var(--umber)', border: `2px solid ${isDark ? 'var(--gold)' : 'var(--umber)'}`, borderRadius: '12px', fontSize: '1.1rem', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                   <ShieldAlert size={20} /> Pedidos de Acesso {pendingRequests.length > 0 && `(${pendingRequests.length})`}
                 </button>
               )}
 
-              <button onClick={handleLogout} style={{ width: '100%', padding: '1rem', background: '#e74c3c', color: 'white', border: 'none', borderRadius: '12px', fontSize: '1.2rem', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+              <button onClick={handleLogout} style={{ width: '100%', padding: '1rem', background: 'var(--danger)', color: 'white', border: 'none', borderRadius: '12px', fontSize: '1.2rem', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                 <LogOut size={20} /> Sair do Diário
               </button>
             </div>
@@ -3148,19 +3148,19 @@ ${monthlyReport.desafioCrescimento || '-'}
           <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             
             {/* CABEÇALHO DO DIA */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', padding: '1.5rem', background: selectedDate !== getTodayKey() ? (isDark ? 'rgba(231, 76, 60, 0.15)' : 'rgba(231, 76, 60, 0.1)') : (isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.4)'), borderRadius: '12px', border: `2px solid ${selectedDate !== getTodayKey() ? '#e74c3c' : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)')}` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', padding: '1.5rem', background: selectedDate !== getTodayKey() ? (isDark ? 'rgba(231, 76, 60, 0.15)' : 'rgba(231, 76, 60, 0.1)') : (isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.4)'), borderRadius: '12px', border: `2px solid ${selectedDate !== getTodayKey() ? 'var(--danger)' : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)')}` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <Calendar size={28} color={isDark ? '#d4af37' : '#6b4423'} />
+                <Calendar size={28} color={isDark ? 'var(--gold)' : 'var(--umber)'} />
                 <div>
-                  <h2 style={{ margin: 0, fontWeight: 'bold', color: isDark ? '#d4af37' : '#6b4423', fontFamily: "'Cinzel', serif", fontSize: '1.4rem' }}>
+                  <h2 style={{ margin: 0, fontWeight: 'bold', color: isDark ? 'var(--gold)' : 'var(--umber)', fontFamily: "'Cinzel', serif", fontSize: '1.4rem' }}>
                     {selectedDate === getTodayKey() ? "Hoje" : "Registro Histórico"}
                   </h2>
-                  <p style={{ margin: '0.2rem 0 0 0', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.9rem' }}>{new Date(selectedDate + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                  <p style={{ margin: '0.2rem 0 0 0', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontSize: '0.9rem' }}>{new Date(selectedDate + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
                 </div>
               </div>
               
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', border: `1px solid ${isDark ? '#d4af37' : '#ccc'}`, borderRadius: '8px', padding: '0.2rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', border: `1px solid ${isDark ? 'var(--gold)' : 'var(--border-light)'}`, borderRadius: '8px', padding: '0.2rem' }}>
                       <button
                         onClick={() => {
                           if (selectedDate <= getMinEditableDateKey()) return;
@@ -3169,7 +3169,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                           handleDateChange(d.toISOString().split('T')[0]);
                         }}
                         disabled={selectedDate <= getMinEditableDateKey()}
-                        style={{ background: 'transparent', border: 'none', color: selectedDate <= getMinEditableDateKey() ? (isDark ? '#555' : '#ccc') : (isDark ? '#d4af37' : '#2c1810'), cursor: selectedDate <= getMinEditableDateKey() ? 'not-allowed' : 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        style={{ background: 'transparent', border: 'none', color: selectedDate <= getMinEditableDateKey() ? (isDark ? 'var(--gray-strong)' : 'var(--border-light)') : (isDark ? 'var(--gold)' : 'var(--ink)'), cursor: selectedDate <= getMinEditableDateKey() ? 'not-allowed' : 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                         title="Dia Anterior"
                       >
                         <ChevronLeft size={20} />
@@ -3181,7 +3181,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                         onChange={(e) => handleDateChange(e.target.value)}
                         max={getTodayKey()}
                         min={getMinEditableDateKey()}
-                        style={{ background: 'transparent', color: isDark ? '#f0e6d2' : '#2c1810', border: 'none', padding: '0.5rem', fontSize: '1rem', fontFamily: 'Georgia, serif', outline: 'none', cursor: 'pointer' }}
+                        style={{ background: 'transparent', color: isDark ? 'var(--parchment)' : 'var(--ink)', border: 'none', padding: '0.5rem', fontSize: '1rem', fontFamily: 'Georgia, serif', outline: 'none', cursor: 'pointer' }}
                       />
 
                       <button 
@@ -3191,7 +3191,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                           d.setDate(d.getDate() + 1);
                           handleDateChange(d.toISOString().split('T')[0]);
                         }}
-                        style={{ background: 'transparent', border: 'none', color: selectedDate >= getTodayKey() ? (isDark ? '#555' : '#ccc') : (isDark ? '#d4af37' : '#2c1810'), cursor: selectedDate >= getTodayKey() ? 'not-allowed' : 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        style={{ background: 'transparent', border: 'none', color: selectedDate >= getTodayKey() ? (isDark ? 'var(--gray-strong)' : 'var(--border-light)') : (isDark ? 'var(--gold)' : 'var(--ink)'), cursor: selectedDate >= getTodayKey() ? 'not-allowed' : 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                         title="Próximo Dia"
                       >
                         <ChevronRight size={20} />
@@ -3199,28 +3199,28 @@ ${monthlyReport.desafioCrescimento || '-'}
                     </div>
 
                     {selectedDate !== getTodayKey() && (
-                      <button onClick={() => handleDateChange(getTodayKey())} style={{ padding: '0.6rem 1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Voltar a Hoje</button>
+                      <button onClick={() => handleDateChange(getTodayKey())} style={{ padding: '0.6rem 1rem', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Voltar a Hoje</button>
                     )}
                   </div>
             </div>
 
             {/* CITAÇÃO */}
             {dailyQuote && (
-              <div style={{ padding: '2rem', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.6)', borderRadius: '12px', borderLeft: `4px solid ${isDark ? '#d4af37' : '#8b7355'}`, fontStyle: 'italic' }}>
-                <p style={{ fontSize: '1.2rem', color: isDark ? '#f0e6d2' : '#2c1810', margin: '0 0 1rem 0', lineHeight: '1.6' }}>"{dailyQuote.text}"</p>
-                <p style={{ fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744', margin: 0, textAlign: 'right', fontWeight: 'bold' }}>— {dailyQuote.author}</p>
+              <div style={{ padding: '2rem', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.6)', borderRadius: '12px', borderLeft: `4px solid ${isDark ? 'var(--gold)' : 'var(--umber-soft)'}`, fontStyle: 'italic' }}>
+                <p style={{ fontSize: '1.2rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', margin: '0 0 1rem 0', lineHeight: '1.6' }}>"{dailyQuote.text}"</p>
+                <p style={{ fontSize: '0.9rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', margin: 0, textAlign: 'right', fontWeight: 'bold' }}>— {dailyQuote.author}</p>
               </div>
             )}
 
             {/* PRÁTICAS DE HOJE (Tarefas extras) */}
             {getTasksForToday().length > 0 && (
               <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '1.5rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}` }}>
-                <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', color: isDark ? '#f0e6d2' : '#2c1810' }}>✓ Desafios Diários</h3>
+                <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>✓ Desafios Diários</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   {getTasksForToday().map(task => (
                     <label key={task.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(255, 245, 220, 0.3)', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s' }}>
                       <input type="checkbox" checked={todayTasksStatus[task.id] || false} onChange={() => toggleTaskStatus(task.id)} style={{ width: '20px', height: '20px', cursor: 'pointer' }} />
-                      <span style={{ color: isDark ? '#f0e6d2' : '#2c1810', textDecoration: todayTasksStatus[task.id] ? 'line-through' : 'none', opacity: todayTasksStatus[task.id] ? 0.6 : 1 }}>{task.name}</span>
+                      <span style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)', textDecoration: todayTasksStatus[task.id] ? 'line-through' : 'none', opacity: todayTasksStatus[task.id] ? 0.6 : 1 }}>{task.name}</span>
                     </label>
                   ))}
                 </div>
@@ -3258,14 +3258,14 @@ ${monthlyReport.desafioCrescimento || '-'}
 
               const getHeaderStyle = (status, isOpen) => ({
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.5rem 2rem', cursor: 'pointer', 
-                background: isOpen ? 'transparent' : (status === 'full' ? 'transparent' : (status === 'partial' ? (isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)') : (isDark ? 'rgba(0,0,0,0.2)' : '#fdfbf7')))
+                background: isOpen ? 'transparent' : (status === 'full' ? 'transparent' : (status === 'partial' ? (isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)') : (isDark ? 'rgba(0,0,0,0.2)' : 'var(--bg-light)')))
               });
 
               // Montador de Títulos Inteligentes
               const renderTitle = (text, status, isOpen, icon) => (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   {icon}
-                  <h2 style={{ margin: 0, fontSize: 'clamp(1.2rem, 3vw, 1.5rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif", textDecoration: status === 'full' && !isOpen ? 'line-through' : 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <h2 style={{ margin: 0, fontSize: 'clamp(1.2rem, 3vw, 1.5rem)', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: "'Cinzel', serif", textDecoration: status === 'full' && !isOpen ? 'line-through' : 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     {text}
                     {status === 'partial' && !isOpen && <span style={{fontSize: '0.8rem', opacity: 0.8, fontStyle: 'italic', fontFamily: 'Georgia, serif'}}>(Em Andamento)</span>}
                   </h2>
@@ -3278,20 +3278,20 @@ ${monthlyReport.desafioCrescimento || '-'}
                   {/* BLOCO 1: PRÓLOGO MATINAL */}
                   <div style={getBlockStyle(prologoStatus, isPrologoOpen, isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)')}>
                     <div onClick={() => setIsPrologoOpen(!isPrologoOpen)} style={getHeaderStyle(prologoStatus, isPrologoOpen)}>
-                      {renderTitle('Prólogo Matinal', prologoStatus, isPrologoOpen, <Sunrise size={28} color={isDark ? '#ffd966' : '#ff9800'} />)}
-                      {isPrologoOpen ? <ChevronUp size={24} color={isDark ? '#f0e6d2' : '#2c1810'} /> : <ChevronDown size={24} color={isDark ? '#f0e6d2' : '#2c1810'} />}
+                      {renderTitle('Prólogo Matinal', prologoStatus, isPrologoOpen, <Sunrise size={28} color={isDark ? '#ffd966' : 'var(--orange)'} />)}
+                      {isPrologoOpen ? <ChevronUp size={24} color={isDark ? 'var(--parchment)' : 'var(--ink)'} /> : <ChevronDown size={24} color={isDark ? 'var(--parchment)' : 'var(--ink)'} />}
                     </div>
 
                     {isPrologoOpen && (
                       <div className="animate-fadeIn" style={{ padding: '0 2rem 2rem 2rem' }}>
                         {morningDone ? (
-                          <div style={{ padding: '1.5rem', background: isDark ? 'rgba(76, 175, 80, 0.1)' : '#e8f5e9', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(76, 175, 80, 0.3)' : '#4caf50'}` }}>
+                          <div style={{ padding: '1.5rem', background: isDark ? 'rgba(76, 175, 80, 0.1)' : '#e8f5e9', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(76, 175, 80, 0.3)' : 'var(--success)'}` }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <CheckCircle size={24} color={isDark ? '#81c784' : '#4caf50'} />
-                                <h3 style={{ margin: 0, color: isDark ? '#81c784' : '#2e7d32' }}>Armadura Colocada!</h3>
+                                <CheckCircle size={24} color={isDark ? 'var(--success-soft)' : 'var(--success)'} />
+                                <h3 style={{ margin: 0, color: isDark ? 'var(--success-soft)' : 'var(--success-strong)' }}>Armadura Colocada!</h3>
                               </div>
-                              <button onClick={() => setMorningDone(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: isDark ? '#81c784' : '#2e7d32', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.9rem', fontWeight: 'bold' }}><Edit size={16} /> Editar</button>
+                              <button onClick={() => setMorningDone(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: isDark ? 'var(--success-soft)' : 'var(--success-strong)', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.9rem', fontWeight: 'bold' }}><Edit size={16} /> Editar</button>
                             </div>
                             <p style={{ margin: '0.5rem 0', color: isDark ? '#c8e6c9' : '#1b5e20' }}><strong>Virtude do dia:</strong> {selectedVirtue || customVirtue}</p>
                             {dailyIntention && <p style={{ margin: '0.5rem 0', color: isDark ? '#c8e6c9' : '#1b5e20' }}><strong>Compromisso:</strong> {dailyIntention}</p>}
@@ -3299,26 +3299,26 @@ ${monthlyReport.desafioCrescimento || '-'}
                         ) : (
                           <div>
                             <div style={{ marginBottom: '1.5rem' }}>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#f0e6d2' : '#2c1810' }}>Virtude do Dia:</label>
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>Virtude do Dia:</label>
                               <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-                                <button onClick={selectRandomVirtue} disabled={!canDrawToday() || isDrawingVirtue} style={{ padding: '0.75rem 1.5rem', background: (canDrawToday() && !isDrawingVirtue) ? (isDark ? '#d4af37' : '#6b4423') : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'), color: (canDrawToday() && !isDrawingVirtue) ? 'white' : (isDark ? '#888' : '#999'), border: 'none', borderRadius: '8px', cursor: (canDrawToday() && !isDrawingVirtue) ? 'pointer' : 'not-allowed', fontFamily: 'Georgia, serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: 'clamp(0.85rem, 2vw, 1rem)' }}>
+                                <button onClick={selectRandomVirtue} disabled={!canDrawToday() || isDrawingVirtue} style={{ padding: '0.75rem 1.5rem', background: (canDrawToday() && !isDrawingVirtue) ? (isDark ? 'var(--gold)' : 'var(--umber)') : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'), color: (canDrawToday() && !isDrawingVirtue) ? 'white' : (isDark ? 'var(--gray)' : '#999'), border: 'none', borderRadius: '8px', cursor: (canDrawToday() && !isDrawingVirtue) ? 'pointer' : 'not-allowed', fontFamily: 'Georgia, serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: 'clamp(0.85rem, 2vw, 1rem)' }}>
                                   <Shuffle size={18} className={isDrawingVirtue ? 'animate-spin' : ''} /> {isDrawingVirtue ? 'Sorteando...' : (canDrawToday() ? 'Sortear Virtude' : 'Já sorteou hoje')}
                                 </button>
-                                <button onClick={() => setShowCustomVirtue(!showCustomVirtue)} disabled={isDrawingVirtue} style={{ padding: '0.75rem 1.5rem', background: 'transparent', color: isDark ? '#d4af37' : '#6b4423', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: isDrawingVirtue ? 'default' : 'pointer', opacity: isDrawingVirtue ? 0.5 : 1, fontFamily: 'Georgia, serif', fontWeight: 600, fontSize: 'clamp(0.85rem, 2vw, 1rem)' }}>
+                                <button onClick={() => setShowCustomVirtue(!showCustomVirtue)} disabled={isDrawingVirtue} style={{ padding: '0.75rem 1.5rem', background: 'transparent', color: isDark ? 'var(--gold)' : 'var(--umber)', border: `2px solid ${isDark ? 'var(--gold)' : 'var(--umber)'}`, borderRadius: '8px', cursor: isDrawingVirtue ? 'default' : 'pointer', opacity: isDrawingVirtue ? 0.5 : 1, fontFamily: 'Georgia, serif', fontWeight: 600, fontSize: 'clamp(0.85rem, 2vw, 1rem)' }}>
                                   {showCustomVirtue ? 'Escolher da Lista' : 'Escrever Própria'}
                                 </button>
                               </div>
 
                               {isDrawingVirtue && (
-                                <div className="virtue-roulette-text" style={{ padding: '1rem', marginBottom: '1rem', textAlign: 'center', background: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(255, 245, 220, 0.5)', borderRadius: '8px', border: `1px dashed ${isDark ? '#d4af37' : '#6b4423'}` }}>
-                                  <h4 style={{ margin: 0, color: isDark ? '#d4af37' : '#6b4423', fontSize: '1.2rem', fontFamily: "'Cinzel', serif" }}>✨ {virtueDrawDisplay} ✨</h4>
+                                <div className="virtue-roulette-text" style={{ padding: '1rem', marginBottom: '1rem', textAlign: 'center', background: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(255, 245, 220, 0.5)', borderRadius: '8px', border: `1px dashed ${isDark ? 'var(--gold)' : 'var(--umber)'}` }}>
+                                  <h4 style={{ margin: 0, color: isDark ? 'var(--gold)' : 'var(--umber)', fontSize: '1.2rem', fontFamily: "'Cinzel', serif" }}>✨ {virtueDrawDisplay} ✨</h4>
                                 </div>
                               )}
 
                               {!isDrawingVirtue && (showCustomVirtue ? (
-                                <input type="text" placeholder="Digite sua virtude..." value={customVirtue} onChange={(e) => setCustomVirtue(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                                <input type="text" placeholder="Digite sua virtude..." value={customVirtue} onChange={(e) => setCustomVirtue(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : 'var(--border-light)'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)' }} />
                               ) : (
-                                <select value={selectedVirtue} onChange={(e) => setSelectedVirtue(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }}>
+                                <select value={selectedVirtue} onChange={(e) => setSelectedVirtue(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : 'var(--border-light)'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>
                                   <option value="">Selecione uma virtude...</option>
                                   {virtues.map((v, idx) => <option key={idx} value={v.name}>{v.name}</option>)}
                                 </select>
@@ -3327,20 +3327,20 @@ ${monthlyReport.desafioCrescimento || '-'}
                               {!isDrawingVirtue && selectedVirtue && !showCustomVirtue && (
                                 <div key={selectedVirtue} className="virtue-pop-reveal" onClick={() => setIsTodayVirtueExpanded(!isTodayVirtueExpanded)} style={{ marginTop: '1rem', padding: '1rem', background: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(255, 245, 220, 0.5)', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`, cursor: 'pointer' }}>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <h4 style={{ margin: '0', color: isDark ? '#d4af37' : '#6b4423', fontSize: '1.1rem', fontFamily: "'Cinzel', serif" }}>{selectedVirtue}</h4>
-                                    {isTodayVirtueExpanded ? <ChevronUp size={20} color={isDark ? '#d4af37' : '#6b4423'} /> : <ChevronDown size={20} color={isDark ? '#d4af37' : '#6b4423'} />}
+                                    <h4 style={{ margin: '0', color: isDark ? 'var(--gold)' : 'var(--umber)', fontSize: '1.1rem', fontFamily: "'Cinzel', serif" }}>{selectedVirtue}</h4>
+                                    {isTodayVirtueExpanded ? <ChevronUp size={20} color={isDark ? 'var(--gold)' : 'var(--umber)'} /> : <ChevronDown size={20} color={isDark ? 'var(--gold)' : 'var(--umber)'} />}
                                   </div>
                                   
                                   {/* A DESCRIÇÃO CURTA DE VOLTA AQUI */}
-                                  <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.95rem', color: isDark ? '#c8b896' : '#6b5744', fontStyle: 'italic' }}>
+                                  <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.95rem', color: isDark ? 'var(--tan-soft)' : 'var(--umber-muted)', fontStyle: 'italic' }}>
                                     {virtues.find(v => v.name === selectedVirtue)?.shortDesc}
                                   </p>
 
                                   {isTodayVirtueExpanded && (
                                     <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}` }}>
-                                      <p style={{ fontSize: '0.95rem', color: isDark ? '#f0e6d2' : '#2c1810', marginBottom: '1rem', lineHeight: '1.6' }}>{virtues.find(v => v.name === selectedVirtue)?.description}</p>
-                                      <h5 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#d4af37' : '#6b4423' }}>Práticas Sugeridas:</h5>
-                                      <p style={{ fontSize: '0.9rem', color: isDark ? '#c8b896' : '#6b5744', margin: 0, whiteSpace: 'pre-line' }}>{virtues.find(v => v.name === selectedVirtue)?.practices}</p>
+                                      <p style={{ fontSize: '0.95rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', marginBottom: '1rem', lineHeight: '1.6' }}>{virtues.find(v => v.name === selectedVirtue)?.description}</p>
+                                      <h5 style={{ margin: '0 0 0.5rem 0', color: isDark ? 'var(--gold)' : 'var(--umber)' }}>Práticas Sugeridas:</h5>
+                                      <p style={{ fontSize: '0.9rem', color: isDark ? 'var(--tan-soft)' : 'var(--umber-muted)', margin: 0, whiteSpace: 'pre-line' }}>{virtues.find(v => v.name === selectedVirtue)?.practices}</p>
                                     </div>
                                   )}
                                 </div>
@@ -3348,11 +3348,11 @@ ${monthlyReport.desafioCrescimento || '-'}
                             </div>
 
                             <div style={{ marginBottom: '1.5rem' }}>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#f0e6d2' : '#2c1810' }}>Meu compromisso prático para hoje:</label>
-                              <textarea value={dailyIntention} onChange={(e) => setDailyIntention(e.target.value)} placeholder="Como e quando exatamente eu vou praticar isso hoje?" rows={3} style={{ width: '100%', padding: '0.75rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical' }} />
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>Meu compromisso prático para hoje:</label>
+                              <textarea value={dailyIntention} onChange={(e) => setDailyIntention(e.target.value)} placeholder="Como e quando exatamente eu vou praticar isso hoje?" rows={3} style={{ width: '100%', padding: '0.75rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : 'var(--border-light)'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', resize: 'vertical' }} />
                             </div>
 
-                            <button onClick={saveMorning} style={{ width: '100%', padding: '1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                            <button onClick={saveMorning} style={{ width: '100%', padding: '1rem', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                               <CheckCircle size={20} /> Firmar Compromisso
                             </button>
                           </div>
@@ -3363,25 +3363,25 @@ ${monthlyReport.desafioCrescimento || '-'}
 
                   {/* BLOCO 2: AS PRÁTICAS DO TEMPLO (MÓDULO FV) */}
                   {fvUnlocked && fvConfig && (
-                    <div style={getBlockStyle(forjaStatus, isPraticasOpen, '#FFD700')}>
+                    <div style={getBlockStyle(forjaStatus, isPraticasOpen, 'var(--gold-bright)')}>
                       <div onClick={() => setIsPraticasOpen(!isPraticasOpen)} style={getHeaderStyle(forjaStatus, isPraticasOpen)}>
-                        {renderTitle('Práticas (A Forja do Caráter)', forjaStatus, isPraticasOpen, <Award size={28} color="#FFD700" />)}
-                        {isPraticasOpen ? <ChevronUp size={24} color={isDark ? '#FFD700' : '#996515'} /> : <ChevronDown size={24} color={isDark ? '#FFD700' : '#996515'} />}
+                        {renderTitle('Práticas (A Forja do Caráter)', forjaStatus, isPraticasOpen, <Award size={28} color="var(--gold-bright)" />)}
+                        {isPraticasOpen ? <ChevronUp size={24} color={isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'} /> : <ChevronDown size={24} color={isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'} />}
                       </div>
                       
                       {isPraticasOpen && (
                         <div className="animate-fadeIn" style={{ padding: '0 2rem 2rem 2rem' }}>
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
                             {fvConfig.praticas.map(prac => (
-                              <div key={prac.key} onClick={() => setActiveActionMenu({ key: prac.key, label: prac.label })} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '1rem', background: fvDaily.praticas?.[prac.key] ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.6)'), border: `1px solid ${fvDaily.praticas?.[prac.key] ? '#4caf50' : (isDark ? 'rgba(212, 175, 55, 0.3)' : '#ccc')}`, borderRadius: '8px', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                                {fvDaily.praticas?.[prac.key] ? <CheckCircle size={20} color="#4caf50" /> : <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: `2px solid ${isDark ? '#b8a88a' : '#999'}` }}></div>}
-                                <span style={{ color: fvDaily.praticas?.[prac.key] ? (isDark ? '#81c784' : '#2e7d32') : (isDark ? '#f0e6d2' : '#2c1810'), fontSize: '1.05rem', fontWeight: fvDaily.praticas?.[prac.key] ? 'bold' : 'normal' }}>{prac.label}</span>
+                              <div key={prac.key} onClick={() => setActiveActionMenu({ key: prac.key, label: prac.label })} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '1rem', background: fvDaily.praticas?.[prac.key] ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.6)'), border: `1px solid ${fvDaily.praticas?.[prac.key] ? 'var(--success)' : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'var(--border-light)')}`, borderRadius: '8px', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                                {fvDaily.praticas?.[prac.key] ? <CheckCircle size={20} color="var(--success)" /> : <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: `2px solid ${isDark ? 'var(--gold-muted)' : '#999'}` }}></div>}
+                                <span style={{ color: fvDaily.praticas?.[prac.key] ? (isDark ? 'var(--success-soft)' : 'var(--success-strong)') : (isDark ? 'var(--parchment)' : 'var(--ink)'), fontSize: '1.05rem', fontWeight: fvDaily.praticas?.[prac.key] ? 'bold' : 'normal' }}>{prac.label}</span>
                               </div>
                             ))}
                           </div>
 
-                          <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.4)', padding: '1.5rem', borderRadius: '12px', borderLeft: '4px solid #FFD700', marginBottom: '1.5rem' }}>
-                            <h4 style={{ margin: '0 0 1rem 0', color: isDark ? '#d4af37' : '#6b4423', fontSize: '1.1rem', fontFamily: "'Cinzel', serif" }}>Templo Interior</h4>
+                          <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.4)', padding: '1.5rem', borderRadius: '12px', borderLeft: '4px solid var(--gold-bright)', marginBottom: '1.5rem' }}>
+                            <h4 style={{ margin: '0 0 1rem 0', color: isDark ? 'var(--gold)' : 'var(--umber)', fontSize: '1.1rem', fontFamily: "'Cinzel', serif" }}>Templo Interior</h4>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
                               {[
                                 { key: 'porta', label: '1. Porta' },
@@ -3389,15 +3389,15 @@ ${monthlyReport.desafioCrescimento || '-'}
                                 { key: 'patioColunas', label: '3. Pátio de Colunas' },
                                 { key: 'santuario', label: '4. Santuário' }
                               ].map(prac => (
-                                <div key={prac.key} onClick={() => setActiveActionMenu({ key: prac.key, label: prac.label })} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '0.8rem', background: fvDaily.praticas?.[prac.key] ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : 'transparent', border: `1px solid ${fvDaily.praticas?.[prac.key] ? '#4caf50' : (isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)')}`, borderRadius: '8px', transition: 'all 0.2s' }}>
-                                  {fvDaily.praticas?.[prac.key] ? <CheckCircle size={18} color="#4caf50" /> : <div style={{ width: '18px', height: '18px', borderRadius: '50%', border: `2px solid ${isDark ? '#b8a88a' : '#999'}` }}></div>}
-                                  <span style={{ color: fvDaily.praticas?.[prac.key] ? (isDark ? '#81c784' : '#2e7d32') : (isDark ? '#c8b896' : '#6b5744'), fontSize: '1rem', fontWeight: fvDaily.praticas?.[prac.key] ? 'bold' : 'normal' }}>{prac.label}</span>
+                                <div key={prac.key} onClick={() => setActiveActionMenu({ key: prac.key, label: prac.label })} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '0.8rem', background: fvDaily.praticas?.[prac.key] ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : 'transparent', border: `1px solid ${fvDaily.praticas?.[prac.key] ? 'var(--success)' : (isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)')}`, borderRadius: '8px', transition: 'all 0.2s' }}>
+                                  {fvDaily.praticas?.[prac.key] ? <CheckCircle size={18} color="var(--success)" /> : <div style={{ width: '18px', height: '18px', borderRadius: '50%', border: `2px solid ${isDark ? 'var(--gold-muted)' : '#999'}` }}></div>}
+                                  <span style={{ color: fvDaily.praticas?.[prac.key] ? (isDark ? 'var(--success-soft)' : 'var(--success-strong)') : (isDark ? 'var(--tan-soft)' : 'var(--umber-muted)'), fontSize: '1rem', fontWeight: fvDaily.praticas?.[prac.key] ? 'bold' : 'normal' }}>{prac.label}</span>
                                 </div>
                               ))}
                             </div>
                           </div>
                           
-                          <button onClick={saveFvPractices} style={{ width: '100%', padding: '1rem', background: 'transparent', color: isDark ? '#FFD700' : '#996515', border: '2px solid #FFD700', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                          <button onClick={saveFvPractices} style={{ width: '100%', padding: '1rem', background: 'transparent', color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', border: '2px solid var(--gold-bright)', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                             <Save size={20} /> Salvar Práticas Realizadas
                           </button>
                         </div>
@@ -3407,15 +3407,15 @@ ${monthlyReport.desafioCrescimento || '-'}
 
                   {/* BLOCO 3: A ESCALADA (AS REFLEXÕES DO FV) */}
                   {fvUnlocked && fvConfig && (
-                    <div style={getBlockStyle(escaladaStatus, isEscaladaOpen, '#FFD700')}>
+                    <div style={getBlockStyle(escaladaStatus, isEscaladaOpen, 'var(--gold-bright)')}>
                       <div onClick={() => setIsEscaladaOpen(!isEscaladaOpen)} style={getHeaderStyle(escaladaStatus, isEscaladaOpen)}>
-                        {renderTitle('Degrau (A Escalada)', escaladaStatus, isEscaladaOpen, <Mountain size={28} color={isDark ? '#FFD700' : '#996515'} />)}
-                        {isEscaladaOpen ? <ChevronUp size={24} color={isDark ? '#FFD700' : '#996515'} /> : <ChevronDown size={24} color={isDark ? '#FFD700' : '#996515'} />}
+                        {renderTitle('Degrau (A Escalada)', escaladaStatus, isEscaladaOpen, <Mountain size={28} color={isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'} />)}
+                        {isEscaladaOpen ? <ChevronUp size={24} color={isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'} /> : <ChevronDown size={24} color={isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'} />}
                       </div>
 
                       {isEscaladaOpen && (
                         <div className="animate-fadeIn" style={{ padding: '0 2rem 2rem 2rem' }}>
-                          <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', marginBottom: '2rem', fontSize: '0.95rem' }}>Ao salvar, os itens preenchidos ficarão cinzas para descansar sua mente.</p>
+                          <p style={{ color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontStyle: 'italic', marginBottom: '2rem', fontSize: '0.95rem' }}>Ao salvar, os itens preenchidos ficarão cinzas para descansar sua mente.</p>
 
                           {fvConfig.itensCarta.map(item => {
                             const isItem2 = item.id === 'item2';
@@ -3428,9 +3428,9 @@ ${monthlyReport.desafioCrescimento || '-'}
                               
                             const actuallyExpanded = expandedCartaItems[item.id] !== undefined ? expandedCartaItems[item.id] : !isFilled;
 
-                            const borderColor = isFilled ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)') : (isDark ? 'rgba(212, 175, 55, 0.5)' : '#996515');
-                            const headerColor = isFilled ? (isDark ? '#777' : '#aaa') : (isDark ? '#FFD700' : '#996515');
-                            const bgColor = isFilled ? (isDark ? 'rgba(0,0,0,0.1)' : '#f9f9f9') : (isDark ? 'rgba(212, 175, 55, 0.05)' : 'white');
+                            const borderColor = isFilled ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)') : (isDark ? 'rgba(212, 175, 55, 0.5)' : 'var(--umber-bright)');
+                            const headerColor = isFilled ? (isDark ? '#777' : '#aaa') : (isDark ? 'var(--gold-bright)' : 'var(--umber-bright)');
+                            const bgColor = isFilled ? (isDark ? 'rgba(0,0,0,0.1)' : 'var(--gray-bg)') : (isDark ? 'rgba(212, 175, 55, 0.05)' : 'white');
 
                             return (
                               <div key={item.id} style={{ marginBottom: '1rem', background: bgColor, borderRadius: '8px', border: `1px solid ${borderColor}`, transition: 'all 0.3s ease', overflow: 'hidden' }}>
@@ -3439,7 +3439,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                                   style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', cursor: 'pointer', background: isFilled ? 'transparent' : (isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,245,220,0.3)') }}
                                 >
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                    {isFilled && <CheckCircle size={18} color={isDark ? '#555' : '#aaa'} />}
+                                    {isFilled && <CheckCircle size={18} color={isDark ? 'var(--gray-strong)' : '#aaa'} />}
                                     <h4 style={{ margin: 0, fontWeight: 600, fontSize: '1.05rem', color: headerColor, fontFamily: "'Cinzel', serif", textTransform: 'uppercase', textDecoration: isFilled ? 'line-through' : 'none' }}>
                                       {item.label}
                                     </h4>
@@ -3449,19 +3449,19 @@ ${monthlyReport.desafioCrescimento || '-'}
 
                                 {actuallyExpanded && (
                                   <div className="animate-fadeIn" style={{ padding: '0 1.2rem 1.2rem 1.2rem' }}>
-                                    <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#888', marginBottom: '1rem', fontStyle: 'italic' }}>{item.desc}</p>
+                                    <p style={{ fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray)', marginBottom: '1rem', fontStyle: 'italic' }}>{item.desc}</p>
                                     
                                     {isItem2 ? (
                                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
                                         {subKeys.map((subK, i) => (
                                           <div key={subK}>
-                                            <label style={{ display: 'block', fontSize: '0.8rem', color: isDark ? '#d4af37' : '#996515', marginBottom: '0.4rem', fontWeight: 'bold' }}>{subLabels[i]}</label>
+                                            <label style={{ display: 'block', fontSize: '0.8rem', color: isDark ? 'var(--gold)' : 'var(--umber-bright)', marginBottom: '0.4rem', fontWeight: 'bold' }}>{subLabels[i]}</label>
                                             <textarea 
                                               value={fvDaily[`item2_${subK}`] || ''} 
                                               onChange={(e) => handleFvDailyTextChange(`item2_${subK}`, e.target.value)} 
                                               placeholder="Análise..." 
                                               rows={2} 
-                                              style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, borderRadius: '6px', fontSize: '0.9rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(0,0,0,0.3)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical' }} 
+                                              style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, borderRadius: '6px', fontSize: '0.9rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(0,0,0,0.3)' : 'var(--white)', color: isDark ? 'var(--parchment)' : 'var(--ink)', resize: 'vertical' }} 
                                             />
                                           </div>
                                         ))}
@@ -3472,7 +3472,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                                         onChange={(e) => handleFvDailyTextChange(item.id, e.target.value)} 
                                         placeholder="Registro..." 
                                         rows={3} 
-                                        style={{ width: '100%', padding: '1rem', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(0,0,0,0.3)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical' }} 
+                                        style={{ width: '100%', padding: '1rem', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(0,0,0,0.3)' : 'var(--white)', color: isDark ? 'var(--parchment)' : 'var(--ink)', resize: 'vertical' }} 
                                       />
                                     )}
                                   </div>
@@ -3481,7 +3481,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                             );
                           })}
 
-                          <button onClick={saveFvTexts} style={{ width: '100%', padding: '1rem', background: 'rgba(255, 215, 0, 0.1)', color: isDark ? '#FFD700' : '#996515', border: '1px solid #FFD700', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', transition: 'all 0.2s', marginTop: '1rem' }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,215,0,0.2)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255, 215, 0, 0.1)'}>
+                          <button onClick={saveFvTexts} style={{ width: '100%', padding: '1rem', background: 'rgba(255, 215, 0, 0.1)', color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', border: '1px solid var(--gold-bright)', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', transition: 'all 0.2s', marginTop: '1rem' }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,215,0,0.2)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255, 215, 0, 0.1)'}>
                             <Save size={20} /> Salvar Relatos da Escalada
                           </button>
                         </div>
@@ -3493,28 +3493,28 @@ ${monthlyReport.desafioCrescimento || '-'}
                   <div style={getBlockStyle(epilogoStatus, isEpilogoOpen, isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)')}>
                     <div onClick={() => setIsEpilogoOpen(!isEpilogoOpen)} style={getHeaderStyle(epilogoStatus, isEpilogoOpen)}>
                       {renderTitle('Epílogo Noturno', epilogoStatus, isEpilogoOpen, <Sunset size={28} color={isDark ? '#b19cd9' : '#9c27b0'} />)}
-                      {isEpilogoOpen ? <ChevronUp size={24} color={isDark ? '#f0e6d2' : '#2c1810'} /> : <ChevronDown size={24} color={isDark ? '#f0e6d2' : '#2c1810'} />}
+                      {isEpilogoOpen ? <ChevronUp size={24} color={isDark ? 'var(--parchment)' : 'var(--ink)'} /> : <ChevronDown size={24} color={isDark ? 'var(--parchment)' : 'var(--ink)'} />}
                     </div>
 
                     {isEpilogoOpen && (
                       <div className="animate-fadeIn" style={{ padding: '0 2rem 2rem 2rem' }}>
                         {eveningDone ? (
-                          <div style={{ padding: '1.5rem', background: isDark ? 'rgba(76, 175, 80, 0.1)' : '#e8f5e9', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(76, 175, 80, 0.3)' : '#4caf50'}` }}>
+                          <div style={{ padding: '1.5rem', background: isDark ? 'rgba(76, 175, 80, 0.1)' : '#e8f5e9', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(76, 175, 80, 0.3)' : 'var(--success)'}` }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <CheckCircle size={24} color={isDark ? '#81c784' : '#4caf50'} />
-                                <h3 style={{ margin: 0, color: isDark ? '#81c784' : '#2e7d32' }}>Paz Conquistada!</h3>
+                                <CheckCircle size={24} color={isDark ? 'var(--success-soft)' : 'var(--success)'} />
+                                <h3 style={{ margin: 0, color: isDark ? 'var(--success-soft)' : 'var(--success-strong)' }}>Paz Conquistada!</h3>
                               </div>
-                              <button onClick={() => setEveningDone(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: isDark ? '#81c784' : '#2e7d32', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.9rem', fontWeight: 'bold' }}><Edit size={16} /> Editar</button>
+                              <button onClick={() => setEveningDone(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: isDark ? 'var(--success-soft)' : 'var(--success-strong)', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.9rem', fontWeight: 'bold' }}><Edit size={16} /> Editar</button>
                             </div>
                             <p style={{ margin: 0, color: isDark ? '#c8e6c9' : '#1b5e20' }}>Exame noturno encerrado. Descanse com dignidade. 🌙</p>
                           
                           {/* EXIBE AS RESPOSTAS SE TIVER */}
                             {fvUnlocked && (savedEntryForToday.fvDaily?.aulaRegularPresenca || savedEntryForToday.fvDaily?.reuniaoRaioPresenca || savedEntryForToday.fvDaily?.aulaMinistradaPresenca) && (
                                <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: `1px solid ${isDark ? 'rgba(76, 175, 80, 0.2)' : 'rgba(76, 175, 80, 0.2)'}` }}>
-                                 {savedEntryForToday.fvDaily?.aulaRegularPresenca && <p style={{ margin: '0.2rem 0', color: isDark ? '#a5d6a7' : '#2e7d32', fontSize: '0.9rem' }}><strong>Aula Regular:</strong> {savedEntryForToday.fvDaily.aulaRegularPresenca}</p>}
-                                 {savedEntryForToday.fvDaily?.reuniaoRaioPresenca && <p style={{ margin: '0.2rem 0', color: isDark ? '#a5d6a7' : '#2e7d32', fontSize: '0.9rem' }}><strong>Reunião de Raio:</strong> {savedEntryForToday.fvDaily.reuniaoRaioPresenca}</p>}
-                                 {savedEntryForToday.fvDaily?.aulaMinistradaPresenca && <p style={{ margin: '0.2rem 0', color: isDark ? '#a5d6a7' : '#2e7d32', fontSize: '0.9rem' }}><strong>Aula Ministrada:</strong> {savedEntryForToday.fvDaily.aulaMinistradaPresenca}</p>}
+                                 {savedEntryForToday.fvDaily?.aulaRegularPresenca && <p style={{ margin: '0.2rem 0', color: isDark ? '#a5d6a7' : 'var(--success-strong)', fontSize: '0.9rem' }}><strong>Aula Regular:</strong> {savedEntryForToday.fvDaily.aulaRegularPresenca}</p>}
+                                 {savedEntryForToday.fvDaily?.reuniaoRaioPresenca && <p style={{ margin: '0.2rem 0', color: isDark ? '#a5d6a7' : 'var(--success-strong)', fontSize: '0.9rem' }}><strong>Reunião de Raio:</strong> {savedEntryForToday.fvDaily.reuniaoRaioPresenca}</p>}
+                                 {savedEntryForToday.fvDaily?.aulaMinistradaPresenca && <p style={{ margin: '0.2rem 0', color: isDark ? '#a5d6a7' : 'var(--success-strong)', fontSize: '0.9rem' }}><strong>Aula Ministrada:</strong> {savedEntryForToday.fvDaily.aulaMinistradaPresenca}</p>}
                                </div>
                             )}
                           
@@ -3540,7 +3540,7 @@ ${monthlyReport.desafioCrescimento || '-'}
 
                                 return (
                                   <div className="animate-fadeIn" style={{ background: isDark ? 'rgba(155, 89, 182, 0.05)' : '#fdf8ff', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.3)' : '#e1bee7'}`, marginBottom: '2rem' }}>
-                                    <h4 style={{ margin: '0 0 1rem 0', color: isDark ? '#c39bd3' : '#8e44ad', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <h4 style={{ margin: '0 0 1rem 0', color: isDark ? 'var(--purple-soft)' : 'var(--purple)', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                       <Clock size={18} /> Balanço de Serviço e Atividades
                                     </h4>
                                     
@@ -3549,32 +3549,32 @@ ${monthlyReport.desafioCrescimento || '-'}
                                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem', paddingBottom: '1.5rem', borderBottom: `1px dashed ${isDark ? 'rgba(155, 89, 182, 0.3)' : '#e1bee7'}` }}>
                                         {showAulaRegular && (
                                           <div>
-                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 'bold' }}>Assistiu à Aula Regular?</label>
-                                            <select value={fvDaily.aulaRegularPresenca || ''} onChange={(e) => handleFvDailyTextChange('aulaRegularPresenca', e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }}>
+                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontWeight: 'bold' }}>Assistiu à Aula Regular?</label>
+                                            <select value={fvDaily.aulaRegularPresenca || ''} onChange={(e) => handleFvDailyTextChange('aulaRegularPresenca', e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : 'var(--border-light)'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'var(--white)', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }}>
                                               <option value="">Selecione...</option><option value="Sim">Sim, assisti</option><option value="Não">Não (Faltei)</option>
                                             </select>
                                           </div>
                                         )}
                                         {showReuniaoRaio && (
                                           <div>
-                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 'bold' }}>Participou da Reunião de Raio?</label>
-                                            <select value={fvDaily.reuniaoRaioPresenca || ''} onChange={(e) => handleFvDailyTextChange('reuniaoRaioPresenca', e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }}>
+                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontWeight: 'bold' }}>Participou da Reunião de Raio?</label>
+                                            <select value={fvDaily.reuniaoRaioPresenca || ''} onChange={(e) => handleFvDailyTextChange('reuniaoRaioPresenca', e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : 'var(--border-light)'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'var(--white)', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }}>
                                               <option value="">Selecione...</option><option value="Sim">Sim, participei</option><option value="Não">Não (Faltei)</option>
                                             </select>
                                           </div>
                                         )}
                                         {showAulaMinistrada && (
                                           <div>
-                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 'bold' }}>Ministrou sua Aula hoje?</label>
-                                            <select value={fvDaily.aulaMinistradaPresenca || ''} onChange={(e) => handleFvDailyTextChange('aulaMinistradaPresenca', e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }}>
+                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontWeight: 'bold' }}>Ministrou sua Aula hoje?</label>
+                                            <select value={fvDaily.aulaMinistradaPresenca || ''} onChange={(e) => handleFvDailyTextChange('aulaMinistradaPresenca', e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : 'var(--border-light)'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'var(--white)', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }}>
                                               <option value="">Selecione...</option><option value="Sim">Sim, ministrei</option><option value="Não">Não</option>
                                             </select>
                                           </div>
                                         )}
                                         {showCrm && (
                                           <div>
-                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: isDark ? '#c39bd3' : '#8e44ad', fontWeight: 'bold' }}>Esteve na CRM Mensal?</label>
-                                            <select value={fvDaily.crmPresenca || ''} onChange={(e) => handleFvDailyTextChange('crmPresenca', e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }}>
+                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: isDark ? 'var(--purple-soft)' : 'var(--purple)', fontWeight: 'bold' }}>Esteve na CRM Mensal?</label>
+                                            <select value={fvDaily.crmPresenca || ''} onChange={(e) => handleFvDailyTextChange('crmPresenca', e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : 'var(--border-light)'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'var(--white)', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }}>
                                               <option value="">Selecione...</option><option value="Sim">Sim, estive</option><option value="Não">Não (Faltei)</option>
                                             </select>
                                           </div>
@@ -3582,7 +3582,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                                         {showEd && (
                                           <div>
                                             <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#3498DB', fontWeight: 'bold' }}>Assistiu à Aula de ED?</label>
-                                            <select value={fvDaily.aulaEdPresenca || ''} onChange={(e) => handleFvDailyTextChange('aulaEdPresenca', e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(74, 144, 226, 0.4)' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }}>
+                                            <select value={fvDaily.aulaEdPresenca || ''} onChange={(e) => handleFvDailyTextChange('aulaEdPresenca', e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(74, 144, 226, 0.4)' : 'var(--border-light)'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'var(--white)', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }}>
                                               <option value="">Selecione...</option><option value="Sim">Sim, assisti</option><option value="Não">Não (Faltei)</option>
                                             </select>
                                           </div>
@@ -3592,14 +3592,14 @@ ${monthlyReport.desafioCrescimento || '-'}
 
                                     {/* Voluntariado Extra Livre (Sempre Visível) */}
                                     <div style={{ padding: '1rem', background: isDark ? 'rgba(0,0,0,0.2)' : 'white', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.2)' : '#e1bee7'}` }}>
-                                      <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 'bold' }}>Serviço / Voluntariado Extra Hoje?</label>
-                                      <p style={{ fontSize: '0.8rem', color: isDark ? '#b8a88a' : '#888', marginTop: '-0.3rem', marginBottom: '0.8rem', fontStyle: 'italic' }}>
+                                      <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontWeight: 'bold' }}>Serviço / Voluntariado Extra Hoje?</label>
+                                      <p style={{ fontSize: '0.8rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray)', marginTop: '-0.3rem', marginBottom: '0.8rem', fontStyle: 'italic' }}>
                                         {temAulaHoje ? "As horas das aulas acima já são calculadas sozinhas. Informe aqui apenas horários avulsos (limpezas, manutenções, etc)." : "Informe aqui o tempo dedicado a serviços avulsos pela Escola hoje (limpeza, manutenções, secretaria, etc)."}
                                       </p>
                                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <input type="time" value={fvDaily.horasVoluntariado || ''} onChange={(e) => handleFvDailyTextChange('horasVoluntariado', e.target.value)} style={{ width: '120px', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
+                                        <input type="time" value={fvDaily.horasVoluntariado || ''} onChange={(e) => handleFvDailyTextChange('horasVoluntariado', e.target.value)} style={{ width: '120px', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : 'var(--border-light)'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'var(--white)', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }} />
                                         {(fvDaily.horasVoluntariado && fvDaily.horasVoluntariado !== '') && (
-                                           <span style={{ color: '#4caf50', fontSize: '0.8rem', fontWeight: 'bold' }}>✓ Registrado</span>
+                                           <span style={{ color: 'var(--success)', fontSize: '0.8rem', fontWeight: 'bold' }}>✓ Registrado</span>
                                         )}
                                       </div>
                                     </div>
@@ -3609,12 +3609,12 @@ ${monthlyReport.desafioCrescimento || '-'}
                               })()
                             )}
 
-                            <p style={{ marginBottom: '1.5rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', fontSize: '1.05rem', borderLeft: `3px solid ${isDark ? '#b19cd9' : '#9c27b0'}`, paddingLeft: '1rem' }}>"Que ninguém durma sem antes examinar as ações do dia" — Versos de Ouro de Pitágoras</p>
+                            <p style={{ marginBottom: '1.5rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontStyle: 'italic', fontSize: '1.05rem', borderLeft: `3px solid ${isDark ? '#b19cd9' : '#9c27b0'}`, paddingLeft: '1rem' }}>"Que ninguém durma sem antes examinar as ações do dia" — Versos de Ouro de Pitágoras</p>
 
                             <div style={{ marginBottom: '2rem' }}>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.1rem' }}>Reflexão Final:</label>
-                              <p style={{ fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#888', marginBottom: '1rem' }}>Escreva livremente sobre as vitórias, derrotas e percepções de hoje antes de dormir.</p>
-                              <textarea value={freeEpilogue} onChange={(e) => setFreeEpilogue(e.target.value)} placeholder="Ao olhar para o dia de hoje, percebo que..." rows={6} style={{ width: '100%', padding: '1rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', fontSize: '1.05rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(0,0,0,0.2)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical', lineHeight: '1.6' }} />
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.1rem' }}>Reflexão Final:</label>
+                              <p style={{ fontSize: '0.9rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray)', marginBottom: '1rem' }}>Escreva livremente sobre as vitórias, derrotas e percepções de hoje antes de dormir.</p>
+                              <textarea value={freeEpilogue} onChange={(e) => setFreeEpilogue(e.target.value)} placeholder="Ao olhar para o dia de hoje, percebo que..." rows={6} style={{ width: '100%', padding: '1rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : 'var(--border-light)'}`, borderRadius: '8px', fontSize: '1.05rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(0,0,0,0.2)' : 'var(--white)', color: isDark ? 'var(--parchment)' : 'var(--ink)', resize: 'vertical', lineHeight: '1.6' }} />
                             </div>
 
                             <button onClick={saveEvening} style={{ width: '100%', padding: '1.2rem', background: isDark ? '#b19cd9' : '#9c27b0', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', boxShadow: '0 4px 15px rgba(156, 39, 176, 0.3)', transition: 'transform 0.2s' }} onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'} onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}>
@@ -3639,31 +3639,31 @@ ${monthlyReport.desafioCrescimento || '-'}
             <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
               
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-                <Target size={32} color={isDark ? '#d4af37' : '#6b4423'} />
-                <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif" }}>Horizonte de Vida</h2>
+                <Target size={32} color={isDark ? 'var(--gold)' : 'var(--umber)'} />
+                <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: "'Cinzel', serif" }}>Horizonte de Vida</h2>
               </div>
-              <p style={{ color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2rem', fontSize: '1rem', fontStyle: 'italic' }}>O que o homem constrói no mundo reflete o que ele constrói em si mesmo.</p>
+              <p style={{ color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', marginBottom: '2rem', fontSize: '1rem', fontStyle: 'italic' }}>O que o homem constrói no mundo reflete o que ele constrói em si mesmo.</p>
               
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
                 
                 {/* BLOCO 1: SONHOS (VIRTUDES) */}
                 <div style={{ background: isDark ? 'rgba(212, 175, 55, 0.05)' : '#fffbf0', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}` }}>
-                  <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#d4af37' : '#6b4423', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Star size={20} /> Sonhos (Forja Interior)</h3>
-                  <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '1rem' }}>Virtudes e qualidades que deseja conquistar.</p>
+                  <h3 style={{ margin: '0 0 1rem 0', color: isDark ? 'var(--gold)' : 'var(--umber)', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Star size={20} /> Sonhos (Forja Interior)</h3>
+                  <p style={{ fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', marginBottom: '1rem' }}>Virtudes e qualidades que deseja conquistar.</p>
                   
                   <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
-                    <input type="text" value={newVirtueGoal} onChange={(e) => setNewVirtueGoal(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter') addVirtueGoal() }} placeholder="Ex: Desenvolver mais paciência..." style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
-                    <button onClick={addVirtueGoal} style={{ padding: '0 1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}><Plus size={20} /></button>
+                    <input type="text" value={newVirtueGoal} onChange={(e) => setNewVirtueGoal(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter') addVirtueGoal() }} placeholder="Ex: Desenvolver mais paciência..." style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : 'var(--border-light)'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)' }} />
+                    <button onClick={addVirtueGoal} style={{ padding: '0 1rem', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}><Plus size={20} /></button>
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     {virtueGoals.map(goal => (
-                      <div key={goal.id} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '0.75rem', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', borderRadius: '8px', border: `1px solid ${goal.completed ? '#4caf50' : (isDark ? 'rgba(212, 175, 55, 0.2)' : '#eee')}` }}>
+                      <div key={goal.id} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '0.75rem', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', borderRadius: '8px', border: `1px solid ${goal.completed ? 'var(--success)' : (isDark ? 'rgba(212, 175, 55, 0.2)' : 'var(--border-soft)')}` }}>
                         <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', cursor: 'pointer', flex: 1 }}>
-                          <input type="checkbox" checked={goal.completed} onChange={() => toggleGoal(goal.id, 'virtue')} style={{ width: '18px', height: '18px', marginTop: '0.2rem', accentColor: '#d4af37' }} />
-                          <span style={{ color: isDark ? '#f0e6d2' : '#2c1810', textDecoration: goal.completed ? 'line-through' : 'none', opacity: goal.completed ? 0.6 : 1, lineHeight: '1.4' }}>{goal.text}</span>
+                          <input type="checkbox" checked={goal.completed} onChange={() => toggleGoal(goal.id, 'virtue')} style={{ width: '18px', height: '18px', marginTop: '0.2rem', accentColor: 'var(--gold)' }} />
+                          <span style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)', textDecoration: goal.completed ? 'line-through' : 'none', opacity: goal.completed ? 0.6 : 1, lineHeight: '1.4' }}>{goal.text}</span>
                         </label>
-                        <button onClick={() => removeGoal(goal.id, 'virtue')} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer', padding: '0.2rem' }}><X size={16} /></button>
+                        <button onClick={() => removeGoal(goal.id, 'virtue')} style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '0.2rem' }}><X size={16} /></button>
                       </div>
                     ))}
                   </div>
@@ -3671,22 +3671,22 @@ ${monthlyReport.desafioCrescimento || '-'}
 
                 {/* BLOCO 2: PROJETOS (AÇÕES NO MUNDO) */}
                 <div style={{ background: isDark ? 'rgba(74, 144, 226, 0.05)' : '#f4f8ff', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(74, 144, 226, 0.2)' : 'rgba(74, 144, 226, 0.2)'}` }}>
-                  <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#6cb2eb' : '#2980b9', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Landmark size={20} /> Projetos (Obras no Mundo)</h3>
-                  <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '1rem' }}>Conquistas práticas, estudos, viagens, etc.</p>
+                  <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#6cb2eb' : 'var(--blue)', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Landmark size={20} /> Projetos (Obras no Mundo)</h3>
+                  <p style={{ fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', marginBottom: '1rem' }}>Conquistas práticas, estudos, viagens, etc.</p>
                   
                   <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
-                    <input type="text" value={newProjectGoal} onChange={(e) => setNewProjectGoal(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter') addProjectGoal() }} placeholder="Ex: Terminar a leitura do Bastião X..." style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(74, 144, 226, 0.4)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
-                    <button onClick={addProjectGoal} style={{ padding: '0 1rem', background: isDark ? '#6cb2eb' : '#2980b9', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}><Plus size={20} /></button>
+                    <input type="text" value={newProjectGoal} onChange={(e) => setNewProjectGoal(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter') addProjectGoal() }} placeholder="Ex: Terminar a leitura do Bastião X..." style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(74, 144, 226, 0.4)' : 'var(--border-light)'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)' }} />
+                    <button onClick={addProjectGoal} style={{ padding: '0 1rem', background: isDark ? '#6cb2eb' : 'var(--blue)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}><Plus size={20} /></button>
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     {projectGoals.map(goal => (
-                      <div key={goal.id} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '0.75rem', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', borderRadius: '8px', border: `1px solid ${goal.completed ? '#4caf50' : (isDark ? 'rgba(74, 144, 226, 0.2)' : '#eee')}` }}>
+                      <div key={goal.id} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '0.75rem', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', borderRadius: '8px', border: `1px solid ${goal.completed ? 'var(--success)' : (isDark ? 'rgba(74, 144, 226, 0.2)' : 'var(--border-soft)')}` }}>
                         <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', cursor: 'pointer', flex: 1 }}>
-                          <input type="checkbox" checked={goal.completed} onChange={() => toggleGoal(goal.id, 'project')} style={{ width: '18px', height: '18px', marginTop: '0.2rem', accentColor: isDark ? '#6cb2eb' : '#2980b9' }} />
-                          <span style={{ color: isDark ? '#f0e6d2' : '#2c1810', textDecoration: goal.completed ? 'line-through' : 'none', opacity: goal.completed ? 0.6 : 1, lineHeight: '1.4' }}>{goal.text}</span>
+                          <input type="checkbox" checked={goal.completed} onChange={() => toggleGoal(goal.id, 'project')} style={{ width: '18px', height: '18px', marginTop: '0.2rem', accentColor: isDark ? '#6cb2eb' : 'var(--blue)' }} />
+                          <span style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)', textDecoration: goal.completed ? 'line-through' : 'none', opacity: goal.completed ? 0.6 : 1, lineHeight: '1.4' }}>{goal.text}</span>
                         </label>
-                        <button onClick={() => removeGoal(goal.id, 'project')} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer', padding: '0.2rem' }}><X size={16} /></button>
+                        <button onClick={() => removeGoal(goal.id, 'project')} style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '0.2rem' }}><X size={16} /></button>
                       </div>
                     ))}
                   </div>
@@ -3697,35 +3697,35 @@ ${monthlyReport.desafioCrescimento || '-'}
               {/* BLOCO 3: MISSÕES DE CICLO ATIVAS */}
               {acceptedMissions.length > 0 && (
                 <div className="animate-fadeIn" style={{ marginTop: '2rem', padding: '1.5rem', background: isDark ? 'rgba(155, 89, 182, 0.05)' : '#fdf8ff', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.3)' : 'rgba(155, 89, 182, 0.3)'}` }}>
-                  <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#c39bd3' : '#8e44ad', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Shield size={20} /> Missões em Andamento</h3>
-                  <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '1.5rem' }}>Desafios práticos assumidos para forjar a vontade.</p>
+                  <h3 style={{ margin: '0 0 1rem 0', color: isDark ? 'var(--purple-soft)' : 'var(--purple)', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Shield size={20} /> Missões em Andamento</h3>
+                  <p style={{ fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', marginBottom: '1.5rem' }}>Desafios práticos assumidos para forjar a vontade.</p>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     {acceptedMissions.map(missao => (
-                      <div key={missao.id} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '1rem', background: missao.completed ? (isDark ? 'rgba(76, 175, 80, 0.1)' : '#f0fdf4') : (isDark ? 'rgba(0,0,0,0.3)' : 'white'), borderRadius: '8px', border: `1px solid ${missao.completed ? '#4caf50' : (isDark ? 'rgba(155, 89, 182, 0.3)' : '#e1bee7')}`, transition: 'all 0.3s ease', position: 'relative', overflow: 'hidden' }}>
+                      <div key={missao.id} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '1rem', background: missao.completed ? (isDark ? 'rgba(76, 175, 80, 0.1)' : '#f0fdf4') : (isDark ? 'rgba(0,0,0,0.3)' : 'white'), borderRadius: '8px', border: `1px solid ${missao.completed ? 'var(--success)' : (isDark ? 'rgba(155, 89, 182, 0.3)' : '#e1bee7')}`, transition: 'all 0.3s ease', position: 'relative', overflow: 'hidden' }}>
                         
                         {/* EFEITO DE BRILHO SE COMPLETA */}
                         {missao.completed && <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '100px', height: '100px', background: 'radial-gradient(circle, rgba(76,175,80,0.2) 0%, transparent 70%)', borderRadius: '50%' }}></div>}
 
                         <label style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', cursor: 'pointer', flex: 1, zIndex: 1 }}>
-                          <input type="checkbox" checked={missao.completed} onChange={() => toggleAcceptedMission(missao.id)} style={{ width: '20px', height: '20px', marginTop: '0.1rem', accentColor: '#4caf50' }} />
+                          <input type="checkbox" checked={missao.completed} onChange={() => toggleAcceptedMission(missao.id)} style={{ width: '20px', height: '20px', marginTop: '0.1rem', accentColor: 'var(--success)' }} />
                           <div style={{ opacity: missao.completed ? 0.7 : 1 }}>
-                            <strong style={{ color: missao.completed ? '#4caf50' : (isDark ? '#f0e6d2' : '#2c1810'), fontSize: '1.05rem', textDecoration: missao.completed ? 'line-through' : 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                            <strong style={{ color: missao.completed ? 'var(--success)' : (isDark ? 'var(--parchment)' : 'var(--ink)'), fontSize: '1.05rem', textDecoration: missao.completed ? 'line-through' : 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
                               {missao.titulo}
                             </strong>
-                            <span style={{ color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.9rem', lineHeight: '1.4', display: 'block' }}>{missao.descricao}</span>
-                            <span style={{ color: isDark ? '#c39bd3' : '#8e44ad', fontSize: '0.75rem', fontWeight: 'bold', marginTop: '0.5rem', display: 'block' }}>Assumida em: {missao.startDate.split('-').reverse().join('/')}</span>
+                            <span style={{ color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontSize: '0.9rem', lineHeight: '1.4', display: 'block' }}>{missao.descricao}</span>
+                            <span style={{ color: isDark ? 'var(--purple-soft)' : 'var(--purple)', fontSize: '0.75rem', fontWeight: 'bold', marginTop: '0.5rem', display: 'block' }}>Assumida em: {missao.startDate.split('-').reverse().join('/')}</span>
                           </div>
                         </label>
                         
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem', zIndex: 1 }}>
-                          <button onClick={() => removeAcceptedMission(missao.id)} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer', padding: '0.2rem' }} title="Abandonar Missão"><X size={18} /></button>
+                          <button onClick={() => removeAcceptedMission(missao.id)} style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '0.2rem' }} title="Abandonar Missão"><X size={18} /></button>
                           
                           {/* SELO DE VITÓRIA */}
                           {missao.completed && (
                             <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '0.5rem' }}>
-                              <Award size={32} color="#FFD700" style={{ filter: 'drop-shadow(0 0 5px rgba(255,215,0,0.5))' }} />
-                              <span style={{ fontSize: '0.65rem', fontWeight: 'bold', color: '#FFD700', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '0.2rem' }}>Vitória</span>
+                              <Award size={32} color="var(--gold-bright)" style={{ filter: 'drop-shadow(0 0 5px rgba(255,215,0,0.5))' }} />
+                              <span style={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'var(--gold-bright)', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '0.2rem' }}>Vitória</span>
                             </div>
                           )}
                         </div>
@@ -3743,64 +3743,64 @@ ${monthlyReport.desafioCrescimento || '-'}
         {view === 'notifications' && (
           <div className="animate-fadeIn" style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: '2rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-              <button onClick={() => setView('home')} style={{ background: 'transparent', border: 'none', color: isDark ? '#d4af37' : '#8b7355', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+              <button onClick={() => setView('home')} style={{ background: 'transparent', border: 'none', color: isDark ? 'var(--gold)' : 'var(--umber-soft)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                 <ArrowLeft size={24} />
               </button>
-              <Bell size={28} color={isDark ? '#d4af37' : '#8b7355'} />
-              <h2 style={{ margin: 0, fontSize: '1.5rem', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif" }}>
+              <Bell size={28} color={isDark ? 'var(--gold)' : 'var(--umber-soft)'} />
+              <h2 style={{ margin: 0, fontSize: '1.5rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: "'Cinzel', serif" }}>
                 O Guardião (Notificações)
               </h2>
             </div>
 
-            <p style={{ color: isDark ? '#b8a88a' : '#666', marginBottom: '2rem', fontSize: '1rem', fontStyle: 'italic' }}>
+            <p style={{ color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)', marginBottom: '2rem', fontSize: '1rem', fontStyle: 'italic' }}>
               Configure seu assistente pessoal no WhatsApp para manter a Forja sempre acesa.
             </p>
 
             {/* SEÇÃO 1: CONEXÃO */}
-            <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.8)', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : '#ccc'}`, marginBottom: '1.5rem' }}>
-              <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 1rem 0', color: isDark ? '#d4af37' : '#2c3e50', fontSize: '1.1rem' }}>
+            <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.8)', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'var(--border-light)'}`, marginBottom: '1.5rem' }}>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 1rem 0', color: isDark ? 'var(--gold)' : '#2c3e50', fontSize: '1.1rem' }}>
                 <Smartphone size={20} /> Conexão WhatsApp
               </h3>
-              <label style={{ display: 'block', marginBottom: '0.5rem', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.9rem' }}>Seu número (com DDD):</label>
+              <label style={{ display: 'block', marginBottom: '0.5rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '0.9rem' }}>Seu número (com DDD):</label>
               <input 
                 type="text" 
                 placeholder="Ex: 62999999999"
                 value={notifSettings.whatsappNumber}
                 onChange={(e) => setNotifSettings({...notifSettings, whatsappNumber: e.target.value.replace(/\D/g, '')})}
-                style={{ width: '100%', maxWidth: '300px', padding: '0.8rem', borderRadius: '8px', border: `1px solid ${isDark ? '#555' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.4)' : '#fff', color: isDark ? '#fff' : '#000' }}
+                style={{ width: '100%', maxWidth: '300px', padding: '0.8rem', borderRadius: '8px', border: `1px solid ${isDark ? 'var(--gray-strong)' : 'var(--border-light)'}`, background: isDark ? 'rgba(0,0,0,0.4)' : 'var(--white)', color: isDark ? 'var(--white)' : 'var(--black)' }}
               />
             </div>
 
             {/* SEÇÃO 2: HORÁRIOS FIXOS */}
-            <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.8)', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : '#ccc'}`, marginBottom: '1.5rem' }}>
-              <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 1rem 0', color: isDark ? '#d4af37' : '#2c3e50', fontSize: '1.1rem' }}>
+            <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.8)', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'var(--border-light)'}`, marginBottom: '1.5rem' }}>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 1rem 0', color: isDark ? 'var(--gold)' : '#2c3e50', fontSize: '1.1rem' }}>
                 <Clock size={20} /> Rotina Diária
               </h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.9rem' }}>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '0.9rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <input type="checkbox" checked={notifSettings.alerts.dailyVirtue} onChange={(e) => setNotifSettings({...notifSettings, alerts: {...notifSettings.alerts, dailyVirtue: e.target.checked}})} style={{ accentColor: '#d4af37', width: '16px', height: '16px' }} />
+                    <input type="checkbox" checked={notifSettings.alerts.dailyVirtue} onChange={(e) => setNotifSettings({...notifSettings, alerts: {...notifSettings.alerts, dailyVirtue: e.target.checked}})} style={{ accentColor: 'var(--gold)', width: '16px', height: '16px' }} />
                     Sorteio da Virtude (Manhã)
                   </div>
-                  <input type="time" value={notifSettings.notifMorningTime} onChange={(e) => setNotifSettings({...notifSettings, notifMorningTime: e.target.value})} style={{ padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? '#555' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.4)' : '#fff', color: isDark ? '#fff' : '#000', width: 'fit-content' }} disabled={!notifSettings.alerts.dailyVirtue} />
+                  <input type="time" value={notifSettings.notifMorningTime} onChange={(e) => setNotifSettings({...notifSettings, notifMorningTime: e.target.value})} style={{ padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'var(--gray-strong)' : 'var(--border-light)'}`, background: isDark ? 'rgba(0,0,0,0.4)' : 'var(--white)', color: isDark ? 'var(--white)' : 'var(--black)', width: 'fit-content' }} disabled={!notifSettings.alerts.dailyVirtue} />
                 </label>
 
-                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.9rem' }}>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '0.9rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <input type="checkbox" checked={notifSettings.alerts.dailyEpilogue} onChange={(e) => setNotifSettings({...notifSettings, alerts: {...notifSettings.alerts, dailyEpilogue: e.target.checked}})} style={{ accentColor: '#d4af37', width: '16px', height: '16px' }} />
+                    <input type="checkbox" checked={notifSettings.alerts.dailyEpilogue} onChange={(e) => setNotifSettings({...notifSettings, alerts: {...notifSettings.alerts, dailyEpilogue: e.target.checked}})} style={{ accentColor: 'var(--gold)', width: '16px', height: '16px' }} />
                     Lembrete do Epílogo (Noite)
                   </div>
-                  <input type="time" value={notifSettings.notifNightTime} onChange={(e) => setNotifSettings({...notifSettings, notifNightTime: e.target.value})} style={{ padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? '#555' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.4)' : '#fff', color: isDark ? '#fff' : '#000', width: 'fit-content' }} disabled={!notifSettings.alerts.dailyEpilogue} />
+                  <input type="time" value={notifSettings.notifNightTime} onChange={(e) => setNotifSettings({...notifSettings, notifNightTime: e.target.value})} style={{ padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'var(--gray-strong)' : 'var(--border-light)'}`, background: isDark ? 'rgba(0,0,0,0.4)' : 'var(--white)', color: isDark ? 'var(--white)' : 'var(--black)', width: 'fit-content' }} disabled={!notifSettings.alerts.dailyEpilogue} />
                 </label>
               </div>
             </div>
 
             {/* SEÇÃO 3: ALERTAS CONDICIONAIS */}
-            <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.8)', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : '#ccc'}`, marginBottom: '2rem' }}>
-              <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 1rem 0', color: isDark ? '#d4af37' : '#2c3e50', fontSize: '1.1rem' }}>
+            <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.8)', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'var(--border-light)'}`, marginBottom: '2rem' }}>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 1rem 0', color: isDark ? 'var(--gold)' : '#2c3e50', fontSize: '1.1rem' }}>
                 <ShieldAlert size={20} /> Guardião de Disciplina
               </h3>
-              <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#666', marginBottom: '1rem' }}>O Guardião avisa quando você está deixando a inércia vencer (disparado às 19h).</p>
+              <p style={{ fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)', marginBottom: '1rem' }}>O Guardião avisa quando você está deixando a inércia vencer (disparado às 19h).</p>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {[
@@ -3812,12 +3812,12 @@ ${monthlyReport.desafioCrescimento || '-'}
                   { id: 'randomVirtue', label: 'Sorteio Aleatório Diário (Lembrar da Virtude no meio do dia)' },
                   { id: 'groupActivity', label: 'Avisar quando alguém do meu Grupo de Estudo (GDVE) concluir uma tarefa' }
                 ].map(alert => (
-                  <label key={alert.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem', cursor: 'pointer' }}>
+                  <label key={alert.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '0.95rem', cursor: 'pointer' }}>
                     <input 
                       type="checkbox" 
                       checked={notifSettings.alerts[alert.id]} 
                       onChange={(e) => setNotifSettings({...notifSettings, alerts: {...notifSettings.alerts, [alert.id]: e.target.checked}})} 
-                      style={{ accentColor: '#d4af37', width: '18px', height: '18px', cursor: 'pointer' }} 
+                      style={{ accentColor: 'var(--gold)', width: '18px', height: '18px', cursor: 'pointer' }} 
                     />
                     {alert.label}
                   </label>
@@ -3831,8 +3831,8 @@ ${monthlyReport.desafioCrescimento || '-'}
               disabled={saveBtnStatus !== 'idle'}
               style={{ 
                 width: '100%', padding: '1rem', 
-                background: saveBtnStatus === 'success' ? '#27ae60' : (isDark ? '#d4af37' : '#6b4423'), 
-                color: saveBtnStatus === 'success' ? 'white' : (isDark ? '#1a1a2e' : 'white'), 
+                background: saveBtnStatus === 'success' ? '#27ae60' : (isDark ? 'var(--gold)' : 'var(--umber)'), 
+                color: saveBtnStatus === 'success' ? 'white' : (isDark ? 'var(--bg-dark)' : 'white'), 
                 border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', 
                 display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', 
                 cursor: saveBtnStatus !== 'idle' ? 'default' : 'pointer', 
@@ -3852,15 +3852,15 @@ ${monthlyReport.desafioCrescimento || '-'}
             
             {/* DICA DINÂMICA DE LEITURA (EPL2R) */}
             {dailyStudyTip && (
-              <div style={{ padding: '1.5rem 2rem', background: isDark ? 'rgba(52, 152, 219, 0.05)' : '#f0f7ff', borderRadius: '12px', borderLeft: `4px solid ${isDark ? '#3498db' : '#2980b9'}`, marginBottom: '2rem', display: 'flex', gap: '1.5rem', alignItems: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+              <div style={{ padding: '1.5rem 2rem', background: isDark ? 'rgba(52, 152, 219, 0.05)' : '#f0f7ff', borderRadius: '12px', borderLeft: `4px solid ${isDark ? '#3498db' : 'var(--blue)'}`, marginBottom: '2rem', display: 'flex', gap: '1.5rem', alignItems: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
                 <div style={{ background: isDark ? 'rgba(52, 152, 219, 0.1)' : '#e0f0ff', padding: '1rem', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <BookOpen size={28} color={isDark ? '#3498db' : '#2980b9'} />
+                  <BookOpen size={28} color={isDark ? '#3498db' : 'var(--blue)'} />
                 </div>
                 <div>
-                  <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', color: isDark ? '#3498db' : '#2980b9', display: 'block', marginBottom: '0.4rem' }}>
+                  <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', color: isDark ? '#3498db' : 'var(--blue)', display: 'block', marginBottom: '0.4rem' }}>
                     Técnica Recomendada: {dailyStudyTip.phase}
                   </span>
-                  <p style={{ margin: 0, fontSize: '1.1rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.6', fontStyle: 'italic' }}>
+                  <p style={{ margin: 0, fontSize: '1.1rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', lineHeight: '1.6', fontStyle: 'italic' }}>
                     "{dailyStudyTip.text}"
                   </p>
                 </div>
@@ -3870,10 +3870,10 @@ ${monthlyReport.desafioCrescimento || '-'}
             {/* BARRA DE FERRAMENTAS: NOVO LIVRO */}
             <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', marginBottom: '2.5rem' }}>
               <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', position: 'relative', flexWrap: 'wrap' }}>
-                <button onClick={() => setShowAddBook(true)} style={{ background: isDark ? '#FFD700' : '#996515', color: isDark ? '#000' : '#fff', border: 'none', padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button onClick={() => setShowAddBook(true)} style={{ background: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', color: isDark ? 'var(--black)' : 'var(--white)', border: 'none', padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Plus size={16} /> Adicionar Novo Livro
                 </button>
-                <button onClick={() => { setBarcodeScanError(''); setShowBarcodeScanner(true); }} style={{ background: 'transparent', color: isDark ? '#d4af37' : '#6b4423', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button onClick={() => { setBarcodeScanError(''); setShowBarcodeScanner(true); }} style={{ background: 'transparent', color: isDark ? 'var(--gold)' : 'var(--umber)', border: `2px solid ${isDark ? 'var(--gold)' : 'var(--umber)'}`, padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Camera size={16} /> Escanear Código de Barras
                 </button>
               </div>
@@ -3885,16 +3885,16 @@ ${monthlyReport.desafioCrescimento || '-'}
               const progressToNext = rank.next ? Math.min(100, Math.round((totalForgedPages / rank.next) * 100)) : 100;
               return (
                 <div className="animate-fadeIn" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
-                  <div style={{ background: isDark ? 'rgba(0,0,0,0.3)' : '#fcfcfc', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : '#eee'}`, display: 'flex', alignItems: 'center', gap: '1.5rem', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
+                  <div style={{ background: isDark ? 'rgba(0,0,0,0.3)' : '#fcfcfc', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'var(--border-soft)'}`, display: 'flex', alignItems: 'center', gap: '1.5rem', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
                     <div style={{ width: '70px', height: '70px', borderRadius: '50%', border: `3px solid ${rank.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', background: isDark ? 'rgba(255,255,255,0.05)' : 'white', boxShadow: `0 0 15px ${rank.color}40` }}>
                       <Award size={36} color={rank.color} />
                     </div>
                     <div style={{ flex: 1 }}>
-                      <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', color: isDark ? '#b8a88a' : '#888', fontWeight: 'bold' }}>Seu Grau na Escola</span>
+                      <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', color: isDark ? 'var(--gold-muted)' : 'var(--gray)', fontWeight: 'bold' }}>Seu Grau na Escola</span>
                       <h3 style={{ margin: '0.2rem 0 0.5rem 0', fontFamily: "'Cinzel', serif", fontSize: '1.4rem', color: rank.color }}>{rank.title}</h3>
                       {rank.next ? (
                         <>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: isDark ? '#f0e6d2' : '#2c1810', marginBottom: '0.3rem', fontWeight: 'bold' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', marginBottom: '0.3rem', fontWeight: 'bold' }}>
                             <span>Páginas Forjadas: {totalForgedPages}</span><span>Rumo a {rank.next}</span>
                           </div>
                           <div style={{ width: '100%', height: '6px', background: isDark ? 'rgba(255,255,255,0.1)' : '#e0e0e0', borderRadius: '3px', overflow: 'hidden' }}>
@@ -3910,20 +3910,20 @@ ${monthlyReport.desafioCrescimento || '-'}
                   {/* MÉTRICAS DETALHADAS */}
                   <div style={{ background: isDark ? 'rgba(212,175,55,0.05)' : '#fffbf0', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', alignItems: 'center' }}>
                     <div style={{ textAlign: 'center', borderRight: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`, borderBottom: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`, paddingBottom: '0.5rem' }}>
-                      <div style={{ fontSize: '1.8rem', fontWeight: 'bold', fontFamily: "'Cinzel', serif", color: isDark ? '#FFD700' : '#996515' }}>{books.length}</div>
-                      <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: isDark ? '#b8a88a' : '#6b5744', fontWeight: 'bold' }}>Na Estante</div>
+                      <div style={{ fontSize: '1.8rem', fontWeight: 'bold', fontFamily: "'Cinzel', serif", color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)' }}>{books.length}</div>
+                      <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontWeight: 'bold' }}>Na Estante</div>
                     </div>
                     <div style={{ textAlign: 'center', borderBottom: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`, paddingBottom: '0.5rem' }}>
-                      <div style={{ fontSize: '1.8rem', fontWeight: 'bold', fontFamily: "'Cinzel', serif", color: '#4caf50' }}>{finishedBooksCount}</div>
-                      <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: isDark ? '#b8a88a' : '#6b5744', fontWeight: 'bold' }}>Concluídos</div>
+                      <div style={{ fontSize: '1.8rem', fontWeight: 'bold', fontFamily: "'Cinzel', serif", color: 'var(--success)' }}>{finishedBooksCount}</div>
+                      <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontWeight: 'bold' }}>Concluídos</div>
                     </div>
                     <div style={{ textAlign: 'center', borderRight: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`, paddingTop: '0.5rem' }}>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: isDark ? '#f0e6d2' : '#2c1810', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', padding: '0 0.5rem' }}>{favoriteTheme}</div>
-                      <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: isDark ? '#b8a88a' : '#6b5744', fontWeight: 'bold', marginTop: '0.2rem' }}>Tema Frequente</div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: isDark ? 'var(--parchment)' : 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', padding: '0 0.5rem' }}>{favoriteTheme}</div>
+                      <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontWeight: 'bold', marginTop: '0.2rem' }}>Tema Frequente</div>
                     </div>
                     <div style={{ textAlign: 'center', paddingTop: '0.5rem' }}>
-                      <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: isDark ? '#f0e6d2' : '#2c1810' }}>{books.length > 0 ? Math.round((finishedBooksCount / books.length) * 100) : 0}%</div>
-                      <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: isDark ? '#b8a88a' : '#6b5744', fontWeight: 'bold', marginTop: '0.2rem' }}>Taxa de Conclusão</div>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>{books.length > 0 ? Math.round((finishedBooksCount / books.length) * 100) : 0}%</div>
+                      <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontWeight: 'bold', marginTop: '0.2rem' }}>Taxa de Conclusão</div>
                     </div>
                   </div>
                 </div>
@@ -3935,15 +3935,15 @@ ${monthlyReport.desafioCrescimento || '-'}
             {showAddBook && (
               <div style={{ padding: '1.5rem', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.3)', borderRadius: '12px', marginBottom: '2.5rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}` }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                  <h3 style={{ margin: 0, color: isDark ? '#d4af37' : '#6b4423', fontFamily: "'Cinzel', serif" }}>{editingBookId ? 'Editar Livro' : 'Adicionar à Estante'}</h3>
-                  <button onClick={() => { setShowAddBook(false); setBookSearchResults([]); setBookSearchQuery(''); }} style={{ background: 'transparent', color: '#e74c3c', border: 'none', cursor: 'pointer' }}><X size={24} /></button>
+                  <h3 style={{ margin: 0, color: isDark ? 'var(--gold)' : 'var(--umber)', fontFamily: "'Cinzel', serif" }}>{editingBookId ? 'Editar Livro' : 'Adicionar à Estante'}</h3>
+                  <button onClick={() => { setShowAddBook(false); setBookSearchResults([]); setBookSearchQuery(''); }} style={{ background: 'transparent', color: 'var(--danger)', border: 'none', cursor: 'pointer' }}><X size={24} /></button>
                 </div>
                 
                 {/* BARRA DE PESQUISA GOOGLE */}
                 <div style={{ marginBottom: '1.5rem' }}>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <input type="text" value={bookSearchQuery} onChange={(e) => setBookSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && searchBooks(bookSearchQuery)} placeholder="Pesquise por título ou autor na base do Google..." style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, background: isDark ? 'rgba(0,0,0,0.2)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
-                    <button onClick={() => searchBooks(bookSearchQuery)} style={{ padding: '0 1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
+                    <input type="text" value={bookSearchQuery} onChange={(e) => setBookSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && searchBooks(bookSearchQuery)} placeholder="Pesquise por título ou autor na base do Google..." style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: `2px solid ${isDark ? 'var(--gold)' : 'var(--umber)'}`, background: isDark ? 'rgba(0,0,0,0.2)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)' }} />
+                    <button onClick={() => searchBooks(bookSearchQuery)} style={{ padding: '0 1rem', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
                       {isSearchingBooks ? <Sparkles className="animate-spin" size={18}/> : <Search size={18}/>}
                     </button>
                   </div>
@@ -3959,12 +3959,12 @@ ${monthlyReport.desafioCrescimento || '-'}
                               setNewBook({ title: res.title, author: res.author, currentPage: 0, totalPages: res.totalPages, thumbnail: res.thumbnail, category: res.category }); setBookSearchResults([]);
                             }
                           }}
-                          style={{ display: 'flex', gap: '0.75rem', padding: '0.5rem', cursor: 'pointer', borderRadius: '6px', borderBottom: isDark ? '1px solid #333' : '1px solid #eee' }}
+                          style={{ display: 'flex', gap: '0.75rem', padding: '0.5rem', cursor: 'pointer', borderRadius: '6px', borderBottom: isDark ? '1px solid #333' : '1px solid var(--border-soft)' }}
                         >
                           <img src={res.thumbnail || 'https://via.placeholder.com/40x60?text=No+Cover'} alt="Capa" style={{ width: '40px', height: '60px', objectFit: 'cover', borderRadius: '4px' }} />
                           <div style={{ textAlign: 'left' }}>
-                            <div style={{ fontSize: '0.9rem', fontWeight: 'bold', color: isDark ? '#f0e6d2' : '#2c1810' }}>{res.title}</div>
-                            <div style={{ fontSize: '0.8rem', color: '#888' }}>{res.author}</div>
+                            <div style={{ fontSize: '0.9rem', fontWeight: 'bold', color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>{res.title}</div>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--gray)' }}>{res.author}</div>
                           </div>
                         </div>
                       ))}
@@ -3977,27 +3977,27 @@ ${monthlyReport.desafioCrescimento || '-'}
                   <>
                     <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '1rem', marginBottom: '1rem' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-                        <label style={{ fontSize: '0.8rem', color: '#888', marginBottom: '0.2rem' }}>Título</label>
-                        <input type="text" value={newBook.title} onChange={(e) => setNewBook({...newBook, title: e.target.value})} placeholder="Título..." style={{ padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                        <label style={{ fontSize: '0.8rem', color: 'var(--gray)', marginBottom: '0.2rem' }}>Título</label>
+                        <input type="text" value={newBook.title} onChange={(e) => setNewBook({...newBook, title: e.target.value})} placeholder="Título..." style={{ padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'var(--border-light)'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)' }} />
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-                        <label style={{ fontSize: '0.8rem', color: '#888', marginBottom: '0.2rem' }}>Autor</label>
-                        <input type="text" value={newBook.author} onChange={(e) => setNewBook({...newBook, author: e.target.value})} placeholder="Autor..." style={{ padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                        <label style={{ fontSize: '0.8rem', color: 'var(--gray)', marginBottom: '0.2rem' }}>Autor</label>
+                        <input type="text" value={newBook.author} onChange={(e) => setNewBook({...newBook, author: e.target.value})} placeholder="Autor..." style={{ padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'var(--border-light)'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)' }} />
                       </div>
                     </div>
                     
                     <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '1rem', marginBottom: '1.5rem' }}>
                       <div style={{ flex: 1 }}>
-                        <label style={{ fontSize: '0.8rem', color: '#888' }}>Pág. Atual</label>
-                        <input type="number" value={newBook.currentPage} onChange={(e) => setNewBook({...newBook, currentPage: parseInt(e.target.value) || 0})} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                        <label style={{ fontSize: '0.8rem', color: 'var(--gray)' }}>Pág. Atual</label>
+                        <input type="number" value={newBook.currentPage} onChange={(e) => setNewBook({...newBook, currentPage: parseInt(e.target.value) || 0})} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'var(--border-light)'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)' }} />
                       </div>
                       <div style={{ flex: 1 }}>
-                        <label style={{ fontSize: '0.8rem', color: '#888' }}>Total Págs</label>
-                        <input type="number" value={newBook.totalPages} onChange={(e) => setNewBook({...newBook, totalPages: parseInt(e.target.value) || 0})} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                        <label style={{ fontSize: '0.8rem', color: 'var(--gray)' }}>Total Págs</label>
+                        <input type="number" value={newBook.totalPages} onChange={(e) => setNewBook({...newBook, totalPages: parseInt(e.target.value) || 0})} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'var(--border-light)'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)' }} />
                       </div>
                       <div style={{ flex: 1 }}>
-                        <label style={{ fontSize: '0.8rem', color: '#888' }}>Link do PDF</label>
-                        <input type="text" value={newBook.link || ''} onChange={(e) => setNewBook({...newBook, link: e.target.value})} placeholder="https://..." style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+                        <label style={{ fontSize: '0.8rem', color: 'var(--gray)' }}>Link do PDF</label>
+                        <input type="text" value={newBook.link || ''} onChange={(e) => setNewBook({...newBook, link: e.target.value})} placeholder="https://..." style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'var(--border-light)'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)' }} />
                       </div>
                     </div>
                   </>
@@ -4015,7 +4015,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                     saveBooksToDb(updated);
                     setShowAddBook(false); setBookSearchQuery(''); setNewBook({ title: '', author: '', currentPage: 0, totalPages: 0 }); setEditingBookId(null);
                   }}
-                  style={{ width: '100%', padding: '0.75rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', fontSize: '1rem' }}
+                  style={{ width: '100%', padding: '0.75rem', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', fontSize: '1rem' }}
                 >
                   <Save size={18} style={{ marginRight: '0.5rem' }}/> {editingBookId ? 'Salvar Alterações' : 'Guardar na Estante'}
                 </button>
@@ -4043,37 +4043,37 @@ ${monthlyReport.desafioCrescimento || '-'}
                   const isPending = book.isPendingEnrichment;
 
                   return (
-                    <div key={book.id} style={{ background: isFinished ? (isDark ? 'rgba(76, 175, 80, 0.05)' : '#f0fdf4') : (isWarning ? (isDark ? 'rgba(231,76,60,0.05)' : '#fff5f5') : (isDark ? 'rgba(26, 26, 46, 0.4)' : 'rgba(255, 255, 255, 0.8)')), border: `1px solid ${isWarning ? '#e74c3c' : (isFinished ? '#4caf50' : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'))}`, borderRadius: '12px', padding: '1.2rem', position: 'relative', overflow: 'hidden', display: 'flex', gap: '1rem' }}>
+                    <div key={book.id} style={{ background: isFinished ? (isDark ? 'rgba(76, 175, 80, 0.05)' : '#f0fdf4') : (isWarning ? (isDark ? 'rgba(231,76,60,0.05)' : '#fff5f5') : (isDark ? 'rgba(26, 26, 46, 0.4)' : 'rgba(255, 255, 255, 0.8)')), border: `1px solid ${isWarning ? 'var(--danger)' : (isFinished ? 'var(--success)' : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'))}`, borderRadius: '12px', padding: '1.2rem', position: 'relative', overflow: 'hidden', display: 'flex', gap: '1rem' }}>
                       {isWarning && <input type="checkbox" checked={selectedForDeletion.includes(book.id)} onChange={() => toggleDeleteSelection(book.id)} style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 5, width: '20px', height: '20px', cursor: 'pointer' }} />}
                       
                       <div style={{ flexShrink: 0, width: '80px', height: '120px', background: '#333', borderRadius: '6px', overflow: 'hidden', boxShadow: '0 4px 10px rgba(0,0,0,0.3)', position: 'relative' }}>
                         <img src={book.thumbnail || 'https://placehold.co/80x120/1a1a2e/d4af37?text=Sem+Capa'} alt="Capa" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        {isPending && <div className="animate-fadeIn" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.8)', color: '#FFD700', fontSize: '0.65rem', textAlign: 'center', padding: '4px 0', fontWeight: 'bold' }}>Buscando...</div>}
+                        {isPending && <div className="animate-fadeIn" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.8)', color: 'var(--gold-bright)', fontSize: '0.65rem', textAlign: 'center', padding: '4px 0', fontWeight: 'bold' }}>Buscando...</div>}
                       </div>
 
                       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <h3 style={{ margin: 0, color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.1rem', fontFamily: "'Cinzel', serif", lineHeight: '1.2' }}>{book.title}</h3>
+                          <h3 style={{ margin: 0, color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.1rem', fontFamily: "'Cinzel', serif", lineHeight: '1.2' }}>{book.title}</h3>
                           <div style={{ display: 'flex', gap: '0.3rem' }}>
-                            <button onClick={() => { setEditingBookId(book.id); setNewBook(book); setShowAddBook(true); window.scrollTo(0,0); }} style={{ background: 'transparent', border: 'none', color: isDark ? '#d4af37' : '#6b4423', cursor: 'pointer' }}><Edit size={14} /></button>
-                            <button onClick={() => { if(window.confirm('Remover da estante?')) saveBooksToDb(books.filter(b => b.id !== book.id)); }} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer' }}><Trash2 size={14} /></button>
+                            <button onClick={() => { setEditingBookId(book.id); setNewBook(book); setShowAddBook(true); window.scrollTo(0,0); }} style={{ background: 'transparent', border: 'none', color: isDark ? 'var(--gold)' : 'var(--umber)', cursor: 'pointer' }}><Edit size={14} /></button>
+                            <button onClick={() => { if(window.confirm('Remover da estante?')) saveBooksToDb(books.filter(b => b.id !== book.id)); }} style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}><Trash2 size={14} /></button>
                           </div>
                         </div>
-                        <p style={{ margin: '0.2rem 0 0.5rem 0', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.85rem', fontStyle: 'italic' }}>{book.author}</p>
-                        {book.category && <span style={{ alignSelf: 'flex-start', fontSize: '0.65rem', padding: '2px 6px', background: isDark ? 'rgba(212,175,55,0.1)' : 'rgba(0,0,0,0.05)', borderRadius: '4px', color: isDark ? '#d4af37' : '#6b4423', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.75rem' }}>{book.category}</span>}
+                        <p style={{ margin: '0.2rem 0 0.5rem 0', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontSize: '0.85rem', fontStyle: 'italic' }}>{book.author}</p>
+                        {book.category && <span style={{ alignSelf: 'flex-start', fontSize: '0.65rem', padding: '2px 6px', background: isDark ? 'rgba(212,175,55,0.1)' : 'rgba(0,0,0,0.05)', borderRadius: '4px', color: isDark ? 'var(--gold)' : 'var(--umber)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.75rem' }}>{book.category}</span>}
 
                         {isWarning ? (
-                           <div style={{ marginTop: 'auto', padding: '0.6rem', background: '#e74c3c', color: 'white', borderRadius: '6px', fontSize: '0.8rem', textAlign: 'center', cursor: 'pointer', fontWeight: 'bold', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.4rem', boxShadow: '0 2px 5px rgba(231, 76, 60, 0.3)' }} onClick={() => { setEditingBookId(book.id); setNewBook(book); setShowAddBook(true); window.scrollTo(0,0); }}>
+                           <div style={{ marginTop: 'auto', padding: '0.6rem', background: 'var(--danger)', color: 'white', borderRadius: '6px', fontSize: '0.8rem', textAlign: 'center', cursor: 'pointer', fontWeight: 'bold', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.4rem', boxShadow: '0 2px 5px rgba(231, 76, 60, 0.3)' }} onClick={() => { setEditingBookId(book.id); setNewBook(book); setShowAddBook(true); window.scrollTo(0,0); }}>
                              <Search size={14} /> Completar Dados
                            </div>
                         ) : (
                           <>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '0.3rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', marginBottom: '0.3rem' }}>
                               <span>{isPending ? 'Analisando os astros...' : `${progress}% concluído`}</span>
-                              {isFinished && <span style={{ color: '#4caf50' }}>Lido</span>}
+                              {isFinished && <span style={{ color: 'var(--success)' }}>Lido</span>}
                             </div>
-                            <div style={{ width: '100%', height: '6px', background: isDark ? 'rgba(255,255,255,0.1)' : '#eee', borderRadius: '3px', overflow: 'hidden', marginBottom: '1rem' }}>
-                              <div style={{ width: `${progress}%`, height: '100%', background: isFinished ? '#4caf50' : (isDark ? '#d4af37' : '#6b4423'), transition: 'width 0.8s ease' }}></div>
+                            <div style={{ width: '100%', height: '6px', background: isDark ? 'rgba(255,255,255,0.1)' : 'var(--border-soft)', borderRadius: '3px', overflow: 'hidden', marginBottom: '1rem' }}>
+                              <div style={{ width: `${progress}%`, height: '100%', background: isFinished ? 'var(--success)' : (isDark ? 'var(--gold)' : 'var(--umber)'), transition: 'width 0.8s ease' }}></div>
                             </div>
                             {!isFinished && (
                               <div style={{ display: 'flex', gap: '0.4rem' }}>
@@ -4084,7 +4084,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                                     const acabouAgora = (novaPag >= book.totalPages);
                                     saveBooksToDb(books.map(b => b.id === book.id ? { ...b, currentPage: novaPag, finishedDate: acabouAgora ? new Date().toISOString() : null } : b));
                                   }
-                                }} style={{ flex: 1, padding: '0.5rem', background: 'transparent', color: isDark ? '#d4af37' : '#6b4423', border: `1px solid ${isDark ? 'rgba(212,175,55,0.4)' : '#ccc'}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}>+ Atualizar</button>
+                                }} style={{ flex: 1, padding: '0.5rem', background: 'transparent', color: isDark ? 'var(--gold)' : 'var(--umber)', border: `1px solid ${isDark ? 'rgba(212,175,55,0.4)' : 'var(--border-light)'}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}>+ Atualizar</button>
                               </div>
                             )}
                           </>
@@ -4092,13 +4092,13 @@ ${monthlyReport.desafioCrescimento || '-'}
                         
                         <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.75rem' }}>
                           {book.link && <a href={book.link} target="_blank" rel="noopener noreferrer" style={{ flex: 1, padding: '0.5rem', background: '#3498DB', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold', textDecoration: 'none', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}><FileText size={12} /> Abrir PDF</a>}
-                          <button onClick={(e) => { e.stopPropagation(); setExpandedNotesId(prev => prev === book.id ? null : book.id); }} style={{ flex: 1, padding: '0.5rem', background: expandedNotesId === book.id ? (isDark ? '#d4af37' : '#6b4423') : (isDark ? 'rgba(255,255,255,0.1)' : '#f0f0f0'), color: expandedNotesId === book.id ? (isDark ? '#1a1a2e' : 'white') : (isDark ? '#f0e6d2' : '#2c1810'), border: `1px solid ${expandedNotesId === book.id ? 'transparent' : (isDark ? '#555' : '#ccc')}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', transition: 'all 0.2s' }}><Edit size={12} /> {book.notes ? 'Ver Notas' : '+ Notas'}</button>
+                          <button onClick={(e) => { e.stopPropagation(); setExpandedNotesId(prev => prev === book.id ? null : book.id); }} style={{ flex: 1, padding: '0.5rem', background: expandedNotesId === book.id ? (isDark ? 'var(--gold)' : 'var(--umber)') : (isDark ? 'rgba(255,255,255,0.1)' : '#f0f0f0'), color: expandedNotesId === book.id ? (isDark ? 'var(--bg-dark)' : 'white') : (isDark ? 'var(--parchment)' : 'var(--ink)'), border: `1px solid ${expandedNotesId === book.id ? 'transparent' : (isDark ? 'var(--gray-strong)' : 'var(--border-light)')}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', transition: 'all 0.2s' }}><Edit size={12} /> {book.notes ? 'Ver Notas' : '+ Notas'}</button>
                         </div>
 
                         {expandedNotesId === book.id && (
                           <div className="animate-fadeIn" style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }} onClick={(e) => e.stopPropagation()}>
-                            <textarea value={book.notes || ''} onChange={(e) => setBooks(books.map(b => b.id === book.id ? { ...b, notes: e.target.value } : b))} placeholder="Suas reflexões..." rows={4} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.4)' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.4)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.9rem', fontFamily: 'Georgia, serif', resize: 'vertical' }} />
-                            <button onClick={(e) => { e.stopPropagation(); saveBooksToDb(books); setExpandedNotesId(null); }} style={{ alignSelf: 'flex-end', padding: '0.5rem 1.5rem', background: '#4caf50', color: 'white', border: 'none', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Save size={14} /> Salvar Fichamento</button>
+                            <textarea value={book.notes || ''} onChange={(e) => setBooks(books.map(b => b.id === book.id ? { ...b, notes: e.target.value } : b))} placeholder="Suas reflexões..." rows={4} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.4)' : 'var(--border-light)'}`, background: isDark ? 'rgba(0,0,0,0.4)' : 'var(--white)', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '0.9rem', fontFamily: 'Georgia, serif', resize: 'vertical' }} />
+                            <button onClick={(e) => { e.stopPropagation(); saveBooksToDb(books); setExpandedNotesId(null); }} style={{ alignSelf: 'flex-end', padding: '0.5rem 1.5rem', background: 'var(--success)', color: 'white', border: 'none', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Save size={14} /> Salvar Fichamento</button>
                           </div>
                         )}
                       </div>
@@ -4123,13 +4123,13 @@ ${monthlyReport.desafioCrescimento || '-'}
                     {/* BARRA DE PESQUISA NA ESTANTE */}
                     {books.length > 0 && (
                       <div style={{ position: 'relative', marginBottom: '1.5rem' }}>
-                        <Search size={18} color={isDark ? '#b8a88a' : '#6b5744'} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
-                        <input type="text" placeholder="Filtrar livros por título ou autor..." value={shelfSearchTerm} onChange={(e) => setShelfSearchTerm(e.target.value)} style={{ width: '100%', padding: '0.6rem 0.6rem 0.6rem 2.8rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.2)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
+                        <Search size={18} color={isDark ? 'var(--gold-muted)' : 'var(--umber-muted)'} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
+                        <input type="text" placeholder="Filtrar livros por título ou autor..." value={shelfSearchTerm} onChange={(e) => setShelfSearchTerm(e.target.value)} style={{ width: '100%', padding: '0.6rem 0.6rem 0.6rem 2.8rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'var(--border-light)'}`, borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.2)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }} />
                       </div>
                     )}
 
                     {books.length === 0 && !showAddBook ? (
-                      <div style={{ textAlign: 'center', padding: '3rem', color: isDark ? '#b8a88a' : '#6b5744' }}>
+                      <div style={{ textAlign: 'center', padding: '3rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)' }}>
                         <Bookmark size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
                         <p style={{ fontSize: '1.1rem' }}>Sua estante pessoal está vazia. Adicione o livro que está lendo.</p>
                       </div>
@@ -4138,7 +4138,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                         {/* 1. SEÇÃO ESTOU LENDO */}
                         {readingBooks.length > 0 && (
                           <div style={{ marginBottom: '1.5rem' }}>
-                            <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#FFD700' : '#996515', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><BookOpen size={18} /> Estante (Lendo Agora)</h3>
+                            <h3 style={{ margin: '0 0 1rem 0', color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><BookOpen size={18} /> Estante (Lendo Agora)</h3>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
                               {readingBooks.map(b => renderBookCard(b, false))}
                             </div>
@@ -4148,7 +4148,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                         {/* 2. SEÇÃO PROMESSSAS (JÁ TENHO) */}
                         {ownedBooks.length > 0 && (
                           <div style={{ marginBottom: '1.5rem' }}>
-                            <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Bookmark size={18} /> Minha Biblioteca (Vou Começar)</h3>
+                            <h3 style={{ margin: '0 0 1rem 0', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Bookmark size={18} /> Minha Biblioteca (Vou Começar)</h3>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
                               {ownedBooks.map(b => renderBookCard(b, false))}
                             </div>
@@ -4159,9 +4159,9 @@ ${monthlyReport.desafioCrescimento || '-'}
                         {attentionBooks.length > 0 && (
                           <div style={{ marginBottom: '1.5rem', paddingTop: '1.5rem', borderTop: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`}}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
-                              <h3 style={{ margin: 0, color: '#e74c3c', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><AlertCircle size={18} /> Requer Atenção (Sem Páginas)</h3>
+                              <h3 style={{ margin: 0, color: 'var(--danger)', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><AlertCircle size={18} /> Requer Atenção (Sem Páginas)</h3>
                               {selectedForDeletion.length > 0 && (
-                                <button onClick={() => { if(window.confirm(`Apagar ${selectedForDeletion.length} livros permanentemente?`)) { saveBooksToDb(books.filter(b => !selectedForDeletion.includes(b.id))); setSelectedForDeletion([]); } }} style={{ background: '#e74c3c', color: 'white', padding: '0.5rem 1rem', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
+                                <button onClick={() => { if(window.confirm(`Apagar ${selectedForDeletion.length} livros permanentemente?`)) { saveBooksToDb(books.filter(b => !selectedForDeletion.includes(b.id))); setSelectedForDeletion([]); } }} style={{ background: 'var(--danger)', color: 'white', padding: '0.5rem 1rem', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
                                   🗑️ Apagar Selecionados ({selectedForDeletion.length})
                                 </button>
                               )}
@@ -4175,7 +4175,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                         {/* 4. SEÇÃO LISTA DE DESEJOS */}
                         {wishBooks.length > 0 && (
                           <div style={{ marginBottom: '1.5rem' }}>
-                            <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Star size={18} /> Lista de Desejos (Quero Comprar)</h3>
+                            <h3 style={{ margin: '0 0 1rem 0', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Star size={18} /> Lista de Desejos (Quero Comprar)</h3>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem', opacity: 0.8 }}>
                               {wishBooks.map(b => renderBookCard(b, false))}
                             </div>
@@ -4186,8 +4186,8 @@ ${monthlyReport.desafioCrescimento || '-'}
                         {readBooks.length > 0 && (
                           <div style={{ paddingTop: '1.5rem', borderTop: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`}}>
                             <div onClick={() => setShowReadBooks(!showReadBooks)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', padding: '0.5rem 0' }}>
-                              <h3 style={{ margin: 0, color: '#4caf50', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Award size={18} /> Sabedoria Acumulada ({readBooks.length} obras lidas)</h3>
-                              {showReadBooks ? <ChevronUp size={20} color="#4caf50" /> : <ChevronDown size={20} color="#4caf50" />}
+                              <h3 style={{ margin: 0, color: 'var(--success)', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Award size={18} /> Sabedoria Acumulada ({readBooks.length} obras lidas)</h3>
+                              {showReadBooks ? <ChevronUp size={20} color="var(--success)" /> : <ChevronDown size={20} color="var(--success)" />}
                             </div>
                             {showReadBooks && (
                               <div className="animate-fadeIn" style={{ marginTop: '1.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
@@ -4208,33 +4208,33 @@ ${monthlyReport.desafioCrescimento || '-'}
         {/* SEÇÃO DA BIBLIOTECA DE VIRTUDES (AGORA FUNDIDA COM LEITURAS E EM GAVETA) */}
         {view === 'leituras' && (
           <div className="animate-fadeIn" style={{ marginTop: '2rem' }}>
-            <div style={getBlockStyle('partial', isVirtuesOpen, isDark ? '#d4af37' : '#8b7355')}>
+            <div style={getBlockStyle('partial', isVirtuesOpen, isDark ? 'var(--gold)' : 'var(--umber-soft)')}>
               <div onClick={() => setIsVirtuesOpen(!isVirtuesOpen)} style={getHeaderStyle('partial', isVirtuesOpen)}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <Book size={28} color={isDark ? '#d4af37' : '#8b7355'} />
-                  <h2 style={{ margin: 0, fontSize: 'clamp(1.1rem, 3vw, 1.4rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif" }}>
+                  <Book size={28} color={isDark ? 'var(--gold)' : 'var(--umber-soft)'} />
+                  <h2 style={{ margin: 0, fontSize: 'clamp(1.1rem, 3vw, 1.4rem)', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: "'Cinzel', serif" }}>
                     {fvUnlocked ? "Virtudes Acropolitanas" : "Biblioteca de Virtudes"}
                   </h2>
                 </div>
-                {isVirtuesOpen ? <ChevronUp size={24} color={isDark ? '#d4af37' : '#8b7355'} /> : <ChevronDown size={24} color={isDark ? '#d4af37' : '#8b7355'} />}
+                {isVirtuesOpen ? <ChevronUp size={24} color={isDark ? 'var(--gold)' : 'var(--umber-soft)'} /> : <ChevronDown size={24} color={isDark ? 'var(--gold)' : 'var(--umber-soft)'} />}
               </div>
 
               {isVirtuesOpen && (
                 <div className="animate-fadeIn" style={{ padding: '0 2rem 2rem 2rem' }}>
-                  <p style={{ color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2rem', fontSize: '1rem', fontStyle: 'italic' }}>
+                  <p style={{ color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', marginBottom: '2rem', fontSize: '1rem', fontStyle: 'italic' }}>
                     Conheça as virtudes que estamos estudando e suas práticas
                   </p>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
                     {virtues.map((virtue, index) => (
                       <div key={index} onClick={() => setSelectedVirtueDetail(selectedVirtueDetail === virtue.name ? null : virtue.name)} style={{ padding: '1.5rem', background: selectedVirtueDetail === virtue.name ? (isDark ? `${virtue.color}20` : `${virtue.color}15`) : (isDark ? 'rgba(26, 26, 46, 0.4)' : 'rgba(255, 255, 255, 0.8)'), border: `2px solid ${selectedVirtueDetail === virtue.name ? virtue.color : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)')}`, borderRadius: '12px', cursor: 'pointer', transition: 'all 0.3s ease' }}>
                         <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '1.3rem', color: virtue.color, fontFamily: "'Cinzel', serif" }}>{virtue.name}</h3>
-                        <p style={{ fontSize: '0.95rem', color: isDark ? '#c8b896' : '#6b5744', margin: '0 0 1rem 0', fontStyle: 'italic' }}>{virtue.shortDesc}</p>
+                        <p style={{ fontSize: '0.95rem', color: isDark ? 'var(--tan-soft)' : 'var(--umber-muted)', margin: '0 0 1rem 0', fontStyle: 'italic' }}>{virtue.shortDesc}</p>
                         {selectedVirtueDetail === virtue.name && (
                           <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}` }}>
-                            <p style={{ fontSize: '1rem', color: isDark ? '#f0e6d2' : '#2c1810', marginBottom: '1rem', lineHeight: '1.7' }}>{virtue.description}</p>
+                            <p style={{ fontSize: '1rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', marginBottom: '1rem', lineHeight: '1.7' }}>{virtue.description}</p>
                             <div style={{ padding: '1rem', background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'rgba(255, 255, 255, 0.5)', borderRadius: '8px' }}>
                               <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem', color: virtue.color, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Práticas Sugeridas:</h4>
-                              <p style={{ fontSize: '0.95rem', color: isDark ? '#c8b896' : '#6b5744', margin: 0, lineHeight: '1.8', whiteSpace: 'pre-line' }}>
+                              <p style={{ fontSize: '0.95rem', color: isDark ? 'var(--tan-soft)' : 'var(--umber-muted)', margin: 0, lineHeight: '1.8', whiteSpace: 'pre-line' }}>
                                 {fvUnlocked ? (virtue.internalPractices || virtue.practices) : virtue.practices}
                               </p>
                             </div>
@@ -4254,15 +4254,15 @@ ${monthlyReport.desafioCrescimento || '-'}
           <div className="animate-fadeIn">
             <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-                <TrendingUp size={32} color={isDark ? '#d4af37' : '#6b4423'} />
-                <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif" }}>Métricas da Alma</h2>
+                <TrendingUp size={32} color={isDark ? 'var(--gold)' : 'var(--umber)'} />
+                <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: "'Cinzel', serif" }}>Métricas da Alma</h2>
               </div>
-              <p style={{ color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2rem', fontSize: '1rem' }}>Observe seus padrões de comportamento e a constância do seu autoexame.</p>
+              <p style={{ color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', marginBottom: '2rem', fontSize: '1rem' }}>Observe seus padrões de comportamento e a constância do seu autoexame.</p>
 
               {entries.length === 0 ? (
-                <div style={{ padding: '3rem', textAlign: 'center', background: isDark ? 'rgba(26, 26, 46, 0.4)' : '#fdfbf7', borderRadius: '12px' }}>
-                  <TrendingUp size={48} color={isDark ? '#d4af37' : '#6b4423'} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
-                  <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontSize: '1.1rem' }}>Ainda não há dados suficientes para gerar métricas. Continue forjando seu diário!</p>
+                <div style={{ padding: '3rem', textAlign: 'center', background: isDark ? 'rgba(26, 26, 46, 0.4)' : 'var(--bg-light)', borderRadius: '12px' }}>
+                  <TrendingUp size={48} color={isDark ? 'var(--gold)' : 'var(--umber)'} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
+                  <p style={{ color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontSize: '1.1rem' }}>Ainda não há dados suficientes para gerar métricas. Continue forjando seu diário!</p>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -4309,31 +4309,31 @@ ${monthlyReport.desafioCrescimento || '-'}
                         <>
                           {/* CARDS DE VISÃO GERAL (NOVO FORMATO DASHBOARD) */}
                           <div style={{ background: isDark ? 'rgba(212, 175, 55, 0.05)' : '#fffbf0', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(212, 175, 55, 0.3)'}`, marginBottom: '2rem' }}>
-                            <h4 style={{ margin: '0 0 1rem 0', color: isDark ? '#FFD700' : '#996515', fontSize: '1.1rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}><TrendingUp size={18} /> Resumo do Ciclo (30 dias)</h4>
+                            <h4 style={{ margin: '0 0 1rem 0', color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', fontSize: '1.1rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}><TrendingUp size={18} /> Resumo do Ciclo (30 dias)</h4>
                             
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                               
                               {/* Card 1: Preenchimentos */}
-                              <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', padding: '1.5rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : '#ccc'}`, display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                                <span style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', marginBottom: '0.5rem', textAlign: 'center' }}>Dias Forjados</span>
+                              <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', padding: '1.5rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'var(--border-light)'}`, display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                                <span style={{ fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', marginBottom: '0.5rem', textAlign: 'center' }}>Dias Forjados</span>
                                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
-                                  <span style={{ fontSize: '2.5rem', fontWeight: 'bold', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif" }}>{preenchimentosAtual}</span>
-                                  <span style={{ fontSize: '1rem', color: isDark ? '#888' : '#999' }}>/ 30</span>
+                                  <span style={{ fontSize: '2.5rem', fontWeight: 'bold', color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', fontFamily: "'Cinzel', serif" }}>{preenchimentosAtual}</span>
+                                  <span style={{ fontSize: '1rem', color: isDark ? 'var(--gray)' : '#999' }}>/ 30</span>
                                 </div>
-                                <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.3rem', background: varPreenchimentos >= 0 ? 'rgba(76, 175, 80, 0.15)' : 'rgba(231, 76, 60, 0.15)', color: varPreenchimentos >= 0 ? (isDark ? '#81c784' : '#2e7d32') : '#e74c3c', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                                <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.3rem', background: varPreenchimentos >= 0 ? 'rgba(76, 175, 80, 0.15)' : 'rgba(231, 76, 60, 0.15)', color: varPreenchimentos >= 0 ? (isDark ? 'var(--success-soft)' : 'var(--success-strong)') : 'var(--danger)', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 'bold' }}>
                                   {varPreenchimentos >= 0 ? <ChevronUp size={16} /> : <ChevronDown size={16} />} 
                                   {varPreenchimentos > 0 ? '+' : ''}{varPreenchimentos}%
                                 </div>
                               </div>
 
                               {/* Card 2: Práticas Realizadas */}
-                              <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', padding: '1.5rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : '#ccc'}`, display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                                <span style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', marginBottom: '0.5rem', textAlign: 'center' }}>Práticas Realizadas</span>
+                              <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', padding: '1.5rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'var(--border-light)'}`, display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                                <span style={{ fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', marginBottom: '0.5rem', textAlign: 'center' }}>Práticas Realizadas</span>
                                 <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
-                                  <span style={{ fontSize: '2.5rem', fontWeight: 'bold', color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif" }}>{praticasAtual}</span>
-                                  <span style={{ fontSize: '1rem', color: isDark ? '#888' : '#999' }}>ações</span>
+                                  <span style={{ fontSize: '2.5rem', fontWeight: 'bold', color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', fontFamily: "'Cinzel', serif" }}>{praticasAtual}</span>
+                                  <span style={{ fontSize: '1rem', color: isDark ? 'var(--gray)' : '#999' }}>ações</span>
                                 </div>
-                                <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.3rem', background: varPraticas >= 0 ? 'rgba(76, 175, 80, 0.15)' : 'rgba(231, 76, 60, 0.15)', color: varPraticas >= 0 ? (isDark ? '#81c784' : '#2e7d32') : '#e74c3c', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 'bold' }}>
+                                <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.3rem', background: varPraticas >= 0 ? 'rgba(76, 175, 80, 0.15)' : 'rgba(231, 76, 60, 0.15)', color: varPraticas >= 0 ? (isDark ? 'var(--success-soft)' : 'var(--success-strong)') : 'var(--danger)', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 'bold' }}>
                                   {varPraticas >= 0 ? <ChevronUp size={16} /> : <ChevronDown size={16} />} 
                                   {varPraticas > 0 ? '+' : ''}{varPraticas}%
                                 </div>
@@ -4344,26 +4344,26 @@ ${monthlyReport.desafioCrescimento || '-'}
 
                           {/* GRÁFICO DE BARRAS DAS VIRTUDES */}
                           <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'white', padding: '2rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}` }}>
-                            <h3 style={{ margin: '0 0 1.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.2rem', fontFamily: "'Cinzel', serif" }}>Virtudes Mais Invocadas</h3>
+                            <h3 style={{ margin: '0 0 1.5rem 0', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.2rem', fontFamily: "'Cinzel', serif" }}>Virtudes Mais Invocadas</h3>
                             {topVirtues.length > 0 ? (
                                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
                                  {topVirtues.map(([vName, vCount]) => {
                                     const percentage = Math.round((vCount / total) * 100);
                                     return (
                                       <div key={vName}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem', fontSize: '0.95rem', color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 'bold' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem', fontSize: '0.95rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontWeight: 'bold' }}>
                                           <span>{vName}</span>
-                                          <span style={{ color: isDark ? '#d4af37' : '#6b4423' }}>{vCount} vezes ({percentage}%)</span>
+                                          <span style={{ color: isDark ? 'var(--gold)' : 'var(--umber)' }}>{vCount} vezes ({percentage}%)</span>
                                         </div>
                                         <div style={{ width: '100%', height: '12px', background: isDark ? 'rgba(255,255,255,0.05)' : '#f0f0f0', borderRadius: '6px', overflow: 'hidden' }}>
-                                          <div style={{ width: `${percentage}%`, height: '100%', background: isDark ? 'linear-gradient(90deg, #b8a88a 0%, #d4af37 100%)' : 'linear-gradient(90deg, #8b7355 0%, #6b4423 100%)', borderRadius: '6px', transition: 'width 1s ease-out' }}></div>
+                                          <div style={{ width: `${percentage}%`, height: '100%', background: isDark ? 'linear-gradient(90deg, var(--gold-muted) 0%, var(--gold) 100%)' : 'linear-gradient(90deg, var(--umber-soft) 0%, var(--umber) 100%)', borderRadius: '6px', transition: 'width 1s ease-out' }}></div>
                                         </div>
                                       </div>
                                     );
                                  })}
                                </div>
                             ) : (
-                               <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', fontSize: '0.95rem', margin: 0 }}>Nenhuma virtude registrada nas suas anotações matinais.</p>
+                               <p style={{ color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontStyle: 'italic', fontSize: '0.95rem', margin: 0 }}>Nenhuma virtude registrada nas suas anotações matinais.</p>
                             )}
                           </div>
 
@@ -4382,31 +4382,31 @@ ${monthlyReport.desafioCrescimento || '-'}
             
             {/* 1. RESUMO FIXO NO TOPO (Dashboard de Leitura) */}
             <div style={{ background: isDark ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.05) 0%, rgba(255, 165, 0, 0.05) 100%)' : '#fffbf0', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255, 215, 0, 0.3)' : '#ffe082'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-              <h3 style={{ margin: '0 0 1.2rem 0', color: isDark ? '#ffd700' : '#d4af37', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.2rem' }}><Award size={20} /> Planejamento do Discipulado</h3>
+              <h3 style={{ margin: '0 0 1.2rem 0', color: isDark ? 'var(--gold-bright)' : 'var(--gold)', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.2rem' }}><Award size={20} /> Planejamento do Discipulado</h3>
               
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1.5rem', paddingBottom: '1.5rem', borderBottom: `1px solid ${isDark ? 'rgba(255,215,0,0.1)' : 'rgba(139,115,85,0.1)'}`, marginBottom: '1.5rem' }}>
                 <div>
-                  <span style={{ fontSize: '0.75rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', fontWeight: 'bold', display: 'block', marginBottom: '0.2rem' }}>Minha Unidade</span>
-                  <strong style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.1rem' }}>{fvUnidade || 'Não definida'}</strong>
+                  <span style={{ fontSize: '0.75rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', textTransform: 'uppercase', fontWeight: 'bold', display: 'block', marginBottom: '0.2rem' }}>Minha Unidade</span>
+                  <strong style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.1rem' }}>{fvUnidade || 'Não definida'}</strong>
                 </div>
                 <div>
-                  <span style={{ fontSize: '0.75rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', fontWeight: 'bold', display: 'block', marginBottom: '0.2rem' }}>Minha Condição</span>
-                  <strong style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.1rem' }}>{fvCondicao || 'Não definida'}</strong>
+                  <span style={{ fontSize: '0.75rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', textTransform: 'uppercase', fontWeight: 'bold', display: 'block', marginBottom: '0.2rem' }}>Minha Condição</span>
+                  <strong style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.1rem' }}>{fvCondicao || 'Não definida'}</strong>
                 </div>
                 <div>
-                  <span style={{ fontSize: '0.75rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', fontWeight: 'bold', display: 'block', marginBottom: '0.2rem' }}>Mestre / Instrutor</span>
-                  <strong style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.1rem' }}>{fvMasterName || 'Não definido'}</strong>
+                  <span style={{ fontSize: '0.75rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', textTransform: 'uppercase', fontWeight: 'bold', display: 'block', marginBottom: '0.2rem' }}>Mestre / Instrutor</span>
+                  <strong style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.1rem' }}>{fvMasterName || 'Não definido'}</strong>
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
                 <div>
-                  <span style={{ fontSize: '0.75rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', fontWeight: 'bold', display: 'block', marginBottom: '0.2rem' }}>Próxima Entrega</span>
-                  <strong style={{ color: '#e74c3c', fontSize: '1.1rem' }}>{fvNextCartaDate ? new Date(fvNextCartaDate + 'T12:00:00').toLocaleDateString('pt-BR') : '--/--/--'}</strong>
+                  <span style={{ fontSize: '0.75rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', textTransform: 'uppercase', fontWeight: 'bold', display: 'block', marginBottom: '0.2rem' }}>Próxima Entrega</span>
+                  <strong style={{ color: 'var(--danger)', fontSize: '1.1rem' }}>{fvNextCartaDate ? new Date(fvNextCartaDate + 'T12:00:00').toLocaleDateString('pt-BR') : '--/--/--'}</strong>
                 </div>
                 <div>
-                  <span style={{ fontSize: '0.75rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', fontWeight: 'bold', display: 'block', marginBottom: '0.2rem' }}>Próxima Reunião</span>
-                  <strong style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.1rem' }}>{fvGdveReuniao ? new Date(fvGdveReuniao).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '--/--/--'}</strong>
+                  <span style={{ fontSize: '0.75rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', textTransform: 'uppercase', fontWeight: 'bold', display: 'block', marginBottom: '0.2rem' }}>Próxima Reunião</span>
+                  <strong style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.1rem' }}>{fvGdveReuniao ? new Date(fvGdveReuniao).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '--/--/--'}</strong>
                 </div>
               </div>
             </div>
@@ -4452,14 +4452,14 @@ ${monthlyReport.desafioCrescimento || '-'}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                   
                   {/* GAVETA: MESTRE E CARTA */}
-                  <div style={getBlockStyle(planStatus, isGdvePlanOpen, isDark ? '#FFD700' : '#996515')}>
+                  <div style={getBlockStyle(planStatus, isGdvePlanOpen, isDark ? 'var(--gold-bright)' : 'var(--umber-bright)')}>
                     <div onClick={() => setIsGdvePlanOpen(!isGdvePlanOpen)} style={getHeaderStyle(planStatus, isGdvePlanOpen)}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <Shield size={28} color={isDark ? '#FFD700' : '#996515'} />
-                        <h2 style={{ margin: 0, fontSize: 'clamp(1.1rem, 3vw, 1.4rem)', color: planStatus === 'overdue' ? '#e74c3c' : (isDark ? '#f0e6d2' : '#2c1810'), fontFamily: "'Cinzel', serif", textDecoration: planStatus === 'full' && !isGdvePlanOpen ? 'line-through' : 'none' }}>
+                        <Shield size={28} color={isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'} />
+                        <h2 style={{ margin: 0, fontSize: 'clamp(1.1rem, 3vw, 1.4rem)', color: planStatus === 'overdue' ? 'var(--danger)' : (isDark ? 'var(--parchment)' : 'var(--ink)'), fontFamily: "'Cinzel', serif", textDecoration: planStatus === 'full' && !isGdvePlanOpen ? 'line-through' : 'none' }}>
                           Mestre e Carta 
                           {planStatus === 'partial' && !isGdvePlanOpen && <span style={{fontSize: '0.8rem', opacity: 0.7}}> (Incompleto)</span>}
-                          {planStatus === 'overdue' && !isGdvePlanOpen && <span style={{fontSize: '0.8rem', color: '#e74c3c', fontStyle: 'italic', fontFamily: 'Georgia, serif'}}> (Atrasada!)</span>}
+                          {planStatus === 'overdue' && !isGdvePlanOpen && <span style={{fontSize: '0.8rem', color: 'var(--danger)', fontStyle: 'italic', fontFamily: 'Georgia, serif'}}> (Atrasada!)</span>}
                         </h2>
                       </div>
                       {isGdvePlanOpen ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
@@ -4471,91 +4471,91 @@ ${monthlyReport.desafioCrescimento || '-'}
                          {/* DADOS DE PERFIL */}
                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
                             <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Unidade</label>
-                              <select value={fvUnidade || ''} onChange={(e) => setFvUnidade(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }}>
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)' }}>Unidade</label>
+                              <select value={fvUnidade || ''} onChange={(e) => setFvUnidade(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : 'var(--border-light)'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }}>
                                 <option value="">Selecione...</option>
                                 {['ACROPOLEPLAY', 'AGORA', 'ÁGUAS CLARAS', 'ALTIPLANO', 'ALTO DA GLORIA', 'ANANINDEUA', 'ANÁPOLIS', 'ARAGUAINA', 'ASA NORTE', 'ASA SUL', 'BARRA DO GARÇAS', 'BELÉM', 'BOA VISTA', 'BODHIDHARMA', 'BRASÍLIA', 'BRASILIA SAMAMBAIA', 'CAMPINA GRANDE', 'CAMPO NOVO DO PARECIS', 'CARUARU', 'CATALÃO', 'CEILÂNDIA', 'CUIABÁ', 'FAZENDA NOVA ACRÓPOLE', 'FORMOSA', 'FORTALEZA DIONISIO TORRES', 'FORTALEZA FÁTIMA', 'FORTALEZA MEIRELES', 'FORTALEZA MESSEJANA', 'FORTALEZA SUL', 'GAMA', 'GOIANIA CIDADE JARDIM', 'GOIÂNIA ELDORADO', 'GOIANIA GARAVELO', 'GOIANIA II', 'GOIANIA ITUMBIARA', 'GOIANIA JARDIM AMÉRICA', 'GOIANIA SETOR OESTE', 'GOIÂNIA UNIVERSITARIO', 'GUARÁ', 'ITACA', 'JOÃO PESSOA', 'JUAZEIRO DO NORTE', 'LAGO SUL', 'MACAPÁ', 'MANAUS', 'MÓDULO SÃO JORGE', 'MOSSORÓ', 'MOSSORÓ ASSU', 'NATAL CANDELARIA', 'NATAL MORRO BRANCO', 'NATAL PONTA NEGRA', 'NATAL TIROL', 'NATAL ZONA NORTE', 'NOVA PARNAMIRIM', 'PALMAS', 'PALMAS AURENY', 'PETROLINA', 'PLANALTINA', 'PORTO VELHO', 'RECIFE BOA VIAGEM', 'RECIFE DERBY', 'RIO VERDE', 'RONDONÓPOLIS', 'SANTA MARIA', 'SÃO LUIS', 'SAO LUIS VINHAIS', 'SENADOR CANEDO', 'SERAPHIS', 'SINOP', 'SOBRADINHO', 'SOBRAL', 'SORRISO', 'SUDOESTE', 'TAGUATINGA', 'TERESINA', 'VALPARAISO', 'Outra'].map(u => <option key={u} value={u}>{u}</option>)}
                               </select>
                             </div>
                             <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Condição</label>
-                              <select value={fvCondicao || ''} onChange={(e) => setFvCondicao(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }}>
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)' }}>Condição</label>
+                              <select value={fvCondicao || ''} onChange={(e) => setFvCondicao(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : 'var(--border-light)'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }}>
                                 <option value="">Selecione...</option>
                                 {['GS', 'GF', 'GM', 'Prov GS', 'Prov GF', 'Prov GM'].map(c => <option key={c} value={c}>{c}</option>)}
                               </select>
                             </div>
                             <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Mestre / Instrutor (CD)</label>
-                              <input type="text" value={fvMasterName || ''} onChange={(e) => setFvMasterName(e.target.value)} placeholder="Com quem você se reporta..." style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)' }}>Mestre / Instrutor (CD)</label>
+                              <input type="text" value={fvMasterName || ''} onChange={(e) => setFvMasterName(e.target.value)} placeholder="Com quem você se reporta..." style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : 'var(--border-light)'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }} />
                             </div>
                          </div>
 
                          {/* DATAS DA CARTA */}
                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
                             <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Último Encontro / Entrevista</label>
-                              <input type="date" value={fvLastMeetingDate || ''} onChange={(e) => setFvLastMeetingDate(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)' }}>Último Encontro / Entrevista</label>
+                              <input type="date" value={fvLastMeetingDate || ''} onChange={(e) => setFvLastMeetingDate(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : 'var(--border-light)'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }} />
                             </div>
                             <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Última Entrega de Carta</label>
-                              <input type="date" value={fvLastCartaDate || ''} onChange={(e) => { const novaData = e.target.value; setFvLastCartaDate(novaData); if (novaData) { const [ano, mes, dia] = novaData.split('-'); const dataCalculada = new Date(parseInt(ano, 10), parseInt(mes, 10) - 1 + 3, parseInt(dia, 10)); setFvNextCartaDate(`${dataCalculada.getFullYear()}-${String(dataCalculada.getMonth() + 1).padStart(2, '0')}-${String(dataCalculada.getDate()).padStart(2, '0')}`); } else { setFvNextCartaDate(''); } }} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)' }}>Última Entrega de Carta</label>
+                              <input type="date" value={fvLastCartaDate || ''} onChange={(e) => { const novaData = e.target.value; setFvLastCartaDate(novaData); if (novaData) { const [ano, mes, dia] = novaData.split('-'); const dataCalculada = new Date(parseInt(ano, 10), parseInt(mes, 10) - 1 + 3, parseInt(dia, 10)); setFvNextCartaDate(`${dataCalculada.getFullYear()}-${String(dataCalculada.getMonth() + 1).padStart(2, '0')}-${String(dataCalculada.getDate()).padStart(2, '0')}`); } else { setFvNextCartaDate(''); } }} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : 'var(--border-light)'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }} />
                             </div>
                             <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#FFD700' : '#996515' }}>Próxima Entrega (Previsão)</label>
-                              <input type="date" value={fvNextCartaDate || ''} onChange={(e) => setFvNextCartaDate(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#ccc'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} />
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)' }}>Próxima Entrega (Previsão)</label>
+                              <input type="date" value={fvNextCartaDate || ''} onChange={(e) => setFvNextCartaDate(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : 'var(--border-light)'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }} />
                             </div>
                          </div>
 
                          {/* EXPORTAR CARTA DE DEGRAU (SÍNTESE DO CICLO) */}
-                         <div style={{ marginBottom: '2rem', padding: '1.5rem', background: isDark ? 'rgba(0,0,0,0.2)' : '#f9f9f9', borderRadius: '12px', border: `1px dashed ${isDark ? 'rgba(212, 175, 55, 0.3)' : '#ccc'}` }}>
-                            <button onClick={gerarCartaDegrau} disabled={isGeneratingCartaDegrau} style={{ width: '100%', padding: '0.9rem', background: isGeneratingCartaDegrau ? (isDark ? 'rgba(255,152,0,0.15)' : '#fff3e0') : (isDark ? '#d4af37' : '#6b4423'), color: isGeneratingCartaDegrau ? (isDark ? '#ff9800' : '#e65100') : (isDark ? '#1a1a2e' : 'white'), border: 'none', borderRadius: '8px', fontSize: '1.05rem', fontWeight: 'bold', cursor: isGeneratingCartaDegrau ? 'not-allowed' : 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                         <div style={{ marginBottom: '2rem', padding: '1.5rem', background: isDark ? 'rgba(0,0,0,0.2)' : 'var(--gray-bg)', borderRadius: '12px', border: `1px dashed ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'var(--border-light)'}` }}>
+                            <button onClick={gerarCartaDegrau} disabled={isGeneratingCartaDegrau} style={{ width: '100%', padding: '0.9rem', background: isGeneratingCartaDegrau ? (isDark ? 'rgba(255,152,0,0.15)' : '#fff3e0') : (isDark ? 'var(--gold)' : 'var(--umber)'), color: isGeneratingCartaDegrau ? (isDark ? 'var(--orange)' : 'var(--orange-strong)') : (isDark ? 'var(--bg-dark)' : 'white'), border: 'none', borderRadius: '8px', fontSize: '1.05rem', fontWeight: 'bold', cursor: isGeneratingCartaDegrau ? 'not-allowed' : 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                               {isGeneratingCartaDegrau ? <Sparkles className="animate-spin" size={18} /> : <FileText size={18} />}
                               {isGeneratingCartaDegrau ? 'Sintetizando seu ciclo...' : 'Exportar Carta de Degrau (Síntese do Ciclo)'}
                             </button>
-                            <p style={{ margin: '0.75rem 0 0 0', fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic', textAlign: 'center' }}>
+                            <p style={{ margin: '0.75rem 0 0 0', fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontStyle: 'italic', textAlign: 'center' }}>
                               Gera um rascunho sintetizando suas respostas da "Escalada (Degrau)" desde {fvLastCartaDate ? `a última entrega (${new Date(fvLastCartaDate + 'T12:00:00').toLocaleDateString('pt-BR')})` : 'os últimos 30 dias'}. Revise com atenção antes de entregar ao seu Instrutor.
                             </p>
                          </div>
 
                          {/* CONFIGURAÇÃO DO CALENDÁRIO DE ATIVIDADES (Com Múltiplos Dias e Horas) */}
-                         <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: `1px dashed ${isDark ? 'rgba(212, 175, 55, 0.3)' : '#ccc'}`, marginBottom: '2rem' }}>
-                            <h4 style={{ margin: '0 0 1rem 0', color: isDark ? '#FFD700' : '#996515', fontSize: '1rem', fontFamily: "'Cinzel', serif" }}>Calendário Fixo de Atividades</h4>
+                         <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: `1px dashed ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'var(--border-light)'}`, marginBottom: '2rem' }}>
+                            <h4 style={{ margin: '0 0 1rem 0', color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', fontSize: '1rem', fontFamily: "'Cinzel', serif" }}>Calendário Fixo de Atividades</h4>
                             
                             {/* Aulas Regulares e Raio */}
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                               <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : '#f9f9f9', padding: '1rem', borderRadius: '8px' }}>
-                                 <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#666', fontWeight: 'bold' }}>Aula Regular (Curso)</label>
+                               <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'var(--gray-bg)', padding: '1rem', borderRadius: '8px' }}>
+                                 <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)', fontWeight: 'bold' }}>Aula Regular (Curso)</label>
                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                    <select value={fvCalendar.aulaRegularDia} onChange={(e) => setFvCalendar({...fvCalendar, aulaRegularDia: e.target.value})} style={{ padding: '0.6rem', borderRadius: '6px', background: isDark ? 'rgba(26,26,46,0.8)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', border: '1px solid #ccc' }}>
+                                    <select value={fvCalendar.aulaRegularDia} onChange={(e) => setFvCalendar({...fvCalendar, aulaRegularDia: e.target.value})} style={{ padding: '0.6rem', borderRadius: '6px', background: isDark ? 'rgba(26,26,46,0.8)' : 'var(--white)', color: isDark ? 'var(--parchment)' : 'var(--ink)', border: '1px solid var(--border-light)' }}>
                                       <option value="">Selecione o Dia...</option>
                                       {['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'].map((d, i) => <option key={i} value={String(i)}>{d}</option>)}
                                     </select>
                                     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                      <input type="time" title="Início" value={fvCalendar.aulaRegularHora} onChange={(e) => setFvCalendar({...fvCalendar, aulaRegularHora: e.target.value})} style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid #ccc' }} />
-                                      <span style={{ color: isDark ? '#f0e6d2' : '#2c1810' }}>até</span>
-                                      <input type="time" title="Fim" value={fvCalendar.aulaRegularFim} onChange={(e) => setFvCalendar({...fvCalendar, aulaRegularFim: e.target.value})} style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid #ccc' }} />
+                                      <input type="time" title="Início" value={fvCalendar.aulaRegularHora} onChange={(e) => setFvCalendar({...fvCalendar, aulaRegularHora: e.target.value})} style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-light)' }} />
+                                      <span style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>até</span>
+                                      <input type="time" title="Fim" value={fvCalendar.aulaRegularFim} onChange={(e) => setFvCalendar({...fvCalendar, aulaRegularFim: e.target.value})} style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-light)' }} />
                                     </div>
                                  </div>
                                </div>
-                               <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : '#f9f9f9', padding: '1rem', borderRadius: '8px' }}>
-                                 <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#666', fontWeight: 'bold' }}>Reunião de Raio</label>
+                               <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'var(--gray-bg)', padding: '1rem', borderRadius: '8px' }}>
+                                 <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)', fontWeight: 'bold' }}>Reunião de Raio</label>
                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                    <select value={fvCalendar.reuniaoRaioDia} onChange={(e) => setFvCalendar({...fvCalendar, reuniaoRaioDia: e.target.value})} style={{ padding: '0.6rem', borderRadius: '6px', background: isDark ? 'rgba(26,26,46,0.8)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', border: '1px solid #ccc' }}>
+                                    <select value={fvCalendar.reuniaoRaioDia} onChange={(e) => setFvCalendar({...fvCalendar, reuniaoRaioDia: e.target.value})} style={{ padding: '0.6rem', borderRadius: '6px', background: isDark ? 'rgba(26,26,46,0.8)' : 'var(--white)', color: isDark ? 'var(--parchment)' : 'var(--ink)', border: '1px solid var(--border-light)' }}>
                                       <option value="">Selecione o Dia...</option>
                                       {['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'].map((d, i) => <option key={i} value={String(i)}>{d}</option>)}
                                     </select>
                                     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                      <input type="time" title="Início" value={fvCalendar.reuniaoRaioHora} onChange={(e) => setFvCalendar({...fvCalendar, reuniaoRaioHora: e.target.value})} style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid #ccc' }} />
-                                      <span style={{ color: isDark ? '#f0e6d2' : '#2c1810' }}>até</span>
-                                      <input type="time" title="Fim" value={fvCalendar.reuniaoRaioFim} onChange={(e) => setFvCalendar({...fvCalendar, reuniaoRaioFim: e.target.value})} style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid #ccc' }} />
+                                      <input type="time" title="Início" value={fvCalendar.reuniaoRaioHora} onChange={(e) => setFvCalendar({...fvCalendar, reuniaoRaioHora: e.target.value})} style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-light)' }} />
+                                      <span style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>até</span>
+                                      <input type="time" title="Fim" value={fvCalendar.reuniaoRaioFim} onChange={(e) => setFvCalendar({...fvCalendar, reuniaoRaioFim: e.target.value})} style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-light)' }} />
                                     </div>
                                  </div>
                                </div>
                             </div>
 
                             {/* Aulas Ministradas (Múltipla Seleção e Horários Individuais) */}
-                            <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : '#f9f9f9', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem' }}>
-                               <label style={{ display: 'block', marginBottom: '0.6rem', fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#666', fontWeight: 'bold' }}>Dias em que Ministro Aula (Múltipla escolha)</label>
+                            <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'var(--gray-bg)', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem' }}>
+                               <label style={{ display: 'block', marginBottom: '0.6rem', fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)', fontWeight: 'bold' }}>Dias em que Ministro Aula (Múltipla escolha)</label>
                                
                                {/* Botões dos Dias */}
                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
@@ -4565,7 +4565,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                                      <button 
                                        key={index} 
                                        onClick={() => handleDiasMinistradosToggle(String(index))}
-                                       style={{ padding: '0.5rem 0.8rem', background: isSelected ? (isDark ? '#d4af37' : '#6b4423') : 'transparent', color: isSelected ? (isDark ? '#000' : '#fff') : (isDark ? '#b8a88a' : '#666'), border: `1px solid ${isSelected ? 'transparent' : '#ccc'}`, borderRadius: '6px', cursor: 'pointer', fontWeight: isSelected ? 'bold' : 'normal' }}
+                                       style={{ padding: '0.5rem 0.8rem', background: isSelected ? (isDark ? 'var(--gold)' : 'var(--umber)') : 'transparent', color: isSelected ? (isDark ? 'var(--black)' : 'var(--white)') : (isDark ? 'var(--gold-muted)' : 'var(--gray-text)'), border: `1px solid ${isSelected ? 'transparent' : 'var(--border-light)'}`, borderRadius: '6px', cursor: 'pointer', fontWeight: isSelected ? 'bold' : 'normal' }}
                                      >
                                        {dia}
                                      </button>
@@ -4582,11 +4582,11 @@ ${monthlyReport.desafioCrescimento || '-'}
                                     const tempos = (fvCalendar.aulaMinistradaTempos || {})[diaStr] || { inicio: '', fim: '' };
                                     
                                     return (
-                                      <div key={diaStr} className="animate-fadeIn" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', background: isDark ? 'rgba(255,255,255,0.05)' : '#fff', padding: '0.5rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.3)' : '#ddd'}` }}>
-                                        <span style={{ fontSize: '0.85rem', color: isDark ? '#d4af37' : '#6b4423', width: '90px', fontWeight: 'bold' }}>{nomeDia}:</span>
-                                        <input type="time" title="Início" value={tempos.inicio} onChange={(e) => { setFvCalendar(prev => ({ ...prev, aulaMinistradaTempos: { ...prev.aulaMinistradaTempos, [diaStr]: { ...prev.aulaMinistradaTempos?.[diaStr], inicio: e.target.value } } })); }} style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', background: isDark ? 'rgba(26,26,46,0.8)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', border: '1px solid #ccc' }} />
-                                        <span style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.85rem' }}>até</span>
-                                        <input type="time" title="Fim" value={tempos.fim} onChange={(e) => { setFvCalendar(prev => ({ ...prev, aulaMinistradaTempos: { ...prev.aulaMinistradaTempos, [diaStr]: { ...prev.aulaMinistradaTempos?.[diaStr], fim: e.target.value } } })); }} style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', background: isDark ? 'rgba(26,26,46,0.8)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', border: '1px solid #ccc' }} />
+                                      <div key={diaStr} className="animate-fadeIn" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', background: isDark ? 'rgba(255,255,255,0.05)' : 'var(--white)', padding: '0.5rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.3)' : '#ddd'}` }}>
+                                        <span style={{ fontSize: '0.85rem', color: isDark ? 'var(--gold)' : 'var(--umber)', width: '90px', fontWeight: 'bold' }}>{nomeDia}:</span>
+                                        <input type="time" title="Início" value={tempos.inicio} onChange={(e) => { setFvCalendar(prev => ({ ...prev, aulaMinistradaTempos: { ...prev.aulaMinistradaTempos, [diaStr]: { ...prev.aulaMinistradaTempos?.[diaStr], inicio: e.target.value } } })); }} style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', background: isDark ? 'rgba(26,26,46,0.8)' : 'var(--white)', color: isDark ? 'var(--parchment)' : 'var(--ink)', border: '1px solid var(--border-light)' }} />
+                                        <span style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '0.85rem' }}>até</span>
+                                        <input type="time" title="Fim" value={tempos.fim} onChange={(e) => { setFvCalendar(prev => ({ ...prev, aulaMinistradaTempos: { ...prev.aulaMinistradaTempos, [diaStr]: { ...prev.aulaMinistradaTempos?.[diaStr], fim: e.target.value } } })); }} style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', background: isDark ? 'rgba(26,26,46,0.8)' : 'var(--white)', color: isDark ? 'var(--parchment)' : 'var(--ink)', border: '1px solid var(--border-light)' }} />
                                       </div>
                                     )
                                  })}
@@ -4596,12 +4596,12 @@ ${monthlyReport.desafioCrescimento || '-'}
                             {/* Calendário de ED e CRM (Data Exata) */}
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
                                <div style={{ background: isDark ? 'rgba(155, 89, 182, 0.1)' : '#fdf8ff', padding: '1rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.3)' : '#e1bee7'}` }}>
-                                 <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', color: isDark ? '#c39bd3' : '#8e44ad', fontWeight: 'bold' }}>Data da Próxima CRM</label>
-                                 <input type="date" value={fvCalendar.dataCrm} onChange={(e) => setFvCalendar({...fvCalendar, dataCrm: e.target.value})} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', background: isDark ? 'rgba(26,26,46,0.8)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', border: '1px solid #ccc' }} />
+                                 <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', color: isDark ? 'var(--purple-soft)' : 'var(--purple)', fontWeight: 'bold' }}>Data da Próxima CRM</label>
+                                 <input type="date" value={fvCalendar.dataCrm} onChange={(e) => setFvCalendar({...fvCalendar, dataCrm: e.target.value})} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', background: isDark ? 'rgba(26,26,46,0.8)' : 'var(--white)', color: isDark ? 'var(--parchment)' : 'var(--ink)', border: '1px solid var(--border-light)' }} />
                                </div>
                                <div style={{ background: isDark ? 'rgba(74, 144, 226, 0.1)' : '#f4f8ff', padding: '1rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(74, 144, 226, 0.3)' : 'rgba(74, 144, 226, 0.3)'}` }}>
-                                 <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', color: isDark ? '#6cb2eb' : '#2980b9', fontWeight: 'bold' }}>Data da Próxima ED</label>
-                                 <input type="date" value={fvCalendar.dataAulaEd} onChange={(e) => setFvCalendar({...fvCalendar, dataAulaEd: e.target.value})} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', background: isDark ? 'rgba(26,26,46,0.8)' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810', border: '1px solid #ccc' }} />
+                                 <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', color: isDark ? '#6cb2eb' : 'var(--blue)', fontWeight: 'bold' }}>Data da Próxima ED</label>
+                                 <input type="date" value={fvCalendar.dataAulaEd} onChange={(e) => setFvCalendar({...fvCalendar, dataAulaEd: e.target.value})} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', background: isDark ? 'rgba(26,26,46,0.8)' : 'var(--white)', color: isDark ? 'var(--parchment)' : 'var(--ink)', border: '1px solid var(--border-light)' }} />
                                </div>
                             </div>
                          </div>
@@ -4611,7 +4611,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                              saveFvPlanning();
                              setIsGdvePlanOpen(false);
                            }} 
-                           style={{ padding: '0.8rem 1.5rem', width: '100%', justifyContent: 'center', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                           style={{ padding: '0.8rem 1.5rem', width: '100%', justifyContent: 'center', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                          >
                            <Save size={18} /> Salvar Ficha Completa
                          </button>
@@ -4620,11 +4620,11 @@ ${monthlyReport.desafioCrescimento || '-'}
                   </div>
 
                   {/* GAVETA: MÓDULO GDVE (A Grande Fusão) */}
-                  <div style={getBlockStyle(gdveStatus, isGdveMóduloOpen, isDark ? '#FFD700' : '#996515')}>
+                  <div style={getBlockStyle(gdveStatus, isGdveMóduloOpen, isDark ? 'var(--gold-bright)' : 'var(--umber-bright)')}>
                     <div onClick={() => setIsGdveMóduloOpen(!isGdveMóduloOpen)} style={getHeaderStyle(gdveStatus, isGdveMóduloOpen)}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <BookOpen size={28} color={isDark ? '#FFD700' : '#996515'} />
-                        <h2 style={{ margin: 0, fontSize: 'clamp(1.1rem, 3vw, 1.4rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif", textDecoration: gdveStatus === 'full' && !isGdveMóduloOpen ? 'line-through' : 'none' }}>
+                        <BookOpen size={28} color={isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'} />
+                        <h2 style={{ margin: 0, fontSize: 'clamp(1.1rem, 3vw, 1.4rem)', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: "'Cinzel', serif", textDecoration: gdveStatus === 'full' && !isGdveMóduloOpen ? 'line-through' : 'none' }}>
                           Módulo GDVE {gdveStatus === 'partial' && !isGdveMóduloOpen && <span style={{fontSize: '0.8rem', opacity: 0.7}}> (Em Andamento)</span>}
                         </h2>
                       </div>
@@ -4639,18 +4639,18 @@ ${monthlyReport.desafioCrescimento || '-'}
                             pra avisar os colegas quando alguém concluir algo. */}
                         <div style={{ padding: '1rem', background: isDark ? 'rgba(76, 175, 80, 0.05)' : 'rgba(232, 245, 233, 0.5)', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(76,175,80,0.3)' : '#c8e6c9'}`, marginBottom: '2rem' }}>
                           {isLoadingGroups ? (
-                            <p style={{ margin: 0, color: isDark ? '#b8a88a' : '#666', fontSize: '0.9rem' }}>Carregando grupo...</p>
+                            <p style={{ margin: 0, color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)', fontSize: '0.9rem' }}>Carregando grupo...</p>
                           ) : myGroups.length === 0 ? (
                             <div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                                <Users size={20} color={isDark ? '#81c784' : '#2e7d32'} />
-                                <strong style={{ color: isDark ? '#f0e6d2' : '#2c1810' }}>Grupo de Estudo</strong>
+                                <Users size={20} color={isDark ? 'var(--success-soft)' : 'var(--success-strong)'} />
+                                <strong style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>Grupo de Estudo</strong>
                               </div>
-                              <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#666', marginBottom: '1rem' }}>
+                              <p style={{ fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)', marginBottom: '1rem' }}>
                                 Junte-se a colegas de degrau para serem avisados quando alguém concluir uma tarefa aqui embaixo.
                               </p>
                               <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                                <button onClick={() => setShowCreateGroupModal(true)} style={{ padding: '0.6rem 1.2rem', background: isDark ? '#4caf50' : '#2e7d32', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}>
+                                <button onClick={() => setShowCreateGroupModal(true)} style={{ padding: '0.6rem 1.2rem', background: isDark ? 'var(--success)' : 'var(--success-strong)', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}>
                                   <Plus size={16} /> Criar Grupo
                                 </button>
                                 <button
@@ -4659,7 +4659,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                                     const code = window.prompt('Cole aqui o código de convite (ou o link inteiro):');
                                     if (code) joinGroupByCode(code);
                                   }}
-                                  style={{ padding: '0.6rem 1.2rem', background: 'transparent', color: isDark ? '#81c784' : '#2e7d32', border: `1px solid ${isDark ? '#81c784' : '#2e7d32'}`, borderRadius: '6px', fontWeight: 'bold', cursor: isJoiningGroup ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', opacity: isJoiningGroup ? 0.6 : 1, fontSize: '0.85rem' }}
+                                  style={{ padding: '0.6rem 1.2rem', background: 'transparent', color: isDark ? 'var(--success-soft)' : 'var(--success-strong)', border: `1px solid ${isDark ? 'var(--success-soft)' : 'var(--success-strong)'}`, borderRadius: '6px', fontWeight: 'bold', cursor: isJoiningGroup ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', opacity: isJoiningGroup ? 0.6 : 1, fontSize: '0.85rem' }}
                                 >
                                   <Link2 size={16} /> Entrar com Código
                                 </button>
@@ -4667,37 +4667,37 @@ ${monthlyReport.desafioCrescimento || '-'}
                             </div>
                           ) : (
                             myGroups.map(group => (
-                              <div key={group.id} style={{ marginBottom: myGroups.length > 1 ? '1rem' : 0, paddingBottom: myGroups.length > 1 ? '1rem' : 0, borderBottom: myGroups.length > 1 ? `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#eee'}` : 'none' }}>
+                              <div key={group.id} style={{ marginBottom: myGroups.length > 1 ? '1rem' : 0, paddingBottom: myGroups.length > 1 ? '1rem' : 0, borderBottom: myGroups.length > 1 ? `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'var(--border-soft)'}` : 'none' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.5rem' }}>
                                   <div>
-                                    <strong style={{ color: isDark ? '#f0e6d2' : '#2c1810' }}>{group.name}</strong>
-                                    <div style={{ fontSize: '0.8rem', color: isDark ? '#b8a88a' : '#666' }}>
+                                    <strong style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>{group.name}</strong>
+                                    <div style={{ fontSize: '0.8rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)' }}>
                                       {group.memberUids.length} {group.memberUids.length === 1 ? 'membro' : 'membros'}
                                       {group.isCoordinator && ' · você coordena'}
                                     </div>
                                   </div>
-                                  <button onClick={() => copyInviteLink(group.inviteCode)} style={{ padding: '0.4rem 0.8rem', background: 'transparent', color: isDark ? '#81c784' : '#2e7d32', border: `1px solid ${isDark ? '#81c784' : '#2e7d32'}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                  <button onClick={() => copyInviteLink(group.inviteCode)} style={{ padding: '0.4rem 0.8rem', background: 'transparent', color: isDark ? 'var(--success-soft)' : 'var(--success-strong)', border: `1px solid ${isDark ? 'var(--success-soft)' : 'var(--success-strong)'}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                                     <Copy size={13} /> Convite: {group.inviteCode}
                                   </button>
                                 </div>
 
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.5rem' }}>
                                   {group.memberUids.map(mUid => (
-                                    <span key={mUid} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.2rem 0.5rem', background: isDark ? 'rgba(0,0,0,0.25)' : 'white', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#ddd'}`, borderRadius: '999px', fontSize: '0.75rem', color: isDark ? '#f0e6d2' : '#2c1810' }}>
+                                    <span key={mUid} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.2rem 0.5rem', background: isDark ? 'rgba(0,0,0,0.25)' : 'white', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#ddd'}`, borderRadius: '999px', fontSize: '0.75rem', color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>
                                       {group.memberNames?.[mUid] || 'Membro'}{mUid === group.coordinatorUid && ' 👑'}
                                       {group.isCoordinator && mUid !== user.uid && (
-                                        <button onClick={() => removeGroupMember(group.id, mUid)} title="Remover do grupo" style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer', padding: 0, display: 'flex' }}><X size={12} /></button>
+                                        <button onClick={() => removeGroupMember(group.id, mUid)} title="Remover do grupo" style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: 0, display: 'flex' }}><X size={12} /></button>
                                       )}
                                     </span>
                                   ))}
                                 </div>
 
                                 {group.isCoordinator ? (
-                                  <button onClick={() => deleteGroupHandler(group.id, group.name)} style={{ padding: '0.4rem 0.8rem', background: 'transparent', color: '#e74c3c', border: '1px solid #e74c3c', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                                  <button onClick={() => deleteGroupHandler(group.id, group.name)} style={{ padding: '0.4rem 0.8rem', background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                                     <Trash2 size={13} /> Excluir Grupo
                                   </button>
                                 ) : (
-                                  <button onClick={() => leaveGroupHandler(group.id)} style={{ padding: '0.4rem 0.8rem', background: 'transparent', color: isDark ? '#b8a88a' : '#666', border: `1px solid ${isDark ? '#555' : '#ccc'}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem' }}>
+                                  <button onClick={() => leaveGroupHandler(group.id)} style={{ padding: '0.4rem 0.8rem', background: 'transparent', color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)', border: `1px solid ${isDark ? 'var(--gray-strong)' : 'var(--border-light)'}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem' }}>
                                     Sair do Grupo
                                   </button>
                                 )}
@@ -4707,15 +4707,15 @@ ${monthlyReport.desafioCrescimento || '-'}
                         </div>
 
                         {/* Seção Reunião */}
-                        <div style={{ padding: '1rem', background: fvDaily.gdveAttendance ? 'rgba(76, 175, 80, 0.1)' : 'rgba(255, 215, 0, 0.05)', borderRadius: '12px', border: `1px solid ${fvDaily.gdveAttendance ? '#4caf50' : '#FFD700'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                           <span style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 'bold' }}>Reunião Quinzenal:</span>
-                           <button onClick={registerGdveAttendance} style={{ padding: '0.5rem 1rem', background: fvDaily.gdveAttendance ? '#4caf50' : 'transparent', color: fvDaily.gdveAttendance ? 'white' : '#FFD700', border: `1px solid ${fvDaily.gdveAttendance ? '#4caf50' : '#FFD700'}`, borderRadius: '6px', cursor: 'pointer' }}>
+                        <div style={{ padding: '1rem', background: fvDaily.gdveAttendance ? 'rgba(76, 175, 80, 0.1)' : 'rgba(255, 215, 0, 0.05)', borderRadius: '12px', border: `1px solid ${fvDaily.gdveAttendance ? 'var(--success)' : 'var(--gold-bright)'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+                           <span style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)', fontWeight: 'bold' }}>Reunião Quinzenal:</span>
+                           <button onClick={registerGdveAttendance} style={{ padding: '0.5rem 1rem', background: fvDaily.gdveAttendance ? 'var(--success)' : 'transparent', color: fvDaily.gdveAttendance ? 'white' : 'var(--gold-bright)', border: `1px solid ${fvDaily.gdveAttendance ? 'var(--success)' : 'var(--gold-bright)'}`, borderRadius: '6px', cursor: 'pointer' }}>
                              {fvDaily.gdveAttendance ? '✓ Presença Confirmada' : 'Marcar Presença'}
                            </button>
                         </div>
                         
                         {/* Seção Práticas do Grupo */}
-                        <h4 style={{ color: isDark ? '#FFD700' : '#996515', fontSize: '1rem', fontFamily: "'Cinzel', serif", marginBottom: '1rem' }}>Práticas Específicas do Ciclo</h4>
+                        <h4 style={{ color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', fontSize: '1rem', fontFamily: "'Cinzel', serif", marginBottom: '1rem' }}>Práticas Específicas do Ciclo</h4>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
                            {fvGdveTasks.map(task => {
                              const isCycle = task.isCycle;
@@ -4780,23 +4780,23 @@ ${monthlyReport.desafioCrescimento || '-'}
                              }
 
                              return (
-                               <div key={task.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: isDark ? 'rgba(0,0,0,0.2)' : '#f9f9f9', borderRadius: '8px', border: `1px solid ${taskColor}`, transition: 'all 0.3s ease', marginBottom: '0.75rem' }}>
+                               <div key={task.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: isDark ? 'rgba(0,0,0,0.2)' : 'var(--gray-bg)', borderRadius: '8px', border: `1px solid ${taskColor}`, transition: 'all 0.3s ease', marginBottom: '0.75rem' }}>
                                  <div onClick={() => toggleGdveTask(task)} style={{ flex: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                    
                                    {isCounter ? (
-                                      <div style={{ padding: '0.3rem 0.6rem', background: taskColor, border: `1px solid ${taskColor}`, borderRadius: '12px', color: '#fff', fontWeight: 'bold', fontSize: '0.8rem', minWidth: '40px', textAlign: 'center' }}>
+                                      <div style={{ padding: '0.3rem 0.6rem', background: taskColor, border: `1px solid ${taskColor}`, borderRadius: '12px', color: 'var(--white)', fontWeight: 'bold', fontSize: '0.8rem', minWidth: '40px', textAlign: 'center' }}>
                                         {displayValue}
                                       </div>
                                    ) : (
-                                      <input type="checkbox" checked={isCompleted} readOnly style={{ width: '18px', height: '18px', accentColor: '#4caf50' }} />
+                                      <input type="checkbox" checked={isCompleted} readOnly style={{ width: '18px', height: '18px', accentColor: 'var(--success)' }} />
                                    )}
                                    
                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                     <span style={{ color: isCompleted ? (isDark ? '#81c784' : '#2e7d32') : (isDark ? '#f0e6d2' : '#2c1810'), textDecoration: isCompleted ? 'line-through' : 'none' }}>
+                                     <span style={{ color: isCompleted ? (isDark ? 'var(--success-soft)' : 'var(--success-strong)') : (isDark ? 'var(--parchment)' : 'var(--ink)'), textDecoration: isCompleted ? 'line-through' : 'none' }}>
                                        {task.name}
                                      </span>
                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.2rem' }}>
-                                        <span style={{ fontSize: '0.7rem', color: isDark ? '#b8a88a' : '#888', textTransform: 'uppercase' }}>
+                                        <span style={{ fontSize: '0.7rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray)', textTransform: 'uppercase' }}>
                                            {isCycle ? '⏳ Missão do Ciclo' : (isCounter ? '📅 Meta Diária' : '📅 Prática Diária')}
                                         </span>
                                         
@@ -4826,7 +4826,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                                             }}
                                             style={{ 
                                               fontSize: '0.65rem', padding: '2px 6px', background: isDark ? 'rgba(212,175,55,0.1)' : '#fffbf0', 
-                                              color: isDark ? '#FFD700' : '#996515', border: `1px solid ${isDark ? '#FFD700' : '#996515'}`, 
+                                              color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', border: `1px solid ${isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'}`, 
                                               borderRadius: '4px', textDecoration: 'none', display: 'inline-block', fontWeight: 'bold'
                                             }}
                                           >
@@ -4868,15 +4868,15 @@ ${monthlyReport.desafioCrescimento || '-'}
                                             }}
                                             style={{ 
                                               fontSize: '0.65rem', padding: '2px 6px', background: isDark ? 'rgba(212,175,55,0.1)' : '#fffbf0', 
-                                              color: isDark ? '#FFD700' : '#996515', border: `1px solid ${isDark ? '#FFD700' : '#996515'}`, 
+                                              color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', border: `1px solid ${isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'}`, 
                                               borderRadius: '4px', maxWidth: '200px', fontWeight: 'bold', cursor: 'pointer'
                                             }}
                                           >
-                                            <option value="" style={{ background: isDark ? '#1a1a2e' : '#fff', color: isDark ? '#b8a88a' : '#666' }}>
+                                            <option value="" style={{ background: isDark ? 'var(--bg-dark)' : 'var(--white)', color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)' }}>
                                               {multiplosBastioes.length} encontrados! Escolha...
                                             </option>
                                             {multiplosBastioes.map((b, i) => (
-                                              <option key={i} value={b.link} style={{ background: isDark ? '#1a1a2e' : '#fff', color: isDark ? '#f0e6d2' : '#2c1810' }}>
+                                              <option key={i} value={b.link} style={{ background: isDark ? 'var(--bg-dark)' : 'var(--white)', color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>
                                                 {b.nomeCompleto}
                                               </option>
                                             ))}
@@ -4886,20 +4886,20 @@ ${monthlyReport.desafioCrescimento || '-'}
                                    </div>
                                  </div>
                                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                   <button onClick={(e) => { e.stopPropagation(); startEditingGdveTask(task); }} style={{ background: 'transparent', border: 'none', color: isDark ? '#d4af37' : '#996515', cursor: 'pointer' }} title="Editar"><Edit size={16} /></button>
-                                   <button onClick={(e) => { e.stopPropagation(); if(window.confirm('Deseja excluir esta prática?')) removeGdveTask(task.id); }} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer' }} title="Excluir"><Trash2 size={16} /></button>
+                                   <button onClick={(e) => { e.stopPropagation(); startEditingGdveTask(task); }} style={{ background: 'transparent', border: 'none', color: isDark ? 'var(--gold)' : 'var(--umber-bright)', cursor: 'pointer' }} title="Editar"><Edit size={16} /></button>
+                                   <button onClick={(e) => { e.stopPropagation(); if(window.confirm('Deseja excluir esta prática?')) removeGdveTask(task.id); }} style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer' }} title="Excluir"><Trash2 size={16} /></button>
                                  </div>
                                </div>
                              );
                            })}
                         </div>
-                        <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', padding: '1rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : '#ccc'}` }}>
+                        <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', padding: '1rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'var(--border-light)'}` }}>
                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                             <h5 style={{ margin: 0, color: isDark ? '#FFD700' : '#996515', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                             <h5 style={{ margin: 0, color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
                                {editingGdveTaskId ? 'Editar Prática' : 'Adicionar Nova Prática'}
                              </h5>
                              {editingGdveTaskId && (
-                               <button onClick={() => { setEditingGdveTaskId(null); setNewGdveTaskName(''); setNewGdveTaskTarget(1); setNewGdveTaskIsCycle(false); setNewGdveTaskCycleTouched(false); }} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer' }}>
+                               <button onClick={() => { setEditingGdveTaskId(null); setNewGdveTaskName(''); setNewGdveTaskTarget(1); setNewGdveTaskIsCycle(false); setNewGdveTaskCycleTouched(false); }} style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}>
                                  <X size={16}/>
                                </button>
                              )}
@@ -4921,24 +4921,24 @@ ${monthlyReport.desafioCrescimento || '-'}
                                }
                              }}
                              placeholder="Ex: Ler Bastião / Eu sou Discípulo..." 
-                             style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.4)' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'Georgia, serif' }} 
+                             style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.4)' : 'var(--border-light)'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }} 
                            />
 
 
                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', marginTop: '0.5rem' }}>
-                              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#666' }}>
-                                 <input type="checkbox" checked={newGdveTaskIsCycle} onChange={(e) => { setNewGdveTaskIsCycle(e.target.checked); setNewGdveTaskCycleTouched(true); if(e.target.checked) setNewGdveTaskTarget(1); }} style={{ width: '16px', height: '16px', accentColor: '#FFD700', cursor: 'pointer' }} />
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)' }}>
+                                 <input type="checkbox" checked={newGdveTaskIsCycle} onChange={(e) => { setNewGdveTaskIsCycle(e.target.checked); setNewGdveTaskCycleTouched(true); if(e.target.checked) setNewGdveTaskTarget(1); }} style={{ width: '16px', height: '16px', accentColor: 'var(--gold-bright)', cursor: 'pointer' }} />
                                  Missão Única do Ciclo (Não zera diariamente)
                               </label>
                               
                               {!newGdveTaskIsCycle && (
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#666' }}>
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)' }}>
                                    Vezes por dia:
-                                   <input type="number" min="1" max="10" value={newGdveTaskTarget} onChange={(e) => setNewGdveTaskTarget(parseInt(e.target.value) || 1)} style={{ width: '60px', padding: '0.4rem', borderRadius: '4px', border: `1px solid ${isDark ? '#555' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', textAlign: 'center' }} />
+                                   <input type="number" min="1" max="10" value={newGdveTaskTarget} onChange={(e) => setNewGdveTaskTarget(parseInt(e.target.value) || 1)} style={{ width: '60px', padding: '0.4rem', borderRadius: '4px', border: `1px solid ${isDark ? 'var(--gray-strong)' : 'var(--border-light)'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', textAlign: 'center' }} />
                                 </label>
                               )}
 
-                              <button onClick={addGdveTask} style={{ marginLeft: 'auto', padding: '0.6rem 1.5rem', background: isDark ? '#FFD700' : '#996515', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', transition: 'all 0.2s' }}>
+                              <button onClick={addGdveTask} style={{ marginLeft: 'auto', padding: '0.6rem 1.5rem', background: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', transition: 'all 0.2s' }}>
                                  {editingGdveTaskId ? 'Salvar Alteração' : '+ Adicionar'}
                               </button>
                            </div>
@@ -4949,7 +4949,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                             setIsGdveMóduloOpen(false); // Fecha a gaveta
                             alert('✅ Módulo GDVE atualizado com sucesso!');
                           }} 
-                          style={{ marginTop: '2rem', width: '100%', padding: '0.8rem 1.5rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+                          style={{ marginTop: '2rem', width: '100%', padding: '0.8rem 1.5rem', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
                           <CheckCircle size={18} /> Salvar Módulo GDVE
                         </button>
 
@@ -4959,11 +4959,11 @@ ${monthlyReport.desafioCrescimento || '-'}
 
 
                   {/* GAVETA: DESAFIOS PESSOAIS */}
-                  <div style={getBlockStyle(desafiosStatus, isGdveDesafiosOpen, isDark ? '#6cb2eb' : '#2980b9')}>
+                  <div style={getBlockStyle(desafiosStatus, isGdveDesafiosOpen, isDark ? '#6cb2eb' : 'var(--blue)')}>
                     <div onClick={() => setIsGdveDesafiosOpen(!isGdveDesafiosOpen)} style={getHeaderStyle(desafiosStatus, isGdveDesafiosOpen)}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <Swords size={28} color={isDark ? '#6cb2eb' : '#2980b9'} />
-                        <h2 style={{ margin: 0, fontSize: 'clamp(1.1rem, 3vw, 1.4rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif", textDecoration: desafiosStatus === 'full' && !isGdveDesafiosOpen ? 'line-through' : 'none' }}>
+                        <Swords size={28} color={isDark ? '#6cb2eb' : 'var(--blue)'} />
+                        <h2 style={{ margin: 0, fontSize: 'clamp(1.1rem, 3vw, 1.4rem)', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: "'Cinzel', serif", textDecoration: desafiosStatus === 'full' && !isGdveDesafiosOpen ? 'line-through' : 'none' }}>
                           Desafios Pessoais
                         </h2>
                       </div>
@@ -4972,28 +4972,28 @@ ${monthlyReport.desafioCrescimento || '-'}
                     {isGdveDesafiosOpen && (
                       <div className="animate-fadeIn" style={{ padding: '0 2rem 2rem 2rem' }}>
                          {customTasks.map(task => (
-                           <div key={task.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: isDark ? 'rgba(0,0,0,0.2)' : '#f9f9f9', borderRadius: '8px', border: `1px solid ${todayTasksStatus[task.id] ? '#4caf50' : '#eee'}`, marginBottom: '0.5rem' }}>
+                           <div key={task.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: isDark ? 'rgba(0,0,0,0.2)' : 'var(--gray-bg)', borderRadius: '8px', border: `1px solid ${todayTasksStatus[task.id] ? 'var(--success)' : 'var(--border-soft)'}`, marginBottom: '0.5rem' }}>
                               <div onClick={() => toggleTaskStatus(task.id)} style={{ flex: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                  <input type="checkbox" checked={!!todayTasksStatus[task.id]} readOnly style={{ width: '18px', height: '18px' }} />
-                                 <span style={{ color: isDark ? '#f0e6d2' : '#2c1810' }}>{task.name}</span>
+                                 <span style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>{task.name}</span>
                               </div>
-                              <button onClick={() => removeCustomTask(task.id)} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: 'pointer' }}><Trash2 size={16} /></button>
+                              <button onClick={() => removeCustomTask(task.id)} style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}><Trash2 size={16} /></button>
                            </div>
                          ))}
                          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.5rem' }}>
-                            <input type="text" value={newTaskName} onChange={(e) => setNewTaskName(e.target.value)} placeholder="Novo desafio pessoal..." style={{ flex: 1, padding: '0.7rem', borderRadius: '8px', border: '1px solid #ccc', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
-                            <button onClick={saveCustomTask} style={{ padding: '0 1rem', background: isDark ? '#6cb2eb' : '#2980b9', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold' }}>+</button>
+                            <input type="text" value={newTaskName} onChange={(e) => setNewTaskName(e.target.value)} placeholder="Novo desafio pessoal..." style={{ flex: 1, padding: '0.7rem', borderRadius: '8px', border: '1px solid var(--border-light)', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)' }} />
+                            <button onClick={saveCustomTask} style={{ padding: '0 1rem', background: isDark ? '#6cb2eb' : 'var(--blue)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold' }}>+</button>
                          </div>
                       </div>
                     )}
                   </div>
                   
                   {/* GAVETA: RELATÓRIO MENSAL FV */}
-                  <div style={getBlockStyle('partial', isGdveRelatorioOpen, isDark ? '#9B59B6' : '#8E44AD')}>
+                  <div style={getBlockStyle('partial', isGdveRelatorioOpen, isDark ? '#9B59B6' : 'var(--purple)')}>
                     <div onClick={() => setIsGdveRelatorioOpen(!isGdveRelatorioOpen)} style={getHeaderStyle('partial', isGdveRelatorioOpen)}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <FileText size={28} color={isDark ? '#c39bd3' : '#8e44ad'} />
-                        <h2 style={{ margin: 0, fontSize: 'clamp(1.1rem, 3vw, 1.4rem)', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: "'Cinzel', serif" }}>
+                        <FileText size={28} color={isDark ? 'var(--purple-soft)' : 'var(--purple)'} />
+                        <h2 style={{ margin: 0, fontSize: 'clamp(1.1rem, 3vw, 1.4rem)', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: "'Cinzel', serif" }}>
                           Relatório Mensal do Ciclo
                         </h2>
                       </div>
@@ -5007,33 +5007,33 @@ ${monthlyReport.desafioCrescimento || '-'}
                           const s = getFvMonthlyStats();
                           const Badge = ({ icon: Icon, label, value, color }) => (
                             <div style={{ background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc', padding: '1rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0'}`, display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: color || (isDark ? '#b8a88a' : '#64748b'), fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: color || (isDark ? 'var(--gold-muted)' : '#64748b'), fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                                 <Icon size={14} /> {label}
                               </div>
-                              <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: isDark ? '#f0e6d2' : '#1e293b', fontFamily: 'Georgia, serif' }}>
+                              <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: isDark ? 'var(--parchment)' : '#1e293b', fontFamily: 'Georgia, serif' }}>
                                 {value}
                               </div>
                             </div>
                           );
 
                           const getPraticasBadgeInfo = (dias) => {
-                            if (dias >= 28) return { label: 'Sempre', color: '#FFD700', icon: Sun };
-                            if (dias >= 20) return { label: 'Frequente', color: '#ff9800', icon: Flame };
-                            if (dias >= 12) return { label: 'Às vezes', color: '#4caf50', icon: Target };
-                            if (dias > 0) return { label: 'Raramente', color: '#e74c3c', icon: Sparkles };
-                            return { label: 'Nunca', color: isDark ? '#555' : '#999', icon: Moon };
+                            if (dias >= 28) return { label: 'Sempre', color: 'var(--gold-bright)', icon: Sun };
+                            if (dias >= 20) return { label: 'Frequente', color: 'var(--orange)', icon: Flame };
+                            if (dias >= 12) return { label: 'Às vezes', color: 'var(--success)', icon: Target };
+                            if (dias > 0) return { label: 'Raramente', color: 'var(--danger)', icon: Sparkles };
+                            return { label: 'Nunca', color: isDark ? 'var(--gray-strong)' : '#999', icon: Moon };
                           };
 
                           return (
                             <div style={{ marginBottom: '2.5rem' }}>
-                              <div style={{ background: isDark ? 'rgba(155, 89, 182, 0.1)' : '#fdf8ff', padding: '1rem', borderRadius: '12px', borderLeft: `4px solid ${isDark ? '#c39bd3' : '#8e44ad'}`, marginBottom: '1.5rem' }}>
-                                <p style={{ margin: 0, fontSize: '0.9rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.5' }}>
+                              <div style={{ background: isDark ? 'rgba(155, 89, 182, 0.1)' : '#fdf8ff', padding: '1rem', borderRadius: '12px', borderLeft: `4px solid ${isDark ? 'var(--purple-soft)' : 'var(--purple)'}`, marginBottom: '1.5rem' }}>
+                                <p style={{ margin: 0, fontSize: '0.9rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', lineHeight: '1.5' }}>
                                   <strong>Inteligência do Diário:</strong> Os dados abaixo foram extraídos dos seus registros diários e missões. Eles já estão prontos para o seu relatório oficial.
                                 </p>
                               </div>
 
                               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-                                <Badge icon={Clock} label="Voluntariado" value={s.hVol} color="#8e44ad" />
+                                <Badge icon={Clock} label="Voluntariado" value={s.hVol} color="var(--purple)" />
                                 <Badge icon={BookOpen} label="Aulas Assistidas" value={s.hAs} color="#3498db" />
                                 <Badge icon={Target} label="Aulas Ministradas" value={s.hMin} color="#e67e22" />
                                 <Badge icon={Zap} label="Freq. de Práticas" value={s.freqPraticas} color="#f1c40f" />
@@ -5056,15 +5056,15 @@ ${monthlyReport.desafioCrescimento || '-'}
                           
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
                             <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Participou das outras CRM (Extras/Especiais)?</label>
-                              <select value={monthlyReport.outrasCrm} onChange={(e) => handleMonthlyReportChange('outrasCrm', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--purple-soft)' : 'var(--purple)' }}>Participou das outras CRM (Extras/Especiais)?</label>
+                              <select value={monthlyReport.outrasCrm} onChange={(e) => handleMonthlyReportChange('outrasCrm', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : 'var(--border-light)'}` }}>
                                 <option value="">Selecione...</option><option value="Sim">Sim</option><option value="Não">Não</option><option value="Não teve CRM extra">Não teve CRM extra</option>
                               </select>
                             </div>
                             <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Quantos bastiões leu esse mês?</label>
-                              <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '-0.3rem', marginBottom: '0.5rem', fontStyle: 'italic' }}>*Se você tiver uma Tarefa chamada "Bastião", o app calculará sozinho.</p>
-                              <select value={monthlyReport.bastioesLidos} onChange={(e) => handleMonthlyReportChange('bastioesLidos', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--purple-soft)' : 'var(--purple)' }}>Quantos bastiões leu esse mês?</label>
+                              <p style={{ fontSize: '0.8rem', color: 'var(--gray)', marginTop: '-0.3rem', marginBottom: '0.5rem', fontStyle: 'italic' }}>*Se você tiver uma Tarefa chamada "Bastião", o app calculará sozinho.</p>
+                              <select value={monthlyReport.bastioesLidos} onChange={(e) => handleMonthlyReportChange('bastioesLidos', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : 'var(--border-light)'}` }}>
                                 <option value="">Automático pelo App (ou Selecione)</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5 ou mais">5 ou mais</option><option value="Nenhum">Nenhum</option>
                               </select>
                             </div>
@@ -5073,12 +5073,12 @@ ${monthlyReport.desafioCrescimento || '-'}
                           <div style={{ height: '1px', background: isDark ? 'rgba(155, 89, 182, 0.2)' : 'rgba(142, 68, 173, 0.2)' }}></div>
 
                           <div style={{ marginBottom: '1rem' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Envolvimento com a Propaganda (Múltipla escolha)</label>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--purple-soft)' : 'var(--purple)' }}>Envolvimento com a Propaganda (Múltipla escolha)</label>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.5rem' }}>
                               {['Contato Pessoal', 'Divulgação WhatsApp', 'Redes Sociais (Insta/Face)', 'Cartazes/Folhetos', 'Não tenho me envolvido'].map(op => (
                                 <label key={op} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', padding: '0.5rem', background: isDark ? 'rgba(255,255,255,0.05)' : '#f0f0f0', borderRadius: '6px' }}>
-                                  <input type="checkbox" checked={(monthlyReport.propaganda || []).includes(op)} onChange={() => handlePropagandaToggle(op)} style={{ width: '18px', height: '18px', accentColor: '#8e44ad' }} />
-                                  <span style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.9rem' }}>{op}</span>
+                                  <input type="checkbox" checked={(monthlyReport.propaganda || []).includes(op)} onChange={() => handlePropagandaToggle(op)} style={{ width: '18px', height: '18px', accentColor: 'var(--purple)' }} />
+                                  <span style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '0.9rem' }}>{op}</span>
                                 </label>
                               ))}
                             </div>
@@ -5086,14 +5086,14 @@ ${monthlyReport.desafioCrescimento || '-'}
 
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
                             <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Pagou contribuição mensal?</label>
-                              <select value={monthlyReport.contribuicao} onChange={(e) => handleMonthlyReportChange('contribuicao', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--purple-soft)' : 'var(--purple)' }}>Pagou contribuição mensal?</label>
+                              <select value={monthlyReport.contribuicao} onChange={(e) => handleMonthlyReportChange('contribuicao', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : 'var(--border-light)'}` }}>
                                 <option value="">Selecione...</option><option value="Sim, estou em dias">Sim, em dias</option><option value="Sim, mas com atraso">Sim, mas com atraso</option><option value="Não">Não</option>
                               </select>
                             </div>
                             <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Fez alguma doação extra?</label>
-                              <select value={monthlyReport.doacao} onChange={(e) => handleMonthlyReportChange('doacao', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--purple-soft)' : 'var(--purple)' }}>Fez alguma doação extra?</label>
+                              <select value={monthlyReport.doacao} onChange={(e) => handleMonthlyReportChange('doacao', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : 'var(--border-light)'}` }}>
                                 <option value="">Selecione...</option><option value="Em espécie">Sim, em espécie</option><option value="Objeto que necessitavam">Objeto necessitado</option><option value="Espécie e Objeto">Ambos</option><option value="Não tive condições/Lembrei">Não</option>
                               </select>
                             </div>
@@ -5103,20 +5103,20 @@ ${monthlyReport.desafioCrescimento || '-'}
 
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
                              <div>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Secretaria de Atuação</label>
-                                <select value={monthlyReport.secretariaAtuacao} onChange={(e) => handleMonthlyReportChange('secretariaAtuacao', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}` }}>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--purple-soft)' : 'var(--purple)' }}>Secretaria de Atuação</label>
+                                <select value={monthlyReport.secretariaAtuacao} onChange={(e) => handleMonthlyReportChange('secretariaAtuacao', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : 'var(--border-light)'}` }}>
                                   <option value="">Nenhuma / Selecione...</option>
                                   {['Abertura de Turma', 'Artes', 'Biblioteca', 'Café Artemis', 'Difusão', 'Economia', 'Escolástica', 'GGFF', 'GGMM', 'GGSS', 'Integração', 'Livraria', 'Manutenção', 'Programa Janos', 'Programa Merlin', 'Escola do Esporte', 'Círculo de Amigos', 'Assuntos Legais', 'GEA', 'Assistência Social'].map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
                              </div>
                              <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
                                <div>
-                                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Trabalhou/reuniu com os membros da sec.?</label>
-                                  <input type="text" value={monthlyReport.secretariaReuniao} onChange={(e) => handleMonthlyReportChange('secretariaReuniao', e.target.value)} placeholder="Breve relato..." style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}`, fontFamily: 'Georgia, serif' }} />
+                                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--purple-soft)' : 'var(--purple)' }}>Trabalhou/reuniu com os membros da sec.?</label>
+                                  <input type="text" value={monthlyReport.secretariaReuniao} onChange={(e) => handleMonthlyReportChange('secretariaReuniao', e.target.value)} placeholder="Breve relato..." style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : 'var(--border-light)'}`, fontFamily: 'Georgia, serif' }} />
                                </div>
                                <div>
-                                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Quantos membros? Algum destaque?</label>
-                                  <input type="text" value={monthlyReport.secretariaMembros} onChange={(e) => handleMonthlyReportChange('secretariaMembros', e.target.value)} placeholder="Quantidade e destaques..." style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}`, fontFamily: 'Georgia, serif' }} />
+                                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--purple-soft)' : 'var(--purple)' }}>Quantos membros? Algum destaque?</label>
+                                  <input type="text" value={monthlyReport.secretariaMembros} onChange={(e) => handleMonthlyReportChange('secretariaMembros', e.target.value)} placeholder="Quantidade e destaques..." style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : 'var(--border-light)'}`, fontFamily: 'Georgia, serif' }} />
                                </div>
                              </div>
                           </div>
@@ -5124,18 +5124,18 @@ ${monthlyReport.desafioCrescimento || '-'}
                           <div style={{ height: '1px', background: isDark ? 'rgba(155, 89, 182, 0.2)' : 'rgba(142, 68, 173, 0.2)' }}></div>
 
                           <div style={{ marginBottom: '1rem' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Indique 1 ou 2 pontos positivos/crescimento deste mês</label>
-                            <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#888', marginTop: '-0.3rem', marginBottom: '0.5rem', fontStyle: 'italic' }}>Momento de síntese pessoal: extraia suas vitórias com suas próprias palavras.</p>
-                            <textarea value={monthlyReport.pontosPositivos} onChange={(e) => handleMonthlyReportChange('pontosPositivos', e.target.value)} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}`, fontFamily: 'Georgia, serif', resize: 'vertical' }} />
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--purple-soft)' : 'var(--purple)' }}>Indique 1 ou 2 pontos positivos/crescimento deste mês</label>
+                            <p style={{ fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray)', marginTop: '-0.3rem', marginBottom: '0.5rem', fontStyle: 'italic' }}>Momento de síntese pessoal: extraia suas vitórias com suas próprias palavras.</p>
+                            <textarea value={monthlyReport.pontosPositivos} onChange={(e) => handleMonthlyReportChange('pontosPositivos', e.target.value)} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : 'var(--border-light)'}`, fontFamily: 'Georgia, serif', resize: 'vertical' }} />
                           </div>
 
                           <div style={{ marginBottom: '1.5rem' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? '#c39bd3' : '#8e44ad' }}>Indique um desafio que você está percebendo para crescer</label>
-                            <p style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#888', marginTop: '-0.3rem', marginBottom: '0.5rem', fontStyle: 'italic' }}>Olhe para si mesmo e defina com clareza o seu principal obstáculo (Kurava) atual.</p>
-                            <textarea value={monthlyReport.desafioCrescimento} onChange={(e) => handleMonthlyReportChange('desafioCrescimento', e.target.value)} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : '#ccc'}`, fontFamily: 'Georgia, serif', resize: 'vertical' }} />
+                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--purple-soft)' : 'var(--purple)' }}>Indique um desafio que você está percebendo para crescer</label>
+                            <p style={{ fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray)', marginTop: '-0.3rem', marginBottom: '0.5rem', fontStyle: 'italic' }}>Olhe para si mesmo e defina com clareza o seu principal obstáculo (Kurava) atual.</p>
+                            <textarea value={monthlyReport.desafioCrescimento} onChange={(e) => handleMonthlyReportChange('desafioCrescimento', e.target.value)} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : 'var(--border-light)'}`, fontFamily: 'Georgia, serif', resize: 'vertical' }} />
                           </div>
 
-                          <button onClick={generateMonthlyReportText} style={{ width: '100%', padding: '1.2rem', background: 'linear-gradient(135deg, #9B59B6 0%, #8E44AD 100%)', color: 'white', border: 'none', borderRadius: '12px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', boxShadow: '0 6px 15px rgba(155, 89, 182, 0.3)', transition: 'transform 0.2s' }} onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'} onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}>
+                          <button onClick={generateMonthlyReportText} style={{ width: '100%', padding: '1.2rem', background: 'linear-gradient(135deg, #9B59B6 0%, var(--purple) 100%)', color: 'white', border: 'none', borderRadius: '12px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', boxShadow: '0 6px 15px rgba(155, 89, 182, 0.3)', transition: 'transform 0.2s' }} onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'} onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}>
                             <FileText size={22} /> Gerar Relatório e Copiar
                           </button>
 
@@ -5154,18 +5154,18 @@ ${monthlyReport.desafioCrescimento || '-'}
         {view === 'history' && (
           <div className="animate-fadeIn">
             <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-              <h2 style={{ fontFamily: "'Cinzel', serif", fontSize: '1.5rem', color: isDark ? '#d4af37' : '#6b4423', margin: 0 }}>Histórico de Reflexões</h2>
+              <h2 style={{ fontFamily: "'Cinzel', serif", fontSize: '1.5rem', color: isDark ? 'var(--gold)' : 'var(--umber)', margin: 0 }}>Histórico de Reflexões</h2>
               <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                <button onClick={exportToCSV} disabled={entries.length === 0} style={{ padding: '0.75rem 1.5rem', background: entries.length > 0 ? (isDark ? '#d4af37' : '#6b4423') : '#ccc', color: 'white', border: 'none', borderRadius: '8px', cursor: entries.length > 0 ? 'pointer' : 'not-allowed', fontFamily: 'Georgia, serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button onClick={exportToCSV} disabled={entries.length === 0} style={{ padding: '0.75rem 1.5rem', background: entries.length > 0 ? (isDark ? 'var(--gold)' : 'var(--umber)') : 'var(--border-light)', color: 'white', border: 'none', borderRadius: '8px', cursor: entries.length > 0 ? 'pointer' : 'not-allowed', fontFamily: 'Georgia, serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Download size={18} /> Exportar CSV
                 </button>
                 {/* NOVO: BOTÃO DO RELATÓRIO TXT FV */}
                 {fvUnlocked && (
-                  <button onClick={exportFvReportTXT} disabled={entries.length === 0} style={{ padding: '0.75rem 1.5rem', background: entries.length > 0 ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : '#ccc', color: '#000', border: 'none', borderRadius: '8px', cursor: entries.length > 0 ? 'pointer' : 'not-allowed', fontFamily: 'Georgia, serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: entries.length > 0 ? '0 4px 12px rgba(255,215,0,0.2)' : 'none' }}>
+                  <button onClick={exportFvReportTXT} disabled={entries.length === 0} style={{ padding: '0.75rem 1.5rem', background: entries.length > 0 ? 'linear-gradient(135deg, var(--gold-bright) 0%, #FFA500 100%)' : 'var(--border-light)', color: 'var(--black)', border: 'none', borderRadius: '8px', cursor: entries.length > 0 ? 'pointer' : 'not-allowed', fontFamily: 'Georgia, serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: entries.length > 0 ? '0 4px 12px rgba(255,215,0,0.2)' : 'none' }}>
                     <FileText size={18} /> Relatório CD (TXT)
                   </button>
                 )}
-                <label style={{ padding: '0.75rem 1.5rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <label style={{ padding: '0.75rem 1.5rem', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Upload size={18} /> Importar
                   <input type="file" accept=".csv,.json,.txt" onChange={importDiary} style={{ display: 'none' }} />
                 </label>
@@ -5173,14 +5173,14 @@ ${monthlyReport.desafioCrescimento || '-'}
             </div>
 
             <div style={{ position: 'relative', marginBottom: '2rem' }}>
-              <Search size={20} color={isDark ? '#d4af37' : '#6b4423'} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
-              <input type="text" placeholder="Buscar nas reflexões..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{ width: '100%', padding: '0.75rem 0.75rem 0.75rem 3rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#6b4423'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }} />
+              <Search size={20} color={isDark ? 'var(--gold)' : 'var(--umber)'} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
+              <input type="text" placeholder="Buscar nas reflexões..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{ width: '100%', padding: '0.75rem 0.75rem 0.75rem 3rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : 'var(--umber)'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)' }} />
             </div>
 
             {filteredEntries.length === 0 ? (
               <div style={{ padding: '3rem', textAlign: 'center', background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}` }}>
-                <Calendar size={48} color={isDark ? '#d4af37' : '#6b4423'} style={{ margin: '0 auto 1rem' }} />
-                <p style={{ color: isDark ? '#b8a88a' : '#6b5744', fontSize: '1.1rem' }}>{searchTerm ? 'Nenhuma entrada encontrada' : 'Nenhuma reflexão registrada ainda'}</p>
+                <Calendar size={48} color={isDark ? 'var(--gold)' : 'var(--umber)'} style={{ margin: '0 auto 1rem' }} />
+                <p style={{ color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontSize: '1.1rem' }}>{searchTerm ? 'Nenhuma entrada encontrada' : 'Nenhuma reflexão registrada ainda'}</p>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -5228,13 +5228,13 @@ ${monthlyReport.desafioCrescimento || '-'}
                           onClick={() => setExpandedYears(prev => ({ ...prev, [yearGroup.year]: !isYearExpanded }))}
                           style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.2rem 1.5rem', background: isDark ? 'rgba(212, 175, 55, 0.15)' : 'rgba(139, 115, 85, 0.15)', cursor: 'pointer', transition: 'all 0.2s' }}
                         >
-                          <h2 style={{ margin: 0, color: isDark ? '#FFD700' : '#6b4423', fontFamily: "'Cinzel', serif", fontSize: '1.6rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <h2 style={{ margin: 0, color: isDark ? 'var(--gold-bright)' : 'var(--umber)', fontFamily: "'Cinzel', serif", fontSize: '1.6rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                             <Calendar size={24} /> {yearGroup.year}
                             <span style={{ fontSize: '0.9rem', opacity: 0.8, background: isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)', padding: '0.2rem 0.6rem', borderRadius: '20px', fontFamily: 'Georgia, serif' }}>
                               {yearGroup.total} {yearGroup.total === 1 ? 'dia' : 'dias'}
                             </span>
                           </h2>
-                          {isYearExpanded ? <ChevronUp size={28} color={isDark ? '#FFD700' : '#6b4423'} /> : <ChevronDown size={28} color={isDark ? '#FFD700' : '#6b4423'} />}
+                          {isYearExpanded ? <ChevronUp size={28} color={isDark ? 'var(--gold-bright)' : 'var(--umber)'} /> : <ChevronDown size={28} color={isDark ? 'var(--gold-bright)' : 'var(--umber)'} />}
                         </div>
 
                         {/* LISTA DE MESES DENTRO DO ANO */}
@@ -5252,13 +5252,13 @@ ${monthlyReport.desafioCrescimento || '-'}
                                     onClick={() => setExpandedMonths(prev => ({ ...prev, [monthGroup.monthKey]: !isMonthExpanded }))}
                                     style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.5rem', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'white', borderRadius: '12px', cursor: 'pointer', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, transition: 'all 0.2s' }}
                                   >
-                                    <h3 style={{ margin: 0, color: isDark ? '#d4af37' : '#6b4423', fontFamily: "'Cinzel', serif", fontSize: '1.3rem', textTransform: 'capitalize', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                    <h3 style={{ margin: 0, color: isDark ? 'var(--gold)' : 'var(--umber)', fontFamily: "'Cinzel', serif", fontSize: '1.3rem', textTransform: 'capitalize', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                       <BookOpen size={18} /> {monthGroup.month}
                                       <span style={{ fontSize: '0.85rem', opacity: 0.8, background: isDark ? 'rgba(212,175,55,0.1)' : 'rgba(139,115,85,0.1)', padding: '0.2rem 0.6rem', borderRadius: '20px', fontFamily: 'Georgia, serif' }}>
                                         {monthGroup.entries.length} {monthGroup.entries.length === 1 ? 'dia' : 'dias'}
                                       </span>
                                     </h3>
-                                    {isMonthExpanded ? <ChevronUp size={20} color={isDark ? '#d4af37' : '#6b4423'} /> : <ChevronDown size={20} color={isDark ? '#d4af37' : '#6b4423'} />}
+                                    {isMonthExpanded ? <ChevronUp size={20} color={isDark ? 'var(--gold)' : 'var(--umber)'} /> : <ChevronDown size={20} color={isDark ? 'var(--gold)' : 'var(--umber)'} />}
                                   </div>
 
                                   {/* DIAS DENTRO DO MÊS */}
@@ -5269,31 +5269,31 @@ ${monthlyReport.desafioCrescimento || '-'}
                                         const isPartial = entry.morningDone && !entry.eveningDone;
 
                                         return (
-                                          <div key={entry.id} style={{ background: isPartial ? (isDark ? 'rgba(40, 25, 10, 0.6)' : '#fffdf5') : (isDark ? 'rgba(26, 26, 46, 0.6)' : 'white'), padding: '1.5rem', borderRadius: '12px', border: `2px solid ${isPartial ? (isDark ? '#ff9800' : '#ffb74d') : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)')}`, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', transition: 'all 0.3s ease' }}>
+                                          <div key={entry.id} style={{ background: isPartial ? (isDark ? 'rgba(40, 25, 10, 0.6)' : '#fffdf5') : (isDark ? 'rgba(26, 26, 46, 0.6)' : 'white'), padding: '1.5rem', borderRadius: '12px', border: `2px solid ${isPartial ? (isDark ? 'var(--orange)' : 'var(--orange-soft)') : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)')}`, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', transition: 'all 0.3s ease' }}>
                                             
                                             {/* CABEÇALHO RESUMIDO E CLICÁVEL */}
                                             <div onClick={() => setExpandedEntryId(isExpanded ? null : entry.id)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}>
                                               <div>
-                                                <h3 style={{ margin: 0, color: isPartial ? (isDark ? '#ffb74d' : '#e65100') : (isDark ? '#d4af37' : '#6b4423'), fontSize: '1.2rem', marginBottom: '0.5rem' }}>
+                                                <h3 style={{ margin: 0, color: isPartial ? (isDark ? 'var(--orange-soft)' : 'var(--orange-strong)') : (isDark ? 'var(--gold)' : 'var(--umber)'), fontSize: '1.2rem', marginBottom: '0.5rem' }}>
                                                   {new Date(entry.date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                                                 </h3>
                                                 
                                                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                                  {entry.virtue && <span style={{ padding: '0.2rem 0.6rem', background: isDark ? 'rgba(212,175,55,0.2)' : '#fdf5e6', borderRadius: '4px', fontSize: '0.85rem', color: isDark ? '#d4af37' : '#6b4423', border: `1px solid ${isDark ? 'rgba(212,175,55,0.4)' : '#e8dcc4'}` }}>Virtude: <strong>{entry.virtue}</strong></span>}
+                                                  {entry.virtue && <span style={{ padding: '0.2rem 0.6rem', background: isDark ? 'rgba(212,175,55,0.2)' : '#fdf5e6', borderRadius: '4px', fontSize: '0.85rem', color: isDark ? 'var(--gold)' : 'var(--umber)', border: `1px solid ${isDark ? 'rgba(212,175,55,0.4)' : 'var(--bg-light-alt)'}` }}>Virtude: <strong>{entry.virtue}</strong></span>}
 
-                                                  {!entry.didMorning && <span style={{ padding: '0.2rem 0.6rem', background: 'rgba(255,152,0,0.1)', borderRadius: '4px', fontSize: '0.85rem', color: '#ff9800', border: '1px solid rgba(255,152,0,0.3)' }}>⚠️ Sem Prólogo</span>}
+                                                  {!entry.didMorning && <span style={{ padding: '0.2rem 0.6rem', background: 'rgba(255,152,0,0.1)', borderRadius: '4px', fontSize: '0.85rem', color: 'var(--orange)', border: '1px solid rgba(255,152,0,0.3)' }}>⚠️ Sem Prólogo</span>}
   
-                                                  {isPartial && <span style={{ padding: '0.2rem 0.6rem', background: 'rgba(255,152,0,0.1)', borderRadius: '4px', fontSize: '0.85rem', color: '#ff9800', border: '1px solid rgba(255,152,0,0.3)' }}>⏳ Epílogo Pendente</span>}
+                                                  {isPartial && <span style={{ padding: '0.2rem 0.6rem', background: 'rgba(255,152,0,0.1)', borderRadius: '4px', fontSize: '0.85rem', color: 'var(--orange)', border: '1px solid rgba(255,152,0,0.3)' }}>⏳ Epílogo Pendente</span>}
   
                                                   {entry.fvDaily && fvUnlocked && (
-                                                    <span style={{ padding: '0.2rem 0.6rem', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', borderRadius: '4px', fontSize: '0.85rem', color: '#000', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.3rem', boxShadow: '0 2px 4px rgba(255,215,0,0.2)' }}>
+                                                    <span style={{ padding: '0.2rem 0.6rem', background: 'linear-gradient(135deg, var(--gold-bright) 0%, #FFA500 100%)', borderRadius: '4px', fontSize: '0.85rem', color: 'var(--black)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.3rem', boxShadow: '0 2px 4px rgba(255,215,0,0.2)' }}>
                                                       <Award size={12} /> FV
                                                     </span>
                                                   )}
 
                                                   {/* NOVO SELO GDVE NO HISTÓRICO */}
                                                   {entry.fvDaily && entry.fvDaily.gdveAttendance && fvUnlocked && (
-                                                    <span style={{ padding: '0.2rem 0.6rem', background: 'linear-gradient(135deg, #9B59B6 0%, #8E44AD 100%)', borderRadius: '4px', fontSize: '0.85rem', color: '#fff', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.3rem', boxShadow: '0 2px 4px rgba(155,89,182,0.3)' }}>
+                                                    <span style={{ padding: '0.2rem 0.6rem', background: 'linear-gradient(135deg, #9B59B6 0%, var(--purple) 100%)', borderRadius: '4px', fontSize: '0.85rem', color: 'var(--white)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.3rem', boxShadow: '0 2px 4px rgba(155,89,182,0.3)' }}>
                                                       <Star size={12} /> GDVE
                                                     </span>
                                                   )}
@@ -5302,9 +5302,9 @@ ${monthlyReport.desafioCrescimento || '-'}
                                               </div>
                                               
                                               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                <button onClick={(e) => { e.stopPropagation(); handleDateChange(entry.date); setView('today'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} style={{ padding: '0.5rem', background: 'transparent', color: isDark ? '#d4af37' : '#6b4423', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '8px', cursor: 'pointer' }} title="Preencher ou Editar este dia"><Edit size={16} /></button>
-                                                <button onClick={(e) => { e.stopPropagation(); deleteEntry(entry.date); }} style={{ padding: '0.5rem', background: 'transparent', color: '#e74c3c', border: '2px solid #e74c3c', borderRadius: '8px', cursor: 'pointer' }} title="Excluir"><X size={16} /></button>
-                                                {isExpanded ? <ChevronUp size={24} color={isDark ? '#d4af37' : '#6b4423'} /> : <ChevronDown size={24} color={isDark ? '#d4af37' : '#6b4423'} />}
+                                                <button onClick={(e) => { e.stopPropagation(); handleDateChange(entry.date); setView('today'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} style={{ padding: '0.5rem', background: 'transparent', color: isDark ? 'var(--gold)' : 'var(--umber)', border: `2px solid ${isDark ? 'var(--gold)' : 'var(--umber)'}`, borderRadius: '8px', cursor: 'pointer' }} title="Preencher ou Editar este dia"><Edit size={16} /></button>
+                                                <button onClick={(e) => { e.stopPropagation(); deleteEntry(entry.date); }} style={{ padding: '0.5rem', background: 'transparent', color: 'var(--danger)', border: '2px solid var(--danger)', borderRadius: '8px', cursor: 'pointer' }} title="Excluir"><X size={16} /></button>
+                                                {isExpanded ? <ChevronUp size={24} color={isDark ? 'var(--gold)' : 'var(--umber)'} /> : <ChevronDown size={24} color={isDark ? 'var(--gold)' : 'var(--umber)'} />}
                                               </div>
                                             </div>
 
@@ -5314,17 +5314,17 @@ ${monthlyReport.desafioCrescimento || '-'}
                                                 
                                                 {entry.intention && (
                                                   <div style={{ marginBottom: '1rem' }}>
-                                                    <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem' }}>Compromisso:</h4>
-                                                    <p style={{ margin: 0, color: isDark ? '#c8b896' : '#6b5744', lineHeight: '1.6' }}>{entry.intention}</p>
+                                                    <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1rem' }}>Compromisso:</h4>
+                                                    <p style={{ margin: 0, color: isDark ? 'var(--tan-soft)' : 'var(--umber-muted)', lineHeight: '1.6' }}>{entry.intention}</p>
                                                   </div>
                                                 )}
 
                                                 {entry.tasksSnapshot && entry.tasksSnapshot.length > 0 && (
                                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
                                                     {entry.tasksSnapshot.filter(t => t.completed).length > 0 && (
-                                                      <div style={{ padding: '1rem', background: isDark ? 'rgba(76, 175, 80, 0.05)' : '#f8fff8', borderRadius: '8px', borderLeft: `4px solid ${isDark ? '#4caf50' : '#81c784'}` }}>
-                                                        <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#81c784' : '#2e7d32', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><CheckCircle size={16} /> Práticas Realizadas:</h4>
-                                                        <ul style={{ margin: 0, paddingLeft: '1.2rem', color: isDark ? '#c8b896' : '#2e7d32', fontSize: '0.95rem', lineHeight: '1.6' }}>
+                                                      <div style={{ padding: '1rem', background: isDark ? 'rgba(76, 175, 80, 0.05)' : '#f8fff8', borderRadius: '8px', borderLeft: `4px solid ${isDark ? 'var(--success)' : 'var(--success-soft)'}` }}>
+                                                        <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? 'var(--success-soft)' : 'var(--success-strong)', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><CheckCircle size={16} /> Práticas Realizadas:</h4>
+                                                        <ul style={{ margin: 0, paddingLeft: '1.2rem', color: isDark ? 'var(--tan-soft)' : 'var(--success-strong)', fontSize: '0.95rem', lineHeight: '1.6' }}>
                                                           {entry.tasksSnapshot.filter(t => t.completed).map((task, idx) => <li key={idx}>{task.name}</li>)}
                                                         </ul>
                                                       </div>
@@ -5332,7 +5332,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                                                     {entry.tasksSnapshot.filter(t => !t.completed).length > 0 && (
                                                       <div style={{ padding: '1rem', background: isDark ? 'rgba(244, 67, 54, 0.05)' : '#fff5f5', borderRadius: '8px', borderLeft: `4px solid ${isDark ? '#f44336' : '#e53935'}` }}>
                                                         <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#e57373' : '#c62828', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><XCircle size={16} /> Práticas Não Realizadas:</h4>
-                                                        <ul style={{ margin: 0, paddingLeft: '1.2rem', color: isDark ? '#b8a88a' : '#c62828', fontSize: '0.95rem', lineHeight: '1.6', textDecoration: 'line-through', opacity: 0.8 }}>
+                                                        <ul style={{ margin: 0, paddingLeft: '1.2rem', color: isDark ? 'var(--gold-muted)' : '#c62828', fontSize: '0.95rem', lineHeight: '1.6', textDecoration: 'line-through', opacity: 0.8 }}>
                                                           {entry.tasksSnapshot.filter(t => !t.completed).map((task, idx) => <li key={idx}>{task.name}</li>)}
                                                         </ul>
                                                       </div>
@@ -5341,11 +5341,11 @@ ${monthlyReport.desafioCrescimento || '-'}
                                                 )}
 
                                                 {entry.fvDaily && entry.fvDaily.praticas && (fvUnlocked || entry.fvDaily.praticas.tratack) && (
-                                                  <div style={{ padding: '1rem', background: isDark ? 'rgba(255, 215, 0, 0.05)' : '#fffbf0', borderRadius: '8px', borderLeft: `4px solid ${isDark ? '#FFD700' : '#996515'}`, marginBottom: '1rem' }}>
-                                                    <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#FFD700' : '#996515', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                                  <div style={{ padding: '1rem', background: isDark ? 'rgba(255, 215, 0, 0.05)' : '#fffbf0', borderRadius: '8px', borderLeft: `4px solid ${isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'}`, marginBottom: '1rem' }}>
+                                                    <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                                                       <Award size={16} /> {fvUnlocked ? 'Práticas FV Realizadas:' : 'Práticas Extras Realizadas:'}
                                                     </h4>
-                                                    <ul style={{ margin: 0, paddingLeft: '1.2rem', color: isDark ? '#c8b896' : '#6b5744', fontSize: '0.95rem', lineHeight: '1.6' }}>
+                                                    <ul style={{ margin: 0, paddingLeft: '1.2rem', color: isDark ? 'var(--tan-soft)' : 'var(--umber-muted)', fontSize: '0.95rem', lineHeight: '1.6' }}>
                                                       {(() => {
                                                         const praticasFeitas = Object.entries(entry.fvDaily.praticas).filter(([_, feito]) => feito).map(([key]) => key);
                                                         const listaPermitida = fvUnlocked ? praticasFeitas : praticasFeitas.filter(k => k === 'tratack');
@@ -5372,26 +5372,26 @@ ${monthlyReport.desafioCrescimento || '-'}
                                                   <>
                                                     {entry.whereIFailed && (
                                                       <div style={{ marginBottom: '1rem' }}>
-                                                        <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem' }}>Em que falhei:</h4>
-                                                        <p style={{ margin: 0, color: isDark ? '#c8b896' : '#6b5744', lineHeight: '1.6' }}>{entry.whereIFailed}</p>
+                                                        <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1rem' }}>Em que falhei:</h4>
+                                                        <p style={{ margin: 0, color: isDark ? 'var(--tan-soft)' : 'var(--umber-muted)', lineHeight: '1.6' }}>{entry.whereIFailed}</p>
                                                       </div>
                                                     )}
                                                     {entry.whatIDidWell && (
                                                       <div style={{ marginBottom: '1rem' }}>
-                                                        <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem' }}>O que fiz bem:</h4>
-                                                        <p style={{ margin: 0, color: isDark ? '#c8b896' : '#6b5744', lineHeight: '1.6' }}>{entry.whatIDidWell}</p>
+                                                        <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1rem' }}>O que fiz bem:</h4>
+                                                        <p style={{ margin: 0, color: isDark ? 'var(--tan-soft)' : 'var(--umber-muted)', lineHeight: '1.6' }}>{entry.whatIDidWell}</p>
                                                       </div>
                                                     )}
                                                     {entry.whatILeftUndone && (
                                                       <div style={{ marginBottom: '1rem' }}>
-                                                        <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem' }}>O que deixei de fazer:</h4>
-                                                        <p style={{ margin: 0, color: isDark ? '#c8b896' : '#6b5744', lineHeight: '1.6' }}>{entry.whatILeftUndone}</p>
+                                                        <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1rem' }}>O que deixei de fazer:</h4>
+                                                        <p style={{ margin: 0, color: isDark ? 'var(--tan-soft)' : 'var(--umber-muted)', lineHeight: '1.6' }}>{entry.whatILeftUndone}</p>
                                                       </div>
                                                     )}
                                                     {entry.freeEpilogue && (
                                                       <div style={{ marginTop: '0.5rem', paddingTop: '1rem', borderTop: `1px dashed ${isDark ? 'rgba(212,175,55,0.3)' : 'rgba(139, 115, 85, 0.3)'}` }}>
-                                                        <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1rem' }}>Reflexão Livre:</h4>
-                                                        <p style={{ margin: 0, color: isDark ? '#c8b896' : '#6b5744', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>{entry.freeEpilogue}</p>
+                                                        <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1rem' }}>Reflexão Livre:</h4>
+                                                        <p style={{ margin: 0, color: isDark ? 'var(--tan-soft)' : 'var(--umber-muted)', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>{entry.freeEpilogue}</p>
                                                       </div>
                                                     )}
                                                   </>
@@ -5420,34 +5420,34 @@ ${monthlyReport.desafioCrescimento || '-'}
       {/* MODAL DO FOGO INTERNO (MEDIDA IDEAL + MOTIVACIONAL) */}
         {showStreakModal && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(3px)' }} onClick={() => setShowStreakModal(false)}>
-            <div style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '1.5rem', borderRadius: '16px', maxWidth: '380px', width: '100%', border: `2px solid ${isDark ? '#ff9800' : '#e65100'}`, position: 'relative', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setShowStreakModal(false)} style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}><X size={20} /></button>
+            <div style={{ background: isDark ? 'var(--bg-dark)' : 'var(--bg-light)', padding: '1.5rem', borderRadius: '16px', maxWidth: '380px', width: '100%', border: `2px solid ${isDark ? 'var(--orange)' : 'var(--orange-strong)'}`, position: 'relative', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setShowStreakModal(false)} style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: 'transparent', border: 'none', color: isDark ? 'var(--parchment)' : 'var(--ink)', cursor: 'pointer' }}><X size={20} /></button>
               
               <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
-                <StreakIcon size={46} fill={isDark ? '#ff9800' : '#e65100'} color={isDark ? '#ff9800' : '#e65100'} style={{ margin: '0 auto 0.5rem' }} />
-                <h2 style={{ margin: 0, fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.5rem' }}>Fogo Interno</h2>
+                <StreakIcon size={46} fill={isDark ? 'var(--orange)' : 'var(--orange-strong)'} color={isDark ? 'var(--orange)' : 'var(--orange-strong)'} style={{ margin: '0 auto 0.5rem' }} />
+                <h2 style={{ margin: 0, fontFamily: "'Cinzel', serif", color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.5rem' }}>Fogo Interno</h2>
               </div>
 
               {/* CAIXA DO GRAU E PROGRESSO */}
-              <div style={{ background: isDark ? 'rgba(255, 255, 255, 0.03)' : '#fff', padding: '1.2rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255, 152, 0, 0.3)' : '#ffb74d'}`, textAlign: 'center', marginBottom: '1.5rem' }}>
-                <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 'bold', color: isDark ? '#ffb74d' : '#e65100', display: 'block', marginBottom: '0.2rem' }}>Grau Atual</span>
-                <h3 style={{ margin: '0 0 0.25rem', fontFamily: "'Cinzel', serif", fontSize: '1.4rem', color: isDark ? '#f0e6d2' : '#2c1810' }}>{streakInfo.current.title}</h3>
-                <p style={{ margin: '0 0 1rem', fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic' }}>"{streakInfo.current.desc}"</p>
+              <div style={{ background: isDark ? 'rgba(255, 255, 255, 0.03)' : 'var(--white)', padding: '1.2rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255, 152, 0, 0.3)' : 'var(--orange-soft)'}`, textAlign: 'center', marginBottom: '1.5rem' }}>
+                <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 'bold', color: isDark ? 'var(--orange-soft)' : 'var(--orange-strong)', display: 'block', marginBottom: '0.2rem' }}>Grau Atual</span>
+                <h3 style={{ margin: '0 0 0.25rem', fontFamily: "'Cinzel', serif", fontSize: '1.4rem', color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>{streakInfo.current.title}</h3>
+                <p style={{ margin: '0 0 1rem', fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontStyle: 'italic' }}>"{streakInfo.current.desc}"</p>
                 
                 {streakInfo.next ? (
                   <div style={{ marginTop: '0.5rem', paddingTop: '1rem', borderTop: `1px solid ${isDark ? 'rgba(255, 152, 0, 0.2)' : 'rgba(230, 81, 0, 0.1)'}` }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '0.4rem', fontWeight: 'bold' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', marginBottom: '0.4rem', fontWeight: 'bold' }}>
                       <span>Rumo a: {streakInfo.next.title}</span>
                       <span>Faltam {streakInfo.next.min - streak} dias</span>
                     </div>
-                    <div style={{ width: '100%', height: '8px', background: isDark ? 'rgba(255,255,255,0.1)' : '#eee', borderRadius: '4px', overflow: 'hidden', marginBottom: '0.75rem' }}>
-                      <div style={{ width: `${Math.min(100, (streak / streakInfo.next.min) * 100)}%`, height: '100%', background: isDark ? '#ff9800' : '#e65100', transition: 'width 0.5s ease' }}></div>
+                    <div style={{ width: '100%', height: '8px', background: isDark ? 'rgba(255,255,255,0.1)' : 'var(--border-soft)', borderRadius: '4px', overflow: 'hidden', marginBottom: '0.75rem' }}>
+                      <div style={{ width: `${Math.min(100, (streak / streakInfo.next.min) * 100)}%`, height: '100%', background: isDark ? 'var(--orange)' : 'var(--orange-strong)', transition: 'width 0.5s ease' }}></div>
                     </div>
-                    <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 'bold', color: isDark ? '#ffb74d' : '#e65100' }}>🔥 Perseverança e Constância! Preencha todos os dias para forjar seu caráter.</p>
+                    <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 'bold', color: isDark ? 'var(--orange-soft)' : 'var(--orange-strong)' }}>🔥 Perseverança e Constância! Preencha todos os dias para forjar seu caráter.</p>
                   </div>
                 ) : (
                   <div style={{ marginTop: '0.5rem', paddingTop: '1rem', borderTop: `1px solid ${isDark ? 'rgba(255, 152, 0, 0.2)' : 'rgba(230, 81, 0, 0.1)'}` }}>
-                    <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#ffb74d' : '#e65100', fontWeight: 'bold' }}>🌟 Você atingiu o mais alto grau de maestria e constância!</p>
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? 'var(--orange-soft)' : 'var(--orange-strong)', fontWeight: 'bold' }}>🌟 Você atingiu o mais alto grau de maestria e constância!</p>
                   </div>
                 )}
               </div>
@@ -5455,16 +5455,16 @@ ${monthlyReport.desafioCrescimento || '-'}
               {/* GRID COMPACTO DE 3 COLUNAS */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
                 <div style={{ background: isDark ? 'rgba(255, 152, 0, 0.1)' : '#fff3e0', padding: '0.75rem 0.5rem', borderRadius: '10px', textAlign: 'center', border: `1px solid ${isDark ? 'rgba(255, 152, 0, 0.3)' : 'rgba(230, 81, 0, 0.2)'}` }}>
-                  <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: isDark ? '#ffb74d' : '#e65100' }}>{streak}</div>
-                  <div style={{ fontSize: '0.65rem', color: isDark ? '#c8b896' : '#6b5744', textTransform: 'uppercase', fontWeight: 'bold' }}>Atual</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: isDark ? 'var(--orange-soft)' : 'var(--orange-strong)' }}>{streak}</div>
+                  <div style={{ fontSize: '0.65rem', color: isDark ? 'var(--tan-soft)' : 'var(--umber-muted)', textTransform: 'uppercase', fontWeight: 'bold' }}>Atual</div>
                 </div>
                 <div style={{ background: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(255, 245, 220, 0.6)', padding: '0.75rem 0.5rem', borderRadius: '10px', textAlign: 'center', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}` }}>
-                  <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: isDark ? '#d4af37' : '#6b4423' }}>{longestStreak}</div>
-                  <div style={{ fontSize: '0.65rem', color: isDark ? '#c8b896' : '#6b5744', textTransform: 'uppercase', fontWeight: 'bold' }}>Recorde</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: isDark ? 'var(--gold)' : 'var(--umber)' }}>{longestStreak}</div>
+                  <div style={{ fontSize: '0.65rem', color: isDark ? 'var(--tan-soft)' : 'var(--umber-muted)', textTransform: 'uppercase', fontWeight: 'bold' }}>Recorde</div>
                 </div>
                 <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.5)' : 'white', padding: '0.75rem 0.5rem', borderRadius: '10px', textAlign: 'center', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}` }}>
-                  <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: isDark ? '#d4af37' : '#6b4423' }}>{entries.length}</div>
-                  <div style={{ fontSize: '0.65rem', color: isDark ? '#c8b896' : '#6b5744', textTransform: 'uppercase', fontWeight: 'bold' }}>Total</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: isDark ? 'var(--gold)' : 'var(--umber)' }}>{entries.length}</div>
+                  <div style={{ fontSize: '0.65rem', color: isDark ? 'var(--tan-soft)' : 'var(--umber-muted)', textTransform: 'uppercase', fontWeight: 'bold' }}>Total</div>
                 </div>
               </div>
 
@@ -5475,12 +5475,12 @@ ${monthlyReport.desafioCrescimento || '-'}
         {/* MODAL DE SEGURANÇA */}
         {showInactivityWarning && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(5px)' }}>
-            <div style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '2.5rem', borderRadius: '16px', maxWidth: '450px', width: '100%', border: `2px solid #e74c3c`, textAlign: 'center', boxShadow: '0 10px 40px rgba(231, 76, 60, 0.4)' }}>
-              <AlertCircle size={56} color="#e74c3c" style={{ margin: '0 auto 1rem' }} />
-              <h2 style={{ margin: '0 0 1rem 0', fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.5rem' }}>Você ainda está aí?</h2>
-              <p style={{ margin: '0 0 1rem 0', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '1.1rem', lineHeight: '1.6' }}>Para sua segurança, o diário será fechado em <strong style={{ color: '#e74c3c', fontSize: '1.3rem' }}>{logoutCountdown}</strong> segundos.</p>
-              <p className="animate-fadeIn" style={{ margin: '0 0 1.5rem 0', color: isDark ? '#81c784' : '#2e7d32', fontSize: '0.95rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}><CheckCircle size={16} /> Fique tranquilo, seu progresso foi salvo automaticamente.</p>
-              <button onClick={keepAlive} style={{ width: '100%', padding: '1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>Continuar conectado</button>
+            <div style={{ background: isDark ? 'var(--bg-dark)' : 'var(--bg-light)', padding: '2.5rem', borderRadius: '16px', maxWidth: '450px', width: '100%', border: `2px solid var(--danger)`, textAlign: 'center', boxShadow: '0 10px 40px rgba(231, 76, 60, 0.4)' }}>
+              <AlertCircle size={56} color="var(--danger)" style={{ margin: '0 auto 1rem' }} />
+              <h2 style={{ margin: '0 0 1rem 0', fontFamily: "'Cinzel', serif", color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.5rem' }}>Você ainda está aí?</h2>
+              <p style={{ margin: '0 0 1rem 0', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontSize: '1.1rem', lineHeight: '1.6' }}>Para sua segurança, o diário será fechado em <strong style={{ color: 'var(--danger)', fontSize: '1.3rem' }}>{logoutCountdown}</strong> segundos.</p>
+              <p className="animate-fadeIn" style={{ margin: '0 0 1.5rem 0', color: isDark ? 'var(--success-soft)' : 'var(--success-strong)', fontSize: '0.95rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}><CheckCircle size={16} /> Fique tranquilo, seu progresso foi salvo automaticamente.</p>
+              <button onClick={keepAlive} style={{ width: '100%', padding: '1rem', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>Continuar conectado</button>
             </div>
           </div>
         )}
@@ -5488,20 +5488,20 @@ ${monthlyReport.desafioCrescimento || '-'}
 {/* MODAL: CONVITE ATIVO DE NOTIFICAÇÃO */}
         {showNotificationPrompt && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(5px)' }}>
-            <div className="animate-fadeIn" style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '2.5rem', borderRadius: '16px', maxWidth: '400px', width: '100%', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.3)', position: 'relative' }}>
-              <button onClick={() => setShowNotificationPrompt(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}><X size={24} /></button>
+            <div className="animate-fadeIn" style={{ background: isDark ? 'var(--bg-dark)' : 'var(--bg-light)', padding: '2.5rem', borderRadius: '16px', maxWidth: '400px', width: '100%', border: `2px solid ${isDark ? 'var(--gold)' : 'var(--umber)'}`, textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.3)', position: 'relative' }}>
+              <button onClick={() => setShowNotificationPrompt(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: isDark ? 'var(--parchment)' : 'var(--ink)', cursor: 'pointer' }}><X size={24} /></button>
               
-              <Bell size={56} color={isDark ? '#d4af37' : '#6b4423'} style={{ margin: '0 auto 1rem' }} />
-              <h2 style={{ margin: '0 0 1rem 0', fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.5rem' }}>Mantenha a Chama Acesa!</h2>
-              <p style={{ margin: '0 0 1.5rem 0', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '1.05rem', lineHeight: '1.6' }}>
+              <Bell size={56} color={isDark ? 'var(--gold)' : 'var(--umber)'} style={{ margin: '0 auto 1rem' }} />
+              <h2 style={{ margin: '0 0 1rem 0', fontFamily: "'Cinzel', serif", color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.5rem' }}>Mantenha a Chama Acesa!</h2>
+              <p style={{ margin: '0 0 1.5rem 0', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontSize: '1.05rem', lineHeight: '1.6' }}>
                 Ative os lembretes para não esquecer de fazer o seu Diário Filosófico e o Exame Noturno.
               </p>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                <button onClick={() => { toggleNotifications(); setShowNotificationPrompt(false); }} style={{ width: '100%', padding: '1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                <button onClick={() => { toggleNotifications(); setShowNotificationPrompt(false); }} style={{ width: '100%', padding: '1rem', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
                   <CheckCircle size={20} /> Ativar Lembretes
                 </button>
-                <button onClick={() => setShowNotificationPrompt(false)} style={{ width: '100%', padding: '1rem', background: 'transparent', color: isDark ? '#b8a88a' : '#6b4423', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(107, 68, 35, 0.3)'}`, borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
+                <button onClick={() => setShowNotificationPrompt(false)} style={{ width: '100%', padding: '1rem', background: 'transparent', color: isDark ? 'var(--gold-muted)' : 'var(--umber)', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(107, 68, 35, 0.3)'}`, borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
                   Agora não
                 </button>
               </div>
@@ -5512,31 +5512,31 @@ ${monthlyReport.desafioCrescimento || '-'}
 {/* MODAL DE SUGESTÕES */}
         {showSuggestionModal && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(5px)' }}>
-            <div className="animate-fadeIn" style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '2rem', borderRadius: '16px', maxWidth: '450px', width: '100%', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.3)', position: 'relative' }}>
-              <button onClick={() => setShowSuggestionModal(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}><X size={24} /></button>
+            <div className="animate-fadeIn" style={{ background: isDark ? 'var(--bg-dark)' : 'var(--bg-light)', padding: '2rem', borderRadius: '16px', maxWidth: '450px', width: '100%', border: `2px solid ${isDark ? 'var(--gold)' : 'var(--umber)'}`, textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.3)', position: 'relative' }}>
+              <button onClick={() => setShowSuggestionModal(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: isDark ? 'var(--parchment)' : 'var(--ink)', cursor: 'pointer' }}><X size={24} /></button>
               
-              <MessageSquare size={48} color={isDark ? '#d4af37' : '#6b4423'} style={{ margin: '0 auto 1rem' }} />
-              <h2 style={{ margin: '0 0 0.5rem 0', fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.6rem' }}>Caixa de Ideias</h2>
-              <p style={{ margin: '0 0 1.5rem 0', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '1rem', lineHeight: '1.5' }}>Encontrou um erro ou tem uma sugestão para melhorar nossa ferramenta? Nos avise!</p>
+              <MessageSquare size={48} color={isDark ? 'var(--gold)' : 'var(--umber)'} style={{ margin: '0 auto 1rem' }} />
+              <h2 style={{ margin: '0 0 0.5rem 0', fontFamily: "'Cinzel', serif", color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.6rem' }}>Caixa de Ideias</h2>
+              <p style={{ margin: '0 0 1.5rem 0', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontSize: '1rem', lineHeight: '1.5' }}>Encontrou um erro ou tem uma sugestão para melhorar nossa ferramenta? Nos avise!</p>
               
               <textarea 
                 value={suggestionText} 
                 onChange={(e) => setSuggestionText(e.target.value)} 
                 placeholder="Descreva sua ideia, sugestão ou relato de erro..." 
                 rows={5} 
-                style={{ width: '100%', padding: '1rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : '#6b4423'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', resize: 'vertical', marginBottom: '1.5rem' }} 
+                style={{ width: '100%', padding: '1rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : 'var(--umber)'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', resize: 'vertical', marginBottom: '1.5rem' }} 
               />
               
               <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                 <button onClick={handleSendWhatsApp} style={{ flex: 1, padding: '0.8rem', background: '#25D366', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1.05rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(37, 211, 102, 0.2)' }}>
                   WhatsApp
                 </button>
-                <button onClick={handleSendEmail} style={{ flex: 1, padding: '0.8rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.05rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                <button onClick={handleSendEmail} style={{ flex: 1, padding: '0.8rem', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.05rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
                   E-mail
                 </button>
                 {/* BOTÃO DE CONFIGURAÇÕES (ENGRENAGEM) */}
-              <button onClick={() => setShowSettingsModal(true)} style={{ padding: '0.5rem', background: 'transparent', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s ease' }} title="Configurações">
-                <Settings size={20} color={isDark ? '#d4af37' : '#6b4423'} />
+              <button onClick={() => setShowSettingsModal(true)} style={{ padding: '0.5rem', background: 'transparent', border: `2px solid ${isDark ? 'var(--gold)' : 'var(--umber)'}`, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s ease' }} title="Configurações">
+                <Settings size={20} color={isDark ? 'var(--gold)' : 'var(--umber)'} />
               </button>
               </div>
             </div>
@@ -5544,8 +5544,8 @@ ${monthlyReport.desafioCrescimento || '-'}
         )}
 
         {/* ESPAÇO GLOBAL PARA ANÚNCIO DO GOOGLE (COMPACTO) */}
-        <div style={{ padding: '8px', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(107, 68, 35, 0.05)', borderRadius: '8px', marginTop: '2rem', border: `1px dashed ${isDark ? '#d4af37' : '#6b4423'}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80px' }}>
-          <span style={{ fontSize: '0.65rem', color: isDark ? '#b8a88a' : '#6b5744', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Publicidade</span>
+        <div style={{ padding: '8px', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(107, 68, 35, 0.05)', borderRadius: '8px', marginTop: '2rem', border: `1px dashed ${isDark ? 'var(--gold)' : 'var(--umber)'}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80px' }}>
+          <span style={{ fontSize: '0.65rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Publicidade</span>
           
           <div style={{ width: '100%', maxWidth: '728px' }}>
             <AdBanner slotId="9558175523" />
@@ -5555,23 +5555,23 @@ ${monthlyReport.desafioCrescimento || '-'}
 {/* MODAL DE AÇÃO DAS PRÁTICAS (REALIZAR OU JÁ REALIZADO) */}
         {activeActionMenu && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(3px)' }} onClick={() => setActiveActionMenu(null)}>
-            <div className="animate-fadeIn" style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '2rem', borderRadius: '16px', maxWidth: '350px', width: '100%', border: `2px solid ${isDark ? '#FFD700' : '#996515'}`, textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.3)', position: 'relative' }} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setActiveActionMenu(null)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}><X size={24} /></button>
+            <div className="animate-fadeIn" style={{ background: isDark ? 'var(--bg-dark)' : 'var(--bg-light)', padding: '2rem', borderRadius: '16px', maxWidth: '350px', width: '100%', border: `2px solid ${isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'}`, textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.3)', position: 'relative' }} onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setActiveActionMenu(null)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: isDark ? 'var(--parchment)' : 'var(--ink)', cursor: 'pointer' }}><X size={24} /></button>
               
-              <h3 style={{ margin: '0 0 1.5rem 0', fontFamily: "'Cinzel', serif", color: isDark ? '#FFD700' : '#996515', fontSize: '1.3rem' }}>{activeActionMenu.label}</h3>
+              <h3 style={{ margin: '0 0 1.5rem 0', fontFamily: "'Cinzel', serif", color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', fontSize: '1.3rem' }}>{activeActionMenu.label}</h3>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <button onClick={() => handleRealizarPratica(activeActionMenu.key)} style={{ width: '100%', padding: '1rem', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: '#000', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(255,215,0,0.2)' }}>
+                <button onClick={() => handleRealizarPratica(activeActionMenu.key)} style={{ width: '100%', padding: '1rem', background: 'linear-gradient(135deg, var(--gold-bright) 0%, #FFA500 100%)', color: 'var(--black)', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(255,215,0,0.2)' }}>
                   <Zap size={20} /> Realizar no App
                 </button>
                 
-                <button onClick={() => { handleFvDailyPracticeChange(activeActionMenu.key, true); setActiveActionMenu(null); }} style={{ width: '100%', padding: '1rem', background: isDark ? 'rgba(76, 175, 80, 0.2)' : '#e8f5e9', color: isDark ? '#81c784' : '#2e7d32', border: `2px solid ${isDark ? '#4caf50' : '#4caf50'}`, borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+                <button onClick={() => { handleFvDailyPracticeChange(activeActionMenu.key, true); setActiveActionMenu(null); }} style={{ width: '100%', padding: '1rem', background: isDark ? 'rgba(76, 175, 80, 0.2)' : '#e8f5e9', color: isDark ? 'var(--success-soft)' : 'var(--success-strong)', border: `2px solid ${isDark ? 'var(--success)' : 'var(--success)'}`, borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
                   <CheckCircle size={20} /> Já Realizado
                 </button>
 
                 {/* Se já estiver marcado, dá a opção de desmarcar */}
                 {fvDaily.praticas?.[activeActionMenu.key] && (
-                  <button onClick={() => { handleFvDailyPracticeChange(activeActionMenu.key, false); setActiveActionMenu(null); }} style={{ width: '100%', padding: '0.75rem', background: 'transparent', color: isDark ? '#b8a88a' : '#6b5744', border: 'none', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', textDecoration: 'underline' }}>
+                  <button onClick={() => { handleFvDailyPracticeChange(activeActionMenu.key, false); setActiveActionMenu(null); }} style={{ width: '100%', padding: '0.75rem', background: 'transparent', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', border: 'none', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', textDecoration: 'underline' }}>
                     Desmarcar prática
                   </button>
                 )}
@@ -5582,7 +5582,7 @@ ${monthlyReport.desafioCrescimento || '-'}
 
         {/* MODAL IMERSIVO UNIVERSAL: PRÁTICAS GUIADAS */}
         {isPracticeActive && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: isDark ? '#0a0a14' : '#fdfbf7', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: isDark ? '#0a0a14' : 'var(--bg-light)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
             
             {/* --- 1. PRÁTICA: TRATAK --- */}
             {activePracticeId === 'tratack' && (
@@ -5590,21 +5590,21 @@ ${monthlyReport.desafioCrescimento || '-'}
                 {/* FASE 1: INSTRUÇÃO */}
                 {practicePhase === 'intro' && (
                   <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '2rem', maxWidth: '500px' }}>
-                    <Target size={48} color={isDark ? '#FFD700' : '#996515'} style={{ margin: '0 auto 1.5rem' }} />
+                    <Target size={48} color={isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'} style={{ margin: '0 auto 1.5rem' }} />
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', margin: '0 0 1rem 0' }}>
-                      <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? '#FFD700' : '#996515', fontSize: '2rem', margin: 0 }}>Prática de Tratak</h2>
-                      <button onClick={() => alert("O Tratak é um exercício milenar de concentração. Consiste em manter o olhar fixamente cravado em um único ponto (o círculo central) sem piscar e sem mover o corpo ou o celular.\n\nObjetivo: Domar a mente agitada através do controle absoluto do corpo. Se o celular tremer ou você mover o mouse, a prática é cancelada.")} style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'transparent', border: `2px solid ${isDark ? '#FFD700' : '#996515'}`, color: isDark ? '#FFD700' : '#996515', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="O que é o Tratak?">?</button>
+                      <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', fontSize: '2rem', margin: 0 }}>Prática de Tratak</h2>
+                      <button onClick={() => alert("O Tratak é um exercício milenar de concentração. Consiste em manter o olhar fixamente cravado em um único ponto (o círculo central) sem piscar e sem mover o corpo ou o celular.\n\nObjetivo: Domar a mente agitada através do controle absoluto do corpo. Se o celular tremer ou você mover o mouse, a prática é cancelada.")} style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'transparent', border: `2px solid ${isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'}`, color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="O que é o Tratak?">?</button>
                     </div>
                     
                     <div style={{ background: isDark ? 'rgba(255,215,0,0.05)' : 'rgba(153,101,21,0.05)', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255,215,0,0.2)' : 'rgba(153,101,21,0.2)'}`, marginBottom: '1.5rem' }}>
-                      <p style={{ fontSize: '1.15rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.6', margin: 0 }}>Posicione o seu dispositivo a cerca de 1 metro de distância, alinhado à altura dos olhos.</p>
-                      <p style={{ fontSize: '1.15rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.6', marginTop: '1rem', marginBottom: 0 }}>Sente-se adequadamente, com a coluna ereta. Respire fundo e clique em iniciar.</p>
+                      <p style={{ fontSize: '1.15rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', lineHeight: '1.6', margin: 0 }}>Posicione o seu dispositivo a cerca de 1 metro de distância, alinhado à altura dos olhos.</p>
+                      <p style={{ fontSize: '1.15rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', lineHeight: '1.6', marginTop: '1rem', marginBottom: 0 }}>Sente-se adequadamente, com a coluna ereta. Respire fundo e clique em iniciar.</p>
                     </div>
 
-                    <p style={{ fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '0.5rem', fontStyle: 'italic' }}>A prática durará 3 minutos. Mantenha o olhar fixo no ponto central.</p>
+                    <p style={{ fontSize: '0.9rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', marginBottom: '0.5rem', fontStyle: 'italic' }}>A prática durará 3 minutos. Mantenha o olhar fixo no ponto central.</p>
                     
                     {/* NOVO: Aviso de Encerramento */}
-                    <p style={{ fontSize: '0.85rem', color: '#e74c3c', marginBottom: '2rem', fontWeight: 'bold' }}>⚠️ Para encerrar antecipadamente, mova o mouse.</p>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--danger)', marginBottom: '2rem', fontWeight: 'bold' }}>⚠️ Para encerrar antecipadamente, mova o mouse.</p>
 
                     <button 
                       onClick={() => { 
@@ -5612,11 +5612,11 @@ ${monthlyReport.desafioCrescimento || '-'}
                         setCancelClickCount(0); // Zera os cliques ao começar!
                         enterFullScreen(); // 👈 LIGA A TELA CHEIA AQUI
                       }} 
-                      style={{ padding: '1rem 2.5rem', fontSize: '1.2rem', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: '#000', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold' }}
+                      style={{ padding: '1rem 2.5rem', fontSize: '1.2rem', background: 'linear-gradient(135deg, var(--gold-bright) 0%, #FFA500 100%)', color: 'var(--black)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold' }}
                     >
                       Iniciar Tratak
                     </button>
-                    <button onClick={() => setIsPracticeActive(false)} style={{ marginTop: '1rem', display: 'block', width: '100%', padding: '1rem', background: 'transparent', color: isDark ? '#888' : '#6b5744', border: 'none', cursor: 'pointer', fontFamily: 'Georgia, serif', textDecoration: 'underline' }}>Voltar ao Diário</button>
+                    <button onClick={() => setIsPracticeActive(false)} style={{ marginTop: '1rem', display: 'block', width: '100%', padding: '1rem', background: 'transparent', color: isDark ? 'var(--gray)' : 'var(--umber-muted)', border: 'none', cursor: 'pointer', fontFamily: 'Georgia, serif', textDecoration: 'underline' }}>Voltar ao Diário</button>
                   </div>
                 )}
 
@@ -5634,8 +5634,8 @@ ${monthlyReport.desafioCrescimento || '-'}
                     }}
                     style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%', cursor: 'none' }}
                   >
-                    <div style={{ width: 'min(85vw, 500px)', aspectRatio: '1/1', borderRadius: '50%', border: `8px solid ${isDark ? '#fff' : '#000'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <div style={{ width: 'min(6vw, 36px)', aspectRatio: '1/1', borderRadius: '50%', background: isDark ? '#fff' : '#000' }}></div>
+                    <div style={{ width: 'min(85vw, 500px)', aspectRatio: '1/1', borderRadius: '50%', border: `8px solid ${isDark ? 'var(--white)' : 'var(--black)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ width: 'min(6vw, 36px)', aspectRatio: '1/1', borderRadius: '50%', background: isDark ? 'var(--white)' : 'var(--black)' }}></div>
                     </div>
                   </div>
                 )}
@@ -5643,12 +5643,12 @@ ${monthlyReport.desafioCrescimento || '-'}
                 {/* FASE 3: CONCLUSÃO */}
                 {practicePhase === 'done' && (
                   <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '2rem' }}>
-                    <CheckCircle size={80} color="#4caf50" style={{ margin: '0 auto 1.5rem' }} />
-                    <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '2.5rem', marginBottom: '1rem' }}>Tratak Realizado</h2>
-                    <p style={{ fontSize: '1.2rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2.5rem' }}>O foco e a disciplina foram forjados mais um pouco hoje.</p>
+                    <CheckCircle size={80} color="var(--success)" style={{ margin: '0 auto 1.5rem' }} />
+                    <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '2.5rem', marginBottom: '1rem' }}>Tratak Realizado</h2>
+                    <p style={{ fontSize: '1.2rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', marginBottom: '2.5rem' }}>O foco e a disciplina foram forjados mais um pouco hoje.</p>
                     <button 
                       onClick={() => confirmImmersivePractice('tratack')} 
-                      style={{ padding: '1rem 3rem', fontSize: '1.2rem', background: '#4caf50', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold' }}
+                      style={{ padding: '1rem 3rem', fontSize: '1.2rem', background: 'var(--success)', color: 'var(--white)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold' }}
                     >
                       Confirmar Prática
                     </button>
@@ -5671,15 +5671,15 @@ ${monthlyReport.desafioCrescimento || '-'}
                 {/* FASE 1: INSTRUÇÃO */}
                 {practicePhase === 'intro' && (
                   <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '2rem', maxWidth: '500px' }}>
-                    <Music size={48} color={isDark ? '#81c784' : '#2e7d32'} style={{ margin: '0 auto 1.5rem' }} />
-                    <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? '#81c784' : '#2e7d32', fontSize: '2rem', margin: '0 0 1rem 0' }}>Câmara de Purificação</h2>
+                    <Music size={48} color={isDark ? 'var(--success-soft)' : 'var(--success-strong)'} style={{ margin: '0 auto 1.5rem' }} />
+                    <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? 'var(--success-soft)' : 'var(--success-strong)', fontSize: '2rem', margin: '0 0 1rem 0' }}>Câmara de Purificação</h2>
                     
                     <div style={{ background: isDark ? 'rgba(76, 175, 80, 0.05)' : 'rgba(76, 175, 80, 0.1)', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(76, 175, 80, 0.2)' : 'rgba(76, 175, 80, 0.3)'}`, marginBottom: '1.5rem' }}>
-                      <p style={{ fontSize: '1.15rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.6', margin: 0 }}>Sente-se de forma confortável, feche os olhos e respire profundamente.</p>
-                      <p style={{ fontSize: '1.15rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.6', marginTop: '1rem', marginBottom: 0 }}>Ao iniciar, a Ária de Bach começará a tocar. Deixe a música lavar seus pensamentos.</p>
+                      <p style={{ fontSize: '1.15rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', lineHeight: '1.6', margin: 0 }}>Sente-se de forma confortável, feche os olhos e respire profundamente.</p>
+                      <p style={{ fontSize: '1.15rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', lineHeight: '1.6', marginTop: '1rem', marginBottom: 0 }}>Ao iniciar, a Ária de Bach começará a tocar. Deixe a música lavar seus pensamentos.</p>
                     </div>
 
-                    <p style={{ fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '0.5rem', fontStyle: 'italic' }}>A prática terminará automaticamente ao fim da melodia (~5 min).</p>
+                    <p style={{ fontSize: '0.9rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', marginBottom: '0.5rem', fontStyle: 'italic' }}>A prática terminará automaticamente ao fim da melodia (~5 min).</p>
                                         
                     <button 
                       onClick={() => { 
@@ -5688,11 +5688,11 @@ ${monthlyReport.desafioCrescimento || '-'}
                         enterFullScreen();
                         if(audioRef.current) audioRef.current.play(); // 👈 DÁ O PLAY NA MÚSICA AQUI!
                       }} 
-                      style={{ padding: '1rem 2.5rem', fontSize: '1.2rem', background: 'linear-gradient(135deg, #81c784 0%, #4caf50 100%)', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(76, 175, 80, 0.3)' }}
+                      style={{ padding: '1rem 2.5rem', fontSize: '1.2rem', background: 'linear-gradient(135deg, var(--success-soft) 0%, var(--success) 100%)', color: 'var(--white)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(76, 175, 80, 0.3)' }}
                     >
                       Iniciar Purificação
                     </button>
-                    <button onClick={() => setIsPracticeActive(false)} style={{ marginTop: '1rem', display: 'block', width: '100%', padding: '1rem', background: 'transparent', color: isDark ? '#888' : '#6b5744', border: 'none', cursor: 'pointer', fontFamily: 'Georgia, serif', textDecoration: 'underline' }}>Voltar ao Diário</button>
+                    <button onClick={() => setIsPracticeActive(false)} style={{ marginTop: '1rem', display: 'block', width: '100%', padding: '1rem', background: 'transparent', color: isDark ? 'var(--gray)' : 'var(--umber-muted)', border: 'none', cursor: 'pointer', fontFamily: 'Georgia, serif', textDecoration: 'underline' }}>Voltar ao Diário</button>
                   </div>
                 )}
 
@@ -5707,7 +5707,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                         e.stopPropagation();
                         if(audioRef.current) { audioRef.current.pause(); }
                         setPracticePhase('done');
-                      }} style={{ marginTop: '2rem', padding: '0.8rem 2rem', background: '#4caf50', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 15px rgba(76,175,80,0.3)', animation: 'fadeIn 1s' }}>
+                      }} style={{ marginTop: '2rem', padding: '0.8rem 2rem', background: 'var(--success)', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 15px rgba(76,175,80,0.3)', animation: 'fadeIn 1s' }}>
                         <CheckCircle size={20} /> Finalizar Purificação
                       </button>
                     )}
@@ -5718,7 +5718,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                       if(audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; }
                       setIsPracticeActive(false); 
                       exitFullScreen();
-                    }} style={{ position: 'absolute', bottom: '10%', padding: '1rem 2rem', background: 'transparent', color: '#e74c3c', border: '2px solid #e74c3c', borderRadius: '8px', fontSize: '1.1rem', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    }} style={{ position: 'absolute', bottom: '10%', padding: '1rem 2rem', background: 'transparent', color: 'var(--danger)', border: '2px solid var(--danger)', borderRadius: '8px', fontSize: '1.1rem', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <XCircle size={20} /> Encerrar Prática
                     </button>
                   </div>
@@ -5727,12 +5727,12 @@ ${monthlyReport.desafioCrescimento || '-'}
                 {/* FASE 3: CONCLUSÃO */}
                 {practicePhase === 'done' && (
                   <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '2rem' }}>
-                    <CheckCircle size={80} color="#4caf50" style={{ margin: '0 auto 1.5rem' }} />
-                    <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '2.5rem', marginBottom: '1rem' }}>Purificação Concluída</h2>
-                    <p style={{ fontSize: '1.2rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2.5rem' }}>Sua mente agora está serena e limpa como um espelho d'água.</p>
+                    <CheckCircle size={80} color="var(--success)" style={{ margin: '0 auto 1.5rem' }} />
+                    <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '2.5rem', marginBottom: '1rem' }}>Purificação Concluída</h2>
+                    <p style={{ fontSize: '1.2rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', marginBottom: '2.5rem' }}>Sua mente agora está serena e limpa como um espelho d'água.</p>
                     <button 
                       onClick={() => confirmImmersivePractice('camara')} 
-                      style={{ padding: '1rem 3rem', fontSize: '1.2rem', background: '#4caf50', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold' }}
+                      style={{ padding: '1rem 3rem', fontSize: '1.2rem', background: 'var(--success)', color: 'var(--white)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold' }}
                     >
                       Confirmar Prática
                     </button>
@@ -5747,18 +5747,18 @@ ${monthlyReport.desafioCrescimento || '-'}
                 {/* FASE 1: INSTRUÇÃO */}
                 {practicePhase === 'intro' && (
                   <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '2rem', maxWidth: '500px' }}>
-                    <Sparkles size={48} color={isDark ? '#FFD700' : '#996515'} style={{ margin: '0 auto 1.5rem' }} />
-                    <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? '#FFD700' : '#996515', fontSize: '2rem', margin: '0 0 1rem 0' }}>Templo Interior</h2>
+                    <Sparkles size={48} color={isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'} style={{ margin: '0 auto 1.5rem' }} />
+                    <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', fontSize: '2rem', margin: '0 0 1rem 0' }}>Templo Interior</h2>
                     
                     <div style={{ background: isDark ? 'rgba(255,215,0,0.05)' : 'rgba(153,101,21,0.05)', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255,215,0,0.2)' : 'rgba(153,101,21,0.2)'}`, marginBottom: '1.5rem' }}>
-                      <p style={{ fontSize: '1.15rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.6', margin: 0 }}>Feche os olhos e inicie sua jornada para dentro de si.</p>
-                      <p style={{ fontSize: '1.15rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.6', marginTop: '1rem', marginBottom: 0 }}>Ao som de Beethoven, avance o quanto puder pelas etapas do Templo.</p>
+                      <p style={{ fontSize: '1.15rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', lineHeight: '1.6', margin: 0 }}>Feche os olhos e inicie sua jornada para dentro de si.</p>
+                      <p style={{ fontSize: '1.15rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', lineHeight: '1.6', marginTop: '1rem', marginBottom: 0 }}>Ao som de Beethoven, avance o quanto puder pelas etapas do Templo.</p>
                     </div>
 
                     {/* DESTAQUE PARA O TEMPO DE DURAÇÃO */}
                     <div style={{ marginBottom: '1.5rem' }}>
-                      <p style={{ fontSize: '1rem', color: isDark ? '#FFD700' : '#996515', margin: '0 0 0.25rem 0', fontWeight: 'bold' }}>⏱️ Duração: ~8 minutos e 30 segundos.</p>
-                      <p style={{ fontSize: '0.9rem', color: isDark ? '#b8a88a' : '#6b5744', margin: 0, fontStyle: 'italic' }}>Ao final da sinfonia, você registrará seu progresso.</p>
+                      <p style={{ fontSize: '1rem', color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', margin: '0 0 0.25rem 0', fontWeight: 'bold' }}>⏱️ Duração: ~8 minutos e 30 segundos.</p>
+                      <p style={{ fontSize: '0.9rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', margin: 0, fontStyle: 'italic' }}>Ao final da sinfonia, você registrará seu progresso.</p>
                     </div>
               
                     <button 
@@ -5768,11 +5768,11 @@ ${monthlyReport.desafioCrescimento || '-'}
                         enterFullScreen();
                         if(audioRef.current) { audioRef.current.load(); audioRef.current.play(); } 
                       }} 
-                      style={{ padding: '1rem 2.5rem', fontSize: '1.2rem', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: '#000', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(255, 215, 0, 0.3)' }}
+                      style={{ padding: '1rem 2.5rem', fontSize: '1.2rem', background: 'linear-gradient(135deg, var(--gold-bright) 0%, #FFA500 100%)', color: 'var(--black)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(255, 215, 0, 0.3)' }}
                     >
                       Adentrar o Templo
                     </button>
-                    <button onClick={() => setIsPracticeActive(false)} style={{ marginTop: '1rem', display: 'block', width: '100%', padding: '1rem', background: 'transparent', color: isDark ? '#888' : '#6b5744', border: 'none', cursor: 'pointer', fontFamily: 'Georgia, serif', textDecoration: 'underline' }}>Voltar ao Diário</button>
+                    <button onClick={() => setIsPracticeActive(false)} style={{ marginTop: '1rem', display: 'block', width: '100%', padding: '1rem', background: 'transparent', color: isDark ? 'var(--gray)' : 'var(--umber-muted)', border: 'none', cursor: 'pointer', fontFamily: 'Georgia, serif', textDecoration: 'underline' }}>Voltar ao Diário</button>
                   </div>
                 )}
 
@@ -5789,7 +5789,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                       if(audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; }
                       setIsPracticeActive(false); 
                       exitFullScreen();
-                    }} style={{ position: 'absolute', bottom: '10%', padding: '1rem 2rem', background: 'transparent', color: '#e74c3c', border: '2px solid #e74c3c', borderRadius: '8px', fontSize: '1.1rem', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    }} style={{ position: 'absolute', bottom: '10%', padding: '1rem 2rem', background: 'transparent', color: 'var(--danger)', border: '2px solid var(--danger)', borderRadius: '8px', fontSize: '1.1rem', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <XCircle size={20} /> Encerrar Prática
                     </button>
                   </div>
@@ -5798,8 +5798,8 @@ ${monthlyReport.desafioCrescimento || '-'}
                 {/* FASE 3: MARCAÇÃO DOS DEGRAUS (CONCLUSÃO) */}
                 {practicePhase === 'done' && (
                   <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '2rem', maxWidth: '400px', width: '100%' }}>
-                    <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? '#FFD700' : '#996515', fontSize: '2rem', marginBottom: '0.5rem' }}>Jornada Concluída</h2>
-                    <p style={{ fontSize: '1.1rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '2rem' }}>Até qual etapa você conseguiu se manter consciente hoje?</p>
+                    <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', fontSize: '2rem', marginBottom: '0.5rem' }}>Jornada Concluída</h2>
+                    <p style={{ fontSize: '1.1rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', marginBottom: '2rem' }}>Até qual etapa você conseguiu se manter consciente hoje?</p>
                     
                     {/* AS CAIXINHAS DE SELEÇÃO DO TEMPLO */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem', textAlign: 'left', background: isDark ? 'rgba(255,215,0,0.05)' : 'rgba(153,101,21,0.05)', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255,215,0,0.2)' : 'rgba(153,101,21,0.2)'}` }}>
@@ -5814,16 +5814,16 @@ ${monthlyReport.desafioCrescimento || '-'}
                             type="checkbox" 
                             checked={temploSelections[prac.key]} 
                             onChange={(e) => setTemploSelections(prev => ({ ...prev, [prac.key]: e.target.checked }))} 
-                            style={{ width: '24px', height: '24px', cursor: 'pointer', accentColor: isDark ? '#FFD700' : '#996515' }} 
+                            style={{ width: '24px', height: '24px', cursor: 'pointer', accentColor: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)' }} 
                           />
-                          <span style={{ color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.1rem' }}>{prac.label}</span>
+                          <span style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.1rem' }}>{prac.label}</span>
                         </label>
                       ))}
                     </div>
 
                     <button 
                       onClick={confirmTemploPractice} 
-                      style={{ width: '100%', padding: '1rem', fontSize: '1.2rem', background: '#4caf50', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold' }}
+                      style={{ width: '100%', padding: '1rem', fontSize: '1.2rem', background: 'var(--success)', color: 'var(--white)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold' }}
                     >
                       Confirmar Progresso
                     </button>
@@ -5837,19 +5837,19 @@ ${monthlyReport.desafioCrescimento || '-'}
 
         {/* --- 4. PRÁTICA: RECITAÇÕES EM TELA CHEIA --- */}
         {isPracticeActive && (activePracticeId === 'recitarHonra' || activePracticeId === 'recitar7Fases' || activePracticeId === 'formasGeometricas') && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: isDark ? '#0a0a14' : '#fdfbf7', zIndex: 10001, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: isDark ? '#0a0a14' : 'var(--bg-light)', zIndex: 10001, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
             <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '2rem', maxWidth: '600px', width: '100%' }}>
               {activePracticeId === 'formasGeometricas'
-                ? <Landmark size={64} color={isDark ? '#d4af37' : '#6b4423'} style={{ margin: '0 auto 1.5rem', opacity: 0.8 }} />
-                : <BookOpen size={64} color={isDark ? '#d4af37' : '#6b4423'} style={{ margin: '0 auto 1.5rem', opacity: 0.8 }} />
+                ? <Landmark size={64} color={isDark ? 'var(--gold)' : 'var(--umber)'} style={{ margin: '0 auto 1.5rem', opacity: 0.8 }} />
+                : <BookOpen size={64} color={isDark ? 'var(--gold)' : 'var(--umber)'} style={{ margin: '0 auto 1.5rem', opacity: 0.8 }} />
               }
 
-              <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? '#d4af37' : '#6b4423', fontSize: '2.5rem', margin: '0 0 1.5rem 0' }}>
+              <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? 'var(--gold)' : 'var(--umber)', fontSize: '2.5rem', margin: '0 0 1.5rem 0' }}>
                 {activePracticeId === 'recitarHonra' ? 'Código de Dignidade' : (activePracticeId === 'recitar7Fases' ? '7 Fases da ED' : 'Formas Geométricas')}
               </h2>
 
               <div style={{ background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(139, 115, 85, 0.05)', padding: '2rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, marginBottom: '3rem' }}>
-                <p style={{ fontSize: '1.2rem', color: isDark ? '#f0e6d2' : '#2c1810', lineHeight: '1.8', margin: 0, fontStyle: 'italic' }}>
+                <p style={{ fontSize: '1.2rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', lineHeight: '1.8', margin: 0, fontStyle: 'italic' }}>
                   {activePracticeId === 'formasGeometricas' ? (
                     <>
                       Visualize e trace mentalmente as formas geométricas básicas (círculo, quadrado, triângulo) com atenção plena, sustentando cada forma na mente antes de passar à seguinte.
@@ -5870,7 +5870,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                 onClick={() => {
                   confirmImmersivePractice(activePracticeId);
                 }}
-                style={{ width: '100%', padding: '1.2rem', fontSize: '1.3rem', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: '#000', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(255, 215, 0, 0.3)', transition: 'transform 0.2s', marginBottom: '1.5rem' }}
+                style={{ width: '100%', padding: '1.2rem', fontSize: '1.3rem', background: 'linear-gradient(135deg, var(--gold-bright) 0%, #FFA500 100%)', color: 'var(--black)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(255, 215, 0, 0.3)', transition: 'transform 0.2s', marginBottom: '1.5rem' }}
                 onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
                 onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
               >
@@ -5880,7 +5880,7 @@ ${monthlyReport.desafioCrescimento || '-'}
               
               <button 
                 onClick={() => { setIsPracticeActive(false); exitFullScreen(); }} 
-                style={{ display: 'block', width: '100%', padding: '1rem', background: 'transparent', color: isDark ? '#b8a88a' : '#6b5744', border: 'none', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '1.1rem', textDecoration: 'underline' }}
+                style={{ display: 'block', width: '100%', padding: '1rem', background: 'transparent', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', border: 'none', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '1.1rem', textDecoration: 'underline' }}
               >
                 Cancelar e Voltar
               </button>
@@ -5897,13 +5897,13 @@ ${monthlyReport.desafioCrescimento || '-'}
               </button>
 
               <h1 style={{ textAlign: 'center', fontSize: '1.3rem', textDecoration: 'underline', marginBottom: '0.5rem' }}>CARTA DE DEGRAU TERRA</h1>
-              <p style={{ textAlign: 'center', fontSize: '0.8rem', color: '#666', fontStyle: 'italic', marginBottom: '2rem' }}>
+              <p style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--gray-text)', fontStyle: 'italic', marginBottom: '2rem' }}>
                 Rascunho gerado por IA — revise e ajuste antes de entregar.
               </p>
 
               <p><strong>Data:</strong> {new Date().toLocaleDateString('pt-BR')}</p>
               {cartaDegrauResult.masterName && <p><strong>Instrutor:</strong> {cartaDegrauResult.masterName}</p>}
-              <p style={{ fontSize: '0.85rem', color: '#666' }}>
+              <p style={{ fontSize: '0.85rem', color: 'var(--gray-text)' }}>
                 Síntese do período de {new Date(cartaDegrauResult.periodStart + 'T12:00:00').toLocaleDateString('pt-BR')} a {new Date(cartaDegrauResult.periodEnd + 'T12:00:00').toLocaleDateString('pt-BR')}.
               </p>
 
@@ -5921,7 +5921,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                 <p style={{ margin: 0 }}>Assinatura</p>
               </div>
 
-              <button onClick={() => window.print()} className="no-print" style={{ marginTop: '2.5rem', width: '100%', padding: '1rem', background: '#6b4423', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontFamily: 'Georgia, serif' }}>
+              <button onClick={() => window.print()} className="no-print" style={{ marginTop: '2.5rem', width: '100%', padding: '1rem', background: 'var(--umber)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontFamily: 'Georgia, serif' }}>
                 <Download size={18} /> Imprimir / Salvar como PDF
               </button>
             </div>
@@ -5931,24 +5931,24 @@ ${monthlyReport.desafioCrescimento || '-'}
         {/* MODAL: CRIAR GRUPO DE ESTUDO (GDVE) */}
         {showCreateGroupModal && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(3px)' }} onClick={() => setShowCreateGroupModal(false)}>
-            <div style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '1.5rem', borderRadius: '16px', maxWidth: '380px', width: '100%', border: `2px solid ${isDark ? '#4caf50' : '#2e7d32'}`, position: 'relative', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setShowCreateGroupModal(false)} style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}><X size={20} /></button>
-              <h2 style={{ margin: '0 0 1rem', fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Users size={22} /> Criar Grupo de Estudo</h2>
+            <div style={{ background: isDark ? 'var(--bg-dark)' : 'var(--bg-light)', padding: '1.5rem', borderRadius: '16px', maxWidth: '380px', width: '100%', border: `2px solid ${isDark ? 'var(--success)' : 'var(--success-strong)'}`, position: 'relative', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setShowCreateGroupModal(false)} style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: 'transparent', border: 'none', color: isDark ? 'var(--parchment)' : 'var(--ink)', cursor: 'pointer' }}><X size={20} /></button>
+              <h2 style={{ margin: '0 0 1rem', fontFamily: "'Cinzel', serif", color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Users size={22} /> Criar Grupo de Estudo</h2>
               <input
                 type="text"
                 autoFocus
                 value={newGroupName}
                 onChange={(e) => setNewGroupName(e.target.value)}
                 placeholder="Nome do grupo (opcional — deixe em branco para um nome egípcio)"
-                style={{ width: '100%', padding: '0.7rem', borderRadius: '8px', border: '1px solid #ccc', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', marginBottom: '0.4rem' }}
+                style={{ width: '100%', padding: '0.7rem', borderRadius: '8px', border: '1px solid var(--border-light)', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', marginBottom: '0.4rem' }}
               />
-              <p style={{ margin: '0 0 1rem', fontSize: '0.8rem', color: isDark ? '#b8a88a' : '#666' }}>
+              <p style={{ margin: '0 0 1rem', fontSize: '0.8rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)' }}>
                 Não precisa pensar em um nome: se deixar em branco, o grupo recebe o nome de uma divindade egípcia.
               </p>
               <button
                 disabled={isCreatingGroup}
                 onClick={createGroup}
-                style={{ width: '100%', padding: '0.8rem', background: isDark ? '#4caf50' : '#2e7d32', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: isCreatingGroup ? 'default' : 'pointer', opacity: isCreatingGroup ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                style={{ width: '100%', padding: '0.8rem', background: isDark ? 'var(--success)' : 'var(--success-strong)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: isCreatingGroup ? 'default' : 'pointer', opacity: isCreatingGroup ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
               >
                 {isCreatingGroup ? <Sparkles className="animate-spin" size={18} /> : <Plus size={18} />}
                 {isCreatingGroup ? 'Criando...' : 'Criar Grupo'}
@@ -5965,48 +5965,48 @@ ${monthlyReport.desafioCrescimento || '-'}
             {barcodeScanError ? (
               <p style={{ color: '#ff6b6b', textAlign: 'center', maxWidth: '360px' }}>{barcodeScanError}</p>
             ) : (
-              <video ref={barcodeVideoRef} autoPlay muted playsInline style={{ width: '100%', maxWidth: '480px', borderRadius: '12px', border: '2px solid #FFD700', background: '#000' }} />
+              <video ref={barcodeVideoRef} autoPlay muted playsInline style={{ width: '100%', maxWidth: '480px', borderRadius: '12px', border: '2px solid var(--gold-bright)', background: 'var(--black)' }} />
             )}
-            <p style={{ color: '#ccc', fontSize: '0.8rem', marginTop: '1rem', textAlign: 'center' }}>Geralmente fica na contracapa, perto do ISBN.</p>
+            <p style={{ color: 'var(--border-light)', fontSize: '0.8rem', marginTop: '1rem', textAlign: 'center' }}>Geralmente fica na contracapa, perto do ISBN.</p>
           </div>
         )}
 
         {/* MODAL: PAINEL DE ADMINISTRAÇÃO DE ACESSOS */}
         {showAdminPanel && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(5px)' }}>
-            <div className="animate-fadeIn" style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '2rem', borderRadius: '16px', maxWidth: '560px', width: '100%', maxHeight: '85vh', overflowY: 'auto', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, boxShadow: '0 10px 40px rgba(0,0,0,0.3)', position: 'relative' }}>
+            <div className="animate-fadeIn" style={{ background: isDark ? 'var(--bg-dark)' : 'var(--bg-light)', padding: '2rem', borderRadius: '16px', maxWidth: '560px', width: '100%', maxHeight: '85vh', overflowY: 'auto', border: `2px solid ${isDark ? 'var(--gold)' : 'var(--umber)'}`, boxShadow: '0 10px 40px rgba(0,0,0,0.3)', position: 'relative' }}>
 
-              <button onClick={() => setShowAdminPanel(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}>
+              <button onClick={() => setShowAdminPanel(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: isDark ? 'var(--parchment)' : 'var(--ink)', cursor: 'pointer' }}>
                 <X size={24} />
               </button>
 
-              <ShieldAlert size={40} color={isDark ? '#d4af37' : '#6b4423'} style={{ marginBottom: '0.5rem' }} />
-              <h2 style={{ margin: '0 0 0.3rem 0', fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.5rem' }}>Pedidos de Acesso</h2>
-              <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.8rem', color: isDark ? '#b8a88a' : '#666', fontStyle: 'italic' }}>
+              <ShieldAlert size={40} color={isDark ? 'var(--gold)' : 'var(--umber)'} style={{ marginBottom: '0.5rem' }} />
+              <h2 style={{ margin: '0 0 0.3rem 0', fontFamily: "'Cinzel', serif", color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.5rem' }}>Pedidos de Acesso</h2>
+              <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.8rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)', fontStyle: 'italic' }}>
                 {isSuperAdmin ? 'Admin geral — você vê pedidos de todas as unidades.' : `Mostrando pedidos de: ${myAdminUnits.join(', ') || 'nenhuma unidade vinculada'}`}
               </p>
 
               {pendingRequests.length === 0 ? (
-                <p style={{ color: isDark ? '#b8a88a' : '#666', textAlign: 'center', padding: '1rem 0' }}>Nenhum pedido pendente no momento.</p>
+                <p style={{ color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)', textAlign: 'center', padding: '1rem 0' }}>Nenhum pedido pendente no momento.</p>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '2rem' }}>
                   {pendingRequests.map(req => (
-                    <div key={req.uid} style={{ padding: '1rem', background: isDark ? 'rgba(255,255,255,0.03)' : '#f9f9f9', borderRadius: '10px', border: `1px solid ${isDark ? '#333' : '#eee'}` }}>
+                    <div key={req.uid} style={{ padding: '1rem', background: isDark ? 'rgba(255,255,255,0.03)' : 'var(--gray-bg)', borderRadius: '10px', border: `1px solid ${isDark ? '#333' : 'var(--border-soft)'}` }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
                         <div style={{ textAlign: 'left' }}>
-                          <strong style={{ color: isDark ? '#f0e6d2' : '#2c1810' }}>{req.requestName || 'Sem nome'}</strong>
-                          <div style={{ fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#666' }}>{req.requestUnit || 'Unidade não informada'}</div>
-                          <div style={{ fontSize: '0.8rem', color: isDark ? '#f0e6d2' : '#2c1810', fontWeight: 'bold' }}>{req.requestEmail || 'sem e-mail'}</div>
+                          <strong style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>{req.requestName || 'Sem nome'}</strong>
+                          <div style={{ fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)' }}>{req.requestUnit || 'Unidade não informada'}</div>
+                          <div style={{ fontSize: '0.8rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontWeight: 'bold' }}>{req.requestEmail || 'sem e-mail'}</div>
                           {req.email && req.requestEmail && req.email !== req.requestEmail && (
-                            <div style={{ fontSize: '0.75rem', color: '#e74c3c' }}>⚠️ E-mail de login diferente: {req.email}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--danger)' }}>⚠️ E-mail de login diferente: {req.email}</div>
                           )}
-                          {req.requestDate && <div style={{ fontSize: '0.75rem', color: isDark ? '#666' : '#aaa' }}>{new Date(req.requestDate).toLocaleString('pt-BR')}</div>}
+                          {req.requestDate && <div style={{ fontSize: '0.75rem', color: isDark ? 'var(--gray-text)' : '#aaa' }}>{new Date(req.requestDate).toLocaleString('pt-BR')}</div>}
                         </div>
                         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
-                          <button disabled={isLoadingAdminPanel} onClick={() => decidePendingRequest(req.uid, 'approve')} style={{ padding: '0.5rem 0.8rem', background: '#4caf50', color: 'white', border: 'none', borderRadius: '6px', cursor: isLoadingAdminPanel ? 'default' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.3rem', opacity: isLoadingAdminPanel ? 0.6 : 1 }}>
+                          <button disabled={isLoadingAdminPanel} onClick={() => decidePendingRequest(req.uid, 'approve')} style={{ padding: '0.5rem 0.8rem', background: 'var(--success)', color: 'white', border: 'none', borderRadius: '6px', cursor: isLoadingAdminPanel ? 'default' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.3rem', opacity: isLoadingAdminPanel ? 0.6 : 1 }}>
                             <CheckCircle size={16}/> Aprovar
                           </button>
-                          <button disabled={isLoadingAdminPanel} onClick={() => decidePendingRequest(req.uid, 'reject')} style={{ padding: '0.5rem 0.8rem', background: 'transparent', color: '#e74c3c', border: '1px solid #e74c3c', borderRadius: '6px', cursor: isLoadingAdminPanel ? 'default' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.3rem', opacity: isLoadingAdminPanel ? 0.6 : 1 }}>
+                          <button disabled={isLoadingAdminPanel} onClick={() => decidePendingRequest(req.uid, 'reject')} style={{ padding: '0.5rem 0.8rem', background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)', borderRadius: '6px', cursor: isLoadingAdminPanel ? 'default' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.3rem', opacity: isLoadingAdminPanel ? 0.6 : 1 }}>
                             <XCircle size={16}/> Recusar
                           </button>
                         </div>
@@ -6018,18 +6018,18 @@ ${monthlyReport.desafioCrescimento || '-'}
 
               {isSuperAdmin && (
                 <>
-                  <div style={{ borderTop: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : '#eee'}`, paddingTop: '1.5rem', textAlign: 'left', marginBottom: '1.5rem' }}>
-                    <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px', color: isDark ? '#d4af37' : '#996515' }}>Unidades</h3>
+                  <div style={{ borderTop: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'var(--border-soft)'}`, paddingTop: '1.5rem', textAlign: 'left', marginBottom: '1.5rem' }}>
+                    <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px', color: isDark ? 'var(--gold)' : 'var(--umber-bright)' }}>Unidades</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem' }}>
                       {unitsList.map(unit => (
-                        <div key={unit} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0.6rem', background: isDark ? 'rgba(255,255,255,0.03)' : '#f9f9f9', borderRadius: '6px' }}>
-                          <span style={{ fontSize: '0.85rem', color: isDark ? '#f0e6d2' : '#2c1810' }}>{unit}</span>
-                          <button disabled={isLoadingAdminPanel} onClick={() => removeUnit(unit)} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: isLoadingAdminPanel ? 'default' : 'pointer' }} title="Remover unidade">
+                        <div key={unit} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0.6rem', background: isDark ? 'rgba(255,255,255,0.03)' : 'var(--gray-bg)', borderRadius: '6px' }}>
+                          <span style={{ fontSize: '0.85rem', color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>{unit}</span>
+                          <button disabled={isLoadingAdminPanel} onClick={() => removeUnit(unit)} style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: isLoadingAdminPanel ? 'default' : 'pointer' }} title="Remover unidade">
                             <Trash2 size={14}/>
                           </button>
                         </div>
                       ))}
-                      {unitsList.length === 0 && <p style={{ margin: 0, fontSize: '0.8rem', color: isDark ? '#888' : '#999', fontStyle: 'italic' }}>Nenhuma unidade cadastrada ainda — o formulário de solicitação vai usar texto livre até você cadastrar a primeira.</p>}
+                      {unitsList.length === 0 && <p style={{ margin: 0, fontSize: '0.8rem', color: isDark ? 'var(--gray)' : '#999', fontStyle: 'italic' }}>Nenhuma unidade cadastrada ainda — o formulário de solicitação vai usar texto livre até você cadastrar a primeira.</p>}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                       <textarea
@@ -6037,24 +6037,24 @@ ${monthlyReport.desafioCrescimento || '-'}
                         onChange={(e) => setNewUnitName(e.target.value)}
                         placeholder={"Nome da unidade...\n(pode colar várias — uma por linha ou separadas por vírgula)"}
                         rows={4}
-                        style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? '#555' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontFamily: 'inherit', resize: 'vertical' }}
+                        style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'var(--gray-strong)' : 'var(--border-light)'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'inherit', resize: 'vertical' }}
                       />
-                      <button disabled={isLoadingAdminPanel || !newUnitName.trim()} onClick={addUnit} style={{ padding: '0.6rem 1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: isLoadingAdminPanel ? 'default' : 'pointer', opacity: isLoadingAdminPanel ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}>
+                      <button disabled={isLoadingAdminPanel || !newUnitName.trim()} onClick={addUnit} style={{ padding: '0.6rem 1rem', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: isLoadingAdminPanel ? 'default' : 'pointer', opacity: isLoadingAdminPanel ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}>
                         <Plus size={16}/> Adicionar
                       </button>
                     </div>
                   </div>
 
-                  <div style={{ borderTop: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : '#eee'}`, paddingTop: '1.5rem', textAlign: 'left' }}>
-                    <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px', color: isDark ? '#d4af37' : '#996515' }}>Administradores</h3>
+                  <div style={{ borderTop: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'var(--border-soft)'}`, paddingTop: '1.5rem', textAlign: 'left' }}>
+                    <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px', color: isDark ? 'var(--gold)' : 'var(--umber-bright)' }}>Administradores</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem' }}>
                       {adminRecordsList.map(a => (
-                        <div key={a.email} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0.6rem', background: isDark ? 'rgba(255,255,255,0.03)' : '#f9f9f9', borderRadius: '6px', gap: '0.5rem' }}>
+                        <div key={a.email} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0.6rem', background: isDark ? 'rgba(255,255,255,0.03)' : 'var(--gray-bg)', borderRadius: '6px', gap: '0.5rem' }}>
                           <div>
-                            <div style={{ fontSize: '0.85rem', color: isDark ? '#f0e6d2' : '#2c1810' }}>{a.email}</div>
-                            <div style={{ fontSize: '0.7rem', color: isDark ? '#b8a88a' : '#666' }}>{a.units.length === 0 ? 'Admin geral (todas as unidades)' : a.units.join(', ')}</div>
+                            <div style={{ fontSize: '0.85rem', color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>{a.email}</div>
+                            <div style={{ fontSize: '0.7rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)' }}>{a.units.length === 0 ? 'Admin geral (todas as unidades)' : a.units.join(', ')}</div>
                           </div>
-                          <button disabled={isLoadingAdminPanel} onClick={() => removeAdminEmail(a.email)} style={{ background: 'transparent', border: 'none', color: '#e74c3c', cursor: isLoadingAdminPanel ? 'default' : 'pointer', flexShrink: 0 }} title="Remover admin">
+                          <button disabled={isLoadingAdminPanel} onClick={() => removeAdminEmail(a.email)} style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: isLoadingAdminPanel ? 'default' : 'pointer', flexShrink: 0 }} title="Remover admin">
                             <Trash2 size={14}/>
                           </button>
                         </div>
@@ -6066,12 +6066,12 @@ ${monthlyReport.desafioCrescimento || '-'}
                         value={newAdminEmail}
                         onChange={(e) => setNewAdminEmail(e.target.value)}
                         placeholder="novo-admin@exemplo.com"
-                        style={{ padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? '#555' : '#ccc'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810' }}
+                        style={{ padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'var(--gray-strong)' : 'var(--border-light)'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)' }}
                       />
                       {unitsList.length > 0 && (
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                           {unitsList.map(unit => (
-                            <label key={unit} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem', color: isDark ? '#c8b896' : '#6b5744', cursor: 'pointer' }}>
+                            <label key={unit} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem', color: isDark ? 'var(--tan-soft)' : 'var(--umber-muted)', cursor: 'pointer' }}>
                               <input
                                 type="checkbox"
                                 checked={newAdminUnits.includes(unit)}
@@ -6082,8 +6082,8 @@ ${monthlyReport.desafioCrescimento || '-'}
                           ))}
                         </div>
                       )}
-                      <p style={{ margin: 0, fontSize: '0.75rem', color: isDark ? '#888' : '#999', fontStyle: 'italic' }}>Sem nenhuma unidade marcada, o admin vê pedidos de todas as unidades.</p>
-                      <button disabled={isLoadingAdminPanel || !newAdminEmail.trim()} onClick={addAdminEmail} style={{ padding: '0.6rem 1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: isLoadingAdminPanel ? 'default' : 'pointer', opacity: isLoadingAdminPanel ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}>
+                      <p style={{ margin: 0, fontSize: '0.75rem', color: isDark ? 'var(--gray)' : '#999', fontStyle: 'italic' }}>Sem nenhuma unidade marcada, o admin vê pedidos de todas as unidades.</p>
+                      <button disabled={isLoadingAdminPanel || !newAdminEmail.trim()} onClick={addAdminEmail} style={{ padding: '0.6rem 1rem', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: isLoadingAdminPanel ? 'default' : 'pointer', opacity: isLoadingAdminPanel ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}>
                         <Plus size={16}/> Adicionar Admin
                       </button>
                     </div>
@@ -6097,42 +6097,42 @@ ${monthlyReport.desafioCrescimento || '-'}
         {/* MODAL DE CONFIGURAÇÕES (HORÁRIOS) */}
         {showSettingsModal && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(5px)' }}>
-            <div className="animate-fadeIn" style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '2rem', borderRadius: '16px', maxWidth: '400px', width: '100%', border: `2px solid ${isDark ? '#d4af37' : '#6b4423'}`, textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.3)', position: 'relative' }}>
+            <div className="animate-fadeIn" style={{ background: isDark ? 'var(--bg-dark)' : 'var(--bg-light)', padding: '2rem', borderRadius: '16px', maxWidth: '400px', width: '100%', border: `2px solid ${isDark ? 'var(--gold)' : 'var(--umber)'}`, textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.3)', position: 'relative' }}>
               
               {/* Botão de Fechar */}
-              <button onClick={() => setShowSettingsModal(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}>
+              <button onClick={() => setShowSettingsModal(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: isDark ? 'var(--parchment)' : 'var(--ink)', cursor: 'pointer' }}>
                 <X size={24} />
               </button>
               
-              <Settings size={48} color={isDark ? '#d4af37' : '#6b4423'} style={{ margin: '0 auto 1rem' }} />
-              <h2 style={{ margin: '0 0 1.5rem 0', fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.6rem' }}>Configurações</h2>
+              <Settings size={48} color={isDark ? 'var(--gold)' : 'var(--umber)'} style={{ margin: '0 auto 1rem' }} />
+              <h2 style={{ margin: '0 0 1.5rem 0', fontFamily: "'Cinzel', serif", color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.6rem' }}>Configurações</h2>
               
               {/* Escolha da Manhã */}
               <div style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', color: isDark ? '#d4af37' : '#6b4423', fontWeight: 'bold' }}>☀️ Horário do Prólogo</label>
-                <select value={morningTime} onChange={(e) => setMorningTime(e.target.value)} style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: `1px solid ${isDark ? '#d4af37' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', color: isDark ? 'var(--gold)' : 'var(--umber)', fontWeight: 'bold' }}>☀️ Horário do Prólogo</label>
+                <select value={morningTime} onChange={(e) => setMorningTime(e.target.value)} style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: `1px solid ${isDark ? 'var(--gold)' : 'var(--border-light)'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.1rem' }}>
                   {['05:00', '06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '12:00'].map(h => <option key={h} value={h}>{h}</option>)}
                 </select>
               </div>
 
               {/* Escolha da Noite */}
               <div style={{ textAlign: 'left', marginBottom: '2rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', color: isDark ? '#d4af37' : '#6b4423', fontWeight: 'bold' }}>🌙 Horário do Epílogo</label>
-                <select value={eveningTime} onChange={(e) => setEveningTime(e.target.value)} style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: `1px solid ${isDark ? '#d4af37' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', color: isDark ? 'var(--gold)' : 'var(--umber)', fontWeight: 'bold' }}>🌙 Horário do Epílogo</label>
+                <select value={eveningTime} onChange={(e) => setEveningTime(e.target.value)} style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: `1px solid ${isDark ? 'var(--gold)' : 'var(--border-light)'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.1rem' }}>
                   {['18:00', '19:00', '20:00', '21:00', '22:00', '23:00'].map(h => <option key={h} value={h}>{h}</option>)}
                 </select>
-                <p style={{ marginTop: '0.5rem', marginBottom: 0, fontSize: '0.8rem', color: isDark ? '#b8a88a' : '#888', fontStyle: 'italic', lineHeight: '1.4' }}>
-                  * Estes horários apenas organizam as janelas do seu diário. As notificações de lembrete no seu dispositivo estão atualmente <strong style={{ color: notificationsActive ? '#4caf50' : '#e74c3c' }}>{notificationsActive ? 'ATIVADAS' : 'DESATIVADAS'}</strong>.
+                <p style={{ marginTop: '0.5rem', marginBottom: 0, fontSize: '0.8rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray)', fontStyle: 'italic', lineHeight: '1.4' }}>
+                  * Estes horários apenas organizam as janelas do seu diário. As notificações de lembrete no seu dispositivo estão atualmente <strong style={{ color: notificationsActive ? 'var(--success)' : 'var(--danger)' }}>{notificationsActive ? 'ATIVADAS' : 'DESATIVADAS'}</strong>.
                 </p>
               </div>
 
               <div style={{ textAlign: 'left', marginBottom: '2rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', color: isDark ? '#d4af37' : '#6b4423', fontWeight: 'bold' }}>⚔️ Lembrete de Missões e Práticas</label>
-                <input type="time" value={taskReminderTime} onChange={(e) => setTaskReminderTime(e.target.value)} style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: `1px solid ${isDark ? '#d4af37' : '#ccc'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.1rem' }} />
+                <label style={{ display: 'block', marginBottom: '0.5rem', color: isDark ? 'var(--gold)' : 'var(--umber)', fontWeight: 'bold' }}>⚔️ Lembrete de Missões e Práticas</label>
+                <input type="time" value={taskReminderTime} onChange={(e) => setTaskReminderTime(e.target.value)} style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: `1px solid ${isDark ? 'var(--gold)' : 'var(--border-light)'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.1rem' }} />
               </div>
 
               {/* Botão de Salvar */}
-              <button onClick={saveNotificationTimes} style={{ width: '100%', padding: '1rem', background: isDark ? '#d4af37' : '#6b4423', color: isDark ? '#1a1a2e' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', transition: 'transform 0.2s' }} onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'} onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}>
+              <button onClick={saveNotificationTimes} style={{ width: '100%', padding: '1rem', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', transition: 'transform 0.2s' }} onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'} onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}>
                 <Save size={20} /> Salvar Configurações
               </button>
               
@@ -6142,7 +6142,7 @@ ${monthlyReport.desafioCrescimento || '-'}
 
       </main>
         
-      <footer style={{ padding: '2rem', textAlign: 'center', color: isDark ? '#b8a88a' : '#6b5744', borderTop: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, marginTop: '2rem' }}>
+      <footer style={{ padding: '2rem', textAlign: 'center', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', borderTop: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, marginTop: '2rem' }}>
         <p style={{ margin: 0, fontSize: '0.95rem', fontStyle: 'italic' }}>"Que ninguém durma sem antes examinar as ações do dia"</p>
         <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.85rem', opacity: 0.8 }}>Versos de Ouro de Pitágoras</p>
       </footer>
@@ -6151,18 +6151,18 @@ ${monthlyReport.desafioCrescimento || '-'}
       {/* MODAL DE PRÁTICAS (Abre ao clicar no Badge "Às vezes/Frequente") */}
       {showPracticesModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(3px)' }} onClick={() => setShowPracticesModal(false)}>
-          <div className="animate-fadeIn" style={{ background: isDark ? '#1a1a2e' : '#fdfbf7', padding: '1.5rem', borderRadius: '16px', maxWidth: '380px', width: '100%', border: `2px solid ${pb.color}`, position: 'relative', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => setShowPracticesModal(false)} style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: 'transparent', border: 'none', color: isDark ? '#f0e6d2' : '#2c1810', cursor: 'pointer' }}><X size={20} /></button>
+          <div className="animate-fadeIn" style={{ background: isDark ? 'var(--bg-dark)' : 'var(--bg-light)', padding: '1.5rem', borderRadius: '16px', maxWidth: '380px', width: '100%', border: `2px solid ${pb.color}`, position: 'relative', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setShowPracticesModal(false)} style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: 'transparent', border: 'none', color: isDark ? 'var(--parchment)' : 'var(--ink)', cursor: 'pointer' }}><X size={20} /></button>
             
             <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
               <PraticaIcon size={46} color={pb.color} style={{ margin: '0 auto 0.5rem' }} />
-              <h2 style={{ margin: 0, fontFamily: "'Cinzel', serif", color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '1.5rem' }}>Constância de Práticas</h2>
+              <h2 style={{ margin: 0, fontFamily: "'Cinzel', serif", color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.5rem' }}>Constância de Práticas</h2>
             </div>
 
-            <div style={{ background: isDark ? 'rgba(255, 255, 255, 0.03)' : '#fff', padding: '1.2rem', borderRadius: '12px', border: `1px solid ${pb.color}`, textAlign: 'center', marginBottom: '1.5rem' }}>
+            <div style={{ background: isDark ? 'rgba(255, 255, 255, 0.03)' : 'var(--white)', padding: '1.2rem', borderRadius: '12px', border: `1px solid ${pb.color}`, textAlign: 'center', marginBottom: '1.5rem' }}>
               <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 'bold', color: pb.color, display: 'block', marginBottom: '0.2rem' }}>Grau Atual</span>
-              <h3 style={{ margin: '0 0 0.25rem', fontFamily: "'Cinzel', serif", fontSize: '1.4rem', color: isDark ? '#f0e6d2' : '#2c1810' }}>{pb.label}</h3>
-              <p style={{ margin: '0 0 1rem', fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#6b5744', fontStyle: 'italic' }}>Realizadas em {statsMenu.diasPraticas} dias neste ciclo.</p>
+              <h3 style={{ margin: '0 0 0.25rem', fontFamily: "'Cinzel', serif", fontSize: '1.4rem', color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>{pb.label}</h3>
+              <p style={{ margin: '0 0 1rem', fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontStyle: 'italic' }}>Realizadas em {statsMenu.diasPraticas} dias neste ciclo.</p>
               
               {(() => {
                  const dias = statsMenu.diasPraticas;
@@ -6175,11 +6175,11 @@ ${monthlyReport.desafioCrescimento || '-'}
                  if (next) {
                    return (
                      <div style={{ marginTop: '0.5rem', paddingTop: '1rem', borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}` }}>
-                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: isDark ? '#b8a88a' : '#6b5744', marginBottom: '0.4rem', fontWeight: 'bold' }}>
+                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', marginBottom: '0.4rem', fontWeight: 'bold' }}>
                          <span>Rumo a: {next.title}</span>
                          <span>Faltam {next.min - dias} dias</span>
                        </div>
-                       <div style={{ width: '100%', height: '8px', background: isDark ? 'rgba(255,255,255,0.1)' : '#eee', borderRadius: '4px', overflow: 'hidden' }}>
+                       <div style={{ width: '100%', height: '8px', background: isDark ? 'rgba(255,255,255,0.1)' : 'var(--border-soft)', borderRadius: '4px', overflow: 'hidden' }}>
                          <div style={{ width: `${Math.min(100, (dias / next.min) * 100)}%`, height: '100%', background: pb.color, transition: 'width 0.5s ease' }}></div>
                        </div>
                      </div>
@@ -6194,7 +6194,7 @@ ${monthlyReport.desafioCrescimento || '-'}
               })()}
             </div>
 
-            <button onClick={() => { setShowPracticesModal(false); setShowQuickFv(true); }} style={{ width: '100%', padding: '1rem', background: pb.color, color: '#fff', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', boxShadow: `0 4px 15px ${pb.color}40`, transition: 'transform 0.2s' }} onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'} onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}>
+            <button onClick={() => { setShowPracticesModal(false); setShowQuickFv(true); }} style={{ width: '100%', padding: '1rem', background: pb.color, color: 'var(--white)', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', boxShadow: `0 4px 15px ${pb.color}40`, transition: 'transform 0.2s' }} onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'} onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}>
               <Zap size={20} /> Realizar Práticas Agora
             </button>
           </div>
@@ -6207,9 +6207,9 @@ ${monthlyReport.desafioCrescimento || '-'}
           
           {/* Painel Aberto */}
           {showQuickFv && (
-            <div className="animate-fadeIn" style={{ background: isDark ? 'rgba(26, 26, 46, 0.98)' : 'rgba(253, 251, 247, 0.98)', backdropFilter: 'blur(10px)', padding: '1.5rem', borderRadius: '16px', border: `2px solid ${isDark ? '#FFD700' : '#996515'}`, boxShadow: '0 10px 30px rgba(0,0,0,0.4)', width: 'max-content', maxWidth: '340px' }}>
+            <div className="animate-fadeIn" style={{ background: isDark ? 'rgba(26, 26, 46, 0.98)' : 'rgba(253, 251, 247, 0.98)', backdropFilter: 'blur(10px)', padding: '1.5rem', borderRadius: '16px', border: `2px solid ${isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'}`, boxShadow: '0 10px 30px rgba(0,0,0,0.4)', width: 'max-content', maxWidth: '340px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: `1px solid ${isDark ? 'rgba(255,215,0,0.2)' : 'rgba(153,101,21,0.2)'}`, paddingBottom: '0.5rem' }}>
-                <h4 style={{ margin: 0, color: isDark ? '#FFD700' : '#996515', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '1.1rem' }}><Star size={18} /> Missões e Práticas</h4>
+                <h4 style={{ margin: 0, color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '1.1rem' }}><Star size={18} /> Missões e Práticas</h4>
                 <button onClick={() => setShowQuickFv(false)} style={{ background: 'transparent', border: 'none', color: isDark ? '#aaa' : '#777', cursor: 'pointer' }}><X size={20} /></button>
               </div>
               
@@ -6217,9 +6217,9 @@ ${monthlyReport.desafioCrescimento || '-'}
                 
                 {/* BLOCO ESPECIAL: LEITURA DE BASTIÃO DO CICLO */}
                 {fvGdveBastiaoName && (
-                  <div style={{ padding: '0.8rem', background: isDark ? 'rgba(0,0,0,0.4)' : '#fff', borderRadius: '8px', border: `1px solid ${fvGdveCycleStatus['bastiao'] ? '#4caf50' : (isDark ? '#d4af37' : '#996515')}`, marginBottom: '0.5rem', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
-                    <span style={{ display: 'block', color: isDark ? '#b8a88a' : '#6b5744', fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '0.3rem' }}>Leitura do Ciclo</span>
-                    <span style={{ display: 'block', color: isDark ? '#f0e6d2' : '#2c1810', fontSize: '0.95rem', fontWeight: 'bold', marginBottom: '0.8rem', lineHeight: '1.3' }}>{fvGdveBastiaoName}</span>
+                  <div style={{ padding: '0.8rem', background: isDark ? 'rgba(0,0,0,0.4)' : 'var(--white)', borderRadius: '8px', border: `1px solid ${fvGdveCycleStatus['bastiao'] ? 'var(--success)' : (isDark ? 'var(--gold)' : 'var(--umber-bright)')}`, marginBottom: '0.5rem', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
+                    <span style={{ display: 'block', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '0.3rem' }}>Leitura do Ciclo</span>
+                    <span style={{ display: 'block', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '0.95rem', fontWeight: 'bold', marginBottom: '0.8rem', lineHeight: '1.3' }}>{fvGdveBastiaoName}</span>
                     
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                       <button onClick={async () => {
@@ -6236,13 +6236,13 @@ ${monthlyReport.desafioCrescimento || '-'}
                              alert('⚠️ Não foi possível salvar. Verifique sua conexão e tente novamente.');
                            }
                          }
-                      }} style={{ flex: 1, padding: '0.5rem', background: fvGdveCycleStatus['bastiao'] ? '#4caf50' : 'transparent', color: fvGdveCycleStatus['bastiao'] ? 'white' : (isDark ? '#f0e6d2' : '#2c1810'), border: `1px solid ${fvGdveCycleStatus['bastiao'] ? '#4caf50' : (isDark ? '#555' : '#ccc')}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', transition: 'all 0.2s' }}>
+                      }} style={{ flex: 1, padding: '0.5rem', background: fvGdveCycleStatus['bastiao'] ? 'var(--success)' : 'transparent', color: fvGdveCycleStatus['bastiao'] ? 'white' : (isDark ? 'var(--parchment)' : 'var(--ink)'), border: `1px solid ${fvGdveCycleStatus['bastiao'] ? 'var(--success)' : (isDark ? 'var(--gray-strong)' : 'var(--border-light)')}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', transition: 'all 0.2s' }}>
                          {fvGdveCycleStatus['bastiao'] ? <CheckCircle size={14}/> : <div style={{width:'14px', height:'14px', borderRadius:'50%', border:'1px solid currentColor'}}></div>}
                          {fvGdveCycleStatus['bastiao'] ? 'Já Li' : 'Marcar Lido'}
                       </button>
                       
                       {fvGdveBastiaoLink && (
-                         <a href={fvGdveBastiaoLink} target="_blank" rel="noopener noreferrer" style={{ flex: 1, padding: '0.5rem', background: isDark ? 'rgba(74, 144, 226, 0.2)' : '#e3f2fd', color: isDark ? '#6cb2eb' : '#2980b9', border: `1px solid ${isDark ? '#6cb2eb' : '#2980b9'}`, borderRadius: '6px', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', transition: 'all 0.2s' }}>
+                         <a href={fvGdveBastiaoLink} target="_blank" rel="noopener noreferrer" style={{ flex: 1, padding: '0.5rem', background: isDark ? 'rgba(74, 144, 226, 0.2)' : '#e3f2fd', color: isDark ? '#6cb2eb' : 'var(--blue)', border: `1px solid ${isDark ? '#6cb2eb' : 'var(--blue)'}`, borderRadius: '6px', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', transition: 'all 0.2s' }}>
                            <BookOpen size={14} /> Ler Agora
                          </a>
                       )}
@@ -6268,12 +6268,12 @@ ${monthlyReport.desafioCrescimento || '-'}
                     }
                     
                     return (
-                      <div key={task.id} onClick={() => toggleGdveTask(task)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 1rem', background: isCompleted ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(0,0,0,0.3)' : '#fff'), borderRadius: '8px', border: `1px solid ${isCompleted ? '#4caf50' : (isDark ? '#555' : '#ccc')}`, cursor: 'pointer', transition: 'all 0.2s', gap: '1rem', marginBottom: '0.2rem' }}>
+                      <div key={task.id} onClick={() => toggleGdveTask(task)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 1rem', background: isCompleted ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(0,0,0,0.3)' : 'var(--white)'), borderRadius: '8px', border: `1px solid ${isCompleted ? 'var(--success)' : (isDark ? 'var(--gray-strong)' : 'var(--border-light)')}`, cursor: 'pointer', transition: 'all 0.2s', gap: '1rem', marginBottom: '0.2rem' }}>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <span style={{ color: isCompleted ? (isDark ? '#81c784' : '#2e7d32') : (isDark ? '#f0e6d2' : '#2c1810'), fontSize: '0.9rem', fontWeight: isCompleted ? 'bold' : 'normal', textDecoration: isCompleted ? 'line-through' : 'none' }}>{task.name}</span>
-                          {isCycle && <span style={{ fontSize: '0.65rem', color: isDark ? '#b8a88a' : '#888', textTransform: 'uppercase', marginTop: '0.2rem', fontWeight: 'bold' }}>Missão do Ciclo</span>}
+                          <span style={{ color: isCompleted ? (isDark ? 'var(--success-soft)' : 'var(--success-strong)') : (isDark ? 'var(--parchment)' : 'var(--ink)'), fontSize: '0.9rem', fontWeight: isCompleted ? 'bold' : 'normal', textDecoration: isCompleted ? 'line-through' : 'none' }}>{task.name}</span>
+                          {isCycle && <span style={{ fontSize: '0.65rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray)', textTransform: 'uppercase', marginTop: '0.2rem', fontWeight: 'bold' }}>Missão do Ciclo</span>}
                         </div>
-                        <div style={{ background: isCompleted ? '#4caf50' : (isDark ? '#333' : '#eee'), color: isCompleted ? '#fff' : (isDark ? '#b8a88a' : '#666'), padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                        <div style={{ background: isCompleted ? 'var(--success)' : (isDark ? '#333' : 'var(--border-soft)'), color: isCompleted ? 'var(--white)' : (isDark ? 'var(--gold-muted)' : 'var(--gray-text)'), padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold' }}>
                           {displayValue}
                         </div>
                       </div>
@@ -6289,23 +6289,23 @@ ${monthlyReport.desafioCrescimento || '-'}
                 {fvConfig?.praticas?.map(prac => {
                   const isCompleted = !!fvDaily.praticas?.[prac.key];
                   return (
-                    <div key={prac.key} onClick={() => setActiveActionMenu({ key: prac.key, label: prac.label })} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 1rem', background: isCompleted ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(0,0,0,0.3)' : '#fff'), borderRadius: '8px', border: `1px solid ${isCompleted ? '#4caf50' : (isDark ? 'rgba(212,175,55,0.3)' : '#ccc')}`, cursor: 'pointer', transition: 'all 0.2s', gap: '1rem', marginBottom: '0.2rem' }}>
-                      <span style={{ color: isCompleted ? (isDark ? '#81c784' : '#2e7d32') : (isDark ? '#f0e6d2' : '#2c1810'), fontSize: '0.9rem', fontWeight: isCompleted ? 'bold' : 'normal', textDecoration: isCompleted ? 'line-through' : 'none' }}>{prac.label}</span>
-                      {isCompleted ? <CheckCircle size={16} color="#4caf50" /> : <Zap size={16} color={isDark ? '#b8a88a' : '#ccc'} />}
+                    <div key={prac.key} onClick={() => setActiveActionMenu({ key: prac.key, label: prac.label })} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 1rem', background: isCompleted ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(0,0,0,0.3)' : 'var(--white)'), borderRadius: '8px', border: `1px solid ${isCompleted ? 'var(--success)' : (isDark ? 'rgba(212,175,55,0.3)' : 'var(--border-light)')}`, cursor: 'pointer', transition: 'all 0.2s', gap: '1rem', marginBottom: '0.2rem' }}>
+                      <span style={{ color: isCompleted ? (isDark ? 'var(--success-soft)' : 'var(--success-strong)') : (isDark ? 'var(--parchment)' : 'var(--ink)'), fontSize: '0.9rem', fontWeight: isCompleted ? 'bold' : 'normal', textDecoration: isCompleted ? 'line-through' : 'none' }}>{prac.label}</span>
+                      {isCompleted ? <CheckCircle size={16} color="var(--success)" /> : <Zap size={16} color={isDark ? 'var(--gold-muted)' : 'var(--border-light)'} />}
                     </div>
                   );
                 })}
                 
                 {(!fvGdveBastiaoName && fvGdveTasks.length === 0 && (!fvConfig?.praticas || fvConfig.praticas.length === 0)) && (
-                   <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? '#b8a88a' : '#888', fontStyle: 'italic', textAlign: 'center' }}>Nenhuma prática ou missão pendente.</p>
+                   <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray)', fontStyle: 'italic', textAlign: 'center' }}>Nenhuma prática ou missão pendente.</p>
                 )}
               </div>
             </div>
           )}
 
           {/* Botão Flutuante (A Estrela) */}
-          <button onClick={() => setShowQuickFv(!showQuickFv)} style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)', color: '#000', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 15px rgba(255, 215, 0, 0.4)', transition: 'transform 0.2s' }} onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.9)'} onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}>
-            <Star size={28} fill="#000" />
+          <button onClick={() => setShowQuickFv(!showQuickFv)} style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--gold-bright) 0%, #FFA500 100%)', color: 'var(--black)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 15px rgba(255, 215, 0, 0.4)', transition: 'transform 0.2s' }} onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.9)'} onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}>
+            <Star size={28} fill="var(--black)" />
           </button>
         </div>
       )}
@@ -6314,17 +6314,17 @@ ${monthlyReport.desafioCrescimento || '-'}
       {showInstallBanner && (
         <div className="animate-fadeIn" style={{ 
           position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)', 
-          background: isDark ? 'linear-gradient(135deg, #FFD700 0%, #FF8C00 100%)' : 'linear-gradient(135deg, #1e272e 0%, #2c3e50 100%)', 
+          background: isDark ? 'linear-gradient(135deg, var(--gold-bright) 0%, #FF8C00 100%)' : 'linear-gradient(135deg, #1e272e 0%, #2c3e50 100%)', 
           padding: '1rem 1.5rem', borderRadius: '50px', display: 'flex', alignItems: 'center', gap: '1rem', 
           boxShadow: isDark ? '0 10px 30px rgba(255, 140, 0, 0.4)' : '0 15px 35px rgba(0,0,0,0.5)', 
           zIndex: 10000, width: 'max-content', maxWidth: '95%' 
         }}>
-          <Download size={28} color={isDark ? '#000' : '#FFD700'} style={{ flexShrink: 0 }} />
-          <div style={{ color: isDark ? '#000' : 'white', fontFamily: 'Georgia, serif', textAlign: 'left' }}>
+          <Download size={28} color={isDark ? 'var(--black)' : 'var(--gold-bright)'} style={{ flexShrink: 0 }} />
+          <div style={{ color: isDark ? 'var(--black)' : 'white', fontFamily: 'Georgia, serif', textAlign: 'left' }}>
             <strong style={{ display: 'block', fontSize: '1.1rem', lineHeight: '1.2', textTransform: 'uppercase', letterSpacing: '1px' }}>Instalar o Diário</strong>
             <span style={{ fontSize: '0.85rem', opacity: 0.9 }}>Tenha o aplicativo na sua tela inicial!</span>
           </div>
-          <button onClick={handleInstallClick} style={{ padding: '0.6rem 1.2rem', background: isDark ? '#000' : '#FFD700', color: isDark ? '#FFD700' : '#000', border: 'none', borderRadius: '25px', fontWeight: 'bold', cursor: 'pointer', marginLeft: '0.5rem', flexShrink: 0, textTransform: 'uppercase', fontSize: '0.85rem', letterSpacing: '1px', boxShadow: '0 4px 10px rgba(0,0,0,0.2)' }}>Instalar</button>
+          <button onClick={handleInstallClick} style={{ padding: '0.6rem 1.2rem', background: isDark ? 'var(--black)' : 'var(--gold-bright)', color: isDark ? 'var(--gold-bright)' : 'var(--black)', border: 'none', borderRadius: '25px', fontWeight: 'bold', cursor: 'pointer', marginLeft: '0.5rem', flexShrink: 0, textTransform: 'uppercase', fontSize: '0.85rem', letterSpacing: '1px', boxShadow: '0 4px 10px rgba(0,0,0,0.2)' }}>Instalar</button>
           <button onClick={() => setShowInstallBanner(false)} style={{ background: 'transparent', border: 'none', color: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.5)', cursor: 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={20} /></button>
         </div>
       )}

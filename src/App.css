@@ -1,3 +1,61 @@
+/* ============================================================
+   PALETA — fonte única de verdade das cores do app.
+   O tema claro/escuro é escolhido em JS (isDark ? tokenA : tokenB)
+   em cada elemento, então cada token abaixo é uma cor FIXA — não
+   responde a prefers-color-scheme. Isso só consolida os valores
+   que já existiam espalhados (e às vezes duplicados/levemente
+   diferentes) em centenas de estilos inline; não muda o mecanismo
+   de troca de tema.
+   ============================================================ */
+:root {
+  /* Texto principal */
+  --ink: #2c1810;        /* texto no tema claro */
+  --parchment: #f0e6d2;  /* texto no tema escuro */
+
+  /* Texto secundário / muted */
+  --umber-muted: #6b5744; /* texto secundário, tema claro */
+  --gold-muted: #b8a88a;  /* texto secundário, tema escuro */
+
+  /* Acento primário (marca) */
+  --umber: #6b4423; /* acento primário, tema claro */
+  --gold: #d4af37;  /* acento primário, tema escuro */
+
+  /* Acento secundário — usado no Módulo GDVE, estrelas, conquistas */
+  --umber-bright: #996515;
+  --gold-bright: #ffd700;
+
+  /* Acento terciário — bordas e realces mais suaves */
+  --umber-soft: #8b7355;
+  --tan-soft: #c8b896;
+
+  /* Fundos de página/painel */
+  --bg-light: #fdfbf7;
+  --bg-light-alt: #e8dcc4;
+  --bg-dark: #1a1a2e;
+
+  /* Neutros genéricos (bordas, texto de apoio, chrome de UI) */
+  --white: #fff;
+  --black: #000;
+  --gray-bg: #f9f9f9;
+  --border-soft: #eee;
+  --border-light: #ccc;
+  --gray: #888;
+  --gray-text: #666;
+  --gray-strong: #555;
+
+  /* Semânticas */
+  --success: #4caf50;
+  --success-strong: #2e7d32;
+  --success-soft: #81c784;
+  --danger: #e74c3c;
+  --orange: #ff9800;
+  --orange-strong: #e65100;
+  --orange-soft: #ffb74d;
+  --blue: #2980b9;
+  --purple: #8e44ad;
+  --purple-soft: #c39bd3;
+}
+
 * {
   margin: 0;
   padding: 0;
