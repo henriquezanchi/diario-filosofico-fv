@@ -118,27 +118,26 @@ function App() {
       setTimeout(() => setSaveBtnStatus('idle'), 3000); // Volta ao normal após 3 segundos
     } catch (e) {
       console.error("Erro ao salvar notificações:", e);
-      alert("Erro ao salvar as configurações.");
+      showToast("Erro ao salvar as configurações.");
       setSaveBtnStatus('idle');
     }
   };
 
   const toggleNotifications = async () => {
     if (notificationsActive) {
-      const confirmDisable = window.confirm('Deseja silenciar os lembretes do Diário Filosófico?');
-      if (confirmDisable) {
+      showConfirm('Deseja silenciar os lembretes do Diário Filosófico?', async () => {
         try {
           await deleteToken(messaging);
           if (user) {
             await updateDoc(doc(db, 'users', user.uid), { fcmToken: deleteField() });
           }
           setNotificationsActive(false);
-          alert('🔕 Lembretes silenciados. Você não receberá mais os avisos de Prólogo e Epílogo.');
+          showToast('🔕 Lembretes silenciados. Você não receberá mais os avisos de Prólogo e Epílogo.');
         } catch (error) {
           console.error('Erro ao silenciar:', error);
-          alert('Houve um pequeno erro. Tente novamente.');
+          showToast('Houve um pequeno erro. Tente novamente.');
         }
-      }
+      });
       return;
     }
 
@@ -151,14 +150,14 @@ function App() {
         if (token && user) {
            await updateDoc(doc(db, 'users', user.uid), { fcmToken: token });
            setNotificationsActive(true);
-           alert('🔔 Lembretes ativados! Nós avisaremos você nos horários adequados.');
+           showToast('🔔 Lembretes ativados! Nós avisaremos você nos horários adequados.');
         }
       } else {
-        alert('As notificações estão bloqueadas no seu navegador. Para receber lembretes, clique no ícone de "Cadeado" ao lado do endereço do site e mude para "Permitir".');
+        showToast('As notificações estão bloqueadas no seu navegador. Para receber lembretes, clique no ícone de "Cadeado" ao lado do endereço do site e mude para "Permitir".');
       }
     } catch (error) {
       console.error('Erro ao ativar notificações:', error);
-      alert('Seu dispositivo parece não suportar esse tipo de aviso no momento.');
+      showToast('Seu dispositivo parece não suportar esse tipo de aviso no momento.');
     }
   };
 
@@ -180,7 +179,7 @@ function App() {
   const handleDateChange = async (newDate) => {
     if (!newDate) return;
     if (newDate < getMinEditableDateKey()) {
-      alert('Só é possível preencher ou editar os últimos 3 dias do diário. Dias mais antigos ficam disponíveis apenas para consulta no Histórico.');
+      showToast('Só é possível preencher ou editar os últimos 3 dias do diário. Dias mais antigos ficam disponíveis apenas para consulta no Histórico.');
       return;
     }
     setSelectedDate(newDate);
@@ -210,6 +209,45 @@ function App() {
   const [showPracticesMenu, setShowPracticesMenu] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 850);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
+
+  // --- Toasts / Confirmação / Prompt no estilo do app (substituem alert/confirm/prompt nativos) ---
+  const [toasts, setToasts] = useState([]);
+  const [confirmModal, setConfirmModal] = useState(null);
+  const [promptModalState, setPromptModalState] = useState(null);
+  const [promptInputValue, setPromptInputValue] = useState('');
+
+  const showToast = (message, type) => {
+    const resolvedType = type || (
+      /❌|erro|falhou|inválid|não foi possível|não é possível|bloqueada/i.test(message) ? 'error' :
+      /✅|🔔|🔕|🗑️|sucesso|salvo|atualizad|copiado|entrou no grupo/i.test(message) ? 'success' :
+      'info'
+    );
+    const id = `${Date.now()}-${Math.random()}`;
+    setToasts(prev => [...prev, { id, message, type: resolvedType }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4500);
+  };
+
+  const showConfirm = (message, onConfirm, opts = {}) => {
+    setConfirmModal({
+      message,
+      danger: !!opts.danger,
+      confirmLabel: opts.confirmLabel || 'Confirmar',
+      cancelLabel: opts.cancelLabel || 'Cancelar',
+      onConfirm,
+      onCancel: opts.onCancel || null,
+    });
+  };
+
+  const showPrompt = (message, onSubmit, opts = {}) => {
+    setPromptInputValue(opts.defaultValue != null ? String(opts.defaultValue) : '');
+    setPromptModalState({
+      message,
+      placeholder: opts.placeholder || '',
+      inputType: opts.inputType || 'text',
+      submitLabel: opts.submitLabel || 'Confirmar',
+      onSubmit,
+    });
+  };
 
  
   useEffect(() => {
@@ -271,7 +309,7 @@ function App() {
   const [suggestionText, setSuggestionText] = useState('');
 
   const handleSendEmail = () => {
-    if (!suggestionText.trim()) return alert('Por favor, digite sua sugestão primeiro!');
+    if (!suggestionText.trim()) return showToast('Por favor, digite sua sugestão primeiro!');
     const subject = encodeURIComponent('Ideia/Melhoria - Diário Filosófico');
     const body = encodeURIComponent(`Olá!\n\nAqui está minha sugestão para o aplicativo:\n\n${suggestionText}`);
     window.open(`mailto:henrique.zanchi@gmail.com?subject=${subject}&body=${body}`); 
@@ -280,7 +318,7 @@ function App() {
   };
 
   const handleSendWhatsApp = () => {
-    if (!suggestionText.trim()) return alert('Por favor, digite sua sugestão primeiro!');
+    if (!suggestionText.trim()) return showToast('Por favor, digite sua sugestão primeiro!');
     const text = encodeURIComponent(`*Ideia/Melhoria - Diário Filosófico* 💡\n\n${suggestionText}`);
     window.open(`https://wa.me/5562991729783?text=${text}`, '_blank');
     setShowSuggestionModal(false);
@@ -666,7 +704,7 @@ function App() {
       enterFullScreen(); // Liga a tela cheia e o WakeLock para não apagar!
     }
     else {
-      alert('Prática não reconhecida.');
+      showToast('Prática não reconhecida.');
     }
   };
 
@@ -796,7 +834,7 @@ function App() {
   const selectRandomVirtue = async () => {
     if (isDrawingVirtue) return;
     if (!canDrawToday()) {
-      alert('Você já sorteou sua virtude neste dia! Comprometa-se com ela até o fim do dia. 🎯');
+      showToast('Você já sorteou sua virtude neste dia! Comprometa-se com ela até o fim do dia. 🎯');
       return;
     }
     const randomIndex = Math.floor(Math.random() * virtues.length);
@@ -843,7 +881,7 @@ function App() {
       setFvUnlocked(true);
       loadMod2Config(user?.uid);
       setFvClickCount(0);
-      alert('🔓 Modo FV ativado na sessão!');
+      showToast('🔓 Modo FV ativado na sessão!');
     }
     setTimeout(() => setFvClickCount(0), 3000);
   };
@@ -855,7 +893,7 @@ function App() {
   const handleInstantFvLock = async () => {
     setFvUnlocked(false); 
     setView('today'); 
-    alert('🔒 Modo FV ocultado com segurança!');
+    showToast('🔒 Modo FV ocultado com segurança!');
   };
 
   useEffect(() => {
@@ -1104,7 +1142,7 @@ function App() {
     setIsCreatingGroup(true);
     try {
       const { ok, data } = await callGdveGroups({ action: 'create', name: newGroupName.trim() });
-      if (!ok) { alert(data.error || 'Erro ao criar grupo.'); return; }
+      if (!ok) { showToast(data.error || 'Erro ao criar grupo.'); return; }
       setNewGroupName('');
       setShowCreateGroupModal(false);
       await loadMyGroups();
@@ -1119,8 +1157,8 @@ function App() {
     setIsJoiningGroup(true);
     try {
       const { ok, data } = await callGdveGroups({ action: 'join', inviteCode });
-      if (!ok) { alert(data.error || 'Convite inválido ou expirado.'); return; }
-      alert(`Você entrou no grupo "${data.group?.name || ''}"!`);
+      if (!ok) { showToast(data.error || 'Convite inválido ou expirado.'); return; }
+      showToast(`Você entrou no grupo "${data.group?.name || ''}"!`);
       await loadMyGroups();
     } finally {
       setIsJoiningGroup(false);
@@ -1131,33 +1169,36 @@ function App() {
     const link = `${window.location.origin}${window.location.pathname}?joinGroup=${code}`;
     if (navigator.clipboard?.writeText) {
       navigator.clipboard.writeText(link).then(
-        () => alert('Link de convite copiado! Envie para quem você quer chamar para o grupo.'),
-        () => alert(`Copie o link manualmente:\n${link}`)
+        () => showToast('Link de convite copiado! Envie para quem você quer chamar para o grupo.'),
+        () => showToast(`Copie o link manualmente:\n${link}`)
       );
     } else {
-      alert(`Copie o link manualmente:\n${link}`);
+      showToast(`Copie o link manualmente:\n${link}`);
     }
   };
 
   const removeGroupMember = async (groupId, memberUid) => {
-    if (!window.confirm('Remover este participante do grupo?')) return;
-    const { ok, data } = await callGdveGroups({ action: 'removeMember', groupId, memberUid });
-    if (!ok) return alert(data.error || 'Erro ao remover participante.');
-    await loadMyGroups();
+    showConfirm('Remover este participante do grupo?', async () => {
+      const { ok, data } = await callGdveGroups({ action: 'removeMember', groupId, memberUid });
+      if (!ok) return showToast(data.error || 'Erro ao remover participante.');
+      await loadMyGroups();
+    }, { danger: true });
   };
 
   const leaveGroupHandler = async (groupId) => {
-    if (!window.confirm('Sair deste grupo?')) return;
-    const { ok, data } = await callGdveGroups({ action: 'leaveGroup', groupId });
-    if (!ok) return alert(data.error || 'Erro ao sair do grupo.');
-    await loadMyGroups();
+    showConfirm('Sair deste grupo?', async () => {
+      const { ok, data } = await callGdveGroups({ action: 'leaveGroup', groupId });
+      if (!ok) return showToast(data.error || 'Erro ao sair do grupo.');
+      await loadMyGroups();
+    });
   };
 
   const deleteGroupHandler = async (groupId, groupName) => {
-    if (!window.confirm(`Excluir o grupo "${groupName}"? Essa ação não pode ser desfeita.`)) return;
-    const { ok, data } = await callGdveGroups({ action: 'deleteGroup', groupId });
-    if (!ok) return alert(data.error || 'Erro ao excluir grupo.');
-    await loadMyGroups();
+    showConfirm(`Excluir o grupo "${groupName}"? Essa ação não pode ser desfeita.`, async () => {
+      const { ok, data } = await callGdveGroups({ action: 'deleteGroup', groupId });
+      if (!ok) return showToast(data.error || 'Erro ao excluir grupo.');
+      await loadMyGroups();
+    }, { danger: true });
   };
 
   // Avisa os colegas de grupo (fire-and-forget) quando o usuário conclui
@@ -1193,10 +1234,10 @@ function App() {
       if (ok) {
         setPendingRequests(prev => prev.filter(r => r.uid !== uid));
       } else {
-        alert(data.error || 'Erro ao processar o pedido.');
+        showToast(data.error || 'Erro ao processar o pedido.');
       }
     } catch (e) {
-      alert('Erro ao processar o pedido. Verifique sua conexão.');
+      showToast('Erro ao processar o pedido. Verifique sua conexão.');
     } finally {
       setIsLoadingAdminPanel(false);
     }
@@ -1213,30 +1254,31 @@ function App() {
         setNewAdminEmail('');
         setNewAdminUnits([]);
       } else {
-        alert(data.error || 'Erro ao adicionar administrador.');
+        showToast(data.error || 'Erro ao adicionar administrador.');
       }
     } catch (e) {
-      alert('Erro ao adicionar administrador. Verifique sua conexão.');
+      showToast('Erro ao adicionar administrador. Verifique sua conexão.');
     } finally {
       setIsLoadingAdminPanel(false);
     }
   };
 
   const removeAdminEmail = async (email) => {
-    if (!window.confirm(`Remover "${email}" da lista de administradores?`)) return;
-    setIsLoadingAdminPanel(true);
-    try {
-      const { ok, data } = await callFvAdmin({ action: 'removeAdmin', email });
-      if (ok) {
-        setAdminRecordsList(data.admins || []);
-      } else {
-        alert(data.error || 'Erro ao remover administrador.');
+    showConfirm(`Remover "${email}" da lista de administradores?`, async () => {
+      setIsLoadingAdminPanel(true);
+      try {
+        const { ok, data } = await callFvAdmin({ action: 'removeAdmin', email });
+        if (ok) {
+          setAdminRecordsList(data.admins || []);
+        } else {
+          showToast(data.error || 'Erro ao remover administrador.');
+        }
+      } catch (e) {
+        showToast('Erro ao remover administrador. Verifique sua conexão.');
+      } finally {
+        setIsLoadingAdminPanel(false);
       }
-    } catch (e) {
-      alert('Erro ao remover administrador. Verifique sua conexão.');
-    } finally {
-      setIsLoadingAdminPanel(false);
-    }
+    }, { danger: true });
   };
 
   const addUnit = async () => {
@@ -1252,38 +1294,39 @@ function App() {
         setUnitsList(data.units || []);
         setNewUnitName('');
       } else {
-        alert(data.error || 'Erro ao adicionar unidade(s).');
+        showToast(data.error || 'Erro ao adicionar unidade(s).');
       }
     } catch (e) {
-      alert('Erro ao adicionar unidade(s). Verifique sua conexão.');
+      showToast('Erro ao adicionar unidade(s). Verifique sua conexão.');
     } finally {
       setIsLoadingAdminPanel(false);
     }
   };
 
   const removeUnit = async (unit) => {
-    if (!window.confirm(`Remover a unidade "${unit}"? Admins vinculados a ela deixarão de ter essa unidade.`)) return;
-    setIsLoadingAdminPanel(true);
-    try {
-      const { ok, data } = await callFvAdmin({ action: 'removeUnit', unit });
-      if (ok) {
-        setUnitsList(data.units || []);
-        if (data.admins) setAdminRecordsList(data.admins);
-      } else {
-        alert(data.error || 'Erro ao remover unidade.');
+    showConfirm(`Remover a unidade "${unit}"? Admins vinculados a ela deixarão de ter essa unidade.`, async () => {
+      setIsLoadingAdminPanel(true);
+      try {
+        const { ok, data } = await callFvAdmin({ action: 'removeUnit', unit });
+        if (ok) {
+          setUnitsList(data.units || []);
+          if (data.admins) setAdminRecordsList(data.admins);
+        } else {
+          showToast(data.error || 'Erro ao remover unidade.');
+        }
+      } catch (e) {
+        showToast('Erro ao remover unidade. Verifique sua conexão.');
+      } finally {
+        setIsLoadingAdminPanel(false);
       }
-    } catch (e) {
-      alert('Erro ao remover unidade. Verifique sua conexão.');
-    } finally {
-      setIsLoadingAdminPanel(false);
-    }
+    }, { danger: true });
   };
 
 
   const handleRequestAccess = async () => {
     const emailLimpo = requestEmail.trim();
-    if (!requestName.trim() || !requestUnit.trim() || !emailLimpo) return alert("Por favor, preencha seu nome, e-mail e a unidade.");
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailLimpo)) return alert("Digite um e-mail válido.");
+    if (!requestName.trim() || !requestUnit.trim() || !emailLimpo) return showToast("Por favor, preencha seu nome, e-mail e a unidade.");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailLimpo)) return showToast("Digite um e-mail válido.");
     try {
       // 1. Salva no banco de dados
       await setDoc(doc(db, 'users', user.uid), {
@@ -1302,12 +1345,12 @@ function App() {
       window.open(`https://wa.me/${adminPhone}?text=${text}`, '_blank');
 
     } catch (e) {
-      alert("Erro ao enviar a solicitação. Tente novamente.");
+      showToast("Erro ao enviar a solicitação. Tente novamente.");
     }
   };
 
   const handleBulkAddWhitelist = async (rawText) => {
-    if (!rawText.trim()) return alert("Cole a lista de e-mails primeiro.");
+    if (!rawText.trim()) return showToast("Cole a lista de e-mails primeiro.");
 
     // Transforma o texto em uma lista limpa, removendo espaços e tratando vírgulas ou quebras de linha
     const emailList = rawText
@@ -1315,15 +1358,15 @@ function App() {
       .map(e => e.replace(/["']/g, "").trim().toLowerCase()) // Remove aspas simples e duplas
       .filter(e => e.includes('@'));
 
-    if (emailList.length === 0) return alert("Nenhum e-mail válido encontrado.");
+    if (emailList.length === 0) return showToast("Nenhum e-mail válido encontrado.");
 
     try {
       const whitelistRef = doc(db, 'admin', 'whitelist');
       await setDoc(whitelistRef, { emails: emailList }, { merge: true });
-      alert(`✅ Sucesso! ${emailList.length} e-mails foram importados para a Lista VIP.`);
+      showToast(`✅ Sucesso! ${emailList.length} e-mails foram importados para a Lista VIP.`);
     } catch (e) {
       console.error(e);
-      alert("Erro ao salvar no Firebase. Verifique suas permissões.");
+      showToast("Erro ao salvar no Firebase. Verifique suas permissões.");
     }
   };
 
@@ -1560,11 +1603,11 @@ function App() {
       setBookSearchQuery(isbn);
       setBookSearchResults(formattedResults);
       if (formattedResults.length === 0) {
-        alert(`Nenhum livro encontrado para o código ${isbn}. Preencha os dados manualmente.`);
+        showToast(`Nenhum livro encontrado para o código ${isbn}. Preencha os dados manualmente.`);
       }
     } catch (error) {
       console.error('Erro na busca por ISBN:', error);
-      alert('Erro ao buscar o livro pelo código. Preencha os dados manualmente.');
+      showToast('Erro ao buscar o livro pelo código. Preencha os dados manualmente.');
     } finally {
       setIsSearchingBooks(false);
     }
@@ -1778,17 +1821,17 @@ function App() {
   const saveCustomTask = async () => {
     if (!newTaskName.trim()) return;
     if (newTaskRecurrence === 'weekly' && (!newTaskWeekDays || newTaskWeekDays.length === 0)) {
-      alert('Por favor, selecione pelo menos um dia da semana.');
+      showToast('Por favor, selecione pelo menos um dia da semana.');
       return;
     }
     if (newTaskRecurrence === 'biweekly' && !newTaskBaseDate) {
-      alert('Por favor, selecione a data de início para a tarefa quinzenal.');
+      showToast('Por favor, selecione a data de início para a tarefa quinzenal.');
       return;
     }
 
     const isDuplicate = customTasks.some(t => t.name.toLowerCase().trim() === newTaskName.trim().toLowerCase() && t.id !== editingTaskId);
     if (isDuplicate) {
-      alert('Você já tem uma prática cadastrada com este nome!');
+      showToast('Você já tem uma prática cadastrada com este nome!');
       return;
     }
 
@@ -1809,7 +1852,7 @@ function App() {
 
     if (user) {
       try { await setDoc(doc(db, 'customTasks', user.uid), { tasks: cleanTasksForFirebase }); } 
-      catch (error) { alert('O Firebase reclamou de algo, mas a tarefa está salva no seu dispositivo.'); }
+      catch (error) { showToast('O Firebase reclamou de algo, mas a tarefa está salva no seu dispositivo.'); }
     }
   };
 
@@ -1853,7 +1896,7 @@ function App() {
 
   const saveMorning = async () => {
     const finalVirtue = showCustomVirtue ? customVirtue : selectedVirtue;
-    if (!finalVirtue || !finalVirtue.trim()) { alert('Por favor, selecione ou digite uma virtude para o dia.'); return; }
+    if (!finalVirtue || !finalVirtue.trim()) { showToast('Por favor, selecione ou digite uma virtude para o dia.'); return; }
 
     const tasksSnapshot = getTasksForToday().map(task => ({
       id: task.id, name: task.name, completed: !!todayTasksStatus[task.id]
@@ -1881,9 +1924,9 @@ function App() {
     try {
       await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), entry, { merge: true });
       setMorningDone(true); 
-      alert('✅ Prólogo salvo com sucesso!');
+      showToast('✅ Prólogo salvo com sucesso!');
     } catch (error) { 
-      alert('Erro ao salvar prólogo. Verifique sua conexão.'); 
+      showToast('Erro ao salvar prólogo. Verifique sua conexão.'); 
     }
   };
 
@@ -1892,7 +1935,7 @@ function App() {
     const hasFreeText = freeEpilogue && freeEpilogue.trim();
 
     if (!hasSpecifics && !hasFreeText) {
-      alert('Por favor, responda as 3 perguntas estruturadas OU utilize o campo de Reflexão Livre.'); return;
+      showToast('Por favor, responda as 3 perguntas estruturadas OU utilize o campo de Reflexão Livre.'); return;
     }
 
     const todayKey = selectedDate;
@@ -1914,10 +1957,10 @@ function App() {
       
       setEveningDone(true); 
       await loadAllEntries(user.uid);
-      alert('✅ Epílogo salvo com sucesso!');
+      showToast('✅ Epílogo salvo com sucesso!');
     } catch (error) { 
       console.error(error);
-      alert('Erro ao salvar epílogo. Tente novamente.'); 
+      showToast('Erro ao salvar epílogo. Tente novamente.'); 
     }
   };
 
@@ -1956,7 +1999,7 @@ function App() {
   };
 
   const removeGoal = (id, type) => {
-    if(window.confirm("Deseja excluir esta meta?")) {
+    showConfirm("Deseja excluir esta meta?", () => {
       if (type === 'virtue') {
         const newList = virtueGoals.filter(g => g.id !== id);
         setVirtueGoals(newList); saveLongTermGoals(newList, null, null);
@@ -1964,7 +2007,7 @@ function App() {
         const newList = projectGoals.filter(g => g.id !== id);
         setProjectGoals(newList); saveLongTermGoals(null, newList, null);
       }
-    }
+    }, { danger: true });
   };
 
   const toggleAcceptedMission = (id) => {
@@ -1974,11 +2017,11 @@ function App() {
   };
 
   const removeAcceptedMission = (id) => {
-    if(window.confirm("Deseja abandonar esta missão? A verdadeira derrota é desistir de lutar.")) {
+    showConfirm("Deseja abandonar esta missão? A verdadeira derrota é desistir de lutar.", () => {
       const newList = acceptedMissions.filter(m => m.id !== id);
       setAcceptedMissions(newList);
       saveLongTermGoals(null, null, newList);
-    }
+    }, { danger: true });
   };
 
   // --- MÓDULO GDVE ---
@@ -2065,40 +2108,49 @@ function App() {
     setFvDaily(newFvDaily);
     if (selectedDate === getTodayKey()) setTodayFvDaily(newFvDaily);
 
+    // Roda em ambos os caminhos (usuário confirma ou não o avanço de 15 dias)
+    const finalizeAttendanceSave = async () => {
+      if (user) {
+        await setDoc(doc(db, 'entries', `${user.uid}_${selectedDate}`), { userId: user.uid, date: selectedDate, fvDaily: newFvDaily }, { merge: true });
+        await loadAllEntries(user.uid);
+      }
+    };
+
     // A Mágica dos 15 dias e da Limpeza do Ciclo
     if (isAttending) {
       notifyGroupActivity('confirmou presença na Reunião do GDVE');
-      const confirmRecalc = window.confirm("Deseja marcar a próxima reunião para 15 dias APÓS ESTA DATA? (Isso também vai zerar as suas tarefas de 'Ciclo' pendentes).");
-      if (confirmRecalc) {
-         // 1. Calcula os 15 dias a partir da data que o usuário selecionou na tela!
-         const currentDate = new Date(selectedDate + 'T12:00:00');
-         currentDate.setDate(currentDate.getDate() + 15);
-         
-         // 2. Preserva a hora da reunião anterior (ou usa 20:00 como padrão)
-         let nextHour = '20'; let nextMinute = '00';
-         if (fvGdveReuniao) {
+      showConfirm(
+        "Deseja marcar a próxima reunião para 15 dias APÓS ESTA DATA? (Isso também vai zerar as suas tarefas de 'Ciclo' pendentes).",
+        async () => {
+          // 1. Calcula os 15 dias a partir da data que o usuário selecionou na tela!
+          const currentDate = new Date(selectedDate + 'T12:00:00');
+          currentDate.setDate(currentDate.getDate() + 15);
+
+          // 2. Preserva a hora da reunião anterior (ou usa 20:00 como padrão)
+          let nextHour = '20'; let nextMinute = '00';
+          if (fvGdveReuniao) {
             const prevDate = new Date(fvGdveReuniao);
             if (!isNaN(prevDate.getTime())) {
               nextHour = String(prevDate.getHours()).padStart(2, '0');
               nextMinute = String(prevDate.getMinutes()).padStart(2, '0');
             }
-         }
-         
-         const nextYear = currentDate.getFullYear();
-         const nextMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
-         const nextDay = String(currentDate.getDate()).padStart(2, '0');
-         
-         const nextDateStr = `${nextYear}-${nextMonth}-${nextDay}T${nextHour}:${nextMinute}`;
-         setFvGdveReuniao(nextDateStr);
-         setFvGdveCycleStatus({}); // Limpa as tarefas de ciclo!
-         
-         if(user){ await setDoc(doc(db, 'fvData', user.uid), { gdveReuniao: nextDateStr, gdveCycleStatus: {} }, { merge: true }); }
-      }
-    }
+          }
 
-    if (user) {
-      await setDoc(doc(db, 'entries', `${user.uid}_${selectedDate}`), { userId: user.uid, date: selectedDate, fvDaily: newFvDaily }, { merge: true });
-      await loadAllEntries(user.uid);
+          const nextYear = currentDate.getFullYear();
+          const nextMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
+          const nextDay = String(currentDate.getDate()).padStart(2, '0');
+
+          const nextDateStr = `${nextYear}-${nextMonth}-${nextDay}T${nextHour}:${nextMinute}`;
+          setFvGdveReuniao(nextDateStr);
+          setFvGdveCycleStatus({}); // Limpa as tarefas de ciclo!
+
+          if (user) { await setDoc(doc(db, 'fvData', user.uid), { gdveReuniao: nextDateStr, gdveCycleStatus: {} }, { merge: true }); }
+          await finalizeAttendanceSave();
+        },
+        { onCancel: finalizeAttendanceSave }
+      );
+    } else {
+      await finalizeAttendanceSave();
     }
   };
   // --------------------
@@ -2116,7 +2168,7 @@ function App() {
         fvCondicao: fvCondicao,
         fvCalendar: fvCalendar // <--- Esta linha salva o objeto inteiro com os novos horários
       }, { merge: true });
-      alert("✅ Acompanhamento Discipular salvo com sucesso!");
+      showToast("✅ Acompanhamento Discipular salvo com sucesso!");
     } catch (error) { console.error("Erro ao salvar datas FV:", error); }
   };
 
@@ -2135,8 +2187,8 @@ function App() {
         
         await loadAllEntries(user.uid); 
         
-        alert('✅ Reflexões da Carta de Degrau salvas com sucesso!');
-      } catch (error) { console.error(error); alert('Erro ao salvar os textos.'); }
+        showToast('✅ Reflexões da Carta de Degrau salvas com sucesso!');
+      } catch (error) { console.error(error); showToast('Erro ao salvar os textos.'); }
     }
   };
 
@@ -2151,14 +2203,14 @@ function App() {
       });
       const data = await resp.json().catch(() => ({}));
       if (!resp.ok) {
-        alert(data.error || 'Erro ao gerar a Carta de Degrau.');
+        showToast(data.error || 'Erro ao gerar a Carta de Degrau.');
         return;
       }
       setCartaDegrauResult(data);
       setShowCartaDegrauModal(true);
     } catch (error) {
       console.error('Erro ao gerar Carta de Degrau:', error);
-      alert('Erro ao gerar a Carta de Degrau. Verifique sua conexão.');
+      showToast('Erro ao gerar a Carta de Degrau. Verifique sua conexão.');
     } finally {
       setIsGeneratingCartaDegrau(false);
     }
@@ -2180,8 +2232,8 @@ function App() {
         
         await loadAllEntries(user.uid); 
         
-        alert('✅ Práticas Internas salvas com sucesso!');
-      } catch (error) { console.error(error); alert('Erro ao salvar as práticas.'); }
+        showToast('✅ Práticas Internas salvas com sucesso!');
+      } catch (error) { console.error(error); showToast('Erro ao salvar as práticas.'); }
     }
   };
 
@@ -2327,10 +2379,10 @@ ${monthlyReport.desafioCrescimento || '-'}
 `;
 
     navigator.clipboard.writeText(relatorio).then(() => {
-      alert("✅ Relatório gerado com sucesso! A IA cruzou seus dados do diário e suas tarefas do mês. O texto já está copiado na sua Área de Transferência.");
+      showToast("✅ Relatório gerado com sucesso! A IA cruzou seus dados do diário e suas tarefas do mês. O texto já está copiado na sua Área de Transferência.");
     }).catch(err => {
       console.error('Falha ao copiar:', err);
-      alert("Erro ao copiar. Seu navegador pode ter bloqueado a ação.");
+      showToast("Erro ao copiar. Seu navegador pode ter bloqueado a ação.");
     });
   };
 
@@ -2360,7 +2412,7 @@ ${monthlyReport.desafioCrescimento || '-'}
         }, { merge: true });
         await loadAllEntries(user.uid);
         // Feedback visual para o usuário saber que salvou no FV
-        alert('✅ Prática concluída e registrada com sucesso no seu Diário (FV)!');
+        showToast('✅ Prática concluída e registrada com sucesso no seu Diário (FV)!');
       } catch (error) { console.error("Erro ao salvar prática:", error); }
     }
   };
@@ -2384,7 +2436,7 @@ ${monthlyReport.desafioCrescimento || '-'}
         await loadAllEntries(user.uid);
       } catch (error) {
         console.error("Erro ao salvar prática do Templo:", error);
-        alert('⚠️ A prática não foi salva. Verifique sua conexão e tente novamente.');
+        showToast('⚠️ A prática não foi salva. Verifique sua conexão e tente novamente.');
       }
     }
   };
@@ -2392,26 +2444,27 @@ ${monthlyReport.desafioCrescimento || '-'}
   const deleteEntry = async (dateKey) => {
     // Fricção cognitiva: obriga a digitar para evitar exclusão acidental
     const dataFormatada = dateKey.split('-').reverse().join('/');
-    const confirmacao = window.prompt(`A exclusão é permanente e quebrará sua corrente de constância (Streak) se for um dia passado.\n\nPara excluir o registro do dia ${dataFormatada}, digite a palavra exata: APAGAR`);
-    
-    if (confirmacao !== 'APAGAR') {
-      if (confirmacao !== null) {
-        alert('❌ Exclusão cancelada. A palavra foi digitada incorretamente.');
-      }
-      return; // Aborta a exclusão
-    }
-
-    try {
-      await deleteDoc(doc(db, 'entries', `${user.uid}_${dateKey}`));
-      await loadAllEntries(user.uid);
-      alert('🗑️ Registro excluído com sucesso.');
-    } catch (error) {
-      alert('Erro ao excluir a entrada. Verifique sua conexão.');
-    }
+    showPrompt(
+      `A exclusão é permanente e quebrará sua corrente de constância (Streak) se for um dia passado.\n\nPara excluir o registro do dia ${dataFormatada}, digite a palavra exata: APAGAR`,
+      async (confirmacao) => {
+        if (confirmacao !== 'APAGAR') {
+          showToast('❌ Exclusão cancelada. A palavra foi digitada incorretamente.');
+          return;
+        }
+        try {
+          await deleteDoc(doc(db, 'entries', `${user.uid}_${dateKey}`));
+          await loadAllEntries(user.uid);
+          showToast('🗑️ Registro excluído com sucesso.');
+        } catch (error) {
+          showToast('Erro ao excluir a entrada. Verifique sua conexão.');
+        }
+      },
+      { placeholder: 'APAGAR', submitLabel: 'Excluir' }
+    );
   };
 
   const exportToCSV = () => {
-    if (entries.length === 0) { alert('Não há entradas para exportar'); return; }
+    if (entries.length === 0) { showToast('Não há entradas para exportar'); return; }
     
     // Cabeçalhos Base
     const headers = ['Data', 'Fez Prólogo', 'Virtude', 'Compromisso', 'Onde Errei', 'O Que Fiz Bem', 'O Que Deixei de Fazer'];
@@ -2460,7 +2513,7 @@ ${monthlyReport.desafioCrescimento || '-'}
   };
 
   const exportFvReportTXT = () => {
-    if (entries.length === 0) { alert('Não há entradas para exportar'); return; }
+    if (entries.length === 0) { showToast('Não há entradas para exportar'); return; }
     
     const totals = getFvMonthlyTotals();
     let txtContent = `====================================================\n`;
@@ -2503,7 +2556,7 @@ ${monthlyReport.desafioCrescimento || '-'}
     });
 
     if (!hasData) {
-      alert('Você ainda não tem textos preenchidos nos itens FV para gerar o relatório.');
+      showToast('Você ainda não tem textos preenchidos nos itens FV para gerar o relatório.');
       return;
     }
 
@@ -2523,8 +2576,8 @@ ${monthlyReport.desafioCrescimento || '-'}
         if (file.name.endsWith('.csv')) await importFromCSV(content);
         else if (file.name.endsWith('.json')) await importFromJSON(content);
         else if (file.name.endsWith('.txt')) await importFromTXT(content);
-        else alert('Formato não suportado. Use CSV, JSON ou TXT.');
-      } catch (error) { alert('Erro ao importar arquivo.'); }
+        else showToast('Formato não suportado. Use CSV, JSON ou TXT.');
+      } catch (error) { showToast('Erro ao importar arquivo.'); }
     };
     reader.readAsText(file);
   };
@@ -2540,7 +2593,7 @@ ${monthlyReport.desafioCrescimento || '-'}
       const entry = { userId: user.uid, date, didMorning: didMorningStr === 'Sim', virtue, intention, whereIFailed, whatIDidWell, whatILeftUndone, morningDone: true, eveningDone: true, importedAt: Timestamp.now() };
       try { await setDoc(doc(db, 'entries', `${user.uid}_${date}`), entry); imported++; } catch (error) { console.error(`Erro ao importar ${date}`); }
     }
-    await loadAllEntries(user.uid); alert(`✅ ${imported} entradas importadas com sucesso!`);
+    await loadAllEntries(user.uid); showToast(`✅ ${imported} entradas importadas com sucesso!`);
   };
 
   const importFromJSON = async (content) => {
@@ -2551,7 +2604,7 @@ ${monthlyReport.desafioCrescimento || '-'}
       const newEntry = { ...entry, userId: user.uid, importedAt: Timestamp.now() };
       try { await setDoc(doc(db, 'entries', `${user.uid}_${entry.date}`), newEntry); imported++; } catch (error) { console.error(`Erro ao importar ${entry.date}`); }
     }
-    await loadAllEntries(user.uid); alert(`✅ ${imported} entradas importadas com sucesso!`);
+    await loadAllEntries(user.uid); showToast(`✅ ${imported} entradas importadas com sucesso!`);
   };
 
   const importFromTXT = async (content) => {
@@ -2572,7 +2625,7 @@ ${monthlyReport.desafioCrescimento || '-'}
         try { await setDoc(doc(db, 'entries', `${user.uid}_${entry.date}`), entry); imported++; } catch (error) { console.error(`Erro ao importar ${entry.date}`); }
       }
     }
-    await loadAllEntries(user.uid); alert(`✅ ${imported} entradas importadas com sucesso!`);
+    await loadAllEntries(user.uid); showToast(`✅ ${imported} entradas importadas com sucesso!`);
   };
 
   const handleGoogleLogin = async () => {
@@ -2620,11 +2673,11 @@ ${monthlyReport.desafioCrescimento || '-'}
           morningTime, 
           eveningTime 
         });
-        alert('✅ Configurações atualizadas com sucesso!');
+        showToast('✅ Configurações atualizadas com sucesso!');
         setShowSettingsModal(false);
       } catch (error) {
         console.error("Erro ao salvar", error);
-        alert('Erro ao salvar horários.');
+        showToast('Erro ao salvar horários.');
       }
     }
   };
@@ -4005,7 +4058,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                 
                 <button 
                   onClick={() => {
-                    if(!newBook.title) return alert('Dê um título ao livro.');
+                    if(!newBook.title) return showToast('Dê um título ao livro.');
                     let updated;
                     if (editingBookId) {
                       updated = books.map(b => b.id === editingBookId ? { ...b, ...newBook } : b);
@@ -4056,7 +4109,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                           <h3 style={{ margin: 0, color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.1rem', fontFamily: "'Cinzel', serif", lineHeight: '1.2' }}>{book.title}</h3>
                           <div style={{ display: 'flex', gap: '0.3rem' }}>
                             <button onClick={() => { setEditingBookId(book.id); setNewBook(book); setShowAddBook(true); window.scrollTo(0,0); }} style={{ background: 'transparent', border: 'none', color: isDark ? 'var(--gold)' : 'var(--umber)', cursor: 'pointer' }}><Edit size={14} /></button>
-                            <button onClick={() => { if(window.confirm('Remover da estante?')) saveBooksToDb(books.filter(b => b.id !== book.id)); }} style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}><Trash2 size={14} /></button>
+                            <button onClick={() => showConfirm('Remover da estante?', () => saveBooksToDb(books.filter(b => b.id !== book.id)), { danger: true })} style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}><Trash2 size={14} /></button>
                           </div>
                         </div>
                         <p style={{ margin: '0.2rem 0 0.5rem 0', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontSize: '0.85rem', fontStyle: 'italic' }}>{book.author}</p>
@@ -4078,12 +4131,13 @@ ${monthlyReport.desafioCrescimento || '-'}
                             {!isFinished && (
                               <div style={{ display: 'flex', gap: '0.4rem' }}>
                                 <button onClick={() => {
-                                  const inputPagina = prompt(`Em qual página você parou? (Total: ${book.totalPages})`, book.currentPage);
-                                  if (inputPagina && !isNaN(inputPagina)) {
-                                    const novaPag = Math.min(book.totalPages, parseInt(inputPagina));
-                                    const acabouAgora = (novaPag >= book.totalPages);
-                                    saveBooksToDb(books.map(b => b.id === book.id ? { ...b, currentPage: novaPag, finishedDate: acabouAgora ? new Date().toISOString() : null } : b));
-                                  }
+                                  showPrompt(`Em qual página você parou? (Total: ${book.totalPages})`, (inputPagina) => {
+                                    if (inputPagina && !isNaN(inputPagina)) {
+                                      const novaPag = Math.min(book.totalPages, parseInt(inputPagina));
+                                      const acabouAgora = (novaPag >= book.totalPages);
+                                      saveBooksToDb(books.map(b => b.id === book.id ? { ...b, currentPage: novaPag, finishedDate: acabouAgora ? new Date().toISOString() : null } : b));
+                                    }
+                                  }, { defaultValue: book.currentPage, inputType: 'number', submitLabel: 'Atualizar' });
                                 }} style={{ flex: 1, padding: '0.5rem', background: 'transparent', color: isDark ? 'var(--gold)' : 'var(--umber)', border: `1px solid ${isDark ? 'rgba(212,175,55,0.4)' : 'var(--border-light)'}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}>+ Atualizar</button>
                               </div>
                             )}
@@ -4161,7 +4215,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
                               <h3 style={{ margin: 0, color: 'var(--danger)', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><AlertCircle size={18} /> Requer Atenção (Sem Páginas)</h3>
                               {selectedForDeletion.length > 0 && (
-                                <button onClick={() => { if(window.confirm(`Apagar ${selectedForDeletion.length} livros permanentemente?`)) { saveBooksToDb(books.filter(b => !selectedForDeletion.includes(b.id))); setSelectedForDeletion([]); } }} style={{ background: 'var(--danger)', color: 'white', padding: '0.5rem 1rem', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
+                                <button onClick={() => showConfirm(`Apagar ${selectedForDeletion.length} livros permanentemente?`, () => { saveBooksToDb(books.filter(b => !selectedForDeletion.includes(b.id))); setSelectedForDeletion([]); }, { danger: true })} style={{ background: 'var(--danger)', color: 'white', padding: '0.5rem 1rem', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
                                   🗑️ Apagar Selecionados ({selectedForDeletion.length})
                                 </button>
                               )}
@@ -4656,8 +4710,9 @@ ${monthlyReport.desafioCrescimento || '-'}
                                 <button
                                   disabled={isJoiningGroup}
                                   onClick={() => {
-                                    const code = window.prompt('Cole aqui o código de convite (ou o link inteiro):');
-                                    if (code) joinGroupByCode(code);
+                                    showPrompt('Cole aqui o código de convite (ou o link inteiro):', (code) => {
+                                      if (code) joinGroupByCode(code);
+                                    }, { placeholder: 'Código de convite', submitLabel: 'Entrar' });
                                   }}
                                   style={{ padding: '0.6rem 1.2rem', background: 'transparent', color: isDark ? 'var(--success-soft)' : 'var(--success-strong)', border: `1px solid ${isDark ? 'var(--success-soft)' : 'var(--success-strong)'}`, borderRadius: '6px', fontWeight: 'bold', cursor: isJoiningGroup ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', opacity: isJoiningGroup ? 0.6 : 1, fontSize: '0.85rem' }}
                                 >
@@ -4819,7 +4874,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                                                      await setDoc(doc(db, 'fvData', user.uid), { fvGdveTasks: novasTasks }, { merge: true });
                                                    } catch (err) {
                                                      console.error('Erro ao renomear tarefa GDVE:', err);
-                                                     alert('⚠️ Não foi possível salvar o nome corrigido da tarefa. Tente novamente.');
+                                                     showToast('⚠️ Não foi possível salvar o nome corrigido da tarefa. Tente novamente.');
                                                    }
                                                  }
                                               }
@@ -4859,7 +4914,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                                                        await setDoc(doc(db, 'fvData', user.uid), { fvGdveTasks: novasTasks }, { merge: true });
                                                      } catch (err) {
                                                        console.error('Erro ao renomear tarefa GDVE:', err);
-                                                       alert('⚠️ Não foi possível salvar o nome corrigido da tarefa. Tente novamente.');
+                                                       showToast('⚠️ Não foi possível salvar o nome corrigido da tarefa. Tente novamente.');
                                                      }
                                                    }
                                                 }
@@ -4887,7 +4942,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                                  </div>
                                  <div style={{ display: 'flex', gap: '0.5rem' }}>
                                    <button onClick={(e) => { e.stopPropagation(); startEditingGdveTask(task); }} style={{ background: 'transparent', border: 'none', color: isDark ? 'var(--gold)' : 'var(--umber-bright)', cursor: 'pointer' }} title="Editar"><Edit size={16} /></button>
-                                   <button onClick={(e) => { e.stopPropagation(); if(window.confirm('Deseja excluir esta prática?')) removeGdveTask(task.id); }} style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer' }} title="Excluir"><Trash2 size={16} /></button>
+                                   <button onClick={(e) => { e.stopPropagation(); showConfirm('Deseja excluir esta prática?', () => removeGdveTask(task.id), { danger: true }); }} style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer' }} title="Excluir"><Trash2 size={16} /></button>
                                  </div>
                                </div>
                              );
@@ -4947,7 +5002,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                         <button 
                           onClick={() => {
                             setIsGdveMóduloOpen(false); // Fecha a gaveta
-                            alert('✅ Módulo GDVE atualizado com sucesso!');
+                            showToast('✅ Módulo GDVE atualizado com sucesso!');
                           }} 
                           style={{ marginTop: '2rem', width: '100%', padding: '0.8rem 1.5rem', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
                           <CheckCircle size={18} /> Salvar Módulo GDVE
@@ -5593,7 +5648,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                     <Target size={48} color={isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'} style={{ margin: '0 auto 1.5rem' }} />
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', margin: '0 0 1rem 0' }}>
                       <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', fontSize: '2rem', margin: 0 }}>Prática de Tratak</h2>
-                      <button onClick={() => alert("O Tratak é um exercício milenar de concentração. Consiste em manter o olhar fixamente cravado em um único ponto (o círculo central) sem piscar e sem mover o corpo ou o celular.\n\nObjetivo: Domar a mente agitada através do controle absoluto do corpo. Se o celular tremer ou você mover o mouse, a prática é cancelada.")} style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'transparent', border: `2px solid ${isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'}`, color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="O que é o Tratak?">?</button>
+                      <button onClick={() => showToast("O Tratak é um exercício milenar de concentração. Consiste em manter o olhar fixamente cravado em um único ponto (o círculo central) sem piscar e sem mover o corpo ou o celular.\n\nObjetivo: Domar a mente agitada através do controle absoluto do corpo. Se o celular tremer ou você mover o mouse, a prática é cancelada.")} style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'transparent', border: `2px solid ${isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'}`, color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="O que é o Tratak?">?</button>
                     </div>
                     
                     <div style={{ background: isDark ? 'rgba(255,215,0,0.05)' : 'rgba(153,101,21,0.05)', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255,215,0,0.2)' : 'rgba(153,101,21,0.2)'}`, marginBottom: '1.5rem' }}>
@@ -5626,7 +5681,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                     className="animate-fadeIn" 
                     onMouseMove={() => {
                       if (tratakMouseActive) {
-                        alert("Prática interrompida.\n\nComo o tempo estipulado não foi atingido, esta sessão não será adicionada ao seu registro de práticas realizadas.");
+                        showToast("Prática interrompida.\n\nComo o tempo estipulado não foi atingido, esta sessão não será adicionada ao seu registro de práticas realizadas.");
                         setIsPracticeActive(false); 
                         exitFullScreen(); 
                         setTratakMouseActive(false);
@@ -6233,7 +6288,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                            } catch (err) {
                              console.error('Erro ao salvar status de leitura do Bastião:', err);
                              setFvGdveCycleStatus(fvGdveCycleStatus);
-                             alert('⚠️ Não foi possível salvar. Verifique sua conexão e tente novamente.');
+                             showToast('⚠️ Não foi possível salvar. Verifique sua conexão e tente novamente.');
                            }
                          }
                       }} style={{ flex: 1, padding: '0.5rem', background: fvGdveCycleStatus['bastiao'] ? 'var(--success)' : 'transparent', color: fvGdveCycleStatus['bastiao'] ? 'white' : (isDark ? 'var(--parchment)' : 'var(--ink)'), border: `1px solid ${fvGdveCycleStatus['bastiao'] ? 'var(--success)' : (isDark ? 'var(--gray-strong)' : 'var(--border-light)')}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', transition: 'all 0.2s' }}>
@@ -6329,6 +6384,60 @@ ${monthlyReport.desafioCrescimento || '-'}
         </div>
       )}
 
+      {/* PILHA DE TOASTS (substitui showToast()) */}
+      {toasts.length > 0 && (
+        <div style={{ position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)', zIndex: 20001, display: 'flex', flexDirection: 'column', gap: '0.6rem', alignItems: 'center', width: 'min(92vw, 420px)', pointerEvents: 'none' }}>
+          {toasts.map(t => {
+            const palette = t.type === 'success'
+              ? { bg: 'var(--success)', icon: <CheckCircle size={18} /> }
+              : t.type === 'error'
+                ? { bg: 'var(--danger)', icon: <AlertCircle size={18} /> }
+                : { bg: isDark ? 'var(--bg-dark)' : 'var(--ink)', icon: <Sparkles size={18} /> };
+            return (
+              <div key={t.id} className="toast-in" style={{ background: palette.bg, color: 'white', padding: '0.85rem 1.2rem', borderRadius: '10px', boxShadow: '0 8px 24px rgba(0,0,0,0.25)', display: 'flex', alignItems: 'center', gap: '0.6rem', fontFamily: 'Georgia, serif', fontSize: '0.9rem', width: '100%', pointerEvents: 'auto' }}>
+                {palette.icon}
+                <span style={{ flex: 1, lineHeight: 1.4 }}>{t.message}</span>
+                <button onClick={() => setToasts(prev => prev.filter(x => x.id !== t.id))} style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', flexShrink: 0, display: 'flex' }}><X size={16} /></button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* MODAL DE CONFIRMAÇÃO (substitui window.confirm) */}
+      {confirmModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', zIndex: 20000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(3px)' }} onClick={() => { const fn = confirmModal.onCancel; setConfirmModal(null); fn?.(); }}>
+          <div className="animate-fadeIn" style={{ background: isDark ? 'var(--bg-dark)' : 'var(--bg-light)', padding: '1.75rem', borderRadius: '16px', maxWidth: '380px', width: '100%', border: `2px solid ${confirmModal.danger ? 'var(--danger)' : (isDark ? 'var(--gold)' : 'var(--umber)')}`, boxShadow: '0 10px 40px rgba(0,0,0,0.35)' }} onClick={(e) => e.stopPropagation()}>
+            <p style={{ margin: '0 0 1.5rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1rem', lineHeight: 1.6, whiteSpace: 'pre-line' }}>{confirmModal.message}</p>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button onClick={() => { const fn = confirmModal.onCancel; setConfirmModal(null); fn?.(); }} style={{ flex: 1, padding: '0.75rem', background: 'transparent', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', border: `1px solid ${isDark ? '#555' : 'var(--border-light)'}`, borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'Georgia, serif' }}>{confirmModal.cancelLabel}</button>
+              <button onClick={() => { const fn = confirmModal.onConfirm; setConfirmModal(null); fn?.(); }} style={{ flex: 1, padding: '0.75rem', background: confirmModal.danger ? 'var(--danger)' : (isDark ? 'var(--gold)' : 'var(--umber)'), color: confirmModal.danger ? 'white' : (isDark ? 'var(--bg-dark)' : 'white'), border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'Georgia, serif' }}>{confirmModal.confirmLabel}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE ENTRADA DE TEXTO (substitui window.prompt) */}
+      {promptModalState && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', zIndex: 20000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(3px)' }} onClick={() => setPromptModalState(null)}>
+          <div className="animate-fadeIn" style={{ background: isDark ? 'var(--bg-dark)' : 'var(--bg-light)', padding: '1.75rem', borderRadius: '16px', maxWidth: '400px', width: '100%', border: `2px solid ${isDark ? 'var(--gold)' : 'var(--umber)'}`, boxShadow: '0 10px 40px rgba(0,0,0,0.35)' }} onClick={(e) => e.stopPropagation()}>
+            <p style={{ margin: '0 0 1rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1rem', lineHeight: 1.6, whiteSpace: 'pre-line' }}>{promptModalState.message}</p>
+            <input
+              type={promptModalState.inputType}
+              autoFocus
+              value={promptInputValue}
+              onChange={(e) => setPromptInputValue(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { const fn = promptModalState.onSubmit; const v = promptInputValue; setPromptModalState(null); fn?.(v); } }}
+              placeholder={promptModalState.placeholder}
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? '#555' : 'var(--border-light)'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', marginBottom: '1.25rem', fontFamily: 'Georgia, serif', fontSize: '1rem' }}
+            />
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button onClick={() => setPromptModalState(null)} style={{ flex: 1, padding: '0.75rem', background: 'transparent', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', border: `1px solid ${isDark ? '#555' : 'var(--border-light)'}`, borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'Georgia, serif' }}>Cancelar</button>
+              <button onClick={() => { const fn = promptModalState.onSubmit; const v = promptInputValue; setPromptModalState(null); fn?.(v); }} style={{ flex: 1, padding: '0.75rem', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'Georgia, serif' }}>{promptModalState.submitLabel}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
