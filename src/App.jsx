@@ -3867,6 +3867,11 @@ ${monthlyReport.desafioCrescimento || '-'}
                   <input type="time" value={notifSettings.notifNightTime} onChange={(e) => setNotifSettings({...notifSettings, notifNightTime: e.target.value})} style={{ padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'var(--gray-strong)' : 'var(--border-light)'}`, background: isDark ? 'rgba(0,0,0,0.4)' : 'var(--white)', color: isDark ? 'var(--white)' : 'var(--black)', width: 'fit-content' }} disabled={!notifSettings.alerts.dailyEpilogue} />
                 </label>
               </div>
+              {notifSettings.whatsappNumber && (
+                <p style={{ margin: '1rem 0 0', fontSize: '0.8rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)', fontStyle: 'italic' }}>
+                  Os lembretes por WhatsApp saem em dois horários fixos (08:00 e 20:00) — os campos acima ainda não controlam o minuto exato deles.
+                </p>
+              )}
             </div>
 
             {/* SEÇÃO 3: ALERTAS CONDICIONAIS */}
