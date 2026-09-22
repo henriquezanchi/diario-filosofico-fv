@@ -2800,10 +2800,13 @@ ${monthlyReport.desafioCrescimento || '-'}
       opacity = 1;
     }
 
+    // Sem sombra decorativa aqui: a borda (que já carrega o status) basta
+    // pra separar o cartão do fundo. Só o alerta de atraso mantém um brilho,
+    // porque ali a sombra é sinal, não decoração.
     return {
       background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white',
       borderRadius: '16px', border, overflow: 'hidden', transition: 'all 0.4s ease',
-      filter, opacity, boxShadow: (status === 'full' && !isOpen) ? 'none' : (status === 'overdue' && !isOpen ? '0 0 15px rgba(231, 76, 60, 0.3)' : '0 4px 12px rgba(0,0,0,0.1)')
+      filter, opacity, boxShadow: (status === 'overdue' && !isOpen) ? '0 0 15px rgba(231, 76, 60, 0.3)' : 'none'
     };
   };
 
@@ -3707,7 +3710,7 @@ ${monthlyReport.desafioCrescimento || '-'}
         {/* VIEW: GOALS */}
         {view === 'goals' && (
           <div className="animate-fadeIn">
-            <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+            <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}` }}>
               
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
                 <Target size={32} color={isDark ? 'var(--gold)' : 'var(--umber)'} />
@@ -3939,7 +3942,7 @@ ${monthlyReport.desafioCrescimento || '-'}
             )}
 
             {/* BARRA DE FERRAMENTAS: NOVO LIVRO */}
-            <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', marginBottom: '2.5rem' }}>
+            <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, marginBottom: '2.5rem' }}>
               <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', position: 'relative', flexWrap: 'wrap' }}>
                 <button onClick={() => setShowAddBook(true)} style={{ background: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', color: isDark ? 'var(--black)' : 'var(--white)', border: 'none', padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Plus size={16} /> Adicionar Novo Livro
@@ -4328,7 +4331,7 @@ ${monthlyReport.desafioCrescimento || '-'}
         {/* VIEW: ANALYTICS (Métricas da Alma) */}
         {view === 'analytics' && (
           <div className="animate-fadeIn">
-            <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+            <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
                 <TrendingUp size={32} color={isDark ? 'var(--gold)' : 'var(--umber)'} />
                 <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: "'Cinzel', serif" }}>Métricas da Alma</h2>
