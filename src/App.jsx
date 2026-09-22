@@ -238,6 +238,23 @@ function App() {
     });
   };
 
+  // Pequena celebração (confete leve, sem lib nova) ao fechar o ciclo do dia.
+  const [celebration, setCelebration] = useState(null);
+  const celebrateDayComplete = () => {
+    const colors = ['var(--gold)', 'var(--success)', 'var(--danger)', 'var(--blue)', 'var(--purple)', 'var(--orange)'];
+    const particles = Array.from({ length: 18 }).map((_, i) => ({
+      id: i,
+      color: colors[i % colors.length],
+      angle: Math.random() * 360,
+      distance: 80 + Math.random() * 110,
+      delay: Math.random() * 0.15,
+      size: 6 + Math.random() * 6,
+    }));
+    const id = Date.now();
+    setCelebration({ id, particles });
+    setTimeout(() => setCelebration(prev => (prev && prev.id === id ? null : prev)), 1400);
+  };
+
   const showPrompt = (message, onSubmit, opts = {}) => {
     setPromptInputValue(opts.defaultValue != null ? String(opts.defaultValue) : '');
     setPromptModalState({
@@ -1955,10 +1972,11 @@ function App() {
 
       await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), updatedEntry, { merge: true });
       
-      setEveningDone(true); 
+      setEveningDone(true);
       await loadAllEntries(user.uid);
-      showToast('✅ Epílogo salvo com sucesso!');
-    } catch (error) { 
+      showToast('✅ Epílogo salvo! Você fechou o ciclo de hoje.');
+      celebrateDayComplete();
+    } catch (error) {
       console.error(error);
       showToast('Erro ao salvar epílogo. Tente novamente.'); 
     }
@@ -4183,9 +4201,13 @@ ${monthlyReport.desafioCrescimento || '-'}
                     )}
 
                     {books.length === 0 && !showAddBook ? (
-                      <div style={{ textAlign: 'center', padding: '3rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)' }}>
-                        <Bookmark size={48} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
-                        <p style={{ fontSize: '1.1rem' }}>Sua estante pessoal está vazia. Adicione o livro que está lendo.</p>
+                      <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '3rem 1.5rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)' }}>
+                        <Bookmark size={48} style={{ margin: '0 auto 1rem', opacity: 0.6 }} />
+                        <p style={{ fontSize: '1.15rem', fontFamily: "'Cinzel', serif", color: isDark ? 'var(--parchment)' : 'var(--ink)', marginBottom: '0.4rem' }}>Sua estante está vazia — por enquanto.</p>
+                        <p style={{ fontSize: '0.95rem', marginBottom: '1.5rem' }}>Todo grande leitor começa com um livro só. Qual é o que está na sua mesa de cabeceira agora?</p>
+                        <button onClick={() => setShowAddBook(true)} style={{ padding: '0.7rem 1.4rem', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontFamily: 'Georgia, serif' }}>
+                          <Plus size={16} /> Adicionar meu primeiro livro
+                        </button>
                       </div>
                     ) : (
                       <>
@@ -4314,9 +4336,10 @@ ${monthlyReport.desafioCrescimento || '-'}
               <p style={{ color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', marginBottom: '2rem', fontSize: '1rem' }}>Observe seus padrões de comportamento e a constância do seu autoexame.</p>
 
               {entries.length === 0 ? (
-                <div style={{ padding: '3rem', textAlign: 'center', background: isDark ? 'rgba(26, 26, 46, 0.4)' : 'var(--bg-light)', borderRadius: '12px' }}>
-                  <TrendingUp size={48} color={isDark ? 'var(--gold)' : 'var(--umber)'} style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
-                  <p style={{ color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontSize: '1.1rem' }}>Ainda não há dados suficientes para gerar métricas. Continue forjando seu diário!</p>
+                <div className="animate-fadeIn" style={{ padding: '3rem 1.5rem', textAlign: 'center', background: isDark ? 'rgba(26, 26, 46, 0.4)' : 'var(--bg-light)', borderRadius: '12px' }}>
+                  <TrendingUp size={48} color={isDark ? 'var(--gold)' : 'var(--umber)'} style={{ margin: '0 auto 1rem', opacity: 0.6 }} />
+                  <p style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: "'Cinzel', serif", fontSize: '1.15rem', marginBottom: '0.4rem' }}>Suas métricas ainda estão em branco.</p>
+                  <p style={{ color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontSize: '0.95rem' }}>Cada dia preenchido no diário vira um traço nesse retrato. Volte aqui depois de alguns dias.</p>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -5233,9 +5256,10 @@ ${monthlyReport.desafioCrescimento || '-'}
             </div>
 
             {filteredEntries.length === 0 ? (
-              <div style={{ padding: '3rem', textAlign: 'center', background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}` }}>
-                <Calendar size={48} color={isDark ? 'var(--gold)' : 'var(--umber)'} style={{ margin: '0 auto 1rem' }} />
-                <p style={{ color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontSize: '1.1rem' }}>{searchTerm ? 'Nenhuma entrada encontrada' : 'Nenhuma reflexão registrada ainda'}</p>
+              <div className="animate-fadeIn" style={{ padding: '3rem 1.5rem', textAlign: 'center', background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}` }}>
+                <Calendar size={48} color={isDark ? 'var(--gold)' : 'var(--umber)'} style={{ margin: '0 auto 1rem', opacity: 0.6 }} />
+                <p style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: "'Cinzel', serif", fontSize: '1.1rem' }}>{searchTerm ? 'Nada encontrado com esse termo' : 'Seu histórico começa com o dia de hoje.'}</p>
+                {!searchTerm && <p style={{ color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontSize: '0.9rem', marginTop: '0.4rem' }}>Volte ao Prólogo e escreva sua primeira reflexão.</p>}
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -6384,7 +6408,29 @@ ${monthlyReport.desafioCrescimento || '-'}
         </div>
       )}
 
-      {/* PILHA DE TOASTS (substitui showToast()) */}
+      {/* CELEBRAÇÃO (confete leve ao fechar o ciclo do dia) */}
+      {celebration && (
+        <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 20002, overflow: 'hidden' }}>
+          {celebration.particles.map(p => {
+            const rad = (p.angle * Math.PI) / 180;
+            const tx = Math.cos(rad) * p.distance;
+            const ty = Math.sin(rad) * p.distance;
+            return (
+              <div
+                key={p.id}
+                className="confetti-piece"
+                style={{
+                  position: 'fixed', top: '50%', left: '50%', width: `${p.size}px`, height: `${p.size}px`,
+                  background: p.color, borderRadius: '2px', animationDelay: `${p.delay}s`,
+                  '--tx': `${tx}px`, '--ty': `${ty}px`,
+                }}
+              />
+            );
+          })}
+        </div>
+      )}
+
+      {/* PILHA DE TOASTS (substitui alert()) */}
       {toasts.length > 0 && (
         <div style={{ position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)', zIndex: 20001, display: 'flex', flexDirection: 'column', gap: '0.6rem', alignItems: 'center', width: 'min(92vw, 420px)', pointerEvents: 'none' }}>
           {toasts.map(t => {
