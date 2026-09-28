@@ -153,7 +153,7 @@ export default async function handler(req, res) {
               title: `✅ ${group.name}`,
               body: `${displayName(decoded)} ${activity}`,
             },
-            webpush: { fcmOptions: { link: 'https://diario-filosofico-azure.vercel.app/' } },
+            webpush: { fcmOptions: { link: 'https://diario-filosofico-fv.vercel.app/' } },
           }));
         if (messages.length > 0) {
           await Promise.allSettled(messages.map(msg => admin.messaging().send(msg)));

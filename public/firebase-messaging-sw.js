@@ -44,7 +44,7 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const urlToOpen = event.notification.data?.FCM_MSG?.notification?.click_action
     || event.notification.data?.url
-    || 'https://diario-filosofico-azure.vercel.app/';
+    || 'https://diario-filosofico-fv.vercel.app/';
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {

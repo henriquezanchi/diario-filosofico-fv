@@ -15,7 +15,7 @@ if (!admin.apps.length) {
   });
 }
 
-const APP_URL = 'https://diario-filosofico-azure.vercel.app/';
+const APP_URL = 'https://diario-filosofico-fv.vercel.app/';
 
 // Usuário digita só DDD+número (ex: 62999999999); a Z-API espera o DDI
 // também (55). Se já vier mais longo que 11 dígitos, assume que o DDI
