@@ -2,16 +2,60 @@
 // este arquivo como endpoint.
 import admin from 'firebase-admin';
 
-const formatPrivateKey = (key) => (key ? key.replace(/\n/g, '\n') : undefined);
+// Aceita a chave privada nos formatos em que ela costuma ser colada na
+// Vercel: com aspas em volta, com "\n" literais no lugar das quebras de
+// linha, com quebras do Windows, em base64, ou o JSON inteiro da conta de
+// serviço (em FIREBASE_SERVICE_ACCOUNT ou no próprio FIREBASE_PRIVATE_KEY).
+function normalizePrivateKey(raw) {
+  if (!raw) return undefined;
+  let key = String(raw).trim();
+  if ((key.startsWith('"') && key.endsWith('"')) || (key.startsWith("'") && key.endsWith("'"))) {
+    key = key.slice(1, -1);
+  }
+  key = key.replace(/\\n/g, '\n').replace(/\r\n/g, '\n');
+  if (!key.includes('-----BEGIN')) {
+    try {
+      const decoded = Buffer.from(key, 'base64').toString('utf8');
+      if (decoded.includes('-----BEGIN')) key = decoded.trim();
+    } catch { /* não era base64 */ }
+  }
+  return key;
+}
 
+function readServiceAccount() {
+  for (const candidate of [process.env.FIREBASE_SERVICE_ACCOUNT, process.env.FIREBASE_PRIVATE_KEY]) {
+    const text = (candidate || '').trim();
+    if (!text.startsWith('{')) continue;
+    try {
+      const json = JSON.parse(text);
+      if (json.private_key) {
+        return { projectId: json.project_id, clientEmail: json.client_email, privateKey: normalizePrivateKey(json.private_key) };
+      }
+    } catch { /* não era JSON */ }
+  }
+  return {
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    privateKey: normalizePrivateKey(process.env.FIREBASE_PRIVATE_KEY),
+  };
+}
+
+// Se a credencial estiver errada, a função não cai ao carregar: cada pedido
+// recebe um erro claro e o motivo fica registrado no log da Vercel.
+let initError = null;
 if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: formatPrivateKey(process.env.FIREBASE_PRIVATE_KEY),
-    }),
-  });
+  try {
+    admin.initializeApp({ credential: admin.credential.cert(readServiceAccount()) });
+  } catch (e) {
+    initError = e;
+    console.error('[firebase-admin] credencial inválida. Confira FIREBASE_PRIVATE_KEY na Vercel:', e.message);
+  }
+}
+
+export function firebaseReady(res) {
+  if (!initError) return true;
+  res.status(500).json({ error: 'Servidor sem credencial válida do Firebase.' });
+  return false;
 }
 
 export { admin };
@@ -22,6 +66,7 @@ export const APP_URL = 'https://diario-filosofico-fv.vercel.app/';
 // Confere o token do Firebase enviado no cabeçalho Authorization.
 // Devolve o token decodificado, ou null depois de já ter respondido 401.
 export async function requireUser(req, res) {
+  if (!firebaseReady(res)) return null;
   const authHeader = req.headers.authorization || '';
   const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
   if (!idToken) {

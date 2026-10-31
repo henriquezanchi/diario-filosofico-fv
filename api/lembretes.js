@@ -1,4 +1,4 @@
-import { admin, APP_URL, getAllChunked, serverError } from './_lib/shared.js';
+import { admin, APP_URL, getAllChunked, serverError, firebaseReady } from './_lib/shared.js';
 
 // O usuário digita DDD + número (ex: 62999999999). A Z-API espera o DDI 55.
 // Zeros à esquerda (ex: 062...) vêm do hábito de discar o código de operadora
@@ -65,6 +65,7 @@ export default async function handler(req, res) {
   if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
+  if (!firebaseReady(res)) return;
 
   const db = admin.firestore();
   const now = brtDate();
