@@ -44,7 +44,7 @@ self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const urlToOpen = event.notification.data?.FCM_MSG?.notification?.click_action
     || event.notification.data?.url
-    || 'https://diario-filosofico-fv.vercel.app/';
+    || self.registration.scope; // o próprio endereço do app, sem domínio fixo
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {

@@ -1,19 +1,4 @@
-import admin from 'firebase-admin';
-
-const formatPrivateKey = (key) => {
-  if (!key) return undefined;
-  return key.replace(/\\n/g, '\n');
-};
-
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: formatPrivateKey(process.env.FIREBASE_PRIVATE_KEY),
-    }),
-  });
-}
+import { admin, requireUser, serverError } from './_lib/shared.js';
 
 // Normaliza o formato antigo (array de strings) para o novo (array de
 // { email, units }) sem exigir migração manual — o formato novo é
@@ -36,18 +21,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const authHeader = req.headers.authorization || '';
-  const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  if (!idToken) {
-    return res.status(401).json({ error: 'Missing Authorization token' });
-  }
-
-  let decoded;
-  try {
-    decoded = await admin.auth().verifyIdToken(idToken);
-  } catch (e) {
-    return res.status(401).json({ error: 'Invalid or expired token' });
-  }
+  const decoded = await requireUser(req, res);
+  if (!decoded) return;
 
   const requesterEmail = (decoded.email || '').toLowerCase();
   if (!requesterEmail) {
@@ -129,7 +104,15 @@ export default async function handler(req, res) {
       if (!clean || !clean.includes('@')) {
         return res.status(400).json({ error: 'E-mail inválido' });
       }
-      const cleanUnits = Array.isArray(adminUnits) ? adminUnits.filter(u => units.includes(u)) : [];
+      // Lista vazia significa "admin geral". Por isso uma unidade inexistente
+      // precisa ser recusada: descartá-la em silêncio poderia transformar um
+      // admin de unidade em admin geral por causa de um erro de digitação.
+      const requestedUnits = Array.isArray(adminUnits) ? adminUnits.map(u => String(u || '').trim()).filter(Boolean) : [];
+      const unknownUnits = requestedUnits.filter(u => !units.includes(u));
+      if (unknownUnits.length > 0) {
+        return res.status(400).json({ error: `Unidade(s) não cadastrada(s): ${unknownUnits.join(', ')}` });
+      }
+      const cleanUnits = [...new Set(requestedUnits)];
       const updated = admins.filter(a => a.email !== clean);
       updated.push({ email: clean, units: cleanUnits });
       await whitelistRef.set({ admins: updated }, { merge: true });
@@ -178,6 +161,6 @@ export default async function handler(req, res) {
 
     return res.status(400).json({ error: 'Ação desconhecida' });
   } catch (e) {
-    return res.status(500).json({ error: e.message });
+    return serverError(res, 'fv-admin', e);
   }
 }

@@ -1,70 +1,52 @@
-# Getting Started with Create React App
+# Diário Filosófico
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+App web (PWA) para o autoexame diário e o cultivo de virtudes: Prólogo pela
+manhã, Epílogo à noite, práticas, leituras e o Módulo GDVE/FV.
 
-## Available Scripts
+## Como rodar
 
-In the project directory, you can run:
+```bash
+npm install
+npm run dev      # servidor local do Vite
+npm run build    # gera a versão de produção em dist/
+```
 
-### `npm start`
+As credenciais do Firebase do front end ficam em `.env` / `.env.local`
+(variáveis `VITE_FIREBASE_*`).
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Estrutura
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+- `src/App.jsx`: estado principal, tela de hoje, login e modais.
+- `src/views/`: telas carregadas sob demanda (Leituras, GDVE, Histórico,
+  Estatísticas, Metas, Guardião, Painel admin, Práticas guiadas).
+- `src/components/DeferredField.jsx`: campo de texto que só avisa o App numa
+  pausa da digitação, para a tela não redesenhar a cada tecla.
+- `src/lib/helpers.js`: funções puras compartilhadas.
+- `src/constants/`: dados fixos (virtudes, frases, catálogo dos Bastiões).
+- `src/App.css`: paleta e tokens de tema (`--t-*`), que trocam entre claro e
+  escuro pelo atributo `data-theme` do `<html>`.
 
-### `npm test`
+## API (Vercel Functions, pasta `api/`)
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+| Endpoint | Função |
+|---|---|
+| `fv-access` | Confere a whitelist e o acesso ao módulo FV no login. |
+| `fv-admin` | Painel de pedidos de acesso, admins e unidades. |
+| `gdve-groups` | Grupos de estudo: criar, entrar, avisar membros. |
+| `carta-degrau` | Síntese da Carta de Degrau com a API da Anthropic. |
+| `lembretes` | Cron das 08:00 e 20:00 (horário de Brasília): push e WhatsApp. |
 
-### `npm run build`
+`api/_lib/shared.js` reúne a inicialização do Firebase Admin, a checagem do
+token e o endereço do app. Arquivos com `_` no início não viram endpoint.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Variáveis de ambiente do servidor: `FIREBASE_PROJECT_ID`,
+`FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`, `ANTHROPIC_API_KEY`,
+`CRON_SECRET` e, para o WhatsApp, `ZAPI_INSTANCE_ID`,
+`ZAPI_INSTANCE_TOKEN` e `ZAPI_CLIENT_TOKEN`.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Lembretes
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+O plano Hobby da Vercel permite só dois disparos de cron por dia, então todos
+os lembretes saem às 08:00 e às 20:00. Quem já fez aquela parte do dia não
+recebe o lembrete. Os alertas do Guardião (diário, práticas e leituras parados
+há 3 dias, reunião do GDVE em 7 dias) vão junto com a mensagem das 20:00.

@@ -1,22 +1,7 @@
-import admin from 'firebase-admin';
 import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
-import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
-
-const formatPrivateKey = (key) => {
-  if (!key) return undefined;
-  return key.replace(/\\n/g, '\n');
-};
-
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: formatPrivateKey(process.env.FIREBASE_PRIVATE_KEY),
-    }),
-  });
-}
+import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
+import { admin, requireUser, serverError } from './_lib/shared.js';
 
 const anthropic = new Anthropic();
 
@@ -35,14 +20,14 @@ const DEFAULT_ITENS_CARTA = [
 const ITEM2_SUBKEYS = ['instintos', 'idade', 'enfermidade', 'animo', 'humor', 'ideias', 'sentimentos', 'ambiente'];
 const ITEM2_SUBLABELS = { instintos: 'Instintos (Conserv./Procriação)', idade: 'Idade', enfermidade: 'Enfermidade', animo: 'Ânimo', humor: 'Humor', ideias: 'Ideias', sentimentos: 'Sentimentos', ambiente: 'Ambiente' };
 
-const CartaSchema = z.object({
-  item1: z.string(),
-  item2: z.string(),
-  item34: z.string(),
-  item5: z.string(),
-  item6: z.string(),
-  item7: z.string(),
-});
+// O esquema da resposta é montado a partir dos itens do próprio usuário,
+// para que itens personalizados também recebam síntese.
+function buildCartaSchema(itensCarta) {
+  return z.object(Object.fromEntries(itensCarta.map(item => [item.id, z.string()])));
+}
+
+// Respostas antigas ou importadas podem ter valores que não são texto.
+const asText = (v) => (typeof v === 'string' ? v.trim() : v == null ? '' : String(v).trim());
 
 function formatDateBR(dateStr) {
   if (!dateStr) return null;
@@ -55,18 +40,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const authHeader = req.headers.authorization || '';
-  const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  if (!idToken) {
-    return res.status(401).json({ error: 'Missing Authorization token' });
-  }
-
-  let decoded;
-  try {
-    decoded = await admin.auth().verifyIdToken(idToken);
-  } catch (e) {
-    return res.status(401).json({ error: 'Invalid or expired token' });
-  }
+  const decoded = await requireUser(req, res);
+  if (!decoded) return;
 
   const uid = decoded.uid;
   const db = admin.firestore();
@@ -74,7 +49,10 @@ export default async function handler(req, res) {
   try {
     const fvDataSnap = await db.collection('fvData').doc(uid).get();
     const fvData = fvDataSnap.exists ? fvDataSnap.data() : {};
-    const itensCarta = fvData.config?.itensCarta?.length ? fvData.config.itensCarta : DEFAULT_ITENS_CARTA;
+    const customItens = Array.isArray(fvData.config?.itensCarta)
+      ? fvData.config.itensCarta.filter(item => item && typeof item.id === 'string' && item.id)
+      : [];
+    const itensCarta = customItens.length ? customItens : DEFAULT_ITENS_CARTA;
     const lastCartaDate = fvData.fvLastCartaDate || fvData.lastCartaDate || null;
     const masterName = fvData.fvMasterName || fvData.masterName || null;
 
@@ -110,12 +88,12 @@ export default async function handler(req, res) {
       for (const item of itensCarta) {
         if (item.id === 'item2') {
           const partes = ITEM2_SUBKEYS
-            .filter(k => (fv[`item2_${k}`] || '').trim())
-            .map(k => `${ITEM2_SUBLABELS[k]}: ${fv[`item2_${k}`].trim()}`);
-          if ((fv.item2 || '').trim()) partes.push(fv.item2.trim());
+            .filter(k => asText(fv[`item2_${k}`]))
+            .map(k => `${ITEM2_SUBLABELS[k]}: ${asText(fv[`item2_${k}`])}`);
+          if (asText(fv.item2)) partes.push(asText(fv.item2));
           if (partes.length) porItem.item2.push({ data: dataFormatada, texto: partes.join(' | ') });
-        } else if ((fv[item.id] || '').trim()) {
-          porItem[item.id].push({ data: dataFormatada, texto: fv[item.id].trim() });
+        } else if (asText(fv[item.id])) {
+          porItem[item.id].push({ data: dataFormatada, texto: asText(fv[item.id]) });
         }
       }
     }
@@ -135,7 +113,7 @@ export default async function handler(req, res) {
 
     const prompt = `Você é um instrutor experiente de uma escola de filosofia prática, revisando o autoexame diário de um discípulo para redigir a síntese oficial da "Carta de Degrau" dele — um relatório periódico entregue ao Mestre/instrutor responsável.
 
-Para CADA um dos 6 itens abaixo, você tem a lista cronológica de respostas que o aluno escreveu dia após dia neste ciclo. Sua tarefa é escrever UM ÚNICO parágrafo de síntese por item (não uma por dia, não uma lista).
+Para CADA um dos ${itensCarta.length} itens abaixo, você tem a lista cronológica de respostas que o aluno escreveu dia após dia neste ciclo. Sua tarefa é escrever UM ÚNICO parágrafo de síntese por item (não uma por dia, não uma lista).
 
 REGRAS IMPORTANTES:
 - NÃO faça uma média fria ou um resumo estatístico das respostas. Leia a sequência cronológica e escreva sobre o CAMINHAR do aluno: onde ele começou o ciclo, o que mudou, que padrões se repetiram, onde houve avanço real e onde ele ainda tropeça no fim do período. É uma leitura de trajetória, não um apanhado geral.
@@ -148,15 +126,23 @@ ITENS E RESPOSTAS DO CICLO:
 
 ${blocosPrompt}
 
-Retorne a síntese de cada item nas chaves exatas: item1, item2, item34, item5, item6, item7.`;
+Retorne a síntese de cada item nas chaves exatas: ${itensCarta.map(item => item.id).join(', ')}.`;
 
-    const response = await anthropic.messages.parse({
-      model: 'claude-sonnet-5',
-      max_tokens: 4096,
+    // Fallback do lado do servidor: se o modelo recusar por política, a API
+    // refaz o pedido num modelo alternativo dentro da mesma chamada.
+    const response = await anthropic.beta.messages.parse({
+      model: 'claude-sonnet-5-5',
+      max_tokens: 16000,
+      betas: ['server-side-fallback-2026-07-01'],
+      fallbacks: 'default',
       messages: [{ role: 'user', content: prompt }],
-      output_config: { format: zodOutputFormat(CartaSchema) },
+      // Esforço médio mantém a resposta rápida; a tarefa é uma síntese curta.
+      output_config: { effort: 'medium', format: betaZodOutputFormat(buildCartaSchema(itensCarta)) },
     });
 
+    if (response.stop_reason === 'refusal') {
+      return res.status(502).json({ error: 'A IA não conseguiu gerar a síntese deste ciclo. Tente novamente.' });
+    }
     if (!response.parsed_output) {
       return res.status(502).json({ error: 'Não foi possível interpretar a resposta da IA. Tente novamente.' });
     }
@@ -172,6 +158,6 @@ Retorne a síntese de cada item nas chaves exatas: item1, item2, item34, item5, 
       masterName,
     });
   } catch (e) {
-    return res.status(500).json({ error: e.message });
+    return serverError(res, 'carta-degrau', e);
   }
 }

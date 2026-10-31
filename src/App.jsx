@@ -1,22 +1,16 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  BookOpen, Sunrise, Sunset, Search, Calendar, Moon, Sun, 
-  Sparkles, ChevronRight, LogOut, Shuffle, Plus, X, 
-  AlertCircle, Eye, EyeOff, CheckCircle, Download, Upload,
-  Target, TrendingUp, Award, FileText, Book, Settings,
-  Trash2, Edit, Save, XCircle, Flame, Zap, Shield, Star, Crown, 
-  Bell, Check, Music, MessageSquare, Menu, Lock, ChevronDown, ChevronUp, 
-  Mountain, Landmark, Swords, Bookmark, Library, MessageCircle, Camera,
-  Clock, ChevronLeft, Smartphone, ShieldAlert, ArrowLeft, ShoppingCart,
-  Users, Link2, Copy
+import React, { useState, useEffect, useLayoutEffect, useRef, lazy, Suspense } from 'react';
+import {
+  BookOpen, Sunrise, Sunset, Calendar, Moon, Sun, Sparkles, ChevronRight,
+  LogOut, Shuffle, Plus, X, AlertCircle, Eye, EyeOff, CheckCircle,
+  Download, Target, TrendingUp, Award, Settings, Edit, Save, Flame,
+  Zap, Shield, Star, Crown, Bell, MessageSquare, Menu, Lock,
+  ChevronDown, ChevronUp, Mountain, Landmark, Library, Clock, ChevronLeft, Smartphone,
+  ShieldAlert, Users
 } from 'lucide-react';
 
-function extractInviteCode(raw) {
-  const trimmed = (raw || '').trim();
-  const match = trimmed.match(/joinGroup=([^&\s]+)/);
-  if (match) return decodeURIComponent(match[1]).toUpperCase();
-  return trimmed.toUpperCase();
-}
+const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutos parado
+const INACTIVITY_COUNTDOWN_S = 30;            // aviso antes de fechar
+
 
 import { auth, db, messaging } from './config/firebase-config'; 
 import { getToken, deleteToken, onMessage } from 'firebase/messaging'; 
@@ -33,19 +27,34 @@ import {
   getDocs, updateDoc, deleteDoc, Timestamp, deleteField 
 } from 'firebase/firestore';
 import './App.css';
-import AdBanner from './AdBanner'; 
-import TrilhaFormacao from './TrilhaFormacao';
-import { 
-  DEFAULT_FV_DAILY, 
-  BASTIOES_DB, 
-  virtues, 
-  philosophicalQuotes, 
-  studyTips,
-  GRADE_CURRICULAR
-} from './constants/data';
+import { isTaskDueOn, extractInviteCode } from './lib/helpers';
+import { buildCartaHistoryReport } from './lib/cartaReport';
+import AdBanner from './AdBanner';
+import DeferredField from './components/DeferredField';
+import { DEFAULT_FV_DAILY, virtues, philosophicalQuotes, studyTips } from './constants/data';
 
 import { translateCategory } from './constants/bookMetrics';
-import { AUTHOR_CANON, getReadingRank, getFavoriteTheme, getAuthorStats } from './constants/ranks';
+import { getFavoriteTheme } from './constants/ranks';
+
+// Telas carregadas sob demanda (cada uma vira um arquivo JS separado).
+const GoalsView = lazy(() => import('./views/GoalsView'));
+const NotificationsView = lazy(() => import('./views/NotificationsView'));
+const LeiturasView = lazy(() => import('./views/LeiturasView'));
+const VirtuesLibraryView = lazy(() => import('./views/VirtuesLibraryView'));
+const AnalyticsView = lazy(() => import('./views/AnalyticsView'));
+const GdveView = lazy(() => import('./views/GdveView'));
+const HistoryView = lazy(() => import('./views/HistoryView'));
+const AdminPanel = lazy(() => import('./views/AdminPanel'));
+const PracticeOverlay = lazy(() => import('./views/PracticeOverlay'));
+
+// Indicador discreto enquanto o código de uma tela é baixado.
+function ViewFallback() {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem 0', opacity: 0.6 }}>
+      <div className="animate-spin" style={{ width: 28, height: 28, borderRadius: '50%', border: '3px solid rgba(139, 115, 85, 0.25)', borderTopColor: 'rgba(139, 115, 85, 0.9)' }} />
+    </div>
+  );
+}
 
 function App() {
   // Estados
@@ -60,8 +69,6 @@ function App() {
   const [isDownloadingConfig, setIsDownloadingConfig] = useState(false);
   const [notificationsActive, setNotificationsActive] = useState(false);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
-  const [morningTime, setMorningTime] = useState('06:00');
-  const [eveningTime, setEveningTime] = useState('22:00');
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
@@ -188,7 +195,17 @@ function App() {
     }
   };
 
-  const [theme, setTheme] = useState('light');
+  // O tema também fica guardado no aparelho, para o app já abrir no tema
+  // certo antes de os dados da nuvem chegarem.
+  const [theme, setTheme] = useState(() => {
+    try { return localStorage.getItem('theme') === 'dark' ? 'dark' : 'light'; } catch { return 'light'; }
+  });
+  useLayoutEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', theme === 'dark' ? '#1a1a2e' : '#8b7355');
+    try { localStorage.setItem('theme', theme); } catch { /* armazenamento indisponível */ }
+  }, [theme]);
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedEntryId, setExpandedEntryId] = useState(null);
   const [expandedYears, setExpandedYears] = useState({});
@@ -319,7 +336,7 @@ function App() {
 
   // Inatividade
   const [showInactivityWarning, setShowInactivityWarning] = useState(false);
-  const [logoutCountdown, setLogoutCountdown] = useState(15);
+  const [logoutCountdown, setLogoutCountdown] = useState(INACTIVITY_COUNTDOWN_S);
 
   // Sugestões e Melhorias
   const [showSuggestionModal, setShowSuggestionModal] = useState(false);
@@ -500,7 +517,6 @@ function App() {
   const [selectedForDeletion, setSelectedForDeletion] = useState([]); // Exclusão em lote
   const [showReadBooks, setShowReadBooks] = useState(false); // Gaveta sanfona de Lidos
   const totalForgedPages = books.reduce((acc, book) => acc + (book.currentPage || 0), 0);
-  const [taskReminderTime, setTaskReminderTime] = useState('10:00');
   const getStalledBook = () => {
     const thresholdDays = 3; // Considera estagnado após 3 dias sem mexer
     return books.find(b => {
@@ -621,78 +637,84 @@ function App() {
     }
   };
 
-  // --- SISTEMA DE AUTOSAVE DE EMERGÊNCIA ---
+  // --- AUTOSAVE ---
+  // Grava sozinho a cada minuto, quando o app vai para segundo plano e antes
+  // do logout por inatividade. Só grava se algo mudou desde a última vez e
+  // se a entrada do dia selecionado já terminou de carregar. Sem essa trava,
+  // trocar de data podia gravar o texto de um dia em outro.
+  const [loadedEntryDate, setLoadedEntryDate] = useState(null);
   const autoSaveDataRef = useRef({});
+  const lastAutoSavedRef = useRef('');
+
+  const buildAutoSavePayload = (data) => ({
+    userId: data.user.uid,
+    date: data.selectedDate,
+    morningDone: data.morningDone || false,
+    eveningDone: data.eveningDone || false,
+    didMorning: data.didMorning !== false,
+    virtue: data.showCustomVirtue ? (data.customVirtue || '') : (data.selectedVirtue || ''),
+    customVirtue: data.showCustomVirtue ? (data.customVirtue || '') : '',
+    intention: data.dailyIntention || '',
+    whereIFailed: data.whereIFailed || '',
+    whatIDidWell: data.whatIDidWell || '',
+    whatILeftUndone: data.whatILeftUndone || '',
+    freeEpilogue: data.freeEpilogue || '',
+    tasksStatus: data.todayTasksStatus || {},
+    tasksSnapshot: (data.customTasks || [])
+      .filter(task => isTaskDueOn(task, data.selectedDate))
+      .map(task => ({
+        id: task.id, name: task.name, completed: !!(data.todayTasksStatus || {})[task.id]
+      })),
+    fvDaily: data.fvDaily || DEFAULT_FV_DAILY
+  });
 
   useEffect(() => {
-    autoSaveDataRef.current = {
-      user, selectedDate, selectedVirtue, customVirtue, showCustomVirtue, dailyIntention,
+    const data = {
+      user, selectedDate, loadedEntryDate, selectedVirtue, customVirtue, showCustomVirtue, dailyIntention,
       whereIFailed, whatIDidWell, whatILeftUndone, freeEpilogue, didMorning,
       morningDone, eveningDone,
       todayTasksStatus, fvDaily, customTasks
     };
-  }, [user, selectedDate, selectedVirtue, customVirtue, showCustomVirtue, dailyIntention,
+    // Logo após carregar um dia, o estado é igual ao que está salvo: vira a
+    // referência, para não regravar uma entrada que ninguém mexeu.
+    if (user && loadedEntryDate && loadedEntryDate !== autoSaveDataRef.current.loadedEntryDate) {
+      lastAutoSavedRef.current = JSON.stringify(buildAutoSavePayload(data));
+    }
+    autoSaveDataRef.current = data;
+  }, [user, selectedDate, loadedEntryDate, selectedVirtue, customVirtue, showCustomVirtue, dailyIntention,
       whereIFailed, whatIDidWell, whatILeftUndone, freeEpilogue, didMorning,
       morningDone, eveningDone, todayTasksStatus, fvDaily, customTasks]);
 
   const performSilentAutoSave = async () => {
     const data = autoSaveDataRef.current;
-    if (!data.user) return;
+    if (!data.user || data.loadedEntryDate !== data.selectedDate) return;
 
-    let randomHour = data.randomReminderHour;
-    if (data.morningDone && !randomHour) {
-      randomHour = Math.floor(Math.random() * (18 - 10 + 1)) + 10;
-      randomHour = String(randomHour).padStart(2, '0') + ':00';
-    }
-
-    const updatePayload = {
-      userId: data.user.uid,
-      date: data.selectedDate,
-      morningDone: data.morningDone || false,
-      eveningDone: data.eveningDone || false,
-      randomReminderHour: randomHour || null, 
-      didMorning: data.didMorning !== false,
-      virtue: data.showCustomVirtue ? (data.customVirtue || '') : (data.selectedVirtue || ''),
-      customVirtue: data.showCustomVirtue ? (data.customVirtue || '') : '',
-      intention: data.dailyIntention || '',
-      whereIFailed: data.whereIFailed || '',
-      whatIDidWell: data.whatIDidWell || '',
-      whatILeftUndone: data.whatILeftUndone || '',
-      freeEpilogue: data.freeEpilogue || '',
-      tasksStatus: data.todayTasksStatus || {},
-      tasksSnapshot: (data.customTasks || [])
-        .filter(task => {
-          if (!task.recurrence || task.recurrence === 'daily') return true;
-          const d = new Date(data.selectedDate + 'T12:00:00');
-          if (task.recurrence === 'weekly') return task.weekDays?.includes(d.getDay());
-          if (task.recurrence === 'monthly') return parseInt(task.monthDay) === d.getDate();
-          return true;
-        })
-        .map(task => ({
-          id: task.id, name: task.name, completed: !!(data.todayTasksStatus || {})[task.id]
-        })),
-      fvDaily: data.fvDaily || DEFAULT_FV_DAILY
-    };
+    const updatePayload = buildAutoSavePayload(data);
+    const serialized = JSON.stringify(updatePayload);
+    if (serialized === lastAutoSavedRef.current) return;
 
     try {
       await setDoc(doc(db, 'entries', `${data.user.uid}_${data.selectedDate}`), updatePayload, { merge: true });
+      lastAutoSavedRef.current = serialized;
     } catch (e) {
       console.log('Erro no autosave silencioso:', e);
     }
   };
 
-    const performSilentAutoSaveRef = useRef(null);
+  const performSilentAutoSaveRef = useRef(null);
   useEffect(() => {
     performSilentAutoSaveRef.current = performSilentAutoSave;
   });
 
   useEffect(() => {
-    const intervalId = setInterval(() => {
-      if (performSilentAutoSaveRef.current) {
-        performSilentAutoSaveRef.current();
-      }
-    }, 60000);
-    return () => clearInterval(intervalId);
+    const save = () => performSilentAutoSaveRef.current && performSilentAutoSaveRef.current();
+    const intervalId = setInterval(save, 60000);
+    const onVisibility = () => { if (document.visibilityState === 'hidden') save(); };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, []);
 
   const handleRealizarPratica = (key) => {
@@ -794,6 +816,7 @@ function App() {
 
   const clearAllData = () => {
     setEntries([]);
+    entriesRef.current = [];
     setCustomTasks([]);
     setTodayTasksStatus({});
     setStreak(0);
@@ -827,26 +850,7 @@ function App() {
     setFvDaily(DEFAULT_FV_DAILY);
   };
 
-  const getTasksForToday = () => {
-    const targetDate = new Date(selectedDate + 'T12:00:00'); 
-    const currentDayOfWeek = targetDate.getDay(); 
-    const currentDayOfMonth = targetDate.getDate();
-    const todayObj = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
-
-    return customTasks.filter(task => {
-      if (!task.recurrence || task.recurrence === 'daily') return true;
-      if (task.recurrence === 'weekly') return task.weekDays?.includes(currentDayOfWeek);
-      if (task.recurrence === 'monthly') return parseInt(task.monthDay) === currentDayOfMonth;
-      if (task.recurrence === 'biweekly' && task.baseDate) {
-        const [y, m, d] = task.baseDate.split('-');
-        const baseDateObj = new Date(y, m - 1, d);
-        const diffTime = todayObj.getTime() - baseDateObj.getTime();
-        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-        return diffDays >= 0 && diffDays % 14 === 0;
-      }
-      return true;
-    });
-  };
+  const getTasksForToday = () => customTasks.filter(task => isTaskDueOn(task, selectedDate));
 
   const selectRandomVirtue = async () => {
     if (isDrawingVirtue) return;
@@ -913,42 +917,28 @@ function App() {
     showToast('🔒 Modo FV ocultado com segurança!');
   };
 
+  // Fecha o diário depois de um tempo parado, para proteger quem usa um
+  // aparelho compartilhado. O prazo é longo o bastante para ler e refletir
+  // com calma antes de escrever.
   useEffect(() => {
     if (!user || showInactivityWarning || isPracticeActive) return; 
     
     let timeoutId;
     const resetTimer = () => {
       clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => setShowInactivityWarning(true), 60000);
+      timeoutId = setTimeout(() => setShowInactivityWarning(true), INACTIVITY_TIMEOUT_MS);
     };
     
-    const handleActivity = () => resetTimer();
-    window.addEventListener('mousemove', handleActivity);
-    window.addEventListener('keydown', handleActivity);
-    window.addEventListener('click', handleActivity);
-    window.addEventListener('scroll', handleActivity);
+    const events = ['pointerdown', 'pointermove', 'keydown', 'scroll', 'touchstart', 'wheel'];
+    events.forEach(evt => window.addEventListener(evt, resetTimer, { passive: true }));
     
     resetTimer();
     
     return () => {
       clearTimeout(timeoutId);
-      window.removeEventListener('mousemove', handleActivity);
-      window.removeEventListener('keydown', handleActivity);
-      window.removeEventListener('click', handleActivity);
-      window.removeEventListener('scroll', handleActivity);
+      events.forEach(evt => window.removeEventListener(evt, resetTimer));
     };
   }, [user, showInactivityWarning, isPracticeActive]);
-
-  useEffect(() => {
-    if (user && 'Notification' in window) {
-      if (Notification.permission === 'default') {
-        const timer = setTimeout(() => {
-          setShowNotificationPrompt(true);
-        }, 3000);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [user]);
 
   useEffect(() => {
     if (!messaging) return;
@@ -957,14 +947,9 @@ function App() {
       console.log('Mensagem recebida com o app aberto: ', payload);
       
       if (Notification.permission === 'granted') {
-        const isMorning = payload.notification.title.includes('Matinal');
-        const correctIcon = isMorning 
-          ? 'https://img.icons8.com/ios-filled/512/8b7355/open-book.png' 
-          : 'https://img.icons8.com/ios-filled/512/8b7355/owl.png';
-
         new Notification(payload.notification.title, {
           body: payload.notification.body,
-          icon: correctIcon,
+          icon: '/icon-192.png',
           tag: 'diario-notification' 
         });
       }
@@ -1009,20 +994,20 @@ function App() {
               setShowInactivityWarning(false);
             });
             
-            return 15;
+            return INACTIVITY_COUNTDOWN_S;
           }
           return prev - 1;
         });
       }, 1000);
     } else {
-      setLogoutCountdown(15);
+      setLogoutCountdown(INACTIVITY_COUNTDOWN_S);
     }
     return () => clearInterval(intervalId);
   }, [showInactivityWarning]);
 
   const keepAlive = () => {
     setShowInactivityWarning(false);
-    setLogoutCountdown(15);
+    setLogoutCountdown(INACTIVITY_COUNTDOWN_S);
   };
 
   useEffect(() => {
@@ -1035,14 +1020,18 @@ function App() {
         clearAllData();
         setUser(currentUser);
         setRequestEmail(currentUser.email || '');
-        await loadUserData(currentUser.uid);
-        await loadTodayEntry(currentUser.uid);
-        await loadAllEntries(currentUser.uid);
-        await loadCustomTasks(currentUser.uid);
-        await loadLongTermGoals(currentUser.uid);
-        await loadFVData(currentUser.uid);
-        // ESTA LINHA É A ÂNCORA DOS SEUS LIVROS:
-        await loadBooks(currentUser.uid);
+        // Tudo em paralelo: cada leitura é independente, e esperar uma por
+        // uma deixava o login lento.
+        const uid = currentUser.uid;
+        await Promise.all([
+          loadUserData(uid),
+          loadTodayEntry(uid),
+          loadAllEntries(uid),
+          loadCustomTasks(uid),
+          loadLongTermGoals(uid),
+          loadFVData(uid),
+          loadBooks(uid),
+        ]);
         fetchAdminPanelData(); // Silencioso: só ativa o painel se o usuário for admin
       } else {
         setUser(null);
@@ -1069,44 +1058,44 @@ function App() {
 
   const loadUserData = async (uid) => {
     try {
-      // 1. Lê primeiro o doc do usuário — isso é sempre permitido e serve de base/
-      // fallback caso o endpoint abaixo falhe (rede, cold start, etc.), pra nunca
-      // travar quem já está aprovado por causa de uma falha temporária do backend.
+      // 1. Lê o doc do usuário (rápido, vem do cache local quando possível) e
+      // já libera a tela com o status de acesso que está salvo nele.
       const userDoc = await getDoc(doc(db, 'users', uid));
       const userData = userDoc.exists() ? userDoc.data() : null;
-      let fvAccessStatus = userData?.fvStatus || 'unregistered';
-      let fvUnlocked = fvAccessStatus === 'approved';
 
-      // 2. Chama o servidor (api/fv-access.js): confere a whitelist e libera o
-      // fvStatus se for o caso, e cria o doc do usuário se for a primeira vez.
-      // As regras do Firestore não deixam mais o cliente fazer isso diretamente.
-      try {
-        const idToken = await auth.currentUser?.getIdToken();
-        const resp = await fetch('/api/fv-access', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${idToken}` }
-        });
-        if (resp.ok) {
+      let gdveStarted = false;
+      const applyAccess = (status, unlocked) => {
+        setFvAccessStatus(status);
+        setFvUnlocked(unlocked);
+        if (unlocked && !gdveStarted) { gdveStarted = true; loadMod2Config(uid); loadMyGroups(); } // Inicia o motor GDVE
+      };
+      if (userData) applyAccess(userData.fvStatus || 'unregistered', (userData.fvStatus || 'unregistered') === 'approved');
+
+      // 2. Confere com o servidor (api/fv-access.js) em segundo plano: ele
+      // checa a whitelist, cria o doc do usuário no primeiro acesso e corrige
+      // o status se for o caso. A tela não espera por isso, a não ser no
+      // primeiro acesso, quando ainda não há status salvo.
+      const verifyAccess = (async () => {
+        try {
+          const idToken = await auth.currentUser?.getIdToken();
+          const resp = await fetch('/api/fv-access', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${idToken}` }
+          });
+          if (!resp.ok) throw new Error(`resposta ${resp.status}`);
           const data = await resp.json();
-          fvAccessStatus = data.fvStatus || fvAccessStatus;
-          fvUnlocked = !!data.fvUnlocked;
           setAvailableUnits(data.units || []);
-        } else {
-          console.error('Erro ao verificar acesso FV: resposta', resp.status);
+          applyAccess(data.fvStatus || userData?.fvStatus || 'unregistered', !!data.fvUnlocked);
+        } catch (e) {
+          console.error('Erro ao verificar acesso FV:', e);
+          if (!userData) applyAccess('unregistered', false);
         }
-      } catch (e) {
-        console.error('Erro ao verificar acesso FV:', e);
-      }
-
-      setFvAccessStatus(fvAccessStatus);
-      setFvUnlocked(fvUnlocked);
-      if (fvUnlocked) { loadMod2Config(uid); loadMyGroups(); } // Inicia o motor GDVE
+      })();
+      if (!userData) await verifyAccess;
 
       if (userData) {
         setTheme(userData.theme || 'light');
         setLastDrawDate(userData.lastDrawDate || null);
-        setMorningTime(userData.morningTime || '06:00');
-        setEveningTime(userData.eveningTime || '22:00');
 
         // Carrega as configurações do Guardião salvas
         if (userData.notifications) {
@@ -1388,8 +1377,9 @@ function App() {
   };
 
   const loadTodayEntry = async (uid, dateToLoad = null) => {
+    const targetDate = dateToLoad || selectedDate;
+    setLoadedEntryDate(null); // bloqueia o autosave até o dia novo carregar
     try {
-      const targetDate = dateToLoad || selectedDate;
       const entryDoc = await getDoc(doc(db, 'entries', `${uid}_${targetDate}`));
       
       if (entryDoc.exists()) {
@@ -1432,9 +1422,32 @@ function App() {
         });
       }
 
+      setLoadedEntryDate(targetDate);
     } catch (error) {
       console.error('Erro ao carregar entrada:', error);
     }
+  };
+
+  // Uma entrada só aparece no histórico se tiver algo preenchido.
+  const isMeaningfulEntry = (data) => {
+    const hasFvData = data.fvDaily && (
+      data.fvDaily.item1 || data.fvDaily.item2 || data.fvDaily.item34 || data.fvDaily.item5 || data.fvDaily.item6 || data.fvDaily.item7 ||
+      (data.fvDaily.praticas && Object.values(data.fvDaily.praticas).some(v => v === true)) ||
+      (data.fvDaily.gdveTasksStatus && Object.values(data.fvDaily.gdveTasksStatus).some(v => v)) ||
+      data.fvDaily.gdveAttendance
+    );
+    return !!(data.morningDone || data.eveningDone || hasFvData);
+  };
+
+  // Cópia sempre atual da lista, para atualizar uma única entrada sem
+  // precisar baixar o histórico inteiro de novo.
+  const entriesRef = useRef([]);
+
+  const applyEntries = (loadedEntries) => {
+    loadedEntries.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+    entriesRef.current = loadedEntries;
+    setEntries(loadedEntries);
+    computeStreaks(loadedEntries);
   };
 
   const loadAllEntries = async (uid) => {
@@ -1442,24 +1455,26 @@ function App() {
       const q = query(collection(db, 'entries'), where('userId', '==', uid));
       const querySnapshot = await getDocs(q);
       const loadedEntries = [];
-      
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        const hasFvData = data.fvDaily && (
-          data.fvDaily.item1 || data.fvDaily.item2 || data.fvDaily.item34 || data.fvDaily.item5 || data.fvDaily.item6 || data.fvDaily.item7 ||
-          (data.fvDaily.praticas && Object.values(data.fvDaily.praticas).some(v => v === true)) ||
-          (data.fvDaily.gdveTasksStatus && Object.values(data.fvDaily.gdveTasksStatus).some(v => v)) ||
-          data.fvDaily.gdveAttendance
-        );
-        
-        if (data.morningDone || data.eveningDone || hasFvData) { 
-          loadedEntries.push({ id: doc.id, ...data });
-        }
+      querySnapshot.forEach((d) => {
+        const data = d.data();
+        if (isMeaningfulEntry(data)) loadedEntries.push({ id: d.id, ...data });
       });
-      
-      loadedEntries.sort((a, b) => new Date(b.date) - new Date(a.date));
-      setEntries(loadedEntries);
+      applyEntries(loadedEntries);
+    } catch (error) { console.error('Erro ao carregar entradas:', error); }
+  };
 
+  // Relê só a entrada de um dia, depois de gravá-la ou apagá-la.
+  const refreshEntry = async (uid, dateKey) => {
+    try {
+      const id = `${uid}_${dateKey}`;
+      const snap = await getDoc(doc(db, 'entries', id));
+      const others = entriesRef.current.filter(e => e.id !== id);
+      const data = snap.exists() ? snap.data() : null;
+      applyEntries(data && isMeaningfulEntry(data) ? [...others, { id, ...data }] : others);
+    } catch (error) { console.error('Erro ao atualizar entrada:', error); }
+  };
+
+  const computeStreaks = (loadedEntries) => {
       if (loadedEntries.length > 0) {
         let maxStreak = 1;
         let tempCalc = 1;
@@ -1543,7 +1558,6 @@ function App() {
         setFvDiaryStreak(0);
         setFvTasksStreak(0);
       }
-    } catch (error) { console.error('Erro ao carregar entradas:', error); }
   };
 
   const loadBooks = async (uid) => {
@@ -1558,15 +1572,24 @@ function App() {
   };
 
   const saveBooksToDb = async (updatedBooks) => {
-    // Truque Mágico: O JSON.stringify remove automaticamente qualquer campo 'undefined' escondido nos livros!
-    const livrosSanitizados = JSON.parse(JSON.stringify(updatedBooks));
+    // Marca quando cada livro avançou (ou entrou na estante). Os avisos de
+    // "leitura parada", no app e no Guardião, dependem dessa data.
+    const previousById = new Map(books.map(b => [b.id, b]));
+    const nowIso = new Date().toISOString();
+    const withProgressDate = updatedBooks.map(b => {
+      const prev = previousById.get(b.id);
+      const progressed = !prev || (b.currentPage || 0) !== (prev.currentPage || 0);
+      return progressed ? { ...b, updatedAt: nowIso } : b;
+    });
+    // O JSON.stringify remove qualquer campo 'undefined' escondido nos livros,
+    // que o Firestore recusaria.
+    const livrosSanitizados = JSON.parse(JSON.stringify(withProgressDate));
     
     setBooks(livrosSanitizados);
     
     if (user) {
       try { 
         await setDoc(doc(db, 'userBooks', user.uid), { books: livrosSanitizados }, { merge: true }); 
-        console.log("Estante salva e purificada com sucesso.");
       } catch (error) { 
         console.error('Erro ao salvar livros:', error); 
       }
@@ -1668,6 +1691,17 @@ function App() {
   // OBSERVADOR: AUTO-CORRETOR DE BASTIÕES
   // =========================================================================
   useEffect(() => {
+    // Só quem tem tarefas de Bastião/leitura precisa do catálogo, que é
+    // carregado sob demanda.
+    const temTarefaDeLeitura = fvGdveTasks.some(task => {
+      const n = (task.name || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+      return n.includes('bastiao') || n.includes('leitura');
+    });
+    if (!temTarefaDeLeitura) return;
+    let cancelado = false;
+
+    import('./constants/bastioes').then(({ BASTIOES_DB }) => {
+    if (cancelado) return;
     let precisaSalvar = false;
     
     const tasksCorrigidas = fvGdveTasks.map(task => {
@@ -1716,6 +1750,8 @@ function App() {
           setDoc(doc(db, 'fvData', user.uid), { fvGdveTasks: tasksCorrigidas }, { merge: true });
        }
     }
+    }).catch(e => console.error('Erro ao carregar catálogo de Bastiões:', e));
+    return () => { cancelado = true; };
   }, [fvGdveTasks, user]); // Fica observando sempre que a lista de tarefas mudar
 
   const loadCustomTasks = async (uid) => {
@@ -1906,7 +1942,7 @@ function App() {
         await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), {
           userId: user.uid, date: todayKey, tasksStatus: newStatus, tasksSnapshot: updatedSnapshot
         }, { merge: true });
-        await loadAllEntries(user.uid);
+        await refreshEntry(user.uid, todayKey);
       } catch (error) { console.error('Erro ao salvar o status da tarefa:', error); }
     }
   };  
@@ -1921,8 +1957,6 @@ function App() {
 
     const todayKey = selectedDate;
 
-    const randomHour = Math.floor(Math.random() * (18 - 10 + 1)) + 10;
-    const randomHourStr = String(randomHour).padStart(2, '0') + ':00'; 
 
     const entry = {
       userId: user.uid, 
@@ -1934,14 +1968,19 @@ function App() {
       intention: dailyIntention || '', 
       tasksStatus: todayTasksStatus || {},
       tasksSnapshot: tasksSnapshot || [], 
-      morningTimestamp: Timestamp.now(),
-      randomReminderHour: randomHourStr 
+      morningTimestamp: Timestamp.now()
     };
 
     try {
       await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), entry, { merge: true });
       setMorningDone(true); 
       showToast('✅ Prólogo salvo com sucesso!');
+      refreshEntry(user.uid, todayKey);
+      // Momento natural para oferecer os lembretes: logo depois do primeiro
+      // Prólogo, e não segundos depois do login.
+      if ('Notification' in window && Notification.permission === 'default') {
+        setTimeout(() => setShowNotificationPrompt(true), 1500);
+      }
     } catch (error) { 
       showToast('Erro ao salvar prólogo. Verifique sua conexão.'); 
     }
@@ -1973,7 +2012,7 @@ function App() {
       await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), updatedEntry, { merge: true });
       
       setEveningDone(true);
-      await loadAllEntries(user.uid);
+      await refreshEntry(user.uid, todayKey);
       showToast('✅ Epílogo salvo! Você fechou o ciclo de hoje.');
       celebrateDayComplete();
     } catch (error) {
@@ -2113,7 +2152,7 @@ function App() {
       if (selectedDate === getTodayKey()) setTodayFvDaily(newFvDaily);
       if (user) {
         await setDoc(doc(db, 'entries', `${user.uid}_${selectedDate}`), { userId: user.uid, date: selectedDate, fvDaily: newFvDaily }, { merge: true });
-        await loadAllEntries(user.uid);
+        await refreshEntry(user.uid, selectedDate);
       }
       const target = task.target || 1;
       if (newVal >= target && currentVal < target) notifyGroupActivity(`concluiu: "${task.name}"`);
@@ -2130,7 +2169,7 @@ function App() {
     const finalizeAttendanceSave = async () => {
       if (user) {
         await setDoc(doc(db, 'entries', `${user.uid}_${selectedDate}`), { userId: user.uid, date: selectedDate, fvDaily: newFvDaily }, { merge: true });
-        await loadAllEntries(user.uid);
+        await refreshEntry(user.uid, selectedDate);
       }
     };
 
@@ -2203,7 +2242,7 @@ function App() {
 
         await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), payload, { merge: true }); 
         
-        await loadAllEntries(user.uid); 
+        await refreshEntry(user.uid, todayKey); 
         
         showToast('✅ Reflexões da Carta de Degrau salvas com sucesso!');
       } catch (error) { console.error(error); showToast('Erro ao salvar os textos.'); }
@@ -2248,7 +2287,7 @@ function App() {
 
         await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), payload, { merge: true }); 
         
-        await loadAllEntries(user.uid); 
+        await refreshEntry(user.uid, todayKey); 
         
         showToast('✅ Práticas Internas salvas com sucesso!');
       } catch (error) { console.error(error); showToast('Erro ao salvar as práticas.'); }
@@ -2289,7 +2328,7 @@ function App() {
 
     let countEd = 0; let countCrm = 0; let countRaio = 0; 
     let countAulaRegular = 0; let countAulaMinistrada = 0; 
-    let diasVoluntariado = 0; let diasPraticasPsicologia = 0;
+    let diasVoluntariado = 0; let diasPraticasPsicologia = 0; let totalPraticasPsicologia = 0;
     
     // Novos contadores de Missões (Tarefas Pessoais)
     let countLimpeza = 0; let countGN = 0; let countEstudos = 0; let countBastiao = 0;
@@ -2306,6 +2345,7 @@ function App() {
       // Conta DIAS em que fez pelo menos uma prática, não a soma de tudo!
       if (fv.praticas && Object.values(fv.praticas).some(v => v === true)) {
         diasPraticasPsicologia++;
+        totalPraticasPsicologia += Object.values(fv.praticas).filter(v => v === true).length;
       }
 
       // A MÁGICA: O app lê o nome das tarefas que você marcou como concluídas nos dias
@@ -2428,7 +2468,7 @@ ${monthlyReport.desafioCrescimento || '-'}
         await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), {
           userId: user.uid, date: todayKey, fvDaily: newFvDaily
         }, { merge: true });
-        await loadAllEntries(user.uid);
+        await refreshEntry(user.uid, todayKey);
         // Feedback visual para o usuário saber que salvou no FV
         showToast('✅ Prática concluída e registrada com sucesso no seu Diário (FV)!');
       } catch (error) { console.error("Erro ao salvar prática:", error); }
@@ -2451,7 +2491,7 @@ ${monthlyReport.desafioCrescimento || '-'}
         await setDoc(doc(db, 'entries', `${user.uid}_${todayKey}`), {
           userId: user.uid, date: todayKey, fvDaily: newFvDaily
         }, { merge: true });
-        await loadAllEntries(user.uid);
+        await refreshEntry(user.uid, todayKey);
       } catch (error) {
         console.error("Erro ao salvar prática do Templo:", error);
         showToast('⚠️ A prática não foi salva. Verifique sua conexão e tente novamente.');
@@ -2471,7 +2511,7 @@ ${monthlyReport.desafioCrescimento || '-'}
         }
         try {
           await deleteDoc(doc(db, 'entries', `${user.uid}_${dateKey}`));
-          await loadAllEntries(user.uid);
+          await refreshEntry(user.uid, dateKey);
           showToast('🗑️ Registro excluído com sucesso.');
         } catch (error) {
           showToast('Erro ao excluir a entrada. Verifique sua conexão.');
@@ -2530,58 +2570,26 @@ ${monthlyReport.desafioCrescimento || '-'}
     link.click();
   };
 
+  // Histórico da Carta de Degrau: o ciclo desde a última Carta, organizado
+  // por item e por semana, para o discípulo enxergar a própria trajetória.
   const exportFvReportTXT = () => {
-    if (entries.length === 0) { showToast('Não há entradas para exportar'); return; }
-    
-    const totals = getFvMonthlyTotals();
-    let txtContent = `====================================================\n`;
-    txtContent += `      RELATÓRIO DE PREPARAÇÃO - CARTA DE DEGRAU\n`;
-    txtContent += `      Gerado em: ${new Date().toLocaleDateString('pt-BR')}\n`;
-    txtContent += `----------------------------------------------------\n`;
-    txtContent += ` ACUMULADO DO CICLO (ÚLTIMOS 30 DIAS):\n`;
-    txtContent += ` - Voluntariado: ${totals.voluntariado}\n`;
-    txtContent += ` - Aulas Assistidas: ${totals.assistida}\n`;
-    txtContent += ` - Aulas Ministradas: ${totals.ministrada}\n`;
-    txtContent += `====================================================\n\n`;
-    
-    const reversedEntries = [...entries].reverse();
-    let hasData = false;
-
-    reversedEntries.forEach(entry => {
-      if (entry.fvDaily) {
-        const fv = entry.fvDaily;
-        const hasTextData = fv.item1 || fv.item2 || fv.item34 || fv.item5 || fv.item6 || fv.item7;
-        
-        if (hasTextData) {
-          hasData = true;
-          txtContent += `----------------------------------------------------\n`;
-          txtContent += `DATA: ${new Date(entry.date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).toUpperCase()}\n`;
-          txtContent += `----------------------------------------------------\n`;
-          
-          if (fv.item1) txtContent += `[1] Varrer por Dentro:\n${fv.item1}\n\n`;
-          if (fv.item2) txtContent += `[2] Leis da Matéria:\n${fv.item2}\n\n`;
-          if (fv.item34) txtContent += `[3 e 4] Trabalho Ordenado e Eficaz:\n${fv.item34}\n\n`;
-          if (fv.item5) txtContent += `[5] Economia de Tempo e Energia:\n${fv.item5}\n\n`;
-          if (fv.item6) txtContent += `[6] Os Vícios:\n${fv.item6}\n\n`;
-          if (fv.item7) txtContent += `[7] Virtudes (Perseverança e Constância):\n${fv.item7}\n\n`;
-          
-          if (fv.horasVoluntariado || fv.horasAulaAssistida || fv.horasAulaMinistrada) {
-            txtContent += `[Registro de Horas]\nHoras de Voluntariado: ${fv.horasVoluntariado || '--'} | Aula Assistida: ${fv.horasAulaAssistida || '--'} | Aula Ministrada: ${fv.horasAulaMinistrada || '--'}\n\n`;
-          }
-          txtContent += `\n\n`;
-        }
-      }
+    const report = buildCartaHistoryReport({
+      entries,
+      items: fvConfig?.itensCarta,
+      lastCartaDate: fvLastCartaDate,
+      masterName: fvMasterName,
+      todayKey: getTodayKey(),
     });
-
-    if (!hasData) {
-      showToast('Você ainda não tem textos preenchidos nos itens FV para gerar o relatório.');
+    if (!report) {
+      showToast('Ainda não há respostas da Carta de Degrau neste ciclo para exportar.');
       return;
     }
-
-    const blob = new Blob([txtContent], { type: 'text/plain;charset=utf-8;' });
+    // O BOM faz o Bloco de Notas do Windows abrir o arquivo com acentos certos.
+    const blob = new Blob(['﻿' + report.text], { type: 'text/plain;charset=utf-8;' });
     const link = document.createElement('a'); link.href = URL.createObjectURL(blob);
-    link.download = `Borracha_Carta_Degrau_${getTodayKey()}.txt`; 
+    link.download = `Historico_Carta_de_Degrau_${report.periodStart}_a_${report.periodEnd}.txt`;
     link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
   };
 
   const importDiary = (event) => {
@@ -2684,21 +2692,6 @@ ${monthlyReport.desafioCrescimento || '-'}
     if (user) { await updateDoc(doc(db, 'users', user.uid), { theme: newTheme }); }
   };
 
-  const saveNotificationTimes = async () => {
-    if (user) {
-      try {
-        await updateDoc(doc(db, 'users', user.uid), { 
-          morningTime, 
-          eveningTime 
-        });
-        showToast('✅ Configurações atualizadas com sucesso!');
-        setShowSettingsModal(false);
-      } catch (error) {
-        console.error("Erro ao salvar", error);
-        showToast('Erro ao salvar horários.');
-      }
-    }
-  };
 
   const filteredEntries = entries.filter(entry =>
     (entry.whereIFailed && entry.whereIFailed.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -2780,7 +2773,7 @@ ${monthlyReport.desafioCrescimento || '-'}
 
   // --- PINCEL MÁGICO UNIVERSAL (Acessível por todas as abas) ---
   const getBlockStyle = (status, isOpen, activeBorder) => {
-    const corPadrao = activeBorder || (isDark ? 'var(--gold-bright)' : 'var(--umber-bright)');
+    const corPadrao = activeBorder || 'var(--t-accent-bright)';
     const corConcluido = isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)';
     const corAtrasado = 'var(--danger)'; // Vermelho Urgência
 
@@ -2804,7 +2797,7 @@ ${monthlyReport.desafioCrescimento || '-'}
     // pra separar o cartão do fundo. Só o alerta de atraso mantém um brilho,
     // porque ali a sombra é sinal, não decoração.
     return {
-      background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white',
+      background: 'var(--t-surface-soft)',
       borderRadius: '16px', border, overflow: 'hidden', transition: 'all 0.4s ease',
       filter, opacity, boxShadow: (status === 'overdue' && !isOpen) ? '0 0 15px rgba(231, 76, 60, 0.3)' : 'none'
     };
@@ -2823,7 +2816,7 @@ ${monthlyReport.desafioCrescimento || '-'}
   };
 
   const renderTitle = (text, status, isOpen, icon) => {
-    let titleColor = isDark ? 'var(--parchment)' : 'var(--ink)';
+    let titleColor = 'var(--t-text)';
     if (status === 'overdue') titleColor = 'var(--danger)';
     
     return (
@@ -2853,6 +2846,18 @@ ${monthlyReport.desafioCrescimento || '-'}
       .trim();
   };
 
+  // Tela de abertura enquanto o login é conferido e os dados chegam. Sem
+  // ela, quem já estava logado via a tela de login piscar por um instante
+  // e depois o diário vazio, antes do conteúdo aparecer.
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', background: isDark ? 'linear-gradient(135deg, var(--bg-dark) 0%, #16213e 100%)' : 'linear-gradient(135deg, var(--parchment) 0%, var(--bg-light-alt) 100%)' }}>
+        <BookOpen size={44} color="var(--t-accent)" className="splash-pulse" />
+        <span style={{ fontFamily: "'Cinzel', serif", fontSize: '1.2rem', letterSpacing: '0.08em', color: 'var(--t-text-muted)' }}>Diário Filosófico</span>
+      </div>
+    );
+  }
+
   if (!user) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'linear-gradient(135deg, var(--parchment) 0%, var(--bg-light-alt) 100%)', fontFamily: 'Georgia, serif' }}>
@@ -2870,7 +2875,7 @@ ${monthlyReport.desafioCrescimento || '-'}
           <div style={{ maxWidth: '1200px', width: '100%', display: 'flex', flexWrap: 'wrap', gap: '4rem', alignItems: 'center', justifyContent: 'space-between' }}>
             
             {/* LADO DIREITO: O FORMULÁRIO DE LOGIN (INTACTO) */}
-            <div style={{ flex: '1 1 400px', maxWidth: '450px', margin: '0 auto' }}>
+            <div style={{ flex: '1 1 300px', minWidth: 0, maxWidth: '450px', margin: '0 auto' }}>
               <div style={{ background: 'white', padding: '2.5rem 2rem', borderRadius: '16px', boxShadow: '0 12px 40px rgba(0,0,0,0.08)', border: '1px solid rgba(139, 115, 85, 0.1)' }}>
                 <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
                   <h2 style={{ margin: '0 0 0.5rem 0', fontFamily: "'Cinzel', serif", color: 'var(--ink)', fontSize: '1.8rem' }}>{isLogin ? 'Bem-vindo de volta' : 'Iniciar Jornada'}</h2>
@@ -2947,25 +2952,25 @@ ${monthlyReport.desafioCrescimento || '-'}
   // --- A ANTE-SALA DE ESPERA (GUARDIÃO DA PORTA) ---
   if (user && fvAccessStatus !== 'approved') {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: isDark ? 'linear-gradient(135deg, var(--bg-dark) 0%, #16213e 100%)' : 'linear-gradient(135deg, var(--parchment) 0%, var(--bg-light-alt) 100%)', fontFamily: 'Georgia, serif', color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>
-        <header style={{ padding: '1.5rem 2rem', background: isDark ? 'rgba(26, 26, 46, 0.9)' : 'rgba(255, 255, 255, 0.5)', borderBottom: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: isDark ? 'linear-gradient(135deg, var(--bg-dark) 0%, #16213e 100%)' : 'linear-gradient(135deg, var(--parchment) 0%, var(--bg-light-alt) 100%)', fontFamily: 'Georgia, serif', color: 'var(--t-text)' }}>
+        <header style={{ padding: '1.5rem 2rem', background: isDark ? 'rgba(26, 26, 46, 0.9)' : 'rgba(255, 255, 255, 0.5)', borderBottom: `1px solid var(--t-divider)`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <Shield size={32} color={isDark ? 'var(--gold)' : 'var(--umber-soft)'} />
+            <Shield size={32} color={'var(--t-accent-soft)'} />
             <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold', fontFamily: "'Cinzel', serif" }}>Acesso Restrito</h1>
           </div>
-          <button onClick={handleLogout} style={{ padding: '0.5rem 1rem', background: 'transparent', border: `1px solid ${isDark ? 'var(--gold)' : 'var(--umber-soft)'}`, color: isDark ? 'var(--gold)' : 'var(--umber-soft)', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <button onClick={handleLogout} style={{ padding: '0.5rem 1rem', background: 'transparent', border: `1px solid var(--t-accent-soft)`, color: 'var(--t-accent-soft)', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <LogOut size={16} /> Sair
           </button>
         </header>
 
         <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem' }}>
-          <div className="animate-fadeIn" style={{ background: isDark ? 'rgba(0,0,0,0.4)' : 'white', padding: '2.5rem 2rem', borderRadius: '16px', maxWidth: '450px', width: '100%', border: `2px solid ${isDark ? 'var(--gold)' : 'var(--umber-soft)'}`, textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.1)' }}>
+          <div className="animate-fadeIn" style={{ background: isDark ? 'rgba(0,0,0,0.4)' : 'white', padding: '2.5rem 2rem', borderRadius: '16px', maxWidth: '450px', width: '100%', border: `2px solid var(--t-accent-soft)`, textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.1)' }}>
             
             {fvAccessStatus === 'pending' ? (
               <>
-                <Clock size={56} color={isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'} style={{ margin: '0 auto 1.5rem' }} />
+                <Clock size={56} color={'var(--t-accent-bright)'} style={{ margin: '0 auto 1.5rem' }} />
                 <h2 style={{ margin: '0 0 1rem 0', fontFamily: "'Cinzel', serif", fontSize: '1.6rem' }}>Em Análise</h2>
-                <p style={{ lineHeight: '1.6', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', marginBottom: '2rem' }}>
+                <p style={{ lineHeight: '1.6', color: 'var(--t-text-muted)', marginBottom: '2rem' }}>
                   Sua solicitação foi enviada. O instrutor responsável verificará seus dados e liberará o acesso à plataforma em breve.
                 </p>
                 <div style={{ padding: '1rem', background: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(139, 115, 85, 0.1)', borderRadius: '8px', fontStyle: 'italic', fontSize: '0.9rem' }}>
@@ -2974,36 +2979,36 @@ ${monthlyReport.desafioCrescimento || '-'}
               </>
             ) : (
               <>
-                <Lock size={56} color={isDark ? 'var(--gold)' : 'var(--umber-soft)'} style={{ margin: '0 auto 1.5rem' }} />
+                <Lock size={56} color={'var(--t-accent-soft)'} style={{ margin: '0 auto 1.5rem' }} />
                 <h2 style={{ margin: '0 0 1rem 0', fontFamily: "'Cinzel', serif", fontSize: '1.6rem' }}>Identifique-se</h2>
-                <p style={{ lineHeight: '1.6', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', marginBottom: '2rem' }}>
+                <p style={{ lineHeight: '1.6', color: 'var(--t-text-muted)', marginBottom: '2rem' }}>
                   Esta é uma ferramenta de uso interno. Para solicitar a liberação do seu perfil, preencha os dados abaixo.
                 </p>
 
                 <div style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
                   <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', fontSize: '0.9rem' }}>Nome Completo</label>
-                  <input type="text" value={requestName} onChange={(e) => setRequestName(e.target.value)} placeholder="Seu nome..." style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', border: `1px solid ${isDark ? 'var(--gray-strong)' : 'var(--border-light)'}`, background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }} />
+                  <input type="text" value={requestName} onChange={(e) => setRequestName(e.target.value)} placeholder="Seu nome..." style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', border: `1px solid var(--t-field-border)`, background: 'var(--t-surface-glass)', color: 'var(--t-text)', fontFamily: 'Georgia, serif' }} />
                 </div>
 
                 <div style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
                   <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', fontSize: '0.9rem' }}>E-mail de Acesso</label>
-                  <input type="email" value={requestEmail} onChange={(e) => setRequestEmail(e.target.value)} placeholder="seuemail@exemplo.com" style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', border: `1px solid ${isDark ? 'var(--gray-strong)' : 'var(--border-light)'}`, background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }} />
-                  <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.8rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontStyle: 'italic' }}>Esse é o e-mail que você vai usar para entrar no Diário — confirme que está certo.</p>
+                  <input type="email" value={requestEmail} onChange={(e) => setRequestEmail(e.target.value)} placeholder="seuemail@exemplo.com" style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', border: `1px solid var(--t-field-border)`, background: 'var(--t-surface-glass)', color: 'var(--t-text)', fontFamily: 'Georgia, serif' }} />
+                  <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.8rem', color: 'var(--t-text-muted)', fontStyle: 'italic' }}>Esse é o e-mail que você vai usar para entrar no Diário — confirme que está certo.</p>
                 </div>
 
                 <div style={{ textAlign: 'left', marginBottom: '2rem' }}>
                   <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', fontSize: '0.9rem' }}>Unidade (Sede/Filial)</label>
                   {availableUnits.length > 0 ? (
-                    <select value={requestUnit} onChange={(e) => setRequestUnit(e.target.value)} style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', border: `1px solid ${isDark ? 'var(--gray-strong)' : 'var(--border-light)'}`, background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }}>
+                    <select value={requestUnit} onChange={(e) => setRequestUnit(e.target.value)} style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', border: `1px solid var(--t-field-border)`, background: 'var(--t-surface-glass)', color: 'var(--t-text)', fontFamily: 'Georgia, serif' }}>
                       <option value="">Selecione sua unidade...</option>
                       {availableUnits.map(u => <option key={u} value={u}>{u}</option>)}
                     </select>
                   ) : (
-                    <input type="text" value={requestUnit} onChange={(e) => setRequestUnit(e.target.value)} placeholder="Ex: Sede Nacional..." style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', border: `1px solid ${isDark ? 'var(--gray-strong)' : 'var(--border-light)'}`, background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }} />
+                    <input type="text" value={requestUnit} onChange={(e) => setRequestUnit(e.target.value)} placeholder="Ex: Sede Nacional..." style={{ width: '100%', padding: '0.85rem', borderRadius: '8px', border: `1px solid var(--t-field-border)`, background: 'var(--t-surface-glass)', color: 'var(--t-text)', fontFamily: 'Georgia, serif' }} />
                   )}
                 </div>
 
-                <button onClick={handleRequestAccess} style={{ width: '100%', padding: '1rem', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
+                <button onClick={handleRequestAccess} style={{ width: '100%', padding: '1rem', background: 'var(--t-accent)', color: 'var(--t-surface)', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
                   Solicitar Acesso
                 </button>
 
@@ -3041,13 +3046,13 @@ ${monthlyReport.desafioCrescimento || '-'}
           Você está offline — suas anotações continuam sendo salvas neste aparelho e serão sincronizadas assim que a internet voltar.
         </div>
       )}
-      <header style={{ padding: '1rem 2rem', borderBottom: `2px solid ${isDark ? 'var(--gold)' : 'var(--umber)'}`, background: isDark ? 'rgba(26, 26, 46, 0.95)' : 'rgba(240, 230, 210, 0.95)', backdropFilter: 'blur(10px)', position: 'sticky', top: 0, zIndex: 100 }}>
+      <header style={{ padding: '1rem 2rem', borderBottom: `2px solid var(--t-accent)`, background: isDark ? 'rgba(26, 26, 46, 0.95)' : 'rgba(240, 230, 210, 0.95)', backdropFilter: 'blur(10px)', position: 'sticky', top: 0, zIndex: 100 }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           
           {/* LOGO */}
           <div onClick={handleLogoClick} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}>
-            <BookOpen size={32} color={isDark ? 'var(--gold)' : 'var(--umber)'} />
-            <h1 style={{ margin: 0, fontFamily: 'Georgia, serif', fontSize: 'clamp(1rem, 3.5vw, 1.5rem)', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontWeight: 700 }}>
+            <BookOpen size={32} color={'var(--t-accent)'} />
+            <h1 style={{ margin: 0, fontFamily: 'Georgia, serif', fontSize: 'clamp(1rem, 3.5vw, 1.5rem)', color: 'var(--t-text)', fontWeight: 700 }}>
               Diário Filosófico <span style={{ fontWeight: 'normal', fontStyle: 'italic', fontSize: '0.85em', opacity: 0.9 }}>de {getUserFirstName()}</span>
             </h1>
           </div>
@@ -3057,7 +3062,7 @@ ${monthlyReport.desafioCrescimento || '-'}
             // VERSÃO CELULAR (Badges Interativos + Menu)
             <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
               
-              <div onClick={() => setShowStreakModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.4rem 0.5rem', background: streak > 0 ? (isDark ? 'rgba(255, 100, 0, 0.15)' : '#fff3e0') : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f0f0f0'), border: `1px solid ${streak > 0 ? (isDark ? 'var(--orange)' : 'var(--orange-soft)') : (isDark ? 'var(--gray-strong)' : 'var(--border-light)')}`, borderRadius: '12px', color: streak > 0 ? (isDark ? 'var(--orange-soft)' : 'var(--orange-strong)') : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontSize: '0.75rem', cursor: 'pointer', flexShrink: 0 }}>
+              <div onClick={() => setShowStreakModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.4rem 0.5rem', background: streak > 0 ? (isDark ? 'rgba(255, 100, 0, 0.15)' : '#fff3e0') : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f0f0f0'), border: `1px solid ${streak > 0 ? (isDark ? 'var(--orange)' : 'var(--orange-soft)') : 'var(--t-field-border)'}`, borderRadius: '12px', color: streak > 0 ? 'var(--t-orange-text)' : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontSize: '0.75rem', cursor: 'pointer', flexShrink: 0 }}>
                 <StreakIcon size={14} fill={streak > 0 ? (isDark ? 'var(--orange)' : 'var(--orange-strong)') : 'none'} /> {streak}
               </div>
 
@@ -3066,15 +3071,15 @@ ${monthlyReport.desafioCrescimento || '-'}
               </div>
 
               {fvUnlocked && fvGdveTasks.length > 0 && (
-                <div onClick={() => setShowQuickFv(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.4rem 0.5rem', background: missoesCompletas === fvGdveTasks.length ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(0,0,0,0.3)' : 'var(--bg-light)'), border: `1px solid ${missoesCompletas === fvGdveTasks.length ? 'var(--success)' : (isDark ? 'var(--gray-strong)' : 'var(--border-light)')}`, borderRadius: '12px', color: missoesCompletas === fvGdveTasks.length ? 'var(--success)' : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontSize: '0.75rem', cursor: 'pointer' }}>
+                <div onClick={() => setShowQuickFv(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', padding: '0.4rem 0.5rem', background: missoesCompletas === fvGdveTasks.length ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(0,0,0,0.3)' : 'var(--bg-light)'), border: `1px solid ${missoesCompletas === fvGdveTasks.length ? 'var(--success)' : 'var(--t-field-border)'}`, borderRadius: '12px', color: missoesCompletas === fvGdveTasks.length ? 'var(--success)' : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontSize: '0.75rem', cursor: 'pointer' }}>
                   <Shield size={14} /> <span>{missoesCompletas}</span>
                 </div>
               )}
               
               <button onClick={() => setIsMobileMenuOpen(true)} style={{ position: 'relative', padding: '0.3rem', background: 'transparent', border: 'none', cursor: 'pointer', marginLeft: '0.2rem' }}>
-                <Menu size={28} color={isDark ? 'var(--gold)' : 'var(--umber)'} />
+                <Menu size={28} color={'var(--t-accent)'} />
                 {isAdmin && pendingRequests.length > 0 && (
-                  <span style={{ position: 'absolute', top: '0', right: '0', width: '12px', height: '12px', borderRadius: '50%', background: 'var(--danger)', border: `2px solid ${isDark ? 'var(--bg-dark)' : 'var(--bg-light)'}` }} />
+                  <span style={{ position: 'absolute', top: '0', right: '0', width: '12px', height: '12px', borderRadius: '50%', background: 'var(--danger)', border: `2px solid var(--t-page-bg)` }} />
                 )}
               </button>
             </div>
@@ -3082,7 +3087,7 @@ ${monthlyReport.desafioCrescimento || '-'}
             // VERSÃO COMPUTADOR (Badges Interativos + Menu Agrupado)
             <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center', flexWrap: 'wrap' }}>
               
-              <div onClick={() => setShowStreakModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: streak > 0 ? (isDark ? 'rgba(255, 100, 0, 0.15)' : '#fff3e0') : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f0f0f0'), border: `1px solid ${streak > 0 ? (isDark ? 'var(--orange)' : 'var(--orange-soft)') : (isDark ? 'var(--gray-strong)' : 'var(--border-light)')}`, borderRadius: '20px', color: streak > 0 ? (isDark ? 'var(--orange-soft)' : 'var(--orange-strong)') : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontFamily: 'Georgia, serif', fontSize: '0.85rem', cursor: 'pointer', boxShadow: streak > 0 && isDark ? '0 0 10px rgba(255, 152, 0, 0.2)' : 'none' }}>
+              <div onClick={() => setShowStreakModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: streak > 0 ? (isDark ? 'rgba(255, 100, 0, 0.15)' : '#fff3e0') : (isDark ? 'rgba(255, 255, 255, 0.05)' : '#f0f0f0'), border: `1px solid ${streak > 0 ? (isDark ? 'var(--orange)' : 'var(--orange-soft)') : 'var(--t-field-border)'}`, borderRadius: '20px', color: streak > 0 ? 'var(--t-orange-text)' : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontFamily: 'Georgia, serif', fontSize: '0.85rem', cursor: 'pointer', boxShadow: streak > 0 && isDark ? '0 0 10px rgba(255, 152, 0, 0.2)' : 'none' }}>
                 <StreakIcon size={16} fill={streak > 0 ? (isDark ? 'var(--orange)' : 'var(--orange-strong)') : 'none'} />
                 <span>{streak} {streak === 1 ? 'dia' : 'dias'}</span>
               </div>
@@ -3092,14 +3097,14 @@ ${monthlyReport.desafioCrescimento || '-'}
               </div>
 
               {fvUnlocked && fvGdveTasks.length > 0 && (
-                <div onClick={() => setShowQuickFv(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: missoesCompletas === fvGdveTasks.length ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(0,0,0,0.3)' : 'var(--bg-light)'), border: `1px solid ${missoesCompletas === fvGdveTasks.length ? 'var(--success)' : (isDark ? 'var(--gray-strong)' : 'var(--border-light)')}`, borderRadius: '20px', color: missoesCompletas === fvGdveTasks.length ? 'var(--success)' : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontFamily: 'Georgia, serif', fontSize: '0.85rem', cursor: 'pointer', transition: 'transform 0.2s' }} onMouseDown={(e) => e.currentTarget.style.transform='scale(0.95)'} onMouseUp={(e) => e.currentTarget.style.transform='scale(1)'}>
+                <div onClick={() => setShowQuickFv(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.5rem 1rem', background: missoesCompletas === fvGdveTasks.length ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(0,0,0,0.3)' : 'var(--bg-light)'), border: `1px solid ${missoesCompletas === fvGdveTasks.length ? 'var(--success)' : 'var(--t-field-border)'}`, borderRadius: '20px', color: missoesCompletas === fvGdveTasks.length ? 'var(--success)' : (isDark ? '#aaa' : '#777'), fontWeight: 'bold', fontFamily: 'Georgia, serif', fontSize: '0.85rem', cursor: 'pointer', transition: 'transform 0.2s' }} onMouseDown={(e) => e.currentTarget.style.transform='scale(0.95)'} onMouseUp={(e) => e.currentTarget.style.transform='scale(1)'}>
                   <Shield size={16} /> <span>{missoesCompletas}/{fvGdveTasks.length}</span>
                 </div>
               )}
 
               {/* BOTÃO MENU DROPDOWN */}
               <div style={{ position: 'relative', marginLeft: '0.5rem' }} onMouseLeave={() => setShowDiaryMenu(false)}>
-                <button onMouseEnter={() => setShowDiaryMenu(true)} onClick={() => setShowDiaryMenu(!showDiaryMenu)} style={{ padding: '0.5rem 1rem', background: 'transparent', color: isDark ? 'var(--gold)' : 'var(--umber)', border: `2px solid ${isDark ? 'var(--gold)' : 'var(--umber)'}`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button onMouseEnter={() => setShowDiaryMenu(true)} onClick={() => setShowDiaryMenu(!showDiaryMenu)} style={{ padding: '0.5rem 1rem', background: 'transparent', color: 'var(--t-accent)', border: `2px solid var(--t-accent)`, borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <Menu size={16} /> Menu <ChevronDown size={14} />
                 </button>
                 {showDiaryMenu && (
@@ -3116,7 +3121,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                         if (btn.fvOnly && !fvUnlocked) return null;
                         const isActive = view === btn.id;
                         return (
-                          <button key={btn.id} onClick={() => { setView(btn.id); setShowDiaryMenu(false); }} style={{ padding: '0.8rem', background: isActive ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent', border: 'none', borderBottom: '1px solid rgba(139, 115, 85, 0.1)', color: isDark ? 'var(--parchment)' : 'var(--ink)', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontWeight: isActive ? 'bold' : 'normal' }}>
+                          <button key={btn.id} onClick={() => { setView(btn.id); setShowDiaryMenu(false); }} style={{ padding: '0.8rem', background: isActive ? (isDark ? 'rgba(212,175,55,0.15)' : 'rgba(139,115,85,0.1)') : 'transparent', border: 'none', borderBottom: '1px solid rgba(139, 115, 85, 0.1)', color: 'var(--t-text)', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem', fontWeight: isActive ? 'bold' : 'normal' }}>
                             {btn.icon} {btn.label}
                           </button>
                         );
@@ -3128,23 +3133,23 @@ ${monthlyReport.desafioCrescimento || '-'}
 
               {/* BOTÃO OPÇÕES DROPDOWN */}
               <div style={{ position: 'relative' }} onMouseLeave={() => setShowProfileMenu(false)}>
-                <button onMouseEnter={() => setShowProfileMenu(true)} onClick={() => setShowProfileMenu(!showProfileMenu)} style={{ position: 'relative', padding: '0.5rem', background: 'transparent', border: `2px solid ${isDark ? 'var(--gold)' : 'var(--umber)'}`, borderRadius: '8px', cursor: 'pointer' }}>
-                  <Settings size={18} color={isDark ? 'var(--gold)' : 'var(--umber)'} />
+                <button onMouseEnter={() => setShowProfileMenu(true)} onClick={() => setShowProfileMenu(!showProfileMenu)} style={{ position: 'relative', padding: '0.5rem', background: 'transparent', border: `2px solid var(--t-accent)`, borderRadius: '8px', cursor: 'pointer' }}>
+                  <Settings size={18} color={'var(--t-accent)'} />
                   {isAdmin && pendingRequests.length > 0 && (
-                    <span style={{ position: 'absolute', top: '-4px', right: '-4px', width: '12px', height: '12px', borderRadius: '50%', background: 'var(--danger)', border: `2px solid ${isDark ? 'var(--bg-dark)' : 'white'}` }} />
+                    <span style={{ position: 'absolute', top: '-4px', right: '-4px', width: '12px', height: '12px', borderRadius: '50%', background: 'var(--danger)', border: `2px solid var(--t-surface)` }} />
                   )}
                 </button>
                 {showProfileMenu && (
                   <div style={{ position: 'absolute', top: '100%', right: 0, paddingTop: '0.5rem', zIndex: 1000 }}>
                     <div className="animate-fadeIn" style={{ width: '180px', background: isDark ? 'rgba(26, 26, 46, 0.98)' : 'white', border: `1px solid ${isDark ? 'var(--gold)' : 'var(--border-light)'}`, borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
-                      <button onClick={() => { setShowSettingsModal(true); setShowProfileMenu(false); }} style={{ padding: '0.8rem', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(139, 115, 85, 0.1)', color: isDark ? 'var(--parchment)' : 'var(--ink)', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Settings size={16}/> Configurações</button>
+                      <button onClick={() => { setShowSettingsModal(true); setShowProfileMenu(false); }} style={{ padding: '0.8rem', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(139, 115, 85, 0.1)', color: 'var(--t-text)', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Settings size={16}/> Configurações</button>
                       {isAdmin && (
-                        <button onClick={() => { setShowAdminPanel(true); setShowProfileMenu(false); }} style={{ padding: '0.8rem', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(139, 115, 85, 0.1)', color: isDark ? 'var(--parchment)' : 'var(--ink)', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                        <button onClick={() => { setShowAdminPanel(true); setShowProfileMenu(false); }} style={{ padding: '0.8rem', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(139, 115, 85, 0.1)', color: 'var(--t-text)', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
                           <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><ShieldAlert size={16}/> Pedidos de Acesso</span>
                           {pendingRequests.length > 0 && <span style={{ background: 'var(--danger)', color: 'white', borderRadius: '10px', padding: '0.1rem 0.5rem', fontSize: '0.7rem', fontWeight: 'bold' }}>{pendingRequests.length}</span>}
                         </button>
                       )}
-                      <button onClick={() => { toggleTheme(); setShowProfileMenu(false); }} style={{ padding: '0.8rem', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(139, 115, 85, 0.1)', color: isDark ? 'var(--parchment)' : 'var(--ink)', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>{isDark ? <Sun size={16}/> : <Moon size={16}/>} {isDark ? 'Tema Claro' : 'Tema Escuro'}</button>
+                      <button onClick={() => { toggleTheme(); setShowProfileMenu(false); }} style={{ padding: '0.8rem', background: 'transparent', border: 'none', borderBottom: '1px solid rgba(139, 115, 85, 0.1)', color: 'var(--t-text)', textAlign: 'left', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>{isDark ? <Sun size={16}/> : <Moon size={16}/>} {isDark ? 'Tema Claro' : 'Tema Escuro'}</button>
                       <button onClick={handleLogout} style={{ padding: '0.8rem', background: 'rgba(231, 76, 60, 0.1)', border: 'none', color: 'var(--danger)', textAlign: 'left', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><LogOut size={16}/> Sair</button>
                     </div>
                   </div>
@@ -3160,9 +3165,9 @@ ${monthlyReport.desafioCrescimento || '-'}
         <div className="animate-fadeIn" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, height: '100dvh', background: isDark ? 'rgba(26, 26, 46, 0.98)' : 'rgba(240, 230, 210, 0.98)', zIndex: 10001, backdropFilter: 'blur(10px)', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <div style={{ padding: '1.5rem', paddingBottom: '120px', minHeight: '101%', display: 'flex', flexDirection: 'column' }}>
             
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '2rem', borderBottom: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, marginBottom: '2rem' }}>
-              <h2 style={{ margin: 0, fontFamily: 'Georgia, serif', color: isDark ? 'var(--gold)' : 'var(--umber)', fontSize: '1.5rem' }}>Menu</h2>
-              <button onClick={() => setIsMobileMenuOpen(false)} style={{ background: 'transparent', border: 'none', color: isDark ? 'var(--parchment)' : 'var(--ink)', cursor: 'pointer' }}><X size={32} /></button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '2rem', borderBottom: `1px solid var(--t-divider)`, marginBottom: '2rem' }}>
+              <h2 style={{ margin: 0, fontFamily: 'Georgia, serif', color: 'var(--t-accent)', fontSize: '1.5rem' }}>Menu</h2>
+              <button onClick={() => setIsMobileMenuOpen(false)} style={{ background: 'transparent', border: 'none', color: 'var(--t-text)', cursor: 'pointer' }}><X size={32} /></button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', flex: 1 }}>
@@ -3180,29 +3185,29 @@ ${monthlyReport.desafioCrescimento || '-'}
                   <button 
                     key={item.id}
                     onClick={() => { setView(item.id); setIsMobileMenuOpen(false); }} 
-                    style={{ width: '100%', padding: '1rem', textAlign: 'left', background: isActive ? (isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)') : 'transparent', color: isActive ? (isDark ? 'var(--gold-bright)' : 'var(--umber)') : (isDark ? 'var(--parchment)' : 'var(--ink)'), border: `1px solid ${isActive ? (isDark ? 'var(--gold)' : 'var(--umber)') : 'transparent'}`, borderRadius: '12px', fontSize: '1.1rem', fontFamily: 'Georgia, serif', fontWeight: isActive ? 'bold' : 'normal', display: 'flex', alignItems: 'center', gap: '1rem' }}
+                    style={{ width: '100%', padding: '1rem', textAlign: 'left', background: isActive ? 'var(--t-divider)' : 'transparent', color: isActive ? (isDark ? 'var(--gold-bright)' : 'var(--umber)') : 'var(--t-text)', border: `1px solid ${isActive ? 'var(--t-accent)' : 'transparent'}`, borderRadius: '12px', fontSize: '1.1rem', fontFamily: 'Georgia, serif', fontWeight: isActive ? 'bold' : 'normal', display: 'flex', alignItems: 'center', gap: '1rem' }}
                   >
                     {item.icon} {item.label}
                   </button>
                 );
               })}
 
-              <button onClick={() => { setIsMobileMenuOpen(false); setActivePracticeId('tratack'); setPracticePhase('intro'); setIsPracticeActive(true); }} style={{ width: '100%', padding: '1rem', textAlign: 'left', background: 'transparent', color: isDark ? 'var(--parchment)' : 'var(--ink)', border: '1px solid transparent', borderRadius: '12px', fontSize: '1.1rem', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <Target size={22} color={isDark ? 'var(--parchment)' : 'var(--ink)'} /> Fazer Tratak
+              <button onClick={() => { setIsMobileMenuOpen(false); setActivePracticeId('tratack'); setPracticePhase('intro'); setIsPracticeActive(true); }} style={{ width: '100%', padding: '1rem', textAlign: 'left', background: 'transparent', color: 'var(--t-text)', border: '1px solid transparent', borderRadius: '12px', fontSize: '1.1rem', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <Target size={22} color={'var(--t-text)'} /> Fazer Tratak
               </button>
             </div>
 
-            <div style={{ marginTop: '4rem', display: 'flex', flexDirection: 'column', gap: '1rem', paddingTop: '2rem', borderTop: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}` }}>
-              <button onClick={() => { setShowSuggestionModal(true); setIsMobileMenuOpen(false); }} style={{ width: '100%', padding: '1rem', background: 'transparent', color: isDark ? 'var(--gold)' : 'var(--umber)', border: `2px solid ${isDark ? 'var(--gold)' : 'var(--umber)'}`, borderRadius: '12px', fontSize: '1.1rem', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+            <div style={{ marginTop: '4rem', display: 'flex', flexDirection: 'column', gap: '1rem', paddingTop: '2rem', borderTop: `1px solid var(--t-divider)` }}>
+              <button onClick={() => { setShowSuggestionModal(true); setIsMobileMenuOpen(false); }} style={{ width: '100%', padding: '1rem', background: 'transparent', color: 'var(--t-accent)', border: `2px solid var(--t-accent)`, borderRadius: '12px', fontSize: '1.1rem', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                 <MessageSquare size={20} /> Enviar Sugestão
               </button>
               
-              <button onClick={() => { setShowSettingsModal(true); setIsMobileMenuOpen(false); }} style={{ width: '100%', padding: '1rem', background: 'transparent', color: isDark ? 'var(--gold)' : 'var(--umber)', border: `2px solid ${isDark ? 'var(--gold)' : 'var(--umber)'}`, borderRadius: '12px', fontSize: '1.1rem', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+              <button onClick={() => { setShowSettingsModal(true); setIsMobileMenuOpen(false); }} style={{ width: '100%', padding: '1rem', background: 'transparent', color: 'var(--t-accent)', border: `2px solid var(--t-accent)`, borderRadius: '12px', fontSize: '1.1rem', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                 <Settings size={20} /> Configurações
               </button>
 
               {isAdmin && (
-                <button onClick={() => { setShowAdminPanel(true); setIsMobileMenuOpen(false); }} style={{ width: '100%', padding: '1rem', background: 'transparent', color: isDark ? 'var(--gold)' : 'var(--umber)', border: `2px solid ${isDark ? 'var(--gold)' : 'var(--umber)'}`, borderRadius: '12px', fontSize: '1.1rem', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                <button onClick={() => { setShowAdminPanel(true); setIsMobileMenuOpen(false); }} style={{ width: '100%', padding: '1rem', background: 'transparent', color: 'var(--t-accent)', border: `2px solid var(--t-accent)`, borderRadius: '12px', fontSize: '1.1rem', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                   <ShieldAlert size={20} /> Pedidos de Acesso {pendingRequests.length > 0 && `(${pendingRequests.length})`}
                 </button>
               )}
@@ -3222,19 +3227,19 @@ ${monthlyReport.desafioCrescimento || '-'}
           <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             
             {/* CABEÇALHO DO DIA */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', padding: '1.5rem', background: selectedDate !== getTodayKey() ? (isDark ? 'rgba(231, 76, 60, 0.15)' : 'rgba(231, 76, 60, 0.1)') : (isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.4)'), borderRadius: '12px', border: `2px solid ${selectedDate !== getTodayKey() ? 'var(--danger)' : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)')}` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', padding: '1.5rem', background: selectedDate !== getTodayKey() ? (isDark ? 'rgba(231, 76, 60, 0.15)' : 'rgba(231, 76, 60, 0.1)') : (isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.4)'), borderRadius: '12px', border: `2px solid ${selectedDate !== getTodayKey() ? 'var(--danger)' : 'var(--t-divider-strong)'}` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <Calendar size={28} color={isDark ? 'var(--gold)' : 'var(--umber)'} />
+                <Calendar size={28} color={'var(--t-accent)'} />
                 <div>
-                  <h2 style={{ margin: 0, fontWeight: 'bold', color: isDark ? 'var(--gold)' : 'var(--umber)', fontFamily: "'Cinzel', serif", fontSize: '1.4rem' }}>
+                  <h2 style={{ margin: 0, fontWeight: 'bold', color: 'var(--t-accent)', fontFamily: "'Cinzel', serif", fontSize: '1.4rem' }}>
                     {selectedDate === getTodayKey() ? "Hoje" : "Registro Histórico"}
                   </h2>
-                  <p style={{ margin: '0.2rem 0 0 0', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontSize: '0.9rem' }}>{new Date(selectedDate + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                  <p style={{ margin: '0.2rem 0 0 0', color: 'var(--t-text-muted)', fontSize: '0.9rem' }}>{new Date(selectedDate + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
                 </div>
               </div>
               
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', border: `1px solid ${isDark ? 'var(--gold)' : 'var(--border-light)'}`, borderRadius: '8px', padding: '0.2rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', background: 'var(--t-field-bg)', border: `1px solid ${isDark ? 'var(--gold)' : 'var(--border-light)'}`, borderRadius: '8px', padding: '0.2rem' }}>
                       <button
                         onClick={() => {
                           if (selectedDate <= getMinEditableDateKey()) return;
@@ -3243,7 +3248,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                           handleDateChange(d.toISOString().split('T')[0]);
                         }}
                         disabled={selectedDate <= getMinEditableDateKey()}
-                        style={{ background: 'transparent', border: 'none', color: selectedDate <= getMinEditableDateKey() ? (isDark ? 'var(--gray-strong)' : 'var(--border-light)') : (isDark ? 'var(--gold)' : 'var(--ink)'), cursor: selectedDate <= getMinEditableDateKey() ? 'not-allowed' : 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        style={{ background: 'transparent', border: 'none', color: selectedDate <= getMinEditableDateKey() ? 'var(--t-field-border)' : (isDark ? 'var(--gold)' : 'var(--ink)'), cursor: selectedDate <= getMinEditableDateKey() ? 'not-allowed' : 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                         title="Dia Anterior"
                       >
                         <ChevronLeft size={20} />
@@ -3255,7 +3260,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                         onChange={(e) => handleDateChange(e.target.value)}
                         max={getTodayKey()}
                         min={getMinEditableDateKey()}
-                        style={{ background: 'transparent', color: isDark ? 'var(--parchment)' : 'var(--ink)', border: 'none', padding: '0.5rem', fontSize: '1rem', fontFamily: 'Georgia, serif', outline: 'none', cursor: 'pointer' }}
+                        style={{ background: 'transparent', color: 'var(--t-text)', border: 'none', padding: '0.5rem', fontSize: '1rem', fontFamily: 'Georgia, serif', outline: 'none', cursor: 'pointer' }}
                       />
 
                       <button 
@@ -3265,7 +3270,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                           d.setDate(d.getDate() + 1);
                           handleDateChange(d.toISOString().split('T')[0]);
                         }}
-                        style={{ background: 'transparent', border: 'none', color: selectedDate >= getTodayKey() ? (isDark ? 'var(--gray-strong)' : 'var(--border-light)') : (isDark ? 'var(--gold)' : 'var(--ink)'), cursor: selectedDate >= getTodayKey() ? 'not-allowed' : 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        style={{ background: 'transparent', border: 'none', color: selectedDate >= getTodayKey() ? 'var(--t-field-border)' : (isDark ? 'var(--gold)' : 'var(--ink)'), cursor: selectedDate >= getTodayKey() ? 'not-allowed' : 'pointer', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                         title="Próximo Dia"
                       >
                         <ChevronRight size={20} />
@@ -3273,28 +3278,28 @@ ${monthlyReport.desafioCrescimento || '-'}
                     </div>
 
                     {selectedDate !== getTodayKey() && (
-                      <button onClick={() => handleDateChange(getTodayKey())} style={{ padding: '0.6rem 1rem', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Voltar a Hoje</button>
+                      <button onClick={() => handleDateChange(getTodayKey())} style={{ padding: '0.6rem 1rem', background: 'var(--t-accent)', color: 'var(--t-surface)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Voltar a Hoje</button>
                     )}
                   </div>
             </div>
 
             {/* CITAÇÃO */}
             {dailyQuote && (
-              <div style={{ padding: '2rem', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.6)', borderRadius: '12px', borderLeft: `4px solid ${isDark ? 'var(--gold)' : 'var(--umber-soft)'}`, fontStyle: 'italic' }}>
-                <p style={{ fontSize: '1.2rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', margin: '0 0 1rem 0', lineHeight: '1.6' }}>"{dailyQuote.text}"</p>
-                <p style={{ fontSize: '0.9rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', margin: 0, textAlign: 'right', fontWeight: 'bold' }}>— {dailyQuote.author}</p>
+              <div style={{ padding: '2rem', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.6)', borderRadius: '12px', borderLeft: `4px solid var(--t-accent-soft)`, fontStyle: 'italic' }}>
+                <p style={{ fontSize: '1.2rem', color: 'var(--t-text)', margin: '0 0 1rem 0', lineHeight: '1.6' }}>"{dailyQuote.text}"</p>
+                <p style={{ fontSize: '0.9rem', color: 'var(--t-text-muted)', margin: 0, textAlign: 'right', fontWeight: 'bold' }}>— {dailyQuote.author}</p>
               </div>
             )}
 
             {/* PRÁTICAS DE HOJE (Tarefas extras) */}
             {getTasksForToday().length > 0 && (
-              <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '1.5rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}` }}>
-                <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>✓ Desafios Diários</h3>
+              <div style={{ background: 'var(--t-surface-soft)', padding: '1.5rem', borderRadius: '16px', border: `2px solid var(--t-divider-strong)` }}>
+                <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', color: 'var(--t-text)' }}>✓ Desafios Diários</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   {getTasksForToday().map(task => (
                     <label key={task.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(255, 245, 220, 0.3)', borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s' }}>
                       <input type="checkbox" checked={todayTasksStatus[task.id] || false} onChange={() => toggleTaskStatus(task.id)} style={{ width: '20px', height: '20px', cursor: 'pointer' }} />
-                      <span style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)', textDecoration: todayTasksStatus[task.id] ? 'line-through' : 'none', opacity: todayTasksStatus[task.id] ? 0.6 : 1 }}>{task.name}</span>
+                      <span style={{ color: 'var(--t-text)', textDecoration: todayTasksStatus[task.id] ? 'line-through' : 'none', opacity: todayTasksStatus[task.id] ? 0.6 : 1 }}>{task.name}</span>
                     </label>
                   ))}
                 </div>
@@ -3339,7 +3344,7 @@ ${monthlyReport.desafioCrescimento || '-'}
               const renderTitle = (text, status, isOpen, icon) => (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   {icon}
-                  <h2 style={{ margin: 0, fontSize: 'clamp(1.2rem, 3vw, 1.5rem)', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: "'Cinzel', serif", textDecoration: status === 'full' && !isOpen ? 'line-through' : 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <h2 style={{ margin: 0, fontSize: 'clamp(1.2rem, 3vw, 1.5rem)', color: 'var(--t-text)', fontFamily: "'Cinzel', serif", textDecoration: status === 'full' && !isOpen ? 'line-through' : 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     {text}
                     {status === 'partial' && !isOpen && <span style={{fontSize: '0.8rem', opacity: 0.8, fontStyle: 'italic', fontFamily: 'Georgia, serif'}}>(Em Andamento)</span>}
                   </h2>
@@ -3350,10 +3355,10 @@ ${monthlyReport.desafioCrescimento || '-'}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                   
                   {/* BLOCO 1: PRÓLOGO MATINAL */}
-                  <div style={getBlockStyle(prologoStatus, isPrologoOpen, isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)')}>
+                  <div style={getBlockStyle(prologoStatus, isPrologoOpen, 'var(--t-divider-strong)')}>
                     <div onClick={() => setIsPrologoOpen(!isPrologoOpen)} style={getHeaderStyle(prologoStatus, isPrologoOpen)}>
                       {renderTitle('Prólogo Matinal', prologoStatus, isPrologoOpen, <Sunrise size={28} color={isDark ? '#ffd966' : 'var(--orange)'} />)}
-                      {isPrologoOpen ? <ChevronUp size={24} color={isDark ? 'var(--parchment)' : 'var(--ink)'} /> : <ChevronDown size={24} color={isDark ? 'var(--parchment)' : 'var(--ink)'} />}
+                      {isPrologoOpen ? <ChevronUp size={24} color={'var(--t-text)'} /> : <ChevronDown size={24} color={'var(--t-text)'} />}
                     </div>
 
                     {isPrologoOpen && (
@@ -3363,9 +3368,9 @@ ${monthlyReport.desafioCrescimento || '-'}
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <CheckCircle size={24} color={isDark ? 'var(--success-soft)' : 'var(--success)'} />
-                                <h3 style={{ margin: 0, color: isDark ? 'var(--success-soft)' : 'var(--success-strong)' }}>Armadura Colocada!</h3>
+                                <h3 style={{ margin: 0, color: 'var(--t-success-text)' }}>Armadura Colocada!</h3>
                               </div>
-                              <button onClick={() => setMorningDone(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: isDark ? 'var(--success-soft)' : 'var(--success-strong)', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.9rem', fontWeight: 'bold' }}><Edit size={16} /> Editar</button>
+                              <button onClick={() => setMorningDone(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--t-success-text)', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.9rem', fontWeight: 'bold' }}><Edit size={16} /> Editar</button>
                             </div>
                             <p style={{ margin: '0.5rem 0', color: isDark ? '#c8e6c9' : '#1b5e20' }}><strong>Virtude do dia:</strong> {selectedVirtue || customVirtue}</p>
                             {dailyIntention && <p style={{ margin: '0.5rem 0', color: isDark ? '#c8e6c9' : '#1b5e20' }}><strong>Compromisso:</strong> {dailyIntention}</p>}
@@ -3373,26 +3378,26 @@ ${monthlyReport.desafioCrescimento || '-'}
                         ) : (
                           <div>
                             <div style={{ marginBottom: '1.5rem' }}>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>Virtude do Dia:</label>
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--t-text)' }}>Virtude do Dia:</label>
                               <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-                                <button onClick={selectRandomVirtue} disabled={!canDrawToday() || isDrawingVirtue} style={{ padding: '0.75rem 1.5rem', background: (canDrawToday() && !isDrawingVirtue) ? (isDark ? 'var(--gold)' : 'var(--umber)') : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'), color: (canDrawToday() && !isDrawingVirtue) ? 'white' : (isDark ? 'var(--gray)' : '#999'), border: 'none', borderRadius: '8px', cursor: (canDrawToday() && !isDrawingVirtue) ? 'pointer' : 'not-allowed', fontFamily: 'Georgia, serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: 'clamp(0.85rem, 2vw, 1rem)' }}>
+                                <button onClick={selectRandomVirtue} disabled={!canDrawToday() || isDrawingVirtue} style={{ padding: '0.75rem 1.5rem', background: (canDrawToday() && !isDrawingVirtue) ? 'var(--t-accent)' : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'), color: (canDrawToday() && !isDrawingVirtue) ? 'white' : (isDark ? 'var(--gray)' : '#999'), border: 'none', borderRadius: '8px', cursor: (canDrawToday() && !isDrawingVirtue) ? 'pointer' : 'not-allowed', fontFamily: 'Georgia, serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: 'clamp(0.85rem, 2vw, 1rem)' }}>
                                   <Shuffle size={18} className={isDrawingVirtue ? 'animate-spin' : ''} /> {isDrawingVirtue ? 'Sorteando...' : (canDrawToday() ? 'Sortear Virtude' : 'Já sorteou hoje')}
                                 </button>
-                                <button onClick={() => setShowCustomVirtue(!showCustomVirtue)} disabled={isDrawingVirtue} style={{ padding: '0.75rem 1.5rem', background: 'transparent', color: isDark ? 'var(--gold)' : 'var(--umber)', border: `2px solid ${isDark ? 'var(--gold)' : 'var(--umber)'}`, borderRadius: '8px', cursor: isDrawingVirtue ? 'default' : 'pointer', opacity: isDrawingVirtue ? 0.5 : 1, fontFamily: 'Georgia, serif', fontWeight: 600, fontSize: 'clamp(0.85rem, 2vw, 1rem)' }}>
+                                <button onClick={() => setShowCustomVirtue(!showCustomVirtue)} disabled={isDrawingVirtue} style={{ padding: '0.75rem 1.5rem', background: 'transparent', color: 'var(--t-accent)', border: `2px solid var(--t-accent)`, borderRadius: '8px', cursor: isDrawingVirtue ? 'default' : 'pointer', opacity: isDrawingVirtue ? 0.5 : 1, fontFamily: 'Georgia, serif', fontWeight: 600, fontSize: 'clamp(0.85rem, 2vw, 1rem)' }}>
                                   {showCustomVirtue ? 'Escolher da Lista' : 'Escrever Própria'}
                                 </button>
                               </div>
 
                               {isDrawingVirtue && (
-                                <div className="virtue-roulette-text" style={{ padding: '1rem', marginBottom: '1rem', textAlign: 'center', background: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(255, 245, 220, 0.5)', borderRadius: '8px', border: `1px dashed ${isDark ? 'var(--gold)' : 'var(--umber)'}` }}>
-                                  <h4 style={{ margin: 0, color: isDark ? 'var(--gold)' : 'var(--umber)', fontSize: '1.2rem', fontFamily: "'Cinzel', serif" }}>✨ {virtueDrawDisplay} ✨</h4>
+                                <div className="virtue-roulette-text" style={{ padding: '1rem', marginBottom: '1rem', textAlign: 'center', background: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(255, 245, 220, 0.5)', borderRadius: '8px', border: `1px dashed var(--t-accent)` }}>
+                                  <h4 style={{ margin: 0, color: 'var(--t-accent)', fontSize: '1.2rem', fontFamily: "'Cinzel', serif" }}>✨ {virtueDrawDisplay} ✨</h4>
                                 </div>
                               )}
 
                               {!isDrawingVirtue && (showCustomVirtue ? (
-                                <input type="text" placeholder="Digite sua virtude..." value={customVirtue} onChange={(e) => setCustomVirtue(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : 'var(--border-light)'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)' }} />
+                                <DeferredField as="input" type="text" placeholder="Digite sua virtude..." value={customVirtue} onCommit={setCustomVirtue} style={{ width: '100%', padding: '0.75rem', border: `2px solid var(--t-gold-border)`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: 'var(--t-surface-glass)', color: 'var(--t-text)' }} />
                               ) : (
-                                <select value={selectedVirtue} onChange={(e) => setSelectedVirtue(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : 'var(--border-light)'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>
+                                <select value={selectedVirtue} onChange={(e) => setSelectedVirtue(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `2px solid var(--t-gold-border)`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: 'var(--t-surface-glass)', color: 'var(--t-text)' }}>
                                   <option value="">Selecione uma virtude...</option>
                                   {virtues.map((v, idx) => <option key={idx} value={v.name}>{v.name}</option>)}
                                 </select>
@@ -3401,20 +3406,20 @@ ${monthlyReport.desafioCrescimento || '-'}
                               {!isDrawingVirtue && selectedVirtue && !showCustomVirtue && (
                                 <div key={selectedVirtue} className="virtue-pop-reveal" onClick={() => setIsTodayVirtueExpanded(!isTodayVirtueExpanded)} style={{ marginTop: '1rem', padding: '1rem', background: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(255, 245, 220, 0.5)', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}`, cursor: 'pointer' }}>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <h4 style={{ margin: '0', color: isDark ? 'var(--gold)' : 'var(--umber)', fontSize: '1.1rem', fontFamily: "'Cinzel', serif" }}>{selectedVirtue}</h4>
-                                    {isTodayVirtueExpanded ? <ChevronUp size={20} color={isDark ? 'var(--gold)' : 'var(--umber)'} /> : <ChevronDown size={20} color={isDark ? 'var(--gold)' : 'var(--umber)'} />}
+                                    <h4 style={{ margin: '0', color: 'var(--t-accent)', fontSize: '1.1rem', fontFamily: "'Cinzel', serif" }}>{selectedVirtue}</h4>
+                                    {isTodayVirtueExpanded ? <ChevronUp size={20} color={'var(--t-accent)'} /> : <ChevronDown size={20} color={'var(--t-accent)'} />}
                                   </div>
                                   
                                   {/* A DESCRIÇÃO CURTA DE VOLTA AQUI */}
-                                  <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.95rem', color: isDark ? 'var(--tan-soft)' : 'var(--umber-muted)', fontStyle: 'italic' }}>
+                                  <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.95rem', color: 'var(--t-text-tan)', fontStyle: 'italic' }}>
                                     {virtues.find(v => v.name === selectedVirtue)?.shortDesc}
                                   </p>
 
                                   {isTodayVirtueExpanded && (
-                                    <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}` }}>
-                                      <p style={{ fontSize: '0.95rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', marginBottom: '1rem', lineHeight: '1.6' }}>{virtues.find(v => v.name === selectedVirtue)?.description}</p>
-                                      <h5 style={{ margin: '0 0 0.5rem 0', color: isDark ? 'var(--gold)' : 'var(--umber)' }}>Práticas Sugeridas:</h5>
-                                      <p style={{ fontSize: '0.9rem', color: isDark ? 'var(--tan-soft)' : 'var(--umber-muted)', margin: 0, whiteSpace: 'pre-line' }}>{virtues.find(v => v.name === selectedVirtue)?.practices}</p>
+                                    <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: `1px solid var(--t-divider)` }}>
+                                      <p style={{ fontSize: '0.95rem', color: 'var(--t-text)', marginBottom: '1rem', lineHeight: '1.6' }}>{virtues.find(v => v.name === selectedVirtue)?.description}</p>
+                                      <h5 style={{ margin: '0 0 0.5rem 0', color: 'var(--t-accent)' }}>Práticas Sugeridas:</h5>
+                                      <p style={{ fontSize: '0.9rem', color: 'var(--t-text-tan)', margin: 0, whiteSpace: 'pre-line' }}>{virtues.find(v => v.name === selectedVirtue)?.practices}</p>
                                     </div>
                                   )}
                                 </div>
@@ -3422,11 +3427,11 @@ ${monthlyReport.desafioCrescimento || '-'}
                             </div>
 
                             <div style={{ marginBottom: '1.5rem' }}>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>Meu compromisso prático para hoje:</label>
-                              <textarea value={dailyIntention} onChange={(e) => setDailyIntention(e.target.value)} placeholder="Como e quando exatamente eu vou praticar isso hoje?" rows={3} style={{ width: '100%', padding: '0.75rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : 'var(--border-light)'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', resize: 'vertical' }} />
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--t-text)' }}>Meu compromisso prático para hoje:</label>
+                              <DeferredField value={dailyIntention} onCommit={setDailyIntention} placeholder="Como e quando exatamente eu vou praticar isso hoje?" rows={3} style={{ width: '100%', padding: '0.75rem', border: `2px solid var(--t-gold-border)`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: 'var(--t-surface-glass)', color: 'var(--t-text)', resize: 'vertical' }} />
                             </div>
 
-                            <button onClick={saveMorning} style={{ width: '100%', padding: '1rem', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                            <button onClick={saveMorning} style={{ width: '100%', padding: '1rem', background: 'var(--t-accent)', color: 'var(--t-surface)', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                               <CheckCircle size={20} /> Firmar Compromisso
                             </button>
                           </div>
@@ -3440,7 +3445,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                     <div style={getBlockStyle(forjaStatus, isPraticasOpen, 'var(--gold-bright)')}>
                       <div onClick={() => setIsPraticasOpen(!isPraticasOpen)} style={getHeaderStyle(forjaStatus, isPraticasOpen)}>
                         {renderTitle('Práticas (A Forja do Caráter)', forjaStatus, isPraticasOpen, <Award size={28} color="var(--gold-bright)" />)}
-                        {isPraticasOpen ? <ChevronUp size={24} color={isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'} /> : <ChevronDown size={24} color={isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'} />}
+                        {isPraticasOpen ? <ChevronUp size={24} color={'var(--t-accent-bright)'} /> : <ChevronDown size={24} color={'var(--t-accent-bright)'} />}
                       </div>
                       
                       {isPraticasOpen && (
@@ -3449,13 +3454,13 @@ ${monthlyReport.desafioCrescimento || '-'}
                             {fvConfig.praticas.map(prac => (
                               <div key={prac.key} onClick={() => setActiveActionMenu({ key: prac.key, label: prac.label })} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '1rem', background: fvDaily.praticas?.[prac.key] ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.6)'), border: `1px solid ${fvDaily.praticas?.[prac.key] ? 'var(--success)' : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'var(--border-light)')}`, borderRadius: '8px', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
                                 {fvDaily.praticas?.[prac.key] ? <CheckCircle size={20} color="var(--success)" /> : <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: `2px solid ${isDark ? 'var(--gold-muted)' : '#999'}` }}></div>}
-                                <span style={{ color: fvDaily.praticas?.[prac.key] ? (isDark ? 'var(--success-soft)' : 'var(--success-strong)') : (isDark ? 'var(--parchment)' : 'var(--ink)'), fontSize: '1.05rem', fontWeight: fvDaily.praticas?.[prac.key] ? 'bold' : 'normal' }}>{prac.label}</span>
+                                <span style={{ color: fvDaily.praticas?.[prac.key] ? 'var(--t-success-text)' : 'var(--t-text)', fontSize: '1.05rem', fontWeight: fvDaily.praticas?.[prac.key] ? 'bold' : 'normal' }}>{prac.label}</span>
                               </div>
                             ))}
                           </div>
 
                           <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.4)', padding: '1.5rem', borderRadius: '12px', borderLeft: '4px solid var(--gold-bright)', marginBottom: '1.5rem' }}>
-                            <h4 style={{ margin: '0 0 1rem 0', color: isDark ? 'var(--gold)' : 'var(--umber)', fontSize: '1.1rem', fontFamily: "'Cinzel', serif" }}>Templo Interior</h4>
+                            <h4 style={{ margin: '0 0 1rem 0', color: 'var(--t-accent)', fontSize: '1.1rem', fontFamily: "'Cinzel', serif" }}>Templo Interior</h4>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
                               {[
                                 { key: 'porta', label: '1. Porta' },
@@ -3463,15 +3468,15 @@ ${monthlyReport.desafioCrescimento || '-'}
                                 { key: 'patioColunas', label: '3. Pátio de Colunas' },
                                 { key: 'santuario', label: '4. Santuário' }
                               ].map(prac => (
-                                <div key={prac.key} onClick={() => setActiveActionMenu({ key: prac.key, label: prac.label })} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '0.8rem', background: fvDaily.praticas?.[prac.key] ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : 'transparent', border: `1px solid ${fvDaily.praticas?.[prac.key] ? 'var(--success)' : (isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)')}`, borderRadius: '8px', transition: 'all 0.2s' }}>
+                                <div key={prac.key} onClick={() => setActiveActionMenu({ key: prac.key, label: prac.label })} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', padding: '0.8rem', background: fvDaily.praticas?.[prac.key] ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : 'transparent', border: `1px solid ${fvDaily.praticas?.[prac.key] ? 'var(--success)' : 'var(--t-divider)'}`, borderRadius: '8px', transition: 'all 0.2s' }}>
                                   {fvDaily.praticas?.[prac.key] ? <CheckCircle size={18} color="var(--success)" /> : <div style={{ width: '18px', height: '18px', borderRadius: '50%', border: `2px solid ${isDark ? 'var(--gold-muted)' : '#999'}` }}></div>}
-                                  <span style={{ color: fvDaily.praticas?.[prac.key] ? (isDark ? 'var(--success-soft)' : 'var(--success-strong)') : (isDark ? 'var(--tan-soft)' : 'var(--umber-muted)'), fontSize: '1rem', fontWeight: fvDaily.praticas?.[prac.key] ? 'bold' : 'normal' }}>{prac.label}</span>
+                                  <span style={{ color: fvDaily.praticas?.[prac.key] ? 'var(--t-success-text)' : 'var(--t-text-tan)', fontSize: '1rem', fontWeight: fvDaily.praticas?.[prac.key] ? 'bold' : 'normal' }}>{prac.label}</span>
                                 </div>
                               ))}
                             </div>
                           </div>
                           
-                          <button onClick={saveFvPractices} style={{ width: '100%', padding: '1rem', background: 'transparent', color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', border: '2px solid var(--gold-bright)', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                          <button onClick={saveFvPractices} style={{ width: '100%', padding: '1rem', background: 'transparent', color: 'var(--t-accent-bright)', border: '2px solid var(--gold-bright)', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
                             <Save size={20} /> Salvar Práticas Realizadas
                           </button>
                         </div>
@@ -3483,13 +3488,13 @@ ${monthlyReport.desafioCrescimento || '-'}
                   {fvUnlocked && fvConfig && (
                     <div style={getBlockStyle(escaladaStatus, isEscaladaOpen, 'var(--gold-bright)')}>
                       <div onClick={() => setIsEscaladaOpen(!isEscaladaOpen)} style={getHeaderStyle(escaladaStatus, isEscaladaOpen)}>
-                        {renderTitle('Degrau (A Escalada)', escaladaStatus, isEscaladaOpen, <Mountain size={28} color={isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'} />)}
-                        {isEscaladaOpen ? <ChevronUp size={24} color={isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'} /> : <ChevronDown size={24} color={isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'} />}
+                        {renderTitle('Degrau (A Escalada)', escaladaStatus, isEscaladaOpen, <Mountain size={28} color={'var(--t-accent-bright)'} />)}
+                        {isEscaladaOpen ? <ChevronUp size={24} color={'var(--t-accent-bright)'} /> : <ChevronDown size={24} color={'var(--t-accent-bright)'} />}
                       </div>
 
                       {isEscaladaOpen && (
                         <div className="animate-fadeIn" style={{ padding: '0 2rem 2rem 2rem' }}>
-                          <p style={{ color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontStyle: 'italic', marginBottom: '2rem', fontSize: '0.95rem' }}>Ao salvar, os itens preenchidos ficarão cinzas para descansar sua mente.</p>
+                          <p style={{ color: 'var(--t-text-muted)', fontStyle: 'italic', marginBottom: '2rem', fontSize: '0.95rem' }}>Ao salvar, os itens preenchidos ficarão cinzas para descansar sua mente.</p>
 
                           {fvConfig.itensCarta.map(item => {
                             const isItem2 = item.id === 'item2';
@@ -3502,8 +3507,8 @@ ${monthlyReport.desafioCrescimento || '-'}
                               
                             const actuallyExpanded = expandedCartaItems[item.id] !== undefined ? expandedCartaItems[item.id] : !isFilled;
 
-                            const borderColor = isFilled ? (isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)') : (isDark ? 'rgba(212, 175, 55, 0.5)' : 'var(--umber-bright)');
-                            const headerColor = isFilled ? (isDark ? '#777' : '#aaa') : (isDark ? 'var(--gold-bright)' : 'var(--umber-bright)');
+                            const borderColor = isFilled ? 'var(--t-line-subtle)' : (isDark ? 'rgba(212, 175, 55, 0.5)' : 'var(--umber-bright)');
+                            const headerColor = isFilled ? (isDark ? '#777' : '#aaa') : 'var(--t-accent-bright)';
                             const bgColor = isFilled ? (isDark ? 'rgba(0,0,0,0.1)' : 'var(--gray-bg)') : (isDark ? 'rgba(212, 175, 55, 0.05)' : 'white');
 
                             return (
@@ -3523,30 +3528,30 @@ ${monthlyReport.desafioCrescimento || '-'}
 
                                 {actuallyExpanded && (
                                   <div className="animate-fadeIn" style={{ padding: '0 1.2rem 1.2rem 1.2rem' }}>
-                                    <p style={{ fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray)', marginBottom: '1rem', fontStyle: 'italic' }}>{item.desc}</p>
+                                    <p style={{ fontSize: '0.85rem', color: 'var(--t-text-faint)', marginBottom: '1rem', fontStyle: 'italic' }}>{item.desc}</p>
                                     
                                     {isItem2 ? (
                                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
                                         {subKeys.map((subK, i) => (
                                           <div key={subK}>
                                             <label style={{ display: 'block', fontSize: '0.8rem', color: isDark ? 'var(--gold)' : 'var(--umber-bright)', marginBottom: '0.4rem', fontWeight: 'bold' }}>{subLabels[i]}</label>
-                                            <textarea 
+                                            <DeferredField 
                                               value={fvDaily[`item2_${subK}`] || ''} 
-                                              onChange={(e) => handleFvDailyTextChange(`item2_${subK}`, e.target.value)} 
+                                              onCommit={(v) => handleFvDailyTextChange(`item2_${subK}`, v)} 
                                               placeholder="Análise..." 
                                               rows={2} 
-                                              style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, borderRadius: '6px', fontSize: '0.9rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(0,0,0,0.3)' : 'var(--white)', color: isDark ? 'var(--parchment)' : 'var(--ink)', resize: 'vertical' }} 
+                                              style={{ width: '100%', padding: '0.75rem', border: `1px solid var(--t-line-subtle)`, borderRadius: '6px', fontSize: '0.9rem', fontFamily: 'Georgia, serif', background: 'var(--t-field-bg)', color: 'var(--t-text)', resize: 'vertical' }} 
                                             />
                                           </div>
                                         ))}
                                       </div>
                                     ) : (
-                                      <textarea 
+                                      <DeferredField 
                                         value={fvDaily[item.id] || ''} 
-                                        onChange={(e) => handleFvDailyTextChange(item.id, e.target.value)} 
+                                        onCommit={(v) => handleFvDailyTextChange(item.id, v)} 
                                         placeholder="Registro..." 
                                         rows={3} 
-                                        style={{ width: '100%', padding: '1rem', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(0,0,0,0.3)' : 'var(--white)', color: isDark ? 'var(--parchment)' : 'var(--ink)', resize: 'vertical' }} 
+                                        style={{ width: '100%', padding: '1rem', border: `1px solid var(--t-line-subtle)`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: 'var(--t-field-bg)', color: 'var(--t-text)', resize: 'vertical' }} 
                                       />
                                     )}
                                   </div>
@@ -3555,7 +3560,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                             );
                           })}
 
-                          <button onClick={saveFvTexts} style={{ width: '100%', padding: '1rem', background: 'rgba(255, 215, 0, 0.1)', color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', border: '1px solid var(--gold-bright)', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', transition: 'all 0.2s', marginTop: '1rem' }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,215,0,0.2)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255, 215, 0, 0.1)'}>
+                          <button onClick={saveFvTexts} style={{ width: '100%', padding: '1rem', background: 'rgba(255, 215, 0, 0.1)', color: 'var(--t-accent-bright)', border: '1px solid var(--gold-bright)', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', transition: 'all 0.2s', marginTop: '1rem' }} onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255,215,0,0.2)'} onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255, 215, 0, 0.1)'}>
                             <Save size={20} /> Salvar Relatos da Escalada
                           </button>
                         </div>
@@ -3564,10 +3569,10 @@ ${monthlyReport.desafioCrescimento || '-'}
                   )}
 
                   {/* BLOCO 4: EPÍLOGO NOTURNO */}
-                  <div style={getBlockStyle(epilogoStatus, isEpilogoOpen, isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)')}>
+                  <div style={getBlockStyle(epilogoStatus, isEpilogoOpen, 'var(--t-divider-strong)')}>
                     <div onClick={() => setIsEpilogoOpen(!isEpilogoOpen)} style={getHeaderStyle(epilogoStatus, isEpilogoOpen)}>
                       {renderTitle('Epílogo Noturno', epilogoStatus, isEpilogoOpen, <Sunset size={28} color={isDark ? '#b19cd9' : '#9c27b0'} />)}
-                      {isEpilogoOpen ? <ChevronUp size={24} color={isDark ? 'var(--parchment)' : 'var(--ink)'} /> : <ChevronDown size={24} color={isDark ? 'var(--parchment)' : 'var(--ink)'} />}
+                      {isEpilogoOpen ? <ChevronUp size={24} color={'var(--t-text)'} /> : <ChevronDown size={24} color={'var(--t-text)'} />}
                     </div>
 
                     {isEpilogoOpen && (
@@ -3577,9 +3582,9 @@ ${monthlyReport.desafioCrescimento || '-'}
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                 <CheckCircle size={24} color={isDark ? 'var(--success-soft)' : 'var(--success)'} />
-                                <h3 style={{ margin: 0, color: isDark ? 'var(--success-soft)' : 'var(--success-strong)' }}>Paz Conquistada!</h3>
+                                <h3 style={{ margin: 0, color: 'var(--t-success-text)' }}>Paz Conquistada!</h3>
                               </div>
-                              <button onClick={() => setEveningDone(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: isDark ? 'var(--success-soft)' : 'var(--success-strong)', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.9rem', fontWeight: 'bold' }}><Edit size={16} /> Editar</button>
+                              <button onClick={() => setEveningDone(false)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--t-success-text)', display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.9rem', fontWeight: 'bold' }}><Edit size={16} /> Editar</button>
                             </div>
                             <p style={{ margin: 0, color: isDark ? '#c8e6c9' : '#1b5e20' }}>Exame noturno encerrado. Descanse com dignidade. 🌙</p>
                           
@@ -3614,7 +3619,7 @@ ${monthlyReport.desafioCrescimento || '-'}
 
                                 return (
                                   <div className="animate-fadeIn" style={{ background: isDark ? 'rgba(155, 89, 182, 0.05)' : '#fdf8ff', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.3)' : '#e1bee7'}`, marginBottom: '2rem' }}>
-                                    <h4 style={{ margin: '0 0 1rem 0', color: isDark ? 'var(--purple-soft)' : 'var(--purple)', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <h4 style={{ margin: '0 0 1rem 0', color: 'var(--t-purple-text)', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                       <Clock size={18} /> Balanço de Serviço e Atividades
                                     </h4>
                                     
@@ -3623,32 +3628,32 @@ ${monthlyReport.desafioCrescimento || '-'}
                                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem', paddingBottom: '1.5rem', borderBottom: `1px dashed ${isDark ? 'rgba(155, 89, 182, 0.3)' : '#e1bee7'}` }}>
                                         {showAulaRegular && (
                                           <div>
-                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontWeight: 'bold' }}>Assistiu à Aula Regular?</label>
-                                            <select value={fvDaily.aulaRegularPresenca || ''} onChange={(e) => handleFvDailyTextChange('aulaRegularPresenca', e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : 'var(--border-light)'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'var(--white)', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }}>
+                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--t-text)', fontWeight: 'bold' }}>Assistiu à Aula Regular?</label>
+                                            <select value={fvDaily.aulaRegularPresenca || ''} onChange={(e) => handleFvDailyTextChange('aulaRegularPresenca', e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid var(--t-purple-border)`, background: 'var(--t-field-bg)', color: 'var(--t-text)', fontFamily: 'Georgia, serif' }}>
                                               <option value="">Selecione...</option><option value="Sim">Sim, assisti</option><option value="Não">Não (Faltei)</option>
                                             </select>
                                           </div>
                                         )}
                                         {showReuniaoRaio && (
                                           <div>
-                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontWeight: 'bold' }}>Participou da Reunião de Raio?</label>
-                                            <select value={fvDaily.reuniaoRaioPresenca || ''} onChange={(e) => handleFvDailyTextChange('reuniaoRaioPresenca', e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : 'var(--border-light)'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'var(--white)', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }}>
+                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--t-text)', fontWeight: 'bold' }}>Participou da Reunião de Raio?</label>
+                                            <select value={fvDaily.reuniaoRaioPresenca || ''} onChange={(e) => handleFvDailyTextChange('reuniaoRaioPresenca', e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid var(--t-purple-border)`, background: 'var(--t-field-bg)', color: 'var(--t-text)', fontFamily: 'Georgia, serif' }}>
                                               <option value="">Selecione...</option><option value="Sim">Sim, participei</option><option value="Não">Não (Faltei)</option>
                                             </select>
                                           </div>
                                         )}
                                         {showAulaMinistrada && (
                                           <div>
-                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontWeight: 'bold' }}>Ministrou sua Aula hoje?</label>
-                                            <select value={fvDaily.aulaMinistradaPresenca || ''} onChange={(e) => handleFvDailyTextChange('aulaMinistradaPresenca', e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : 'var(--border-light)'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'var(--white)', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }}>
+                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--t-text)', fontWeight: 'bold' }}>Ministrou sua Aula hoje?</label>
+                                            <select value={fvDaily.aulaMinistradaPresenca || ''} onChange={(e) => handleFvDailyTextChange('aulaMinistradaPresenca', e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid var(--t-purple-border)`, background: 'var(--t-field-bg)', color: 'var(--t-text)', fontFamily: 'Georgia, serif' }}>
                                               <option value="">Selecione...</option><option value="Sim">Sim, ministrei</option><option value="Não">Não</option>
                                             </select>
                                           </div>
                                         )}
                                         {showCrm && (
                                           <div>
-                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: isDark ? 'var(--purple-soft)' : 'var(--purple)', fontWeight: 'bold' }}>Esteve na CRM Mensal?</label>
-                                            <select value={fvDaily.crmPresenca || ''} onChange={(e) => handleFvDailyTextChange('crmPresenca', e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : 'var(--border-light)'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'var(--white)', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }}>
+                                            <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--t-purple-text)', fontWeight: 'bold' }}>Esteve na CRM Mensal?</label>
+                                            <select value={fvDaily.crmPresenca || ''} onChange={(e) => handleFvDailyTextChange('crmPresenca', e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid var(--t-purple-border)`, background: 'var(--t-field-bg)', color: 'var(--t-text)', fontFamily: 'Georgia, serif' }}>
                                               <option value="">Selecione...</option><option value="Sim">Sim, estive</option><option value="Não">Não (Faltei)</option>
                                             </select>
                                           </div>
@@ -3656,7 +3661,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                                         {showEd && (
                                           <div>
                                             <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#3498DB', fontWeight: 'bold' }}>Assistiu à Aula de ED?</label>
-                                            <select value={fvDaily.aulaEdPresenca || ''} onChange={(e) => handleFvDailyTextChange('aulaEdPresenca', e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(74, 144, 226, 0.4)' : 'var(--border-light)'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'var(--white)', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }}>
+                                            <select value={fvDaily.aulaEdPresenca || ''} onChange={(e) => handleFvDailyTextChange('aulaEdPresenca', e.target.value)} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(74, 144, 226, 0.4)' : 'var(--border-light)'}`, background: 'var(--t-field-bg)', color: 'var(--t-text)', fontFamily: 'Georgia, serif' }}>
                                               <option value="">Selecione...</option><option value="Sim">Sim, assisti</option><option value="Não">Não (Faltei)</option>
                                             </select>
                                           </div>
@@ -3666,12 +3671,12 @@ ${monthlyReport.desafioCrescimento || '-'}
 
                                     {/* Voluntariado Extra Livre (Sempre Visível) */}
                                     <div style={{ padding: '1rem', background: isDark ? 'rgba(0,0,0,0.2)' : 'white', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.2)' : '#e1bee7'}` }}>
-                                      <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontWeight: 'bold' }}>Serviço / Voluntariado Extra Hoje?</label>
-                                      <p style={{ fontSize: '0.8rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray)', marginTop: '-0.3rem', marginBottom: '0.8rem', fontStyle: 'italic' }}>
+                                      <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: 'var(--t-text)', fontWeight: 'bold' }}>Serviço / Voluntariado Extra Hoje?</label>
+                                      <p style={{ fontSize: '0.8rem', color: 'var(--t-text-faint)', marginTop: '-0.3rem', marginBottom: '0.8rem', fontStyle: 'italic' }}>
                                         {temAulaHoje ? "As horas das aulas acima já são calculadas sozinhas. Informe aqui apenas horários avulsos (limpezas, manutenções, etc)." : "Informe aqui o tempo dedicado a serviços avulsos pela Escola hoje (limpeza, manutenções, secretaria, etc)."}
                                       </p>
                                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                        <input type="time" value={fvDaily.horasVoluntariado || ''} onChange={(e) => handleFvDailyTextChange('horasVoluntariado', e.target.value)} style={{ width: '120px', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : 'var(--border-light)'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'var(--white)', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }} />
+                                        <input type="time" value={fvDaily.horasVoluntariado || ''} onChange={(e) => handleFvDailyTextChange('horasVoluntariado', e.target.value)} style={{ width: '120px', padding: '0.6rem', borderRadius: '6px', border: `1px solid var(--t-purple-border)`, background: 'var(--t-field-bg)', color: 'var(--t-text)', fontFamily: 'Georgia, serif' }} />
                                         {(fvDaily.horasVoluntariado && fvDaily.horasVoluntariado !== '') && (
                                            <span style={{ color: 'var(--success)', fontSize: '0.8rem', fontWeight: 'bold' }}>✓ Registrado</span>
                                         )}
@@ -3683,12 +3688,12 @@ ${monthlyReport.desafioCrescimento || '-'}
                               })()
                             )}
 
-                            <p style={{ marginBottom: '1.5rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontStyle: 'italic', fontSize: '1.05rem', borderLeft: `3px solid ${isDark ? '#b19cd9' : '#9c27b0'}`, paddingLeft: '1rem' }}>"Que ninguém durma sem antes examinar as ações do dia" — Versos de Ouro de Pitágoras</p>
+                            <p style={{ marginBottom: '1.5rem', color: 'var(--t-text-muted)', fontStyle: 'italic', fontSize: '1.05rem', borderLeft: `3px solid ${isDark ? '#b19cd9' : '#9c27b0'}`, paddingLeft: '1rem' }}>"Que ninguém durma sem antes examinar as ações do dia" — Versos de Ouro de Pitágoras</p>
 
                             <div style={{ marginBottom: '2rem' }}>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.1rem' }}>Reflexão Final:</label>
-                              <p style={{ fontSize: '0.9rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray)', marginBottom: '1rem' }}>Escreva livremente sobre as vitórias, derrotas e percepções de hoje antes de dormir.</p>
-                              <textarea value={freeEpilogue} onChange={(e) => setFreeEpilogue(e.target.value)} placeholder="Ao olhar para o dia de hoje, percebo que..." rows={6} style={{ width: '100%', padding: '1rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : 'var(--border-light)'}`, borderRadius: '8px', fontSize: '1.05rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(0,0,0,0.2)' : 'var(--white)', color: isDark ? 'var(--parchment)' : 'var(--ink)', resize: 'vertical', lineHeight: '1.6' }} />
+                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--t-text)', fontSize: '1.1rem' }}>Reflexão Final:</label>
+                              <p style={{ fontSize: '0.9rem', color: 'var(--t-text-faint)', marginBottom: '1rem' }}>Escreva livremente sobre as vitórias, derrotas e percepções de hoje antes de dormir.</p>
+                              <DeferredField value={freeEpilogue} onCommit={setFreeEpilogue} placeholder="Ao olhar para o dia de hoje, percebo que..." rows={6} style={{ width: '100%', padding: '1rem', border: `1px solid var(--t-gold-border)`, borderRadius: '8px', fontSize: '1.05rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(0,0,0,0.2)' : 'var(--white)', color: 'var(--t-text)', resize: 'vertical', lineHeight: '1.6' }} />
                             </div>
 
                             <button onClick={saveEvening} style={{ width: '100%', padding: '1.2rem', background: isDark ? '#b19cd9' : '#9c27b0', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', boxShadow: '0 4px 15px rgba(156, 39, 176, 0.3)', transition: 'transform 0.2s' }} onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'} onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}>
@@ -3709,1832 +3714,70 @@ ${monthlyReport.desafioCrescimento || '-'}
 
         {/* VIEW: GOALS */}
         {view === 'goals' && (
-          <div className="animate-fadeIn">
-            <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}` }}>
-              
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-                <Target size={32} color={isDark ? 'var(--gold)' : 'var(--umber)'} />
-                <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: "'Cinzel', serif" }}>Horizonte de Vida</h2>
-              </div>
-              <p style={{ color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', marginBottom: '2rem', fontSize: '1rem', fontStyle: 'italic' }}>O que o homem constrói no mundo reflete o que ele constrói em si mesmo.</p>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
-                
-                {/* BLOCO 1: SONHOS (VIRTUDES) */}
-                <div style={{ background: isDark ? 'rgba(212, 175, 55, 0.05)' : '#fffbf0', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}` }}>
-                  <h3 style={{ margin: '0 0 1rem 0', color: isDark ? 'var(--gold)' : 'var(--umber)', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Star size={20} /> Sonhos (Forja Interior)</h3>
-                  <p style={{ fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', marginBottom: '1rem' }}>Virtudes e qualidades que deseja conquistar.</p>
-                  
-                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
-                    <input type="text" value={newVirtueGoal} onChange={(e) => setNewVirtueGoal(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter') addVirtueGoal() }} placeholder="Ex: Desenvolver mais paciência..." style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : 'var(--border-light)'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)' }} />
-                    <button onClick={addVirtueGoal} style={{ padding: '0 1rem', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}><Plus size={20} /></button>
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    {virtueGoals.map(goal => (
-                      <div key={goal.id} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '0.75rem', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', borderRadius: '8px', border: `1px solid ${goal.completed ? 'var(--success)' : (isDark ? 'rgba(212, 175, 55, 0.2)' : 'var(--border-soft)')}` }}>
-                        <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', cursor: 'pointer', flex: 1 }}>
-                          <input type="checkbox" checked={goal.completed} onChange={() => toggleGoal(goal.id, 'virtue')} style={{ width: '18px', height: '18px', marginTop: '0.2rem', accentColor: 'var(--gold)' }} />
-                          <span style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)', textDecoration: goal.completed ? 'line-through' : 'none', opacity: goal.completed ? 0.6 : 1, lineHeight: '1.4' }}>{goal.text}</span>
-                        </label>
-                        <button onClick={() => removeGoal(goal.id, 'virtue')} style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '0.2rem' }}><X size={16} /></button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* BLOCO 2: PROJETOS (AÇÕES NO MUNDO) */}
-                <div style={{ background: isDark ? 'rgba(74, 144, 226, 0.05)' : '#f4f8ff', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(74, 144, 226, 0.2)' : 'rgba(74, 144, 226, 0.2)'}` }}>
-                  <h3 style={{ margin: '0 0 1rem 0', color: isDark ? '#6cb2eb' : 'var(--blue)', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Landmark size={20} /> Projetos (Obras no Mundo)</h3>
-                  <p style={{ fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', marginBottom: '1rem' }}>Conquistas práticas, estudos, viagens, etc.</p>
-                  
-                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
-                    <input type="text" value={newProjectGoal} onChange={(e) => setNewProjectGoal(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter') addProjectGoal() }} placeholder="Ex: Terminar a leitura do Bastião X..." style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(74, 144, 226, 0.4)' : 'var(--border-light)'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)' }} />
-                    <button onClick={addProjectGoal} style={{ padding: '0 1rem', background: isDark ? '#6cb2eb' : 'var(--blue)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}><Plus size={20} /></button>
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    {projectGoals.map(goal => (
-                      <div key={goal.id} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '0.75rem', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', borderRadius: '8px', border: `1px solid ${goal.completed ? 'var(--success)' : (isDark ? 'rgba(74, 144, 226, 0.2)' : 'var(--border-soft)')}` }}>
-                        <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', cursor: 'pointer', flex: 1 }}>
-                          <input type="checkbox" checked={goal.completed} onChange={() => toggleGoal(goal.id, 'project')} style={{ width: '18px', height: '18px', marginTop: '0.2rem', accentColor: isDark ? '#6cb2eb' : 'var(--blue)' }} />
-                          <span style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)', textDecoration: goal.completed ? 'line-through' : 'none', opacity: goal.completed ? 0.6 : 1, lineHeight: '1.4' }}>{goal.text}</span>
-                        </label>
-                        <button onClick={() => removeGoal(goal.id, 'project')} style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '0.2rem' }}><X size={16} /></button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-              </div>
-
-              {/* BLOCO 3: MISSÕES DE CICLO ATIVAS */}
-              {acceptedMissions.length > 0 && (
-                <div className="animate-fadeIn" style={{ marginTop: '2rem', padding: '1.5rem', background: isDark ? 'rgba(155, 89, 182, 0.05)' : '#fdf8ff', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.3)' : 'rgba(155, 89, 182, 0.3)'}` }}>
-                  <h3 style={{ margin: '0 0 1rem 0', color: isDark ? 'var(--purple-soft)' : 'var(--purple)', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Shield size={20} /> Missões em Andamento</h3>
-                  <p style={{ fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', marginBottom: '1.5rem' }}>Desafios práticos assumidos para forjar a vontade.</p>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {acceptedMissions.map(missao => (
-                      <div key={missao.id} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', padding: '1rem', background: missao.completed ? (isDark ? 'rgba(76, 175, 80, 0.1)' : '#f0fdf4') : (isDark ? 'rgba(0,0,0,0.3)' : 'white'), borderRadius: '8px', border: `1px solid ${missao.completed ? 'var(--success)' : (isDark ? 'rgba(155, 89, 182, 0.3)' : '#e1bee7')}`, transition: 'all 0.3s ease', position: 'relative', overflow: 'hidden' }}>
-                        
-                        {/* EFEITO DE BRILHO SE COMPLETA */}
-                        {missao.completed && <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '100px', height: '100px', background: 'radial-gradient(circle, rgba(76,175,80,0.2) 0%, transparent 70%)', borderRadius: '50%' }}></div>}
-
-                        <label style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', cursor: 'pointer', flex: 1, zIndex: 1 }}>
-                          <input type="checkbox" checked={missao.completed} onChange={() => toggleAcceptedMission(missao.id)} style={{ width: '20px', height: '20px', marginTop: '0.1rem', accentColor: 'var(--success)' }} />
-                          <div style={{ opacity: missao.completed ? 0.7 : 1 }}>
-                            <strong style={{ color: missao.completed ? 'var(--success)' : (isDark ? 'var(--parchment)' : 'var(--ink)'), fontSize: '1.05rem', textDecoration: missao.completed ? 'line-through' : 'none', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                              {missao.titulo}
-                            </strong>
-                            <span style={{ color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontSize: '0.9rem', lineHeight: '1.4', display: 'block' }}>{missao.descricao}</span>
-                            <span style={{ color: isDark ? 'var(--purple-soft)' : 'var(--purple)', fontSize: '0.75rem', fontWeight: 'bold', marginTop: '0.5rem', display: 'block' }}>Assumida em: {missao.startDate.split('-').reverse().join('/')}</span>
-                          </div>
-                        </label>
-                        
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem', zIndex: 1 }}>
-                          <button onClick={() => removeAcceptedMission(missao.id)} style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '0.2rem' }} title="Abandonar Missão"><X size={18} /></button>
-                          
-                          {/* SELO DE VITÓRIA */}
-                          {missao.completed && (
-                            <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '0.5rem' }}>
-                              <Award size={32} color="var(--gold-bright)" style={{ filter: 'drop-shadow(0 0 5px rgba(255,215,0,0.5))' }} />
-                              <span style={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'var(--gold-bright)', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '0.2rem' }}>Vitória</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-            </div>
-          </div>
+          <Suspense fallback={<ViewFallback />}><GoalsView {...{ acceptedMissions, addProjectGoal, addVirtueGoal, isDark, newProjectGoal, newVirtueGoal, projectGoals, removeAcceptedMission, removeGoal, setNewProjectGoal, setNewVirtueGoal, toggleAcceptedMission, toggleGoal, virtueGoals }} /></Suspense>
         )}
 
         {/* VIEW: CENTRAL DE NOTIFICAÇÕES (O GUARDIÃO) */}
         {view === 'notifications' && (
-          <div className="animate-fadeIn" style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: '2rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-              <button onClick={() => setView('home')} style={{ background: 'transparent', border: 'none', color: isDark ? 'var(--gold)' : 'var(--umber-soft)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                <ArrowLeft size={24} />
-              </button>
-              <Bell size={28} color={isDark ? 'var(--gold)' : 'var(--umber-soft)'} />
-              <h2 style={{ margin: 0, fontSize: '1.5rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: "'Cinzel', serif" }}>
-                O Guardião (Notificações)
-              </h2>
-            </div>
-
-            <p style={{ color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)', marginBottom: '2rem', fontSize: '1rem', fontStyle: 'italic' }}>
-              Configure seu assistente pessoal no WhatsApp para manter a Forja sempre acesa.
-            </p>
-
-            {/* SEÇÃO 1: CONEXÃO */}
-            <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.8)', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'var(--border-light)'}`, marginBottom: '1.5rem' }}>
-              <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 1rem 0', color: isDark ? 'var(--gold)' : '#2c3e50', fontSize: '1.1rem' }}>
-                <Smartphone size={20} /> Conexão WhatsApp
-              </h3>
-              <label style={{ display: 'block', marginBottom: '0.5rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '0.9rem' }}>Seu número (com DDD):</label>
-              <input 
-                type="text" 
-                placeholder="Ex: 62999999999"
-                value={notifSettings.whatsappNumber}
-                onChange={(e) => setNotifSettings({...notifSettings, whatsappNumber: e.target.value.replace(/\D/g, '')})}
-                style={{ width: '100%', maxWidth: '300px', padding: '0.8rem', borderRadius: '8px', border: `1px solid ${isDark ? 'var(--gray-strong)' : 'var(--border-light)'}`, background: isDark ? 'rgba(0,0,0,0.4)' : 'var(--white)', color: isDark ? 'var(--white)' : 'var(--black)' }}
-              />
-            </div>
-
-            {/* SEÇÃO 2: HORÁRIOS FIXOS */}
-            <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.8)', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'var(--border-light)'}`, marginBottom: '1.5rem' }}>
-              <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 1rem 0', color: isDark ? 'var(--gold)' : '#2c3e50', fontSize: '1.1rem' }}>
-                <Clock size={20} /> Rotina Diária
-              </h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '0.9rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <input type="checkbox" checked={notifSettings.alerts.dailyVirtue} onChange={(e) => setNotifSettings({...notifSettings, alerts: {...notifSettings.alerts, dailyVirtue: e.target.checked}})} style={{ accentColor: 'var(--gold)', width: '16px', height: '16px' }} />
-                    Sorteio da Virtude (Manhã)
-                  </div>
-                  <input type="time" value={notifSettings.notifMorningTime} onChange={(e) => setNotifSettings({...notifSettings, notifMorningTime: e.target.value})} style={{ padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'var(--gray-strong)' : 'var(--border-light)'}`, background: isDark ? 'rgba(0,0,0,0.4)' : 'var(--white)', color: isDark ? 'var(--white)' : 'var(--black)', width: 'fit-content' }} disabled={!notifSettings.alerts.dailyVirtue} />
-                </label>
-
-                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '0.9rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <input type="checkbox" checked={notifSettings.alerts.dailyEpilogue} onChange={(e) => setNotifSettings({...notifSettings, alerts: {...notifSettings.alerts, dailyEpilogue: e.target.checked}})} style={{ accentColor: 'var(--gold)', width: '16px', height: '16px' }} />
-                    Lembrete do Epílogo (Noite)
-                  </div>
-                  <input type="time" value={notifSettings.notifNightTime} onChange={(e) => setNotifSettings({...notifSettings, notifNightTime: e.target.value})} style={{ padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'var(--gray-strong)' : 'var(--border-light)'}`, background: isDark ? 'rgba(0,0,0,0.4)' : 'var(--white)', color: isDark ? 'var(--white)' : 'var(--black)', width: 'fit-content' }} disabled={!notifSettings.alerts.dailyEpilogue} />
-                </label>
-              </div>
-              {notifSettings.whatsappNumber && (
-                <p style={{ margin: '1rem 0 0', fontSize: '0.8rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)', fontStyle: 'italic' }}>
-                  Os lembretes por WhatsApp saem em dois horários fixos (08:00 e 20:00) — os campos acima ainda não controlam o minuto exato deles.
-                </p>
-              )}
-            </div>
-
-            {/* SEÇÃO 3: ALERTAS CONDICIONAIS */}
-            <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(255,255,255,0.8)', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'var(--border-light)'}`, marginBottom: '2rem' }}>
-              <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 1rem 0', color: isDark ? 'var(--gold)' : '#2c3e50', fontSize: '1.1rem' }}>
-                <ShieldAlert size={20} /> Guardião de Disciplina
-              </h3>
-              <p style={{ fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)', marginBottom: '1rem' }}>O Guardião avisa quando você está deixando a inércia vencer (disparado às 19h).</p>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {[
-                  { id: 'pendingTasks', label: 'Avisar se houver Tarefas Agendadas pendentes hoje' },
-                  { id: 'readingSlump', label: 'Avisar se eu ficar +3 dias sem avançar nas Leituras' },
-                  { id: 'practiceSlump', label: 'Avisar se eu ficar +3 dias sem registrar Práticas' },
-                  { id: 'diarySlump', label: 'Avisar se eu ficar +3 dias sem preencher o Diário' },
-                  { id: 'gdveWarning', label: 'Avisar faltando 1 semana para a reunião do GDVE (se leitura pendente)' },
-                  { id: 'randomVirtue', label: 'Sorteio Aleatório Diário (Lembrar da Virtude no meio do dia)' },
-                  { id: 'groupActivity', label: 'Avisar quando alguém do meu Grupo de Estudo (GDVE) concluir uma tarefa' }
-                ].map(alert => (
-                  <label key={alert.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '0.95rem', cursor: 'pointer' }}>
-                    <input 
-                      type="checkbox" 
-                      checked={notifSettings.alerts[alert.id]} 
-                      onChange={(e) => setNotifSettings({...notifSettings, alerts: {...notifSettings.alerts, [alert.id]: e.target.checked}})} 
-                      style={{ accentColor: 'var(--gold)', width: '18px', height: '18px', cursor: 'pointer' }} 
-                    />
-                    {alert.label}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* BOTÃO SALVAR INTELIGENTE */}
-            <button 
-              onClick={saveNotificationSettings}
-              disabled={saveBtnStatus !== 'idle'}
-              style={{ 
-                width: '100%', padding: '1rem', 
-                background: saveBtnStatus === 'success' ? '#27ae60' : (isDark ? 'var(--gold)' : 'var(--umber)'), 
-                color: saveBtnStatus === 'success' ? 'white' : (isDark ? 'var(--bg-dark)' : 'white'), 
-                border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', 
-                display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', 
-                cursor: saveBtnStatus !== 'idle' ? 'default' : 'pointer', 
-                boxShadow: saveBtnStatus === 'success' ? '0 4px 15px rgba(39, 174, 96, 0.4)' : '0 4px 12px rgba(0,0,0,0.15)',
-                transition: 'all 0.3s ease' 
-              }}
-            >
-              {saveBtnStatus === 'saving' ? <Sparkles className="animate-spin" size={20} /> : (saveBtnStatus === 'success' ? <CheckCircle size={20} /> : <Save size={20} />)} 
-              {saveBtnStatus === 'saving' ? 'Salvando...' : (saveBtnStatus === 'success' ? 'Guardião Atualizado!' : 'Salvar Configurações')}
-            </button>
-          </div>
+          <Suspense fallback={<ViewFallback />}><NotificationsView {...{ isDark, notifSettings, saveBtnStatus, saveNotificationSettings, setNotifSettings, setView }} /></Suspense>
         )}
 
         {/* VIEW: LEITURAS E ESTUDOS */}
         {view === 'leituras' && (
-          <div className="animate-fadeIn">
-            
-            {/* DICA DINÂMICA DE LEITURA (EPL2R) */}
-            {dailyStudyTip && (
-              <div style={{ padding: '1.5rem 2rem', background: isDark ? 'rgba(52, 152, 219, 0.05)' : '#f0f7ff', borderRadius: '12px', borderLeft: `4px solid ${isDark ? '#3498db' : 'var(--blue)'}`, marginBottom: '2rem', display: 'flex', gap: '1.5rem', alignItems: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-                <div style={{ background: isDark ? 'rgba(52, 152, 219, 0.1)' : '#e0f0ff', padding: '1rem', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <BookOpen size={28} color={isDark ? '#3498db' : 'var(--blue)'} />
-                </div>
-                <div>
-                  <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', color: isDark ? '#3498db' : 'var(--blue)', display: 'block', marginBottom: '0.4rem' }}>
-                    Técnica Recomendada: {dailyStudyTip.phase}
-                  </span>
-                  <p style={{ margin: 0, fontSize: '1.1rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', lineHeight: '1.6', fontStyle: 'italic' }}>
-                    "{dailyStudyTip.text}"
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* BARRA DE FERRAMENTAS: NOVO LIVRO */}
-            <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, marginBottom: '2.5rem' }}>
-              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', position: 'relative', flexWrap: 'wrap' }}>
-                <button onClick={() => setShowAddBook(true)} style={{ background: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', color: isDark ? 'var(--black)' : 'var(--white)', border: 'none', padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Plus size={16} /> Adicionar Novo Livro
-                </button>
-                <button onClick={() => { setBarcodeScanError(''); setShowBarcodeScanner(true); }} style={{ background: 'transparent', color: isDark ? 'var(--gold)' : 'var(--umber)', border: `2px solid ${isDark ? 'var(--gold)' : 'var(--umber)'}`, padding: '0.5rem 1rem', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Camera size={16} /> Escanear Código de Barras
-                </button>
-              </div>
-            </div>
-
-            {/* DASHBOARD DE GRAU DO LEITOR */}
-            {(() => {
-              const rank = getReadingRank(totalForgedPages);
-              const progressToNext = rank.next ? Math.min(100, Math.round((totalForgedPages / rank.next) * 100)) : 100;
-              return (
-                <div className="animate-fadeIn" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
-                  <div style={{ background: isDark ? 'rgba(0,0,0,0.3)' : '#fcfcfc', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'var(--border-soft)'}`, display: 'flex', alignItems: 'center', gap: '1.5rem', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }}>
-                    <div style={{ width: '70px', height: '70px', borderRadius: '50%', border: `3px solid ${rank.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', background: isDark ? 'rgba(255,255,255,0.05)' : 'white', boxShadow: `0 0 15px ${rank.color}40` }}>
-                      <Award size={36} color={rank.color} />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', color: isDark ? 'var(--gold-muted)' : 'var(--gray)', fontWeight: 'bold' }}>Seu Grau na Escola</span>
-                      <h3 style={{ margin: '0.2rem 0 0.5rem 0', fontFamily: "'Cinzel', serif", fontSize: '1.4rem', color: rank.color }}>{rank.title}</h3>
-                      {rank.next ? (
-                        <>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', marginBottom: '0.3rem', fontWeight: 'bold' }}>
-                            <span>Páginas Forjadas: {totalForgedPages}</span><span>Rumo a {rank.next}</span>
-                          </div>
-                          <div style={{ width: '100%', height: '6px', background: isDark ? 'rgba(255,255,255,0.1)' : '#e0e0e0', borderRadius: '3px', overflow: 'hidden' }}>
-                            <div style={{ width: `${progressToNext}%`, height: '100%', background: rank.color, transition: 'width 1s cubic-bezier(0.4, 0, 0.2, 1)' }}></div>
-                          </div>
-                        </>
-                      ) : (
-                        <div style={{ color: rank.color, fontSize: '0.85rem', fontWeight: 'bold', marginTop: '0.5rem' }}>Você alcançou o cume.</div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* MÉTRICAS DETALHADAS */}
-                  <div style={{ background: isDark ? 'rgba(212,175,55,0.05)' : '#fffbf0', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', alignItems: 'center' }}>
-                    <div style={{ textAlign: 'center', borderRight: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`, borderBottom: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`, paddingBottom: '0.5rem' }}>
-                      <div style={{ fontSize: '1.8rem', fontWeight: 'bold', fontFamily: "'Cinzel', serif", color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)' }}>{books.length}</div>
-                      <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontWeight: 'bold' }}>Na Estante</div>
-                    </div>
-                    <div style={{ textAlign: 'center', borderBottom: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`, paddingBottom: '0.5rem' }}>
-                      <div style={{ fontSize: '1.8rem', fontWeight: 'bold', fontFamily: "'Cinzel', serif", color: 'var(--success)' }}>{finishedBooksCount}</div>
-                      <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontWeight: 'bold' }}>Concluídos</div>
-                    </div>
-                    <div style={{ textAlign: 'center', borderRight: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`, paddingTop: '0.5rem' }}>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 'bold', color: isDark ? 'var(--parchment)' : 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', padding: '0 0.5rem' }}>{favoriteTheme}</div>
-                      <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontWeight: 'bold', marginTop: '0.2rem' }}>Tema Frequente</div>
-                    </div>
-                    <div style={{ textAlign: 'center', paddingTop: '0.5rem' }}>
-                      <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>{books.length > 0 ? Math.round((finishedBooksCount / books.length) * 100) : 0}%</div>
-                      <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontWeight: 'bold', marginTop: '0.2rem' }}>Taxa de Conclusão</div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
-
-
-            {/* FORMULÁRIO DE LIVRO (OCULTO POR PADRÃO) */}
-            {showAddBook && (
-              <div style={{ padding: '1.5rem', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(255, 245, 220, 0.3)', borderRadius: '12px', marginBottom: '2.5rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.3)'}` }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                  <h3 style={{ margin: 0, color: isDark ? 'var(--gold)' : 'var(--umber)', fontFamily: "'Cinzel', serif" }}>{editingBookId ? 'Editar Livro' : 'Adicionar à Estante'}</h3>
-                  <button onClick={() => { setShowAddBook(false); setBookSearchResults([]); setBookSearchQuery(''); }} style={{ background: 'transparent', color: 'var(--danger)', border: 'none', cursor: 'pointer' }}><X size={24} /></button>
-                </div>
-                
-                {/* BARRA DE PESQUISA GOOGLE */}
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <input type="text" value={bookSearchQuery} onChange={(e) => setBookSearchQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && searchBooks(bookSearchQuery)} placeholder="Pesquise por título ou autor na base do Google..." style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', border: `2px solid ${isDark ? 'var(--gold)' : 'var(--umber)'}`, background: isDark ? 'rgba(0,0,0,0.2)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)' }} />
-                    <button onClick={() => searchBooks(bookSearchQuery)} style={{ padding: '0 1rem', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
-                      {isSearchingBooks ? <Sparkles className="animate-spin" size={18}/> : <Search size={18}/>}
-                    </button>
-                  </div>
-
-                  {bookSearchResults.length > 0 && (
-                    <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', borderRadius: '8px', padding: '0.5rem', maxHeight: '200px', overflowY: 'auto' }}>
-                      {bookSearchResults.map(res => (
-                        <div key={res.id} onClick={() => {
-                            if (editingBookId) {
-                              const updated = books.map(b => { if (b.id === editingBookId) { return { ...b, title: res.title, author: res.author, totalPages: res.totalPages, thumbnail: res.thumbnail, category: res.category, isPendingEnrichment: false }; } return b; });
-                              saveBooksToDb(updated); setShowAddBook(false); setBookSearchResults([]); setEditingBookId(null);
-                            } else {
-                              setNewBook({ title: res.title, author: res.author, currentPage: 0, totalPages: res.totalPages, thumbnail: res.thumbnail, category: res.category }); setBookSearchResults([]);
-                            }
-                          }}
-                          style={{ display: 'flex', gap: '0.75rem', padding: '0.5rem', cursor: 'pointer', borderRadius: '6px', borderBottom: isDark ? '1px solid #333' : '1px solid var(--border-soft)' }}
-                        >
-                          <img src={res.thumbnail || 'https://via.placeholder.com/40x60?text=No+Cover'} alt="Capa" style={{ width: '40px', height: '60px', objectFit: 'cover', borderRadius: '4px' }} />
-                          <div style={{ textAlign: 'left' }}>
-                            <div style={{ fontSize: '0.9rem', fontWeight: 'bold', color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>{res.title}</div>
-                            <div style={{ fontSize: '0.8rem', color: 'var(--gray)' }}>{res.author}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* FORMULÁRIO MANUAL */}
-                {bookSearchResults.length === 0 && !isSearchingBooks && (
-                  <>
-                    <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '1rem', marginBottom: '1rem' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--gray)', marginBottom: '0.2rem' }}>Título</label>
-                        <input type="text" value={newBook.title} onChange={(e) => setNewBook({...newBook, title: e.target.value})} placeholder="Título..." style={{ padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'var(--border-light)'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)' }} />
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--gray)', marginBottom: '0.2rem' }}>Autor</label>
-                        <input type="text" value={newBook.author} onChange={(e) => setNewBook({...newBook, author: e.target.value})} placeholder="Autor..." style={{ padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'var(--border-light)'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)' }} />
-                      </div>
-                    </div>
-                    
-                    <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '1rem', marginBottom: '1.5rem' }}>
-                      <div style={{ flex: 1 }}>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--gray)' }}>Pág. Atual</label>
-                        <input type="number" value={newBook.currentPage} onChange={(e) => setNewBook({...newBook, currentPage: parseInt(e.target.value) || 0})} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'var(--border-light)'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)' }} />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--gray)' }}>Total Págs</label>
-                        <input type="number" value={newBook.totalPages} onChange={(e) => setNewBook({...newBook, totalPages: parseInt(e.target.value) || 0})} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'var(--border-light)'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)' }} />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--gray)' }}>Link do PDF</label>
-                        <input type="text" value={newBook.link || ''} onChange={(e) => setNewBook({...newBook, link: e.target.value})} placeholder="https://..." style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'var(--border-light)'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)' }} />
-                      </div>
-                    </div>
-                  </>
-                )}
-                
-                <button 
-                  onClick={() => {
-                    if(!newBook.title) return showToast('Dê um título ao livro.');
-                    let updated;
-                    if (editingBookId) {
-                      updated = books.map(b => b.id === editingBookId ? { ...b, ...newBook } : b);
-                    } else {
-                      updated = [{ id: `book_${Date.now()}`, ...newBook, status: 'lendo', finishedDate: null }, ...books];
-                    }
-                    saveBooksToDb(updated);
-                    setShowAddBook(false); setBookSearchQuery(''); setNewBook({ title: '', author: '', currentPage: 0, totalPages: 0 }); setEditingBookId(null);
-                  }}
-                  style={{ width: '100%', padding: '0.75rem', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', fontSize: '1rem' }}
-                >
-                  <Save size={18} style={{ marginRight: '0.5rem' }}/> {editingBookId ? 'Salvar Alterações' : 'Guardar na Estante'}
-                </button>
-              </div>
-            )}
-
-            {/* A GRANDE ESTANTE DE LIVROS */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-              {(() => {
-                const filteredBooks = books.filter(b => b.title.toLowerCase().includes(shelfSearchTerm.toLowerCase()) || b.author.toLowerCase().includes(shelfSearchTerm.toLowerCase()));
-                const attentionBooks = filteredBooks.filter(b => !b.isPendingEnrichment && b.totalPages === 0);
-                const readBooks = filteredBooks.filter(b => b.status === 'lido' || b.finishedDate || (b.totalPages > 0 && b.currentPage >= b.totalPages));
-                const ownedBooks = filteredBooks.filter(b => b.status === 'juro' && !attentionBooks.includes(b) && !readBooks.includes(b));
-                const wishBooks = filteredBooks.filter(b => b.status === 'desejo' && !attentionBooks.includes(b) && !readBooks.includes(b));
-                const readingBooks = filteredBooks.filter(b => !attentionBooks.includes(b) && !readBooks.includes(b) && !ownedBooks.includes(b) && !wishBooks.includes(b));
-
-                const toggleDeleteSelection = (id) => {
-                  if (selectedForDeletion.includes(id)) setSelectedForDeletion(prev => prev.filter(item => item !== id));
-                  else setSelectedForDeletion(prev => [...prev, id]);
-                };
-
-                const renderBookCard = (book, isWarning) => {
-                  const progress = book.totalPages > 0 ? Math.min(100, Math.round((book.currentPage / book.totalPages) * 100)) : 0;
-                  const isFinished = !!book.finishedDate || (progress >= 100 && book.totalPages > 0);
-                  const isPending = book.isPendingEnrichment;
-
-                  return (
-                    <div key={book.id} style={{ background: isFinished ? (isDark ? 'rgba(76, 175, 80, 0.05)' : '#f0fdf4') : (isWarning ? (isDark ? 'rgba(231,76,60,0.05)' : '#fff5f5') : (isDark ? 'rgba(26, 26, 46, 0.4)' : 'rgba(255, 255, 255, 0.8)')), border: `1px solid ${isWarning ? 'var(--danger)' : (isFinished ? 'var(--success)' : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'))}`, borderRadius: '12px', padding: '1.2rem', position: 'relative', overflow: 'hidden', display: 'flex', gap: '1rem' }}>
-                      {isWarning && <input type="checkbox" checked={selectedForDeletion.includes(book.id)} onChange={() => toggleDeleteSelection(book.id)} style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 5, width: '20px', height: '20px', cursor: 'pointer' }} />}
-                      
-                      <div style={{ flexShrink: 0, width: '80px', height: '120px', background: '#333', borderRadius: '6px', overflow: 'hidden', boxShadow: '0 4px 10px rgba(0,0,0,0.3)', position: 'relative' }}>
-                        <img src={book.thumbnail || 'https://placehold.co/80x120/1a1a2e/d4af37?text=Sem+Capa'} alt="Capa" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        {isPending && <div className="animate-fadeIn" style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.8)', color: 'var(--gold-bright)', fontSize: '0.65rem', textAlign: 'center', padding: '4px 0', fontWeight: 'bold' }}>Buscando...</div>}
-                      </div>
-
-                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                          <h3 style={{ margin: 0, color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.1rem', fontFamily: "'Cinzel', serif", lineHeight: '1.2' }}>{book.title}</h3>
-                          <div style={{ display: 'flex', gap: '0.3rem' }}>
-                            <button onClick={() => { setEditingBookId(book.id); setNewBook(book); setShowAddBook(true); window.scrollTo(0,0); }} style={{ background: 'transparent', border: 'none', color: isDark ? 'var(--gold)' : 'var(--umber)', cursor: 'pointer' }}><Edit size={14} /></button>
-                            <button onClick={() => showConfirm('Remover da estante?', () => saveBooksToDb(books.filter(b => b.id !== book.id)), { danger: true })} style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}><Trash2 size={14} /></button>
-                          </div>
-                        </div>
-                        <p style={{ margin: '0.2rem 0 0.5rem 0', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontSize: '0.85rem', fontStyle: 'italic' }}>{book.author}</p>
-                        {book.category && <span style={{ alignSelf: 'flex-start', fontSize: '0.65rem', padding: '2px 6px', background: isDark ? 'rgba(212,175,55,0.1)' : 'rgba(0,0,0,0.05)', borderRadius: '4px', color: isDark ? 'var(--gold)' : 'var(--umber)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '0.75rem' }}>{book.category}</span>}
-
-                        {isWarning ? (
-                           <div style={{ marginTop: 'auto', padding: '0.6rem', background: 'var(--danger)', color: 'white', borderRadius: '6px', fontSize: '0.8rem', textAlign: 'center', cursor: 'pointer', fontWeight: 'bold', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.4rem', boxShadow: '0 2px 5px rgba(231, 76, 60, 0.3)' }} onClick={() => { setEditingBookId(book.id); setNewBook(book); setShowAddBook(true); window.scrollTo(0,0); }}>
-                             <Search size={14} /> Completar Dados
-                           </div>
-                        ) : (
-                          <>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', marginBottom: '0.3rem' }}>
-                              <span>{isPending ? 'Analisando os astros...' : `${progress}% concluído`}</span>
-                              {isFinished && <span style={{ color: 'var(--success)' }}>Lido</span>}
-                            </div>
-                            <div style={{ width: '100%', height: '6px', background: isDark ? 'rgba(255,255,255,0.1)' : 'var(--border-soft)', borderRadius: '3px', overflow: 'hidden', marginBottom: '1rem' }}>
-                              <div style={{ width: `${progress}%`, height: '100%', background: isFinished ? 'var(--success)' : (isDark ? 'var(--gold)' : 'var(--umber)'), transition: 'width 0.8s ease' }}></div>
-                            </div>
-                            {!isFinished && (
-                              <div style={{ display: 'flex', gap: '0.4rem' }}>
-                                <button onClick={() => {
-                                  showPrompt(`Em qual página você parou? (Total: ${book.totalPages})`, (inputPagina) => {
-                                    if (inputPagina && !isNaN(inputPagina)) {
-                                      const novaPag = Math.min(book.totalPages, parseInt(inputPagina));
-                                      const acabouAgora = (novaPag >= book.totalPages);
-                                      saveBooksToDb(books.map(b => b.id === book.id ? { ...b, currentPage: novaPag, finishedDate: acabouAgora ? new Date().toISOString() : null } : b));
-                                    }
-                                  }, { defaultValue: book.currentPage, inputType: 'number', submitLabel: 'Atualizar' });
-                                }} style={{ flex: 1, padding: '0.5rem', background: 'transparent', color: isDark ? 'var(--gold)' : 'var(--umber)', border: `1px solid ${isDark ? 'rgba(212,175,55,0.4)' : 'var(--border-light)'}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}>+ Atualizar</button>
-                              </div>
-                            )}
-                          </>
-                        )}
-                        
-                        <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.75rem' }}>
-                          {book.link && <a href={book.link} target="_blank" rel="noopener noreferrer" style={{ flex: 1, padding: '0.5rem', background: '#3498DB', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold', textDecoration: 'none', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}><FileText size={12} /> Abrir PDF</a>}
-                          <button onClick={(e) => { e.stopPropagation(); setExpandedNotesId(prev => prev === book.id ? null : book.id); }} style={{ flex: 1, padding: '0.5rem', background: expandedNotesId === book.id ? (isDark ? 'var(--gold)' : 'var(--umber)') : (isDark ? 'rgba(255,255,255,0.1)' : '#f0f0f0'), color: expandedNotesId === book.id ? (isDark ? 'var(--bg-dark)' : 'white') : (isDark ? 'var(--parchment)' : 'var(--ink)'), border: `1px solid ${expandedNotesId === book.id ? 'transparent' : (isDark ? 'var(--gray-strong)' : 'var(--border-light)')}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', transition: 'all 0.2s' }}><Edit size={12} /> {book.notes ? 'Ver Notas' : '+ Notas'}</button>
-                        </div>
-
-                        {expandedNotesId === book.id && (
-                          <div className="animate-fadeIn" style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }} onClick={(e) => e.stopPropagation()}>
-                            <textarea value={book.notes || ''} onChange={(e) => setBooks(books.map(b => b.id === book.id ? { ...b, notes: e.target.value } : b))} placeholder="Suas reflexões..." rows={4} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.4)' : 'var(--border-light)'}`, background: isDark ? 'rgba(0,0,0,0.4)' : 'var(--white)', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '0.9rem', fontFamily: 'Georgia, serif', resize: 'vertical' }} />
-                            <button onClick={(e) => { e.stopPropagation(); saveBooksToDb(books); setExpandedNotesId(null); }} style={{ alignSelf: 'flex-end', padding: '0.5rem 1.5rem', background: 'var(--success)', color: 'white', border: 'none', borderRadius: '6px', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><Save size={14} /> Salvar Fichamento</button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                };
-                
-                return (
-                  <>
-                    {/* A TRILHA DE FORMAÇÃO VEM AQUI PRIMEIRO, SEMPRE VISÍVEL */}
-                  <TrilhaFormacao 
-                    books={books} 
-                    isDark={isDark} 
-                    setNewBook={setNewBook} 
-                    setShowAddBook={setShowAddBook} 
-                    saveBooksToDb={saveBooksToDb}
-                    setBookSearchQuery={setBookSearchQuery}
-                    searchBooks={searchBooks}
-                  />
-                      
-
-                    {/* BARRA DE PESQUISA NA ESTANTE */}
-                    {books.length > 0 && (
-                      <div style={{ position: 'relative', marginBottom: '1.5rem' }}>
-                        <Search size={18} color={isDark ? 'var(--gold-muted)' : 'var(--umber-muted)'} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
-                        <input type="text" placeholder="Filtrar livros por título ou autor..." value={shelfSearchTerm} onChange={(e) => setShelfSearchTerm(e.target.value)} style={{ width: '100%', padding: '0.6rem 0.6rem 0.6rem 2.8rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'var(--border-light)'}`, borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.2)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }} />
-                      </div>
-                    )}
-
-                    {books.length === 0 && !showAddBook ? (
-                      <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '3rem 1.5rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)' }}>
-                        <Bookmark size={48} style={{ margin: '0 auto 1rem', opacity: 0.6 }} />
-                        <p style={{ fontSize: '1.15rem', fontFamily: "'Cinzel', serif", color: isDark ? 'var(--parchment)' : 'var(--ink)', marginBottom: '0.4rem' }}>Sua estante está vazia — por enquanto.</p>
-                        <p style={{ fontSize: '0.95rem', marginBottom: '1.5rem' }}>Todo grande leitor começa com um livro só. Qual é o que está na sua mesa de cabeceira agora?</p>
-                        <button onClick={() => setShowAddBook(true)} style={{ padding: '0.7rem 1.4rem', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', fontFamily: 'Georgia, serif' }}>
-                          <Plus size={16} /> Adicionar meu primeiro livro
-                        </button>
-                      </div>
-                    ) : (
-                      <>
-                        {/* 1. SEÇÃO ESTOU LENDO */}
-                        {readingBooks.length > 0 && (
-                          <div style={{ marginBottom: '1.5rem' }}>
-                            <h3 style={{ margin: '0 0 1rem 0', color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><BookOpen size={18} /> Estante (Lendo Agora)</h3>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
-                              {readingBooks.map(b => renderBookCard(b, false))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* 2. SEÇÃO PROMESSSAS (JÁ TENHO) */}
-                        {ownedBooks.length > 0 && (
-                          <div style={{ marginBottom: '1.5rem' }}>
-                            <h3 style={{ margin: '0 0 1rem 0', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Bookmark size={18} /> Minha Biblioteca (Vou Começar)</h3>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
-                              {ownedBooks.map(b => renderBookCard(b, false))}
-                            </div>
-                          </div>
-                        )}
-                        
-                        {/* 3. SEÇÃO REQUER ATENÇÃO (COM EXCLUSÃO EM LOTE) */}
-                        {attentionBooks.length > 0 && (
-                          <div style={{ marginBottom: '1.5rem', paddingTop: '1.5rem', borderTop: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`}}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
-                              <h3 style={{ margin: 0, color: 'var(--danger)', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><AlertCircle size={18} /> Requer Atenção (Sem Páginas)</h3>
-                              {selectedForDeletion.length > 0 && (
-                                <button onClick={() => showConfirm(`Apagar ${selectedForDeletion.length} livros permanentemente?`, () => { saveBooksToDb(books.filter(b => !selectedForDeletion.includes(b.id))); setSelectedForDeletion([]); }, { danger: true })} style={{ background: 'var(--danger)', color: 'white', padding: '0.5rem 1rem', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>
-                                  🗑️ Apagar Selecionados ({selectedForDeletion.length})
-                                </button>
-                              )}
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
-                              {attentionBooks.map(b => renderBookCard(b, true))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* 4. SEÇÃO LISTA DE DESEJOS */}
-                        {wishBooks.length > 0 && (
-                          <div style={{ marginBottom: '1.5rem' }}>
-                            <h3 style={{ margin: '0 0 1rem 0', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Star size={18} /> Lista de Desejos (Quero Comprar)</h3>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem', opacity: 0.8 }}>
-                              {wishBooks.map(b => renderBookCard(b, false))}
-                            </div>
-                          </div>
-                        )}
-                        
-                        {/* 5. SEÇÃO JÁ LIDOS (GAVETA SANFONA) */}
-                        {readBooks.length > 0 && (
-                          <div style={{ paddingTop: '1.5rem', borderTop: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)'}`}}>
-                            <div onClick={() => setShowReadBooks(!showReadBooks)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', padding: '0.5rem 0' }}>
-                              <h3 style={{ margin: 0, color: 'var(--success)', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Award size={18} /> Sabedoria Acumulada ({readBooks.length} obras lidas)</h3>
-                              {showReadBooks ? <ChevronUp size={20} color="var(--success)" /> : <ChevronDown size={20} color="var(--success)" />}
-                            </div>
-                            {showReadBooks && (
-                              <div className="animate-fadeIn" style={{ marginTop: '1.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
-                                {readBooks.sort((a,b) => new Date(b.finishedDate || 0) - new Date(a.finishedDate || 0)).map(b => renderBookCard(b, false))}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </>
-                );
-              })()}
-            </div>
-          </div>
+          <Suspense fallback={<ViewFallback />}><LeiturasView {...{ bookSearchQuery, bookSearchResults, books, dailyStudyTip, editingBookId, expandedNotesId, favoriteTheme, finishedBooksCount, isDark, isMobile, isSearchingBooks, newBook, saveBooksToDb, searchBooks, selectedForDeletion, setBarcodeScanError, setBookSearchQuery, setBookSearchResults, setBooks, setEditingBookId, setExpandedNotesId, setNewBook, setSelectedForDeletion, setShelfSearchTerm, setShowAddBook, setShowBarcodeScanner, setShowReadBooks, shelfSearchTerm, showAddBook, showConfirm, showPrompt, showReadBooks, showToast, totalForgedPages }} /></Suspense>
         )}
 
         {/* SEÇÃO DA BIBLIOTECA DE VIRTUDES (AGORA FUNDIDA COM LEITURAS E EM GAVETA) */}
         {view === 'leituras' && (
-          <div className="animate-fadeIn" style={{ marginTop: '2rem' }}>
-            <div style={getBlockStyle('partial', isVirtuesOpen, isDark ? 'var(--gold)' : 'var(--umber-soft)')}>
-              <div onClick={() => setIsVirtuesOpen(!isVirtuesOpen)} style={getHeaderStyle('partial', isVirtuesOpen)}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <Book size={28} color={isDark ? 'var(--gold)' : 'var(--umber-soft)'} />
-                  <h2 style={{ margin: 0, fontSize: 'clamp(1.1rem, 3vw, 1.4rem)', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: "'Cinzel', serif" }}>
-                    {fvUnlocked ? "Virtudes Acropolitanas" : "Biblioteca de Virtudes"}
-                  </h2>
-                </div>
-                {isVirtuesOpen ? <ChevronUp size={24} color={isDark ? 'var(--gold)' : 'var(--umber-soft)'} /> : <ChevronDown size={24} color={isDark ? 'var(--gold)' : 'var(--umber-soft)'} />}
-              </div>
-
-              {isVirtuesOpen && (
-                <div className="animate-fadeIn" style={{ padding: '0 2rem 2rem 2rem' }}>
-                  <p style={{ color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', marginBottom: '2rem', fontSize: '1rem', fontStyle: 'italic' }}>
-                    Conheça as virtudes que estamos estudando e suas práticas
-                  </p>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
-                    {virtues.map((virtue, index) => (
-                      <div key={index} onClick={() => setSelectedVirtueDetail(selectedVirtueDetail === virtue.name ? null : virtue.name)} style={{ padding: '1.5rem', background: selectedVirtueDetail === virtue.name ? (isDark ? `${virtue.color}20` : `${virtue.color}15`) : (isDark ? 'rgba(26, 26, 46, 0.4)' : 'rgba(255, 255, 255, 0.8)'), border: `2px solid ${selectedVirtueDetail === virtue.name ? virtue.color : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)')}`, borderRadius: '12px', cursor: 'pointer', transition: 'all 0.3s ease' }}>
-                        <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '1.3rem', color: virtue.color, fontFamily: "'Cinzel', serif" }}>{virtue.name}</h3>
-                        <p style={{ fontSize: '0.95rem', color: isDark ? 'var(--tan-soft)' : 'var(--umber-muted)', margin: '0 0 1rem 0', fontStyle: 'italic' }}>{virtue.shortDesc}</p>
-                        {selectedVirtueDetail === virtue.name && (
-                          <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}` }}>
-                            <p style={{ fontSize: '1rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', marginBottom: '1rem', lineHeight: '1.7' }}>{virtue.description}</p>
-                            <div style={{ padding: '1rem', background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'rgba(255, 255, 255, 0.5)', borderRadius: '8px' }}>
-                              <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem', color: virtue.color, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Práticas Sugeridas:</h4>
-                              <p style={{ fontSize: '0.95rem', color: isDark ? 'var(--tan-soft)' : 'var(--umber-muted)', margin: 0, lineHeight: '1.8', whiteSpace: 'pre-line' }}>
-                                {fvUnlocked ? (virtue.internalPractices || virtue.practices) : virtue.practices}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+          <Suspense fallback={<ViewFallback />}><VirtuesLibraryView {...{ fvUnlocked, getBlockStyle, getHeaderStyle, isDark, isVirtuesOpen, selectedVirtueDetail, setIsVirtuesOpen, setSelectedVirtueDetail }} /></Suspense>
         )}
 
         {/* VIEW: ANALYTICS (Métricas da Alma) */}
         {view === 'analytics' && (
-          <div className="animate-fadeIn">
-            <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', padding: '2rem', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-                <TrendingUp size={32} color={isDark ? 'var(--gold)' : 'var(--umber)'} />
-                <h2 style={{ margin: 0, fontSize: 'clamp(1.3rem, 3vw, 1.8rem)', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: "'Cinzel', serif" }}>Métricas da Alma</h2>
-              </div>
-              <p style={{ color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', marginBottom: '2rem', fontSize: '1rem' }}>Observe seus padrões de comportamento e a constância do seu autoexame.</p>
-
-              {entries.length === 0 ? (
-                <div className="animate-fadeIn" style={{ padding: '3rem 1.5rem', textAlign: 'center', background: isDark ? 'rgba(26, 26, 46, 0.4)' : 'var(--bg-light)', borderRadius: '12px' }}>
-                  <TrendingUp size={48} color={isDark ? 'var(--gold)' : 'var(--umber)'} style={{ margin: '0 auto 1rem', opacity: 0.6 }} />
-                  <p style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: "'Cinzel', serif", fontSize: '1.15rem', marginBottom: '0.4rem' }}>Suas métricas ainda estão em branco.</p>
-                  <p style={{ color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontSize: '0.95rem' }}>Cada dia preenchido no diário vira um traço nesse retrato. Volte aqui depois de alguns dias.</p>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                   {(() => {
-                      const total = entries.length;
-                      const morningCount = entries.filter(e => e.morningDone).length;
-                      const eveningCount = entries.filter(e => e.eveningDone).length;
-
-                      // Calcula as Virtudes Mais Invocadas
-                      const virtueCounts = {};
-                      entries.forEach(e => {
-                         if(e.virtue) virtueCounts[e.virtue] = (virtueCounts[e.virtue] || 0) + 1;
-                      });
-                      const topVirtues = Object.entries(virtueCounts).sort((a,b) => b[1] - a[1]).slice(0, 5);
-
-                      // ==========================================
-                      // LÓGICA DE COMPARAÇÃO DOS CICLOS (30 DIAS)
-                      // ==========================================
-                      const hoje = new Date();
-                      const trintaDiasAtras = new Date(); trintaDiasAtras.setDate(hoje.getDate() - 30);
-                      const sessentaDiasAtras = new Date(); sessentaDiasAtras.setDate(hoje.getDate() - 60);
-
-                      const cicloAtual = entries.filter(e => { const d = new Date(e.date + 'T12:00:00'); return d >= trintaDiasAtras && d <= hoje; });
-                      const cicloAnterior = entries.filter(e => { const d = new Date(e.date + 'T12:00:00'); return d >= sessentaDiasAtras && d < trintaDiasAtras; });
-
-                      // CONTAGEM DE PRÁTICAS (Em vez de tarefas)
-                      const countPraticas = (ciclo) => ciclo.reduce((acc, curr) => {
-                          let count = 0;
-                          if (curr.fvDaily?.praticas) {
-                              count += Object.values(curr.fvDaily.praticas).filter(v => v === true).length;
-                          }
-                          return acc + count;
-                      }, 0);
-
-                      const preenchimentosAtual = cicloAtual.length;
-                      const preenchimentosAnterior = cicloAnterior.length;
-                      const varPreenchimentos = preenchimentosAnterior === 0 ? (preenchimentosAtual === 0 ? 0 : 100) : Math.round(((preenchimentosAtual - preenchimentosAnterior) / preenchimentosAnterior) * 100);
-
-                      const praticasAtual = countPraticas(cicloAtual);
-                      const praticasAnterior = countPraticas(cicloAnterior);
-                      const varPraticas = praticasAnterior === 0 ? (praticasAtual === 0 ? 0 : 100) : Math.round(((praticasAtual - praticasAnterior) / praticasAnterior) * 100);
-
-                      return (
-                        <>
-                          {/* CARDS DE VISÃO GERAL (NOVO FORMATO DASHBOARD) */}
-                          <div style={{ background: isDark ? 'rgba(212, 175, 55, 0.05)' : '#fffbf0', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(212, 175, 55, 0.3)'}`, marginBottom: '2rem' }}>
-                            <h4 style={{ margin: '0 0 1rem 0', color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', fontSize: '1.1rem', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem' }}><TrendingUp size={18} /> Resumo do Ciclo (30 dias)</h4>
-                            
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                              
-                              {/* Card 1: Preenchimentos */}
-                              <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', padding: '1.5rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'var(--border-light)'}`, display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                                <span style={{ fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', marginBottom: '0.5rem', textAlign: 'center' }}>Dias Forjados</span>
-                                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
-                                  <span style={{ fontSize: '2.5rem', fontWeight: 'bold', color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', fontFamily: "'Cinzel', serif" }}>{preenchimentosAtual}</span>
-                                  <span style={{ fontSize: '1rem', color: isDark ? 'var(--gray)' : '#999' }}>/ 30</span>
-                                </div>
-                                <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.3rem', background: varPreenchimentos >= 0 ? 'rgba(76, 175, 80, 0.15)' : 'rgba(231, 76, 60, 0.15)', color: varPreenchimentos >= 0 ? (isDark ? 'var(--success-soft)' : 'var(--success-strong)') : 'var(--danger)', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 'bold' }}>
-                                  {varPreenchimentos >= 0 ? <ChevronUp size={16} /> : <ChevronDown size={16} />} 
-                                  {varPreenchimentos > 0 ? '+' : ''}{varPreenchimentos}%
-                                </div>
-                              </div>
-
-                              {/* Card 2: Práticas Realizadas */}
-                              <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', padding: '1.5rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'var(--border-light)'}`, display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                                <span style={{ fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', marginBottom: '0.5rem', textAlign: 'center' }}>Práticas Realizadas</span>
-                                <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
-                                  <span style={{ fontSize: '2.5rem', fontWeight: 'bold', color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', fontFamily: "'Cinzel', serif" }}>{praticasAtual}</span>
-                                  <span style={{ fontSize: '1rem', color: isDark ? 'var(--gray)' : '#999' }}>ações</span>
-                                </div>
-                                <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.3rem', background: varPraticas >= 0 ? 'rgba(76, 175, 80, 0.15)' : 'rgba(231, 76, 60, 0.15)', color: varPraticas >= 0 ? (isDark ? 'var(--success-soft)' : 'var(--success-strong)') : 'var(--danger)', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 'bold' }}>
-                                  {varPraticas >= 0 ? <ChevronUp size={16} /> : <ChevronDown size={16} />} 
-                                  {varPraticas > 0 ? '+' : ''}{varPraticas}%
-                                </div>
-                              </div>
-
-                            </div>
-                          </div>
-
-                          {/* GRÁFICO DE BARRAS DAS VIRTUDES */}
-                          <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'white', padding: '2rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}` }}>
-                            <h3 style={{ margin: '0 0 1.5rem 0', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.2rem', fontFamily: "'Cinzel', serif" }}>Virtudes Mais Invocadas</h3>
-                            {topVirtues.length > 0 ? (
-                               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
-                                 {topVirtues.map(([vName, vCount]) => {
-                                    const percentage = Math.round((vCount / total) * 100);
-                                    return (
-                                      <div key={vName}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem', fontSize: '0.95rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontWeight: 'bold' }}>
-                                          <span>{vName}</span>
-                                          <span style={{ color: isDark ? 'var(--gold)' : 'var(--umber)' }}>{vCount} vezes ({percentage}%)</span>
-                                        </div>
-                                        <div style={{ width: '100%', height: '12px', background: isDark ? 'rgba(255,255,255,0.05)' : '#f0f0f0', borderRadius: '6px', overflow: 'hidden' }}>
-                                          <div style={{ width: `${percentage}%`, height: '100%', background: isDark ? 'linear-gradient(90deg, var(--gold-muted) 0%, var(--gold) 100%)' : 'linear-gradient(90deg, var(--umber-soft) 0%, var(--umber) 100%)', borderRadius: '6px', transition: 'width 1s ease-out' }}></div>
-                                        </div>
-                                      </div>
-                                    );
-                                 })}
-                               </div>
-                            ) : (
-                               <p style={{ color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontStyle: 'italic', fontSize: '0.95rem', margin: 0 }}>Nenhuma virtude registrada nas suas anotações matinais.</p>
-                            )}
-                          </div>
-
-                        </>
-                      );
-                   })()}
-                </div>
-              )}
-            </div>
-          </div>
+          <Suspense fallback={<ViewFallback />}><AnalyticsView {...{ entries, isDark }} /></Suspense>
         )}
 
         {/* VIEW: DISCIPULADO */}
         {view === 'gdve' && fvUnlocked && (
-          <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-            
-            {/* 1. RESUMO FIXO NO TOPO (Dashboard de Leitura) */}
-            <div style={{ background: isDark ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.05) 0%, rgba(255, 165, 0, 0.05) 100%)' : '#fffbf0', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255, 215, 0, 0.3)' : '#ffe082'}`, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-              <h3 style={{ margin: '0 0 1.2rem 0', color: isDark ? 'var(--gold-bright)' : 'var(--gold)', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.2rem' }}><Award size={20} /> Planejamento do Discipulado</h3>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1.5rem', paddingBottom: '1.5rem', borderBottom: `1px solid ${isDark ? 'rgba(255,215,0,0.1)' : 'rgba(139,115,85,0.1)'}`, marginBottom: '1.5rem' }}>
-                <div>
-                  <span style={{ fontSize: '0.75rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', textTransform: 'uppercase', fontWeight: 'bold', display: 'block', marginBottom: '0.2rem' }}>Minha Unidade</span>
-                  <strong style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.1rem' }}>{fvUnidade || 'Não definida'}</strong>
-                </div>
-                <div>
-                  <span style={{ fontSize: '0.75rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', textTransform: 'uppercase', fontWeight: 'bold', display: 'block', marginBottom: '0.2rem' }}>Minha Condição</span>
-                  <strong style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.1rem' }}>{fvCondicao || 'Não definida'}</strong>
-                </div>
-                <div>
-                  <span style={{ fontSize: '0.75rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', textTransform: 'uppercase', fontWeight: 'bold', display: 'block', marginBottom: '0.2rem' }}>Mestre / Instrutor</span>
-                  <strong style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.1rem' }}>{fvMasterName || 'Não definido'}</strong>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
-                <div>
-                  <span style={{ fontSize: '0.75rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', textTransform: 'uppercase', fontWeight: 'bold', display: 'block', marginBottom: '0.2rem' }}>Próxima Entrega</span>
-                  <strong style={{ color: 'var(--danger)', fontSize: '1.1rem' }}>{fvNextCartaDate ? new Date(fvNextCartaDate + 'T12:00:00').toLocaleDateString('pt-BR') : '--/--/--'}</strong>
-                </div>
-                <div>
-                  <span style={{ fontSize: '0.75rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', textTransform: 'uppercase', fontWeight: 'bold', display: 'block', marginBottom: '0.2rem' }}>Próxima Reunião</span>
-                  <strong style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.1rem' }}>{fvGdveReuniao ? new Date(fvGdveReuniao).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '--/--/--'}</strong>
-                </div>
-              </div>
-            </div>
-
-            {/* 2. GAVETAS DO QUARTEL GENERAL */}
-            {(() => {
-              // Juiz de Acompanhamento (Checa também se a carta está atrasada)
-              const planFilled = fvMasterName && fvLastMeetingDate && fvLastCartaDate && fvNextCartaDate;
-              let planStatus = !fvMasterName ? 'empty' : (planFilled ? 'full' : 'partial');
-              
-              if (fvNextCartaDate) {
-                const hojeStr = getTodayKey();
-                if (fvNextCartaDate < hojeStr) {
-                  planStatus = 'overdue'; // Aciona o alerta vermelho!
-                }
-              }
-
-              // Juiz do Módulo GDVE (Bastião + Reunião + Práticas)
-              const hasBastiao = fvGdveBastiaoName && fvGdveBastiaoName !== '';
-              const hasMissoes = fvGdveTasks.length > 0;
-              // Usa o state ao vivo (fvDaily), não o snapshot de `entries`, para não ficar
-              // dessincronizado da lista de tarefas logo abaixo ao marcar/desmarcar uma missão.
-              const todayGdveStatus = fvDaily?.gdveTasksStatus || {};
-              const missoesCompletas = fvGdveTasks.filter(t => t.isCycle ? fvGdveCycleStatus[t.id] : (todayGdveStatus[t.id] >= t.target)).length;
-              
-              let gdveStatus = 'empty';
-              if (hasBastiao || hasMissoes || fvDaily.gdveAttendance) {
-                // A reunião só acontece a cada 15 dias, não pode ser exigência diária!
-                if (hasMissoes) {
-                  gdveStatus = (missoesCompletas === fvGdveTasks.length) ? 'full' : 'partial';
-                } else {
-                  // Se não tem missões, mas escolheu o Bastião, consideramos concluído
-                  gdveStatus = hasBastiao ? 'full' : 'partial';
-                }
-              }
-
-              // Juiz de Desafios Pessoais
-              const totalD = customTasks.length;
-              const feitosD = customTasks.filter(t => todayTasksStatus[t.id]).length;
-              const desafiosStatus = totalD === 0 ? 'empty' : (feitosD === 0 ? 'empty' : (feitosD === totalD ? 'full' : 'partial'));
-
-              return (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                  
-                  {/* GAVETA: MESTRE E CARTA */}
-                  <div style={getBlockStyle(planStatus, isGdvePlanOpen, isDark ? 'var(--gold-bright)' : 'var(--umber-bright)')}>
-                    <div onClick={() => setIsGdvePlanOpen(!isGdvePlanOpen)} style={getHeaderStyle(planStatus, isGdvePlanOpen)}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <Shield size={28} color={isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'} />
-                        <h2 style={{ margin: 0, fontSize: 'clamp(1.1rem, 3vw, 1.4rem)', color: planStatus === 'overdue' ? 'var(--danger)' : (isDark ? 'var(--parchment)' : 'var(--ink)'), fontFamily: "'Cinzel', serif", textDecoration: planStatus === 'full' && !isGdvePlanOpen ? 'line-through' : 'none' }}>
-                          Mestre e Carta 
-                          {planStatus === 'partial' && !isGdvePlanOpen && <span style={{fontSize: '0.8rem', opacity: 0.7}}> (Incompleto)</span>}
-                          {planStatus === 'overdue' && !isGdvePlanOpen && <span style={{fontSize: '0.8rem', color: 'var(--danger)', fontStyle: 'italic', fontFamily: 'Georgia, serif'}}> (Atrasada!)</span>}
-                        </h2>
-                      </div>
-                      {isGdvePlanOpen ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
-                    </div>
-
-                    {isGdvePlanOpen && (
-                      <div className="animate-fadeIn" style={{ padding: '0 2rem 2rem 2rem' }}>
-                         
-                         {/* DADOS DE PERFIL */}
-                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                            <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)' }}>Unidade</label>
-                              <select value={fvUnidade || ''} onChange={(e) => setFvUnidade(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : 'var(--border-light)'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }}>
-                                <option value="">Selecione...</option>
-                                {['ACROPOLEPLAY', 'AGORA', 'ÁGUAS CLARAS', 'ALTIPLANO', 'ALTO DA GLORIA', 'ANANINDEUA', 'ANÁPOLIS', 'ARAGUAINA', 'ASA NORTE', 'ASA SUL', 'BARRA DO GARÇAS', 'BELÉM', 'BOA VISTA', 'BODHIDHARMA', 'BRASÍLIA', 'BRASILIA SAMAMBAIA', 'CAMPINA GRANDE', 'CAMPO NOVO DO PARECIS', 'CARUARU', 'CATALÃO', 'CEILÂNDIA', 'CUIABÁ', 'FAZENDA NOVA ACRÓPOLE', 'FORMOSA', 'FORTALEZA DIONISIO TORRES', 'FORTALEZA FÁTIMA', 'FORTALEZA MEIRELES', 'FORTALEZA MESSEJANA', 'FORTALEZA SUL', 'GAMA', 'GOIANIA CIDADE JARDIM', 'GOIÂNIA ELDORADO', 'GOIANIA GARAVELO', 'GOIANIA II', 'GOIANIA ITUMBIARA', 'GOIANIA JARDIM AMÉRICA', 'GOIANIA SETOR OESTE', 'GOIÂNIA UNIVERSITARIO', 'GUARÁ', 'ITACA', 'JOÃO PESSOA', 'JUAZEIRO DO NORTE', 'LAGO SUL', 'MACAPÁ', 'MANAUS', 'MÓDULO SÃO JORGE', 'MOSSORÓ', 'MOSSORÓ ASSU', 'NATAL CANDELARIA', 'NATAL MORRO BRANCO', 'NATAL PONTA NEGRA', 'NATAL TIROL', 'NATAL ZONA NORTE', 'NOVA PARNAMIRIM', 'PALMAS', 'PALMAS AURENY', 'PETROLINA', 'PLANALTINA', 'PORTO VELHO', 'RECIFE BOA VIAGEM', 'RECIFE DERBY', 'RIO VERDE', 'RONDONÓPOLIS', 'SANTA MARIA', 'SÃO LUIS', 'SAO LUIS VINHAIS', 'SENADOR CANEDO', 'SERAPHIS', 'SINOP', 'SOBRADINHO', 'SOBRAL', 'SORRISO', 'SUDOESTE', 'TAGUATINGA', 'TERESINA', 'VALPARAISO', 'Outra'].map(u => <option key={u} value={u}>{u}</option>)}
-                              </select>
-                            </div>
-                            <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)' }}>Condição</label>
-                              <select value={fvCondicao || ''} onChange={(e) => setFvCondicao(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : 'var(--border-light)'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }}>
-                                <option value="">Selecione...</option>
-                                {['GS', 'GF', 'GM', 'Prov GS', 'Prov GF', 'Prov GM'].map(c => <option key={c} value={c}>{c}</option>)}
-                              </select>
-                            </div>
-                            <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)' }}>Mestre / Instrutor (CD)</label>
-                              <input type="text" value={fvMasterName || ''} onChange={(e) => setFvMasterName(e.target.value)} placeholder="Com quem você se reporta..." style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : 'var(--border-light)'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }} />
-                            </div>
-                         </div>
-
-                         {/* DATAS DA CARTA */}
-                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-                            <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)' }}>Último Encontro / Entrevista</label>
-                              <input type="date" value={fvLastMeetingDate || ''} onChange={(e) => setFvLastMeetingDate(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : 'var(--border-light)'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }} />
-                            </div>
-                            <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)' }}>Última Entrega de Carta</label>
-                              <input type="date" value={fvLastCartaDate || ''} onChange={(e) => { const novaData = e.target.value; setFvLastCartaDate(novaData); if (novaData) { const [ano, mes, dia] = novaData.split('-'); const dataCalculada = new Date(parseInt(ano, 10), parseInt(mes, 10) - 1 + 3, parseInt(dia, 10)); setFvNextCartaDate(`${dataCalculada.getFullYear()}-${String(dataCalculada.getMonth() + 1).padStart(2, '0')}-${String(dataCalculada.getDate()).padStart(2, '0')}`); } else { setFvNextCartaDate(''); } }} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : 'var(--border-light)'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }} />
-                            </div>
-                            <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)' }}>Próxima Entrega (Previsão)</label>
-                              <input type="date" value={fvNextCartaDate || ''} onChange={(e) => setFvNextCartaDate(e.target.value)} style={{ width: '100%', padding: '0.75rem', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : 'var(--border-light)'}`, borderRadius: '8px', background: isDark ? 'rgba(26,26,46,0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }} />
-                            </div>
-                         </div>
-
-                         {/* EXPORTAR CARTA DE DEGRAU (SÍNTESE DO CICLO) */}
-                         <div style={{ marginBottom: '2rem', padding: '1.5rem', background: isDark ? 'rgba(0,0,0,0.2)' : 'var(--gray-bg)', borderRadius: '12px', border: `1px dashed ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'var(--border-light)'}` }}>
-                            <button onClick={gerarCartaDegrau} disabled={isGeneratingCartaDegrau} style={{ width: '100%', padding: '0.9rem', background: isGeneratingCartaDegrau ? (isDark ? 'rgba(255,152,0,0.15)' : '#fff3e0') : (isDark ? 'var(--gold)' : 'var(--umber)'), color: isGeneratingCartaDegrau ? (isDark ? 'var(--orange)' : 'var(--orange-strong)') : (isDark ? 'var(--bg-dark)' : 'white'), border: 'none', borderRadius: '8px', fontSize: '1.05rem', fontWeight: 'bold', cursor: isGeneratingCartaDegrau ? 'not-allowed' : 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                              {isGeneratingCartaDegrau ? <Sparkles className="animate-spin" size={18} /> : <FileText size={18} />}
-                              {isGeneratingCartaDegrau ? 'Sintetizando seu ciclo...' : 'Exportar Carta de Degrau (Síntese do Ciclo)'}
-                            </button>
-                            <p style={{ margin: '0.75rem 0 0 0', fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontStyle: 'italic', textAlign: 'center' }}>
-                              Gera um rascunho sintetizando suas respostas da "Escalada (Degrau)" desde {fvLastCartaDate ? `a última entrega (${new Date(fvLastCartaDate + 'T12:00:00').toLocaleDateString('pt-BR')})` : 'os últimos 30 dias'}. Revise com atenção antes de entregar ao seu Instrutor.
-                            </p>
-                         </div>
-
-                         {/* CONFIGURAÇÃO DO CALENDÁRIO DE ATIVIDADES (Com Múltiplos Dias e Horas) */}
-                         <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: `1px dashed ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'var(--border-light)'}`, marginBottom: '2rem' }}>
-                            <h4 style={{ margin: '0 0 1rem 0', color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', fontSize: '1rem', fontFamily: "'Cinzel', serif" }}>Calendário Fixo de Atividades</h4>
-                            
-                            {/* Aulas Regulares e Raio */}
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                               <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'var(--gray-bg)', padding: '1rem', borderRadius: '8px' }}>
-                                 <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)', fontWeight: 'bold' }}>Aula Regular (Curso)</label>
-                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                    <select value={fvCalendar.aulaRegularDia} onChange={(e) => setFvCalendar({...fvCalendar, aulaRegularDia: e.target.value})} style={{ padding: '0.6rem', borderRadius: '6px', background: isDark ? 'rgba(26,26,46,0.8)' : 'var(--white)', color: isDark ? 'var(--parchment)' : 'var(--ink)', border: '1px solid var(--border-light)' }}>
-                                      <option value="">Selecione o Dia...</option>
-                                      {['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'].map((d, i) => <option key={i} value={String(i)}>{d}</option>)}
-                                    </select>
-                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                      <input type="time" title="Início" value={fvCalendar.aulaRegularHora} onChange={(e) => setFvCalendar({...fvCalendar, aulaRegularHora: e.target.value})} style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-light)' }} />
-                                      <span style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>até</span>
-                                      <input type="time" title="Fim" value={fvCalendar.aulaRegularFim} onChange={(e) => setFvCalendar({...fvCalendar, aulaRegularFim: e.target.value})} style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-light)' }} />
-                                    </div>
-                                 </div>
-                               </div>
-                               <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'var(--gray-bg)', padding: '1rem', borderRadius: '8px' }}>
-                                 <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)', fontWeight: 'bold' }}>Reunião de Raio</label>
-                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                    <select value={fvCalendar.reuniaoRaioDia} onChange={(e) => setFvCalendar({...fvCalendar, reuniaoRaioDia: e.target.value})} style={{ padding: '0.6rem', borderRadius: '6px', background: isDark ? 'rgba(26,26,46,0.8)' : 'var(--white)', color: isDark ? 'var(--parchment)' : 'var(--ink)', border: '1px solid var(--border-light)' }}>
-                                      <option value="">Selecione o Dia...</option>
-                                      {['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'].map((d, i) => <option key={i} value={String(i)}>{d}</option>)}
-                                    </select>
-                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                      <input type="time" title="Início" value={fvCalendar.reuniaoRaioHora} onChange={(e) => setFvCalendar({...fvCalendar, reuniaoRaioHora: e.target.value})} style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-light)' }} />
-                                      <span style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>até</span>
-                                      <input type="time" title="Fim" value={fvCalendar.reuniaoRaioFim} onChange={(e) => setFvCalendar({...fvCalendar, reuniaoRaioFim: e.target.value})} style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', border: '1px solid var(--border-light)' }} />
-                                    </div>
-                                 </div>
-                               </div>
-                            </div>
-
-                            {/* Aulas Ministradas (Múltipla Seleção e Horários Individuais) */}
-                            <div style={{ background: isDark ? 'rgba(0,0,0,0.2)' : 'var(--gray-bg)', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem' }}>
-                               <label style={{ display: 'block', marginBottom: '0.6rem', fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)', fontWeight: 'bold' }}>Dias em que Ministro Aula (Múltipla escolha)</label>
-                               
-                               {/* Botões dos Dias */}
-                               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
-                                 {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((dia, index) => {
-                                   const isSelected = (fvCalendar.aulaMinistradaDias || []).includes(String(index));
-                                   return (
-                                     <button 
-                                       key={index} 
-                                       onClick={() => handleDiasMinistradosToggle(String(index))}
-                                       style={{ padding: '0.5rem 0.8rem', background: isSelected ? (isDark ? 'var(--gold)' : 'var(--umber)') : 'transparent', color: isSelected ? (isDark ? 'var(--black)' : 'var(--white)') : (isDark ? 'var(--gold-muted)' : 'var(--gray-text)'), border: `1px solid ${isSelected ? 'transparent' : 'var(--border-light)'}`, borderRadius: '6px', cursor: 'pointer', fontWeight: isSelected ? 'bold' : 'normal' }}
-                                     >
-                                       {dia}
-                                     </button>
-                                   )
-                                 })}
-                               </div>
-
-                               {/* Linhas de Horário que aparecem dependendo do dia marcado */}
-                               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                                 {['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'].map((nomeDia, index) => {
-                                    const diaStr = String(index);
-                                    if (!(fvCalendar.aulaMinistradaDias || []).includes(diaStr)) return null;
-                                    
-                                    const tempos = (fvCalendar.aulaMinistradaTempos || {})[diaStr] || { inicio: '', fim: '' };
-                                    
-                                    return (
-                                      <div key={diaStr} className="animate-fadeIn" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', background: isDark ? 'rgba(255,255,255,0.05)' : 'var(--white)', padding: '0.5rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.3)' : '#ddd'}` }}>
-                                        <span style={{ fontSize: '0.85rem', color: isDark ? 'var(--gold)' : 'var(--umber)', width: '90px', fontWeight: 'bold' }}>{nomeDia}:</span>
-                                        <input type="time" title="Início" value={tempos.inicio} onChange={(e) => { setFvCalendar(prev => ({ ...prev, aulaMinistradaTempos: { ...prev.aulaMinistradaTempos, [diaStr]: { ...prev.aulaMinistradaTempos?.[diaStr], inicio: e.target.value } } })); }} style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', background: isDark ? 'rgba(26,26,46,0.8)' : 'var(--white)', color: isDark ? 'var(--parchment)' : 'var(--ink)', border: '1px solid var(--border-light)' }} />
-                                        <span style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '0.85rem' }}>até</span>
-                                        <input type="time" title="Fim" value={tempos.fim} onChange={(e) => { setFvCalendar(prev => ({ ...prev, aulaMinistradaTempos: { ...prev.aulaMinistradaTempos, [diaStr]: { ...prev.aulaMinistradaTempos?.[diaStr], fim: e.target.value } } })); }} style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', background: isDark ? 'rgba(26,26,46,0.8)' : 'var(--white)', color: isDark ? 'var(--parchment)' : 'var(--ink)', border: '1px solid var(--border-light)' }} />
-                                      </div>
-                                    )
-                                 })}
-                               </div>
-                            </div>
-
-                            {/* Calendário de ED e CRM (Data Exata) */}
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
-                               <div style={{ background: isDark ? 'rgba(155, 89, 182, 0.1)' : '#fdf8ff', padding: '1rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.3)' : '#e1bee7'}` }}>
-                                 <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', color: isDark ? 'var(--purple-soft)' : 'var(--purple)', fontWeight: 'bold' }}>Data da Próxima CRM</label>
-                                 <input type="date" value={fvCalendar.dataCrm} onChange={(e) => setFvCalendar({...fvCalendar, dataCrm: e.target.value})} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', background: isDark ? 'rgba(26,26,46,0.8)' : 'var(--white)', color: isDark ? 'var(--parchment)' : 'var(--ink)', border: '1px solid var(--border-light)' }} />
-                               </div>
-                               <div style={{ background: isDark ? 'rgba(74, 144, 226, 0.1)' : '#f4f8ff', padding: '1rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(74, 144, 226, 0.3)' : 'rgba(74, 144, 226, 0.3)'}` }}>
-                                 <label style={{ display: 'block', marginBottom: '0.4rem', fontSize: '0.85rem', color: isDark ? '#6cb2eb' : 'var(--blue)', fontWeight: 'bold' }}>Data da Próxima ED</label>
-                                 <input type="date" value={fvCalendar.dataAulaEd} onChange={(e) => setFvCalendar({...fvCalendar, dataAulaEd: e.target.value})} style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', background: isDark ? 'rgba(26,26,46,0.8)' : 'var(--white)', color: isDark ? 'var(--parchment)' : 'var(--ink)', border: '1px solid var(--border-light)' }} />
-                               </div>
-                            </div>
-                         </div>
-                         
-                         <button 
-                           onClick={() => {
-                             saveFvPlanning();
-                             setIsGdvePlanOpen(false);
-                           }} 
-                           style={{ padding: '0.8rem 1.5rem', width: '100%', justifyContent: 'center', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-                         >
-                           <Save size={18} /> Salvar Ficha Completa
-                         </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* GAVETA: MÓDULO GDVE (A Grande Fusão) */}
-                  <div style={getBlockStyle(gdveStatus, isGdveMóduloOpen, isDark ? 'var(--gold-bright)' : 'var(--umber-bright)')}>
-                    <div onClick={() => setIsGdveMóduloOpen(!isGdveMóduloOpen)} style={getHeaderStyle(gdveStatus, isGdveMóduloOpen)}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <BookOpen size={28} color={isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'} />
-                        <h2 style={{ margin: 0, fontSize: 'clamp(1.1rem, 3vw, 1.4rem)', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: "'Cinzel', serif", textDecoration: gdveStatus === 'full' && !isGdveMóduloOpen ? 'line-through' : 'none' }}>
-                          Módulo GDVE {gdveStatus === 'partial' && !isGdveMóduloOpen && <span style={{fontSize: '0.8rem', opacity: 0.7}}> (Em Andamento)</span>}
-                        </h2>
-                      </div>
-                      {isGdveMóduloOpen ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
-                    </div>
-
-                    {isGdveMóduloOpen && (
-                      <div className="animate-fadeIn" style={{ padding: '0 2rem 2rem 2rem' }}>
-
-                        {/* Seção Grupo: cada participante continua controlando suas próprias
-                            tarefas/bastiões/presença abaixo (nada muda nisso) — o grupo só serve
-                            pra avisar os colegas quando alguém concluir algo. */}
-                        <div style={{ padding: '1rem', background: isDark ? 'rgba(76, 175, 80, 0.05)' : 'rgba(232, 245, 233, 0.5)', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(76,175,80,0.3)' : '#c8e6c9'}`, marginBottom: '2rem' }}>
-                          {isLoadingGroups ? (
-                            <p style={{ margin: 0, color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)', fontSize: '0.9rem' }}>Carregando grupo...</p>
-                          ) : myGroups.length === 0 ? (
-                            <div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                                <Users size={20} color={isDark ? 'var(--success-soft)' : 'var(--success-strong)'} />
-                                <strong style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>Grupo de Estudo</strong>
-                              </div>
-                              <p style={{ fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)', marginBottom: '1rem' }}>
-                                Junte-se a colegas de degrau para serem avisados quando alguém concluir uma tarefa aqui embaixo.
-                              </p>
-                              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                                <button onClick={() => setShowCreateGroupModal(true)} style={{ padding: '0.6rem 1.2rem', background: isDark ? 'var(--success)' : 'var(--success-strong)', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}>
-                                  <Plus size={16} /> Criar Grupo
-                                </button>
-                                <button
-                                  disabled={isJoiningGroup}
-                                  onClick={() => {
-                                    showPrompt('Cole aqui o código de convite (ou o link inteiro):', (code) => {
-                                      if (code) joinGroupByCode(code);
-                                    }, { placeholder: 'Código de convite', submitLabel: 'Entrar' });
-                                  }}
-                                  style={{ padding: '0.6rem 1.2rem', background: 'transparent', color: isDark ? 'var(--success-soft)' : 'var(--success-strong)', border: `1px solid ${isDark ? 'var(--success-soft)' : 'var(--success-strong)'}`, borderRadius: '6px', fontWeight: 'bold', cursor: isJoiningGroup ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', opacity: isJoiningGroup ? 0.6 : 1, fontSize: '0.85rem' }}
-                                >
-                                  <Link2 size={16} /> Entrar com Código
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            myGroups.map(group => (
-                              <div key={group.id} style={{ marginBottom: myGroups.length > 1 ? '1rem' : 0, paddingBottom: myGroups.length > 1 ? '1rem' : 0, borderBottom: myGroups.length > 1 ? `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'var(--border-soft)'}` : 'none' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                                  <div>
-                                    <strong style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>{group.name}</strong>
-                                    <div style={{ fontSize: '0.8rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)' }}>
-                                      {group.memberUids.length} {group.memberUids.length === 1 ? 'membro' : 'membros'}
-                                      {group.isCoordinator && ' · você coordena'}
-                                    </div>
-                                  </div>
-                                  <button onClick={() => copyInviteLink(group.inviteCode)} style={{ padding: '0.4rem 0.8rem', background: 'transparent', color: isDark ? 'var(--success-soft)' : 'var(--success-strong)', border: `1px solid ${isDark ? 'var(--success-soft)' : 'var(--success-strong)'}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                                    <Copy size={13} /> Convite: {group.inviteCode}
-                                  </button>
-                                </div>
-
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginBottom: '0.5rem' }}>
-                                  {group.memberUids.map(mUid => (
-                                    <span key={mUid} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.2rem 0.5rem', background: isDark ? 'rgba(0,0,0,0.25)' : 'white', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#ddd'}`, borderRadius: '999px', fontSize: '0.75rem', color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>
-                                      {group.memberNames?.[mUid] || 'Membro'}{mUid === group.coordinatorUid && ' 👑'}
-                                      {group.isCoordinator && mUid !== user.uid && (
-                                        <button onClick={() => removeGroupMember(group.id, mUid)} title="Remover do grupo" style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: 0, display: 'flex' }}><X size={12} /></button>
-                                      )}
-                                    </span>
-                                  ))}
-                                </div>
-
-                                {group.isCoordinator ? (
-                                  <button onClick={() => deleteGroupHandler(group.id, group.name)} style={{ padding: '0.4rem 0.8rem', background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)', borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                                    <Trash2 size={13} /> Excluir Grupo
-                                  </button>
-                                ) : (
-                                  <button onClick={() => leaveGroupHandler(group.id)} style={{ padding: '0.4rem 0.8rem', background: 'transparent', color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)', border: `1px solid ${isDark ? 'var(--gray-strong)' : 'var(--border-light)'}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.75rem' }}>
-                                    Sair do Grupo
-                                  </button>
-                                )}
-                              </div>
-                            ))
-                          )}
-                        </div>
-
-                        {/* Seção Reunião */}
-                        <div style={{ padding: '1rem', background: fvDaily.gdveAttendance ? 'rgba(76, 175, 80, 0.1)' : 'rgba(255, 215, 0, 0.05)', borderRadius: '12px', border: `1px solid ${fvDaily.gdveAttendance ? 'var(--success)' : 'var(--gold-bright)'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-                           <span style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)', fontWeight: 'bold' }}>Reunião Quinzenal:</span>
-                           <button onClick={registerGdveAttendance} style={{ padding: '0.5rem 1rem', background: fvDaily.gdveAttendance ? 'var(--success)' : 'transparent', color: fvDaily.gdveAttendance ? 'white' : 'var(--gold-bright)', border: `1px solid ${fvDaily.gdveAttendance ? 'var(--success)' : 'var(--gold-bright)'}`, borderRadius: '6px', cursor: 'pointer' }}>
-                             {fvDaily.gdveAttendance ? '✓ Presença Confirmada' : 'Marcar Presença'}
-                           </button>
-                        </div>
-                        
-                        {/* Seção Práticas do Grupo */}
-                        <h4 style={{ color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', fontSize: '1rem', fontFamily: "'Cinzel', serif", marginBottom: '1rem' }}>Práticas Específicas do Ciclo</h4>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                           {fvGdveTasks.map(task => {
-                             const isCycle = task.isCycle;
-                             const isCounter = !isCycle && task.target > 1;
-                             let isCompleted = false;
-                             let displayValue = '';
-
-                             // --- LÓGICA ULTRA-SMART DO BASTIÃO (NÚMERO OU NOME + MÚLTIPLOS) ---
-                             let linkDoBastiao = null;
-                             let multiplosBastioes = null; 
-                             let bastiaoUnico = null; // <- NOVA VARIÁVEL PARA GUARDAR A OBRA EXATA
-                             const taskNameLower = task.name.toLowerCase();
-                             const taskNameSemAcento = taskNameLower.normalize('NFD').replace(/[̀-ͯ]/g, '');
-                             const isBastiaoTask = taskNameSemAcento.includes('bastiao') || taskNameSemAcento.includes('leitura');
-
-                             if (isBastiaoTask) {
-                                const limpaTexto = (str) => str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
-                                const textoLimpoTask = limpaTexto(task.name);
-
-                                // 1. TENTATIVA POR NÚMERO (Ex: "039" ou "39")
-                                const matchNumero = task.name.match(/\d+/);
-                                if (matchNumero) {
-                                   const numeroEncontrado = parseInt(matchNumero[0], 10).toString();
-                                   bastiaoUnico = BASTIOES_DB.find(b => b.numero === numeroEncontrado);
-                                   if (bastiaoUnico) linkDoBastiao = bastiaoUnico.link;
-                                }
-
-                                // 2. TENTATIVA POR NOME COM FILTRO DE MÚLTIPLOS E CORREÇÃO DE "???"
-                                if (!linkDoBastiao) {
-                                   const termoBusca = textoLimpoTask.replace('bastiao', '').replace('leitura', '').replace('ler', '').replace(/(^|\s)o(\s|$)/g, ' ').trim();
-                                   
-                                   if (termoBusca.length > 3) { 
-                                      const resultados = BASTIOES_DB.filter(b => {
-                                         const tituloLimpo = limpaTexto(b.titulo);
-                                         if (tituloLimpo.length < 3) return false; 
-                                         return tituloLimpo.includes(termoBusca) || termoBusca.includes(tituloLimpo);
-                                      });
-
-                                      if (resultados.length === 1) {
-                                         bastiaoUnico = resultados[0];
-                                         linkDoBastiao = bastiaoUnico.link;
-                                      } else if (resultados.length > 1) {
-                                         multiplosBastioes = resultados;
-                                      }
-                                   }
-                                }
-                             }
-                             // -----------------------------------------
-
-                             const currentCount = (typeof fvDaily.gdveTasksStatus?.[task.id] === 'boolean' ? (fvDaily.gdveTasksStatus[task.id] ? 1 : 0) : fvDaily.gdveTasksStatus?.[task.id]) || 0;
-                             const targetCount = task.target || 1;
-                             const taskColor = getTaskColor(currentCount, targetCount, isDark);
-
-                             if (isCycle) {
-                                isCompleted = !!fvGdveCycleStatus[task.id];
-                                displayValue = isCompleted ? 'Feito' : 'Pendente';
-                             } else if (isCounter) {
-                                isCompleted = currentCount >= targetCount;
-                                displayValue = `${currentCount}/${targetCount}`;
-                             } else {
-                                isCompleted = !!fvDaily.gdveTasksStatus?.[task.id];
-                             }
-
-                             return (
-                               <div key={task.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: isDark ? 'rgba(0,0,0,0.2)' : 'var(--gray-bg)', borderRadius: '8px', border: `1px solid ${taskColor}`, transition: 'all 0.3s ease', marginBottom: '0.75rem' }}>
-                                 <div onClick={() => toggleGdveTask(task)} style={{ flex: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                   
-                                   {isCounter ? (
-                                      <div style={{ padding: '0.3rem 0.6rem', background: taskColor, border: `1px solid ${taskColor}`, borderRadius: '12px', color: 'var(--white)', fontWeight: 'bold', fontSize: '0.8rem', minWidth: '40px', textAlign: 'center' }}>
-                                        {displayValue}
-                                      </div>
-                                   ) : (
-                                      <input type="checkbox" checked={isCompleted} readOnly style={{ width: '18px', height: '18px', accentColor: 'var(--success)' }} />
-                                   )}
-                                   
-                                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                     <span style={{ color: isCompleted ? (isDark ? 'var(--success-soft)' : 'var(--success-strong)') : (isDark ? 'var(--parchment)' : 'var(--ink)'), textDecoration: isCompleted ? 'line-through' : 'none' }}>
-                                       {task.name}
-                                     </span>
-                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.2rem' }}>
-                                        <span style={{ fontSize: '0.7rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray)', textTransform: 'uppercase' }}>
-                                           {isCycle ? '⏳ Missão do Ciclo' : (isCounter ? '📅 Meta Diária' : '📅 Prática Diária')}
-                                        </span>
-                                        
-                                        {/* AQUI APARECE O BOTÃO OU O MENU */}
-                                        {linkDoBastiao && !multiplosBastioes && (
-                                          <a 
-                                            href={linkDoBastiao} 
-                                            target="_blank" 
-                                            rel="noopener noreferrer" 
-                                            onClick={async (e) => { 
-                                              e.stopPropagation();
-                                              // A MÁGICA ACONTECE AQUI: Se o nome for diferente do oficial, ele corrige!
-                                              if (bastiaoUnico && task.name !== bastiaoUnico.nomeCompleto) {
-                                                 const novasTasks = fvGdveTasks.map(t => 
-                                                   t.id === task.id ? { ...t, name: bastiaoUnico.nomeCompleto } : t
-                                                 );
-                                                 setFvGdveTasks(novasTasks);
-                                                 if (user) {
-                                                   try {
-                                                     await setDoc(doc(db, 'fvData', user.uid), { fvGdveTasks: novasTasks }, { merge: true });
-                                                   } catch (err) {
-                                                     console.error('Erro ao renomear tarefa GDVE:', err);
-                                                     showToast('⚠️ Não foi possível salvar o nome corrigido da tarefa. Tente novamente.');
-                                                   }
-                                                 }
-                                              }
-                                            }}
-                                            style={{ 
-                                              fontSize: '0.65rem', padding: '2px 6px', background: isDark ? 'rgba(212,175,55,0.1)' : '#fffbf0', 
-                                              color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', border: `1px solid ${isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'}`, 
-                                              borderRadius: '4px', textDecoration: 'none', display: 'inline-block', fontWeight: 'bold'
-                                            }}
-                                          >
-                                            🔗 Abrir PDF
-                                          </a>
-                                        )}
-
-                                        {multiplosBastioes && (
-                                          <select 
-                                            onClick={(e) => e.stopPropagation()} 
-                                            onChange={async (e) => { 
-                                              const selectedLink = e.target.value;
-                                              if (selectedLink) {
-                                                // 1. Abre o PDF em nova aba
-                                                window.open(selectedLink, '_blank'); 
-                                                
-                                                // 2. Descobre qual Bastião exato foi escolhido
-                                                const bastiaoEscolhido = multiplosBastioes.find(b => b.link === selectedLink);
-                                                
-                                                if (bastiaoEscolhido) {
-                                                   // 3. Atualiza o nome da tarefa para o nome oficial do Bastião
-                                                   const novasTasks = fvGdveTasks.map(t => 
-                                                     t.id === task.id ? { ...t, name: bastiaoEscolhido.nomeCompleto } : t
-                                                   );
-                                                   
-                                                   // 4. Salva a alteração na tela e no Firebase
-                                                   setFvGdveTasks(novasTasks);
-                                                   if (user) {
-                                                     try {
-                                                       await setDoc(doc(db, 'fvData', user.uid), { fvGdveTasks: novasTasks }, { merge: true });
-                                                     } catch (err) {
-                                                       console.error('Erro ao renomear tarefa GDVE:', err);
-                                                       showToast('⚠️ Não foi possível salvar o nome corrigido da tarefa. Tente novamente.');
-                                                     }
-                                                   }
-                                                }
-                                              }
-                                              e.target.value = ''; // Reseta visualmente
-                                            }}
-                                            style={{ 
-                                              fontSize: '0.65rem', padding: '2px 6px', background: isDark ? 'rgba(212,175,55,0.1)' : '#fffbf0', 
-                                              color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', border: `1px solid ${isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'}`, 
-                                              borderRadius: '4px', maxWidth: '200px', fontWeight: 'bold', cursor: 'pointer'
-                                            }}
-                                          >
-                                            <option value="" style={{ background: isDark ? 'var(--bg-dark)' : 'var(--white)', color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)' }}>
-                                              {multiplosBastioes.length} encontrados! Escolha...
-                                            </option>
-                                            {multiplosBastioes.map((b, i) => (
-                                              <option key={i} value={b.link} style={{ background: isDark ? 'var(--bg-dark)' : 'var(--white)', color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>
-                                                {b.nomeCompleto}
-                                              </option>
-                                            ))}
-                                          </select>
-                                        )}
-                                     </div>
-                                   </div>
-                                 </div>
-                                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                   <button onClick={(e) => { e.stopPropagation(); startEditingGdveTask(task); }} style={{ background: 'transparent', border: 'none', color: isDark ? 'var(--gold)' : 'var(--umber-bright)', cursor: 'pointer' }} title="Editar"><Edit size={16} /></button>
-                                   <button onClick={(e) => { e.stopPropagation(); showConfirm('Deseja excluir esta prática?', () => removeGdveTask(task.id), { danger: true }); }} style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer' }} title="Excluir"><Trash2 size={16} /></button>
-                                 </div>
-                               </div>
-                             );
-                           })}
-                        </div>
-                        <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)', padding: '1rem', borderRadius: '8px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'var(--border-light)'}` }}>
-                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                             <h5 style={{ margin: 0, color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                               {editingGdveTaskId ? 'Editar Prática' : 'Adicionar Nova Prática'}
-                             </h5>
-                             {editingGdveTaskId && (
-                               <button onClick={() => { setEditingGdveTaskId(null); setNewGdveTaskName(''); setNewGdveTaskTarget(1); setNewGdveTaskIsCycle(false); setNewGdveTaskCycleTouched(false); }} style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}>
-                                 <X size={16}/>
-                               </button>
-                             )}
-                           </div>
-                           
-                           
-                           <input 
-                             type="text" 
-                             value={newGdveTaskName} 
-                             onChange={(e) => {
-                               const val = e.target.value;
-                               setNewGdveTaskName(val);
-                               
-                               // INTELIGÊNCIA: Se detectar que é leitura, muda o status automaticamente!
-                               const valLimpo = val.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-                               if (!newGdveTaskCycleTouched && (valLimpo.includes('bastiao') || valLimpo.includes('leitura') || /\bler\b/.test(valLimpo))) {
-                                 setNewGdveTaskIsCycle(true);
-                                 setNewGdveTaskTarget(1);
-                               }
-                             }}
-                             placeholder="Ex: Ler Bastião / Eu sou Discípulo..." 
-                             style={{ width: '100%', padding: '0.75rem', borderRadius: '6px', border: `1px solid ${isDark ? 'rgba(212,175,55,0.4)' : 'var(--border-light)'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'Georgia, serif' }} 
-                           />
-
-
-                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center', marginTop: '0.5rem' }}>
-                              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)' }}>
-                                 <input type="checkbox" checked={newGdveTaskIsCycle} onChange={(e) => { setNewGdveTaskIsCycle(e.target.checked); setNewGdveTaskCycleTouched(true); if(e.target.checked) setNewGdveTaskTarget(1); }} style={{ width: '16px', height: '16px', accentColor: 'var(--gold-bright)', cursor: 'pointer' }} />
-                                 Missão Única do Ciclo (Não zera diariamente)
-                              </label>
-                              
-                              {!newGdveTaskIsCycle && (
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)' }}>
-                                   Vezes por dia:
-                                   <input type="number" min="1" max="10" value={newGdveTaskTarget} onChange={(e) => setNewGdveTaskTarget(parseInt(e.target.value) || 1)} style={{ width: '60px', padding: '0.4rem', borderRadius: '4px', border: `1px solid ${isDark ? 'var(--gray-strong)' : 'var(--border-light)'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', textAlign: 'center' }} />
-                                </label>
-                              )}
-
-                              <button onClick={addGdveTask} style={{ marginLeft: 'auto', padding: '0.6rem 1.5rem', background: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', transition: 'all 0.2s' }}>
-                                 {editingGdveTaskId ? 'Salvar Alteração' : '+ Adicionar'}
-                              </button>
-                           </div>
-                        </div>
-                        
-                        <button 
-                          onClick={() => {
-                            setIsGdveMóduloOpen(false); // Fecha a gaveta
-                            showToast('✅ Módulo GDVE atualizado com sucesso!');
-                          }} 
-                          style={{ marginTop: '2rem', width: '100%', padding: '0.8rem 1.5rem', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
-                          <CheckCircle size={18} /> Salvar Módulo GDVE
-                        </button>
-
-                      </div>
-                    )}
-                  </div>
-
-
-                  {/* GAVETA: DESAFIOS PESSOAIS */}
-                  <div style={getBlockStyle(desafiosStatus, isGdveDesafiosOpen, isDark ? '#6cb2eb' : 'var(--blue)')}>
-                    <div onClick={() => setIsGdveDesafiosOpen(!isGdveDesafiosOpen)} style={getHeaderStyle(desafiosStatus, isGdveDesafiosOpen)}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <Swords size={28} color={isDark ? '#6cb2eb' : 'var(--blue)'} />
-                        <h2 style={{ margin: 0, fontSize: 'clamp(1.1rem, 3vw, 1.4rem)', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: "'Cinzel', serif", textDecoration: desafiosStatus === 'full' && !isGdveDesafiosOpen ? 'line-through' : 'none' }}>
-                          Desafios Pessoais
-                        </h2>
-                      </div>
-                      {isGdveDesafiosOpen ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
-                    </div>
-                    {isGdveDesafiosOpen && (
-                      <div className="animate-fadeIn" style={{ padding: '0 2rem 2rem 2rem' }}>
-                         {customTasks.map(task => (
-                           <div key={task.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem', background: isDark ? 'rgba(0,0,0,0.2)' : 'var(--gray-bg)', borderRadius: '8px', border: `1px solid ${todayTasksStatus[task.id] ? 'var(--success)' : 'var(--border-soft)'}`, marginBottom: '0.5rem' }}>
-                              <div onClick={() => toggleTaskStatus(task.id)} style={{ flex: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                 <input type="checkbox" checked={!!todayTasksStatus[task.id]} readOnly style={{ width: '18px', height: '18px' }} />
-                                 <span style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>{task.name}</span>
-                              </div>
-                              <button onClick={() => removeCustomTask(task.id)} style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}><Trash2 size={16} /></button>
-                           </div>
-                         ))}
-                         <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.5rem' }}>
-                            <input type="text" value={newTaskName} onChange={(e) => setNewTaskName(e.target.value)} placeholder="Novo desafio pessoal..." style={{ flex: 1, padding: '0.7rem', borderRadius: '8px', border: '1px solid var(--border-light)', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)' }} />
-                            <button onClick={saveCustomTask} style={{ padding: '0 1rem', background: isDark ? '#6cb2eb' : 'var(--blue)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold' }}>+</button>
-                         </div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* GAVETA: RELATÓRIO MENSAL FV */}
-                  <div style={getBlockStyle('partial', isGdveRelatorioOpen, isDark ? '#9B59B6' : 'var(--purple)')}>
-                    <div onClick={() => setIsGdveRelatorioOpen(!isGdveRelatorioOpen)} style={getHeaderStyle('partial', isGdveRelatorioOpen)}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <FileText size={28} color={isDark ? 'var(--purple-soft)' : 'var(--purple)'} />
-                        <h2 style={{ margin: 0, fontSize: 'clamp(1.1rem, 3vw, 1.4rem)', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: "'Cinzel', serif" }}>
-                          Relatório Mensal do Ciclo
-                        </h2>
-                      </div>
-                      {isGdveRelatorioOpen ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
-                    </div>
-
-                    {isGdveRelatorioOpen && (
-                      <div className="animate-fadeIn" style={{ padding: '0 2rem 2rem 2rem' }}>
-                        {/* PAINEL DE RESULTADOS AUTOMATIZADOS DO CICLO */}
-                        {(() => {
-                          const s = getFvMonthlyStats();
-                          const Badge = ({ icon: Icon, label, value, color }) => (
-                            <div style={{ background: isDark ? 'rgba(255,255,255,0.03)' : '#f8fafc', padding: '1rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0'}`, display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: color || (isDark ? 'var(--gold-muted)' : '#64748b'), fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                <Icon size={14} /> {label}
-                              </div>
-                              <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: isDark ? 'var(--parchment)' : '#1e293b', fontFamily: 'Georgia, serif' }}>
-                                {value}
-                              </div>
-                            </div>
-                          );
-
-                          const getPraticasBadgeInfo = (dias) => {
-                            if (dias >= 28) return { label: 'Sempre', color: 'var(--gold-bright)', icon: Sun };
-                            if (dias >= 20) return { label: 'Frequente', color: 'var(--orange)', icon: Flame };
-                            if (dias >= 12) return { label: 'Às vezes', color: 'var(--success)', icon: Target };
-                            if (dias > 0) return { label: 'Raramente', color: 'var(--danger)', icon: Sparkles };
-                            return { label: 'Nunca', color: isDark ? 'var(--gray-strong)' : '#999', icon: Moon };
-                          };
-
-                          return (
-                            <div style={{ marginBottom: '2.5rem' }}>
-                              <div style={{ background: isDark ? 'rgba(155, 89, 182, 0.1)' : '#fdf8ff', padding: '1rem', borderRadius: '12px', borderLeft: `4px solid ${isDark ? 'var(--purple-soft)' : 'var(--purple)'}`, marginBottom: '1.5rem' }}>
-                                <p style={{ margin: 0, fontSize: '0.9rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', lineHeight: '1.5' }}>
-                                  <strong>Inteligência do Diário:</strong> Os dados abaixo foram extraídos dos seus registros diários e missões. Eles já estão prontos para o seu relatório oficial.
-                                </p>
-                              </div>
-
-                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-                                <Badge icon={Clock} label="Voluntariado" value={s.hVol} color="var(--purple)" />
-                                <Badge icon={BookOpen} label="Aulas Assistidas" value={s.hAs} color="#3498db" />
-                                <Badge icon={Target} label="Aulas Ministradas" value={s.hMin} color="#e67e22" />
-                                <Badge icon={Zap} label="Freq. de Práticas" value={s.freqPraticas} color="#f1c40f" />
-                                <Badge icon={CheckCircle} label="Aulas de Curso" value={`${s.countAulaRegular} presenças`} />
-                                <Badge icon={Award} label="Aulas de ED" value={`${s.countEd} presenças`} />
-                                <Badge icon={Shield} label="CRM Mensal" value={s.countCrm > 0 ? 'Participou' : 'Não registrada'} />
-                                <Badge icon={Star} label="Reuniões de Raio" value={`${s.countRaio} encontros`} />
-                                <Badge icon={Mountain} label="Escalas de Limpeza" value={`${s.countLimpeza} check-ins`} />
-                                <Badge icon={Sunrise} label="Guarda Noturna (GN)" value={`${s.countGN} turnos`} />
-                              </div>
-                            </div>
-                          );
-                        })()}
-
-                        
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                          
-                          {/* INFORMAÇÕES QUE O APP NÃO PODE ADIVINHAR */}
-                          
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
-                            <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--purple-soft)' : 'var(--purple)' }}>Participou das outras CRM (Extras/Especiais)?</label>
-                              <select value={monthlyReport.outrasCrm} onChange={(e) => handleMonthlyReportChange('outrasCrm', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : 'var(--border-light)'}` }}>
-                                <option value="">Selecione...</option><option value="Sim">Sim</option><option value="Não">Não</option><option value="Não teve CRM extra">Não teve CRM extra</option>
-                              </select>
-                            </div>
-                            <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--purple-soft)' : 'var(--purple)' }}>Quantos bastiões leu esse mês?</label>
-                              <p style={{ fontSize: '0.8rem', color: 'var(--gray)', marginTop: '-0.3rem', marginBottom: '0.5rem', fontStyle: 'italic' }}>*Se você tiver uma Tarefa chamada "Bastião", o app calculará sozinho.</p>
-                              <select value={monthlyReport.bastioesLidos} onChange={(e) => handleMonthlyReportChange('bastioesLidos', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : 'var(--border-light)'}` }}>
-                                <option value="">Automático pelo App (ou Selecione)</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5 ou mais">5 ou mais</option><option value="Nenhum">Nenhum</option>
-                              </select>
-                            </div>
-                          </div>
-
-                          <div style={{ height: '1px', background: isDark ? 'rgba(155, 89, 182, 0.2)' : 'rgba(142, 68, 173, 0.2)' }}></div>
-
-                          <div style={{ marginBottom: '1rem' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--purple-soft)' : 'var(--purple)' }}>Envolvimento com a Propaganda (Múltipla escolha)</label>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.5rem' }}>
-                              {['Contato Pessoal', 'Divulgação WhatsApp', 'Redes Sociais (Insta/Face)', 'Cartazes/Folhetos', 'Não tenho me envolvido'].map(op => (
-                                <label key={op} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', padding: '0.5rem', background: isDark ? 'rgba(255,255,255,0.05)' : '#f0f0f0', borderRadius: '6px' }}>
-                                  <input type="checkbox" checked={(monthlyReport.propaganda || []).includes(op)} onChange={() => handlePropagandaToggle(op)} style={{ width: '18px', height: '18px', accentColor: 'var(--purple)' }} />
-                                  <span style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '0.9rem' }}>{op}</span>
-                                </label>
-                              ))}
-                            </div>
-                          </div>
-
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
-                            <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--purple-soft)' : 'var(--purple)' }}>Pagou contribuição mensal?</label>
-                              <select value={monthlyReport.contribuicao} onChange={(e) => handleMonthlyReportChange('contribuicao', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : 'var(--border-light)'}` }}>
-                                <option value="">Selecione...</option><option value="Sim, estou em dias">Sim, em dias</option><option value="Sim, mas com atraso">Sim, mas com atraso</option><option value="Não">Não</option>
-                              </select>
-                            </div>
-                            <div>
-                              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--purple-soft)' : 'var(--purple)' }}>Fez alguma doação extra?</label>
-                              <select value={monthlyReport.doacao} onChange={(e) => handleMonthlyReportChange('doacao', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : 'var(--border-light)'}` }}>
-                                <option value="">Selecione...</option><option value="Em espécie">Sim, em espécie</option><option value="Objeto que necessitavam">Objeto necessitado</option><option value="Espécie e Objeto">Ambos</option><option value="Não tive condições/Lembrei">Não</option>
-                              </select>
-                            </div>
-                          </div>
-
-                          <div style={{ height: '1px', background: isDark ? 'rgba(155, 89, 182, 0.2)' : 'rgba(142, 68, 173, 0.2)' }}></div>
-
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
-                             <div>
-                                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--purple-soft)' : 'var(--purple)' }}>Secretaria de Atuação</label>
-                                <select value={monthlyReport.secretariaAtuacao} onChange={(e) => handleMonthlyReportChange('secretariaAtuacao', e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : 'var(--border-light)'}` }}>
-                                  <option value="">Nenhuma / Selecione...</option>
-                                  {['Abertura de Turma', 'Artes', 'Biblioteca', 'Café Artemis', 'Difusão', 'Economia', 'Escolástica', 'GGFF', 'GGMM', 'GGSS', 'Integração', 'Livraria', 'Manutenção', 'Programa Janos', 'Programa Merlin', 'Escola do Esporte', 'Círculo de Amigos', 'Assuntos Legais', 'GEA', 'Assistência Social'].map(s => <option key={s} value={s}>{s}</option>)}
-                                </select>
-                             </div>
-                             <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
-                               <div>
-                                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--purple-soft)' : 'var(--purple)' }}>Trabalhou/reuniu com os membros da sec.?</label>
-                                  <input type="text" value={monthlyReport.secretariaReuniao} onChange={(e) => handleMonthlyReportChange('secretariaReuniao', e.target.value)} placeholder="Breve relato..." style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : 'var(--border-light)'}`, fontFamily: 'Georgia, serif' }} />
-                               </div>
-                               <div>
-                                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--purple-soft)' : 'var(--purple)' }}>Quantos membros? Algum destaque?</label>
-                                  <input type="text" value={monthlyReport.secretariaMembros} onChange={(e) => handleMonthlyReportChange('secretariaMembros', e.target.value)} placeholder="Quantidade e destaques..." style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : 'var(--border-light)'}`, fontFamily: 'Georgia, serif' }} />
-                               </div>
-                             </div>
-                          </div>
-
-                          <div style={{ height: '1px', background: isDark ? 'rgba(155, 89, 182, 0.2)' : 'rgba(142, 68, 173, 0.2)' }}></div>
-
-                          <div style={{ marginBottom: '1rem' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--purple-soft)' : 'var(--purple)' }}>Indique 1 ou 2 pontos positivos/crescimento deste mês</label>
-                            <p style={{ fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray)', marginTop: '-0.3rem', marginBottom: '0.5rem', fontStyle: 'italic' }}>Momento de síntese pessoal: extraia suas vitórias com suas próprias palavras.</p>
-                            <textarea value={monthlyReport.pontosPositivos} onChange={(e) => handleMonthlyReportChange('pontosPositivos', e.target.value)} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : 'var(--border-light)'}`, fontFamily: 'Georgia, serif', resize: 'vertical' }} />
-                          </div>
-
-                          <div style={{ marginBottom: '1.5rem' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: isDark ? 'var(--purple-soft)' : 'var(--purple)' }}>Indique um desafio que você está percebendo para crescer</label>
-                            <p style={{ fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray)', marginTop: '-0.3rem', marginBottom: '0.5rem', fontStyle: 'italic' }}>Olhe para si mesmo e defina com clareza o seu principal obstáculo (Kurava) atual.</p>
-                            <textarea value={monthlyReport.desafioCrescimento} onChange={(e) => handleMonthlyReportChange('desafioCrescimento', e.target.value)} rows={3} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', border: `1px solid ${isDark ? 'rgba(155, 89, 182, 0.4)' : 'var(--border-light)'}`, fontFamily: 'Georgia, serif', resize: 'vertical' }} />
-                          </div>
-
-                          <button onClick={generateMonthlyReportText} style={{ width: '100%', padding: '1.2rem', background: 'linear-gradient(135deg, #9B59B6 0%, var(--purple) 100%)', color: 'white', border: 'none', borderRadius: '12px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', boxShadow: '0 6px 15px rgba(155, 89, 182, 0.3)', transition: 'transform 0.2s' }} onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'} onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}>
-                            <FileText size={22} /> Gerar Relatório e Copiar
-                          </button>
-
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                </div>
-              );
-            })()}
-          </div>
+          <Suspense fallback={<ViewFallback />}><GdveView {...{ addGdveTask, copyInviteLink, customTasks, deleteGroupHandler, editingGdveTaskId, fvCalendar, fvCondicao, fvDaily, fvGdveBastiaoName, fvGdveCycleStatus, fvGdveReuniao, fvGdveTasks, fvLastCartaDate, fvLastMeetingDate, fvMasterName, fvNextCartaDate, fvUnidade, generateMonthlyReportText, gerarCartaDegrau, getBlockStyle, getFvMonthlyStats, getHeaderStyle, getTaskColor, getTodayKey, handleDiasMinistradosToggle, handleMonthlyReportChange, handlePropagandaToggle, isDark, isGdveDesafiosOpen, isGdveMóduloOpen, isGdvePlanOpen, isGdveRelatorioOpen, isGeneratingCartaDegrau, isJoiningGroup, isLoadingGroups, joinGroupByCode, leaveGroupHandler, monthlyReport, myGroups, newGdveTaskCycleTouched, newGdveTaskIsCycle, newGdveTaskName, newGdveTaskTarget, newTaskName, registerGdveAttendance, removeCustomTask, removeGdveTask, removeGroupMember, saveCustomTask, saveFvPlanning, setEditingGdveTaskId, setFvCalendar, setFvCondicao, setFvGdveTasks, setFvLastCartaDate, setFvLastMeetingDate, setFvMasterName, setFvNextCartaDate, setFvUnidade, setIsGdveDesafiosOpen, setIsGdveMóduloOpen, setIsGdvePlanOpen, setIsGdveRelatorioOpen, setNewGdveTaskCycleTouched, setNewGdveTaskIsCycle, setNewGdveTaskName, setNewGdveTaskTarget, setNewTaskName, setShowCreateGroupModal, showConfirm, showPrompt, showToast, startEditingGdveTask, todayTasksStatus, toggleGdveTask, toggleTaskStatus, user }} /></Suspense>
         )}
         
         {/* VIEW: HISTORY */}
         {view === 'history' && (
-          <div className="animate-fadeIn">
-            <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-              <h2 style={{ fontFamily: "'Cinzel', serif", fontSize: '1.5rem', color: isDark ? 'var(--gold)' : 'var(--umber)', margin: 0 }}>Histórico de Reflexões</h2>
-              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                <button onClick={exportToCSV} disabled={entries.length === 0} style={{ padding: '0.75rem 1.5rem', background: entries.length > 0 ? (isDark ? 'var(--gold)' : 'var(--umber)') : 'var(--border-light)', color: 'white', border: 'none', borderRadius: '8px', cursor: entries.length > 0 ? 'pointer' : 'not-allowed', fontFamily: 'Georgia, serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Download size={18} /> Exportar CSV
-                </button>
-                {/* NOVO: BOTÃO DO RELATÓRIO TXT FV */}
-                {fvUnlocked && (
-                  <button onClick={exportFvReportTXT} disabled={entries.length === 0} style={{ padding: '0.75rem 1.5rem', background: entries.length > 0 ? 'linear-gradient(135deg, var(--gold-bright) 0%, #FFA500 100%)' : 'var(--border-light)', color: 'var(--black)', border: 'none', borderRadius: '8px', cursor: entries.length > 0 ? 'pointer' : 'not-allowed', fontFamily: 'Georgia, serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: entries.length > 0 ? '0 4px 12px rgba(255,215,0,0.2)' : 'none' }}>
-                    <FileText size={18} /> Relatório CD (TXT)
-                  </button>
-                )}
-                <label style={{ padding: '0.75rem 1.5rem', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Upload size={18} /> Importar
-                  <input type="file" accept=".csv,.json,.txt" onChange={importDiary} style={{ display: 'none' }} />
-                </label>
-              </div>
-            </div>
-
-            <div style={{ position: 'relative', marginBottom: '2rem' }}>
-              <Search size={20} color={isDark ? 'var(--gold)' : 'var(--umber)'} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
-              <input type="text" placeholder="Buscar nas reflexões..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{ width: '100%', padding: '0.75rem 0.75rem 0.75rem 3rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : 'var(--umber)'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)' }} />
-            </div>
-
-            {filteredEntries.length === 0 ? (
-              <div className="animate-fadeIn" style={{ padding: '3rem 1.5rem', textAlign: 'center', background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', borderRadius: '16px', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}` }}>
-                <Calendar size={48} color={isDark ? 'var(--gold)' : 'var(--umber)'} style={{ margin: '0 auto 1rem', opacity: 0.6 }} />
-                <p style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: "'Cinzel', serif", fontSize: '1.1rem' }}>{searchTerm ? 'Nada encontrado com esse termo' : 'Seu histórico começa com o dia de hoje.'}</p>
-                {!searchTerm && <p style={{ color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontSize: '0.9rem', marginTop: '0.4rem' }}>Volte ao Prólogo e escreva sua primeira reflexão.</p>}
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                {(() => {
-                  // Variáveis para saber o que abrir por padrão
-                  const todayObj = new Date();
-                  const currentYearStr = todayObj.getFullYear().toString();
-                  const currentMonthStr = todayObj.toLocaleDateString('pt-BR', { month: 'long' });
-                  const currentMonthKey = `${currentMonthStr.charAt(0).toUpperCase() + currentMonthStr.slice(1)} ${currentYearStr}`;
-
-                  // 1. Agrupa as entradas por Ano -> Mês preservando a ordem cronológica
-                  const groupedEntries = [];
-                  filteredEntries.forEach(entry => {
-                    const dateObj = new Date(entry.date + 'T12:00:00');
-                    const year = dateObj.getFullYear().toString();
-                    const monthStr = dateObj.toLocaleDateString('pt-BR', { month: 'long' });
-                    const month = monthStr.charAt(0).toUpperCase() + monthStr.slice(1);
-                    const monthKey = `${month} ${year}`;
-                    
-                    let yearGroup = groupedEntries.find(g => g.year === year);
-                    if (!yearGroup) {
-                        yearGroup = { year, total: 0, months: [] };
-                        groupedEntries.push(yearGroup);
-                    }
-                    yearGroup.total++;
-                    
-                    let monthGroup = yearGroup.months.find(m => m.monthKey === monthKey);
-                    if (!monthGroup) {
-                        monthGroup = { month, monthKey, entries: [] };
-                        yearGroup.months.push(monthGroup);
-                    }
-                    monthGroup.entries.push(entry);
-                  });
-
-                  // 2. Renderiza Anos > Meses > Entradas
-                  return groupedEntries.map((yearGroup) => {
-                    // Lógica Mágica: O ano atual fica aberto por padrão. Os antigos fechados.
-                    const isYearExpanded = expandedYears[yearGroup.year] !== undefined ? expandedYears[yearGroup.year] : (yearGroup.year === currentYearStr);
-
-                    return (
-                      <div key={yearGroup.year} style={{ background: isDark ? 'rgba(26, 26, 46, 0.4)' : 'rgba(240, 230, 210, 0.4)', borderRadius: '16px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, overflow: 'hidden' }}>
-                        
-                        {/* CABEÇALHO DO ANO */}
-                        <div 
-                          onClick={() => setExpandedYears(prev => ({ ...prev, [yearGroup.year]: !isYearExpanded }))}
-                          style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.2rem 1.5rem', background: isDark ? 'rgba(212, 175, 55, 0.15)' : 'rgba(139, 115, 85, 0.15)', cursor: 'pointer', transition: 'all 0.2s' }}
-                        >
-                          <h2 style={{ margin: 0, color: isDark ? 'var(--gold-bright)' : 'var(--umber)', fontFamily: "'Cinzel', serif", fontSize: '1.6rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <Calendar size={24} /> {yearGroup.year}
-                            <span style={{ fontSize: '0.9rem', opacity: 0.8, background: isDark ? 'rgba(212,175,55,0.2)' : 'rgba(139,115,85,0.2)', padding: '0.2rem 0.6rem', borderRadius: '20px', fontFamily: 'Georgia, serif' }}>
-                              {yearGroup.total} {yearGroup.total === 1 ? 'dia' : 'dias'}
-                            </span>
-                          </h2>
-                          {isYearExpanded ? <ChevronUp size={28} color={isDark ? 'var(--gold-bright)' : 'var(--umber)'} /> : <ChevronDown size={28} color={isDark ? 'var(--gold-bright)' : 'var(--umber)'} />}
-                        </div>
-
-                        {/* LISTA DE MESES DENTRO DO ANO */}
-                        {isYearExpanded && (
-                          <div className="animate-fadeIn" style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            {yearGroup.months.map((monthGroup) => {
-                              // Lógica Mágica: O mês corrente fica aberto por padrão. Os outros fechados.
-                              const isMonthExpanded = expandedMonths[monthGroup.monthKey] !== undefined ? expandedMonths[monthGroup.monthKey] : (monthGroup.monthKey === currentMonthKey);
-
-                              return (
-                                <div key={monthGroup.monthKey} style={{ marginBottom: '0.5rem' }}>
-                                  
-                                  {/* CABEÇALHO DO MÊS */}
-                                  <div 
-                                    onClick={() => setExpandedMonths(prev => ({ ...prev, [monthGroup.monthKey]: !isMonthExpanded }))}
-                                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.5rem', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'white', borderRadius: '12px', cursor: 'pointer', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`, transition: 'all 0.2s' }}
-                                  >
-                                    <h3 style={{ margin: 0, color: isDark ? 'var(--gold)' : 'var(--umber)', fontFamily: "'Cinzel', serif", fontSize: '1.3rem', textTransform: 'capitalize', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                      <BookOpen size={18} /> {monthGroup.month}
-                                      <span style={{ fontSize: '0.85rem', opacity: 0.8, background: isDark ? 'rgba(212,175,55,0.1)' : 'rgba(139,115,85,0.1)', padding: '0.2rem 0.6rem', borderRadius: '20px', fontFamily: 'Georgia, serif' }}>
-                                        {monthGroup.entries.length} {monthGroup.entries.length === 1 ? 'dia' : 'dias'}
-                                      </span>
-                                    </h3>
-                                    {isMonthExpanded ? <ChevronUp size={20} color={isDark ? 'var(--gold)' : 'var(--umber)'} /> : <ChevronDown size={20} color={isDark ? 'var(--gold)' : 'var(--umber)'} />}
-                                  </div>
-
-                                  {/* DIAS DENTRO DO MÊS */}
-                                  {isMonthExpanded && (
-                                    <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem', paddingLeft: '0.5rem', borderLeft: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}` }}>
-                                      {monthGroup.entries.map((entry) => {
-                                        const isExpanded = expandedEntryId === entry.id;
-                                        const isPartial = entry.morningDone && !entry.eveningDone;
-
-                                        return (
-                                          <div key={entry.id} style={{ background: isPartial ? (isDark ? 'rgba(40, 25, 10, 0.6)' : '#fffdf5') : (isDark ? 'rgba(26, 26, 46, 0.6)' : 'white'), padding: '1.5rem', borderRadius: '12px', border: `2px solid ${isPartial ? (isDark ? 'var(--orange)' : 'var(--orange-soft)') : (isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)')}`, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', transition: 'all 0.3s ease' }}>
-                                            
-                                            {/* CABEÇALHO RESUMIDO E CLICÁVEL */}
-                                            <div onClick={() => setExpandedEntryId(isExpanded ? null : entry.id)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}>
-                                              <div>
-                                                <h3 style={{ margin: 0, color: isPartial ? (isDark ? 'var(--orange-soft)' : 'var(--orange-strong)') : (isDark ? 'var(--gold)' : 'var(--umber)'), fontSize: '1.2rem', marginBottom: '0.5rem' }}>
-                                                  {new Date(entry.date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                                                </h3>
-                                                
-                                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                                                  {entry.virtue && <span style={{ padding: '0.2rem 0.6rem', background: isDark ? 'rgba(212,175,55,0.2)' : '#fdf5e6', borderRadius: '4px', fontSize: '0.85rem', color: isDark ? 'var(--gold)' : 'var(--umber)', border: `1px solid ${isDark ? 'rgba(212,175,55,0.4)' : 'var(--bg-light-alt)'}` }}>Virtude: <strong>{entry.virtue}</strong></span>}
-
-                                                  {!entry.didMorning && <span style={{ padding: '0.2rem 0.6rem', background: 'rgba(255,152,0,0.1)', borderRadius: '4px', fontSize: '0.85rem', color: 'var(--orange)', border: '1px solid rgba(255,152,0,0.3)' }}>⚠️ Sem Prólogo</span>}
-  
-                                                  {isPartial && <span style={{ padding: '0.2rem 0.6rem', background: 'rgba(255,152,0,0.1)', borderRadius: '4px', fontSize: '0.85rem', color: 'var(--orange)', border: '1px solid rgba(255,152,0,0.3)' }}>⏳ Epílogo Pendente</span>}
-  
-                                                  {entry.fvDaily && fvUnlocked && (
-                                                    <span style={{ padding: '0.2rem 0.6rem', background: 'linear-gradient(135deg, var(--gold-bright) 0%, #FFA500 100%)', borderRadius: '4px', fontSize: '0.85rem', color: 'var(--black)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.3rem', boxShadow: '0 2px 4px rgba(255,215,0,0.2)' }}>
-                                                      <Award size={12} /> FV
-                                                    </span>
-                                                  )}
-
-                                                  {/* NOVO SELO GDVE NO HISTÓRICO */}
-                                                  {entry.fvDaily && entry.fvDaily.gdveAttendance && fvUnlocked && (
-                                                    <span style={{ padding: '0.2rem 0.6rem', background: 'linear-gradient(135deg, #9B59B6 0%, var(--purple) 100%)', borderRadius: '4px', fontSize: '0.85rem', color: 'var(--white)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.3rem', boxShadow: '0 2px 4px rgba(155,89,182,0.3)' }}>
-                                                      <Star size={12} /> GDVE
-                                                    </span>
-                                                  )}
-                                                </div>
-
-                                              </div>
-                                              
-                                              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                                <button onClick={(e) => { e.stopPropagation(); handleDateChange(entry.date); setView('today'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} style={{ padding: '0.5rem', background: 'transparent', color: isDark ? 'var(--gold)' : 'var(--umber)', border: `2px solid ${isDark ? 'var(--gold)' : 'var(--umber)'}`, borderRadius: '8px', cursor: 'pointer' }} title="Preencher ou Editar este dia"><Edit size={16} /></button>
-                                                <button onClick={(e) => { e.stopPropagation(); deleteEntry(entry.date); }} style={{ padding: '0.5rem', background: 'transparent', color: 'var(--danger)', border: '2px solid var(--danger)', borderRadius: '8px', cursor: 'pointer' }} title="Excluir"><X size={16} /></button>
-                                                {isExpanded ? <ChevronUp size={24} color={isDark ? 'var(--gold)' : 'var(--umber)'} /> : <ChevronDown size={24} color={isDark ? 'var(--gold)' : 'var(--umber)'} />}
-                                              </div>
-                                            </div>
-
-                                            {/* CONTEÚDO EXPANDIDO */}
-                                            {isExpanded && (
-                                              <div className="animate-fadeIn" style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}` }}>
-                                                
-                                                {entry.intention && (
-                                                  <div style={{ marginBottom: '1rem' }}>
-                                                    <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1rem' }}>Compromisso:</h4>
-                                                    <p style={{ margin: 0, color: isDark ? 'var(--tan-soft)' : 'var(--umber-muted)', lineHeight: '1.6' }}>{entry.intention}</p>
-                                                  </div>
-                                                )}
-
-                                                {entry.tasksSnapshot && entry.tasksSnapshot.length > 0 && (
-                                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
-                                                    {entry.tasksSnapshot.filter(t => t.completed).length > 0 && (
-                                                      <div style={{ padding: '1rem', background: isDark ? 'rgba(76, 175, 80, 0.05)' : '#f8fff8', borderRadius: '8px', borderLeft: `4px solid ${isDark ? 'var(--success)' : 'var(--success-soft)'}` }}>
-                                                        <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? 'var(--success-soft)' : 'var(--success-strong)', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><CheckCircle size={16} /> Práticas Realizadas:</h4>
-                                                        <ul style={{ margin: 0, paddingLeft: '1.2rem', color: isDark ? 'var(--tan-soft)' : 'var(--success-strong)', fontSize: '0.95rem', lineHeight: '1.6' }}>
-                                                          {entry.tasksSnapshot.filter(t => t.completed).map((task, idx) => <li key={idx}>{task.name}</li>)}
-                                                        </ul>
-                                                      </div>
-                                                    )}
-                                                    {entry.tasksSnapshot.filter(t => !t.completed).length > 0 && (
-                                                      <div style={{ padding: '1rem', background: isDark ? 'rgba(244, 67, 54, 0.05)' : '#fff5f5', borderRadius: '8px', borderLeft: `4px solid ${isDark ? '#f44336' : '#e53935'}` }}>
-                                                        <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? '#e57373' : '#c62828', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}><XCircle size={16} /> Práticas Não Realizadas:</h4>
-                                                        <ul style={{ margin: 0, paddingLeft: '1.2rem', color: isDark ? 'var(--gold-muted)' : '#c62828', fontSize: '0.95rem', lineHeight: '1.6', textDecoration: 'line-through', opacity: 0.8 }}>
-                                                          {entry.tasksSnapshot.filter(t => !t.completed).map((task, idx) => <li key={idx}>{task.name}</li>)}
-                                                        </ul>
-                                                      </div>
-                                                    )}
-                                                  </div>
-                                                )}
-
-                                                {entry.fvDaily && entry.fvDaily.praticas && (fvUnlocked || entry.fvDaily.praticas.tratack) && (
-                                                  <div style={{ padding: '1rem', background: isDark ? 'rgba(255, 215, 0, 0.05)' : '#fffbf0', borderRadius: '8px', borderLeft: `4px solid ${isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'}`, marginBottom: '1rem' }}>
-                                                    <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                                                      <Award size={16} /> {fvUnlocked ? 'Práticas FV Realizadas:' : 'Práticas Extras Realizadas:'}
-                                                    </h4>
-                                                    <ul style={{ margin: 0, paddingLeft: '1.2rem', color: isDark ? 'var(--tan-soft)' : 'var(--umber-muted)', fontSize: '0.95rem', lineHeight: '1.6' }}>
-                                                      {(() => {
-                                                        const praticasFeitas = Object.entries(entry.fvDaily.praticas).filter(([_, feito]) => feito).map(([key]) => key);
-                                                        const listaPermitida = fvUnlocked ? praticasFeitas : praticasFeitas.filter(k => k === 'tratack');
-
-                                                        if (listaPermitida.length === 0) return fvUnlocked ? <li style={{ fontStyle: 'italic', opacity: 0.7, listStyle: 'none', marginLeft: '-1.2rem' }}>Apenas os registros escritos foram salvos.</li> : null;
-
-                                                        const dicionarioGeral = { tratack: 'Tratak', recitarHonra: 'Recitar Código de Dignidade', recitar7Fases: 'Recitar 7 Fases da ED', camara: 'Câmara de Purificação' };
-                                                        const dicionarioTemplo = { porta: 'Porta', patioAberto: 'Pátio Aberto', patioColunas: 'Pátio de Colunas', santuario: 'Santuário' };
-                                                        const listaGeral = listaPermitida.filter(key => dicionarioGeral[key]);
-                                                        const listaTemplo = ['porta', 'patioAberto', 'patioColunas', 'santuario'].filter(key => listaPermitida.includes(key));
-
-                                                        return (
-                                                          <>
-                                                            {listaGeral.map(key => <li key={key}><strong>{dicionarioGeral[key]}</strong></li>)}
-                                                            {listaTemplo.length > 0 && (<li key="templo-grupo"><strong>Templo: {listaTemplo.map(k => dicionarioTemplo[k]).join(', ')}</strong></li>)}
-                                                          </>
-                                                        );
-                                                      })()}
-                                                    </ul>
-                                                  </div>
-                                                )}   
-
-                                                {entry.eveningDone && (
-                                                  <>
-                                                    {entry.whereIFailed && (
-                                                      <div style={{ marginBottom: '1rem' }}>
-                                                        <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1rem' }}>Em que falhei:</h4>
-                                                        <p style={{ margin: 0, color: isDark ? 'var(--tan-soft)' : 'var(--umber-muted)', lineHeight: '1.6' }}>{entry.whereIFailed}</p>
-                                                      </div>
-                                                    )}
-                                                    {entry.whatIDidWell && (
-                                                      <div style={{ marginBottom: '1rem' }}>
-                                                        <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1rem' }}>O que fiz bem:</h4>
-                                                        <p style={{ margin: 0, color: isDark ? 'var(--tan-soft)' : 'var(--umber-muted)', lineHeight: '1.6' }}>{entry.whatIDidWell}</p>
-                                                      </div>
-                                                    )}
-                                                    {entry.whatILeftUndone && (
-                                                      <div style={{ marginBottom: '1rem' }}>
-                                                        <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1rem' }}>O que deixei de fazer:</h4>
-                                                        <p style={{ margin: 0, color: isDark ? 'var(--tan-soft)' : 'var(--umber-muted)', lineHeight: '1.6' }}>{entry.whatILeftUndone}</p>
-                                                      </div>
-                                                    )}
-                                                    {entry.freeEpilogue && (
-                                                      <div style={{ marginTop: '0.5rem', paddingTop: '1rem', borderTop: `1px dashed ${isDark ? 'rgba(212,175,55,0.3)' : 'rgba(139, 115, 85, 0.3)'}` }}>
-                                                        <h4 style={{ margin: '0 0 0.5rem 0', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1rem' }}>Reflexão Livre:</h4>
-                                                        <p style={{ margin: 0, color: isDark ? 'var(--tan-soft)' : 'var(--umber-muted)', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>{entry.freeEpilogue}</p>
-                                                      </div>
-                                                    )}
-                                                  </>
-                                                )}
-                                              </div>
-                                            )}
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
-            )}
-          </div>
+          <Suspense fallback={<ViewFallback />}><HistoryView {...{ deleteEntry, entries, expandedEntryId, expandedMonths, expandedYears, exportFvReportTXT, exportToCSV, filteredEntries, fvUnlocked, handleDateChange, importDiary, isDark, searchTerm, setExpandedEntryId, setExpandedMonths, setExpandedYears, setSearchTerm, setView }} /></Suspense>
         )}
 
       {/* MODAL DO FOGO INTERNO (MEDIDA IDEAL + MOTIVACIONAL) */}
         {showStreakModal && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(3px)' }} onClick={() => setShowStreakModal(false)}>
-            <div style={{ background: isDark ? 'var(--bg-dark)' : 'var(--bg-light)', padding: '1.5rem', borderRadius: '16px', maxWidth: '380px', width: '100%', border: `2px solid ${isDark ? 'var(--orange)' : 'var(--orange-strong)'}`, position: 'relative', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setShowStreakModal(false)} style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: 'transparent', border: 'none', color: isDark ? 'var(--parchment)' : 'var(--ink)', cursor: 'pointer' }}><X size={20} /></button>
+            <div style={{ background: 'var(--t-page-bg)', padding: '1.5rem', borderRadius: '16px', maxWidth: '380px', width: '100%', border: `2px solid ${isDark ? 'var(--orange)' : 'var(--orange-strong)'}`, position: 'relative', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setShowStreakModal(false)} style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: 'transparent', border: 'none', color: 'var(--t-text)', cursor: 'pointer' }}><X size={20} /></button>
               
               <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
                 <StreakIcon size={46} fill={isDark ? 'var(--orange)' : 'var(--orange-strong)'} color={isDark ? 'var(--orange)' : 'var(--orange-strong)'} style={{ margin: '0 auto 0.5rem' }} />
-                <h2 style={{ margin: 0, fontFamily: "'Cinzel', serif", color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.5rem' }}>Fogo Interno</h2>
+                <h2 style={{ margin: 0, fontFamily: "'Cinzel', serif", color: 'var(--t-text)', fontSize: '1.5rem' }}>Fogo Interno</h2>
               </div>
 
               {/* CAIXA DO GRAU E PROGRESSO */}
               <div style={{ background: isDark ? 'rgba(255, 255, 255, 0.03)' : 'var(--white)', padding: '1.2rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255, 152, 0, 0.3)' : 'var(--orange-soft)'}`, textAlign: 'center', marginBottom: '1.5rem' }}>
-                <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 'bold', color: isDark ? 'var(--orange-soft)' : 'var(--orange-strong)', display: 'block', marginBottom: '0.2rem' }}>Grau Atual</span>
-                <h3 style={{ margin: '0 0 0.25rem', fontFamily: "'Cinzel', serif", fontSize: '1.4rem', color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>{streakInfo.current.title}</h3>
-                <p style={{ margin: '0 0 1rem', fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontStyle: 'italic' }}>"{streakInfo.current.desc}"</p>
+                <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 'bold', color: 'var(--t-orange-text)', display: 'block', marginBottom: '0.2rem' }}>Grau Atual</span>
+                <h3 style={{ margin: '0 0 0.25rem', fontFamily: "'Cinzel', serif", fontSize: '1.4rem', color: 'var(--t-text)' }}>{streakInfo.current.title}</h3>
+                <p style={{ margin: '0 0 1rem', fontSize: '0.85rem', color: 'var(--t-text-muted)', fontStyle: 'italic' }}>"{streakInfo.current.desc}"</p>
                 
                 {streakInfo.next ? (
                   <div style={{ marginTop: '0.5rem', paddingTop: '1rem', borderTop: `1px solid ${isDark ? 'rgba(255, 152, 0, 0.2)' : 'rgba(230, 81, 0, 0.1)'}` }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', marginBottom: '0.4rem', fontWeight: 'bold' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--t-text-muted)', marginBottom: '0.4rem', fontWeight: 'bold' }}>
                       <span>Rumo a: {streakInfo.next.title}</span>
                       <span>Faltam {streakInfo.next.min - streak} dias</span>
                     </div>
                     <div style={{ width: '100%', height: '8px', background: isDark ? 'rgba(255,255,255,0.1)' : 'var(--border-soft)', borderRadius: '4px', overflow: 'hidden', marginBottom: '0.75rem' }}>
                       <div style={{ width: `${Math.min(100, (streak / streakInfo.next.min) * 100)}%`, height: '100%', background: isDark ? 'var(--orange)' : 'var(--orange-strong)', transition: 'width 0.5s ease' }}></div>
                     </div>
-                    <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 'bold', color: isDark ? 'var(--orange-soft)' : 'var(--orange-strong)' }}>🔥 Perseverança e Constância! Preencha todos os dias para forjar seu caráter.</p>
+                    <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--t-orange-text)' }}>🔥 Perseverança e Constância! Preencha todos os dias para forjar seu caráter.</p>
                   </div>
                 ) : (
                   <div style={{ marginTop: '0.5rem', paddingTop: '1rem', borderTop: `1px solid ${isDark ? 'rgba(255, 152, 0, 0.2)' : 'rgba(230, 81, 0, 0.1)'}` }}>
-                    <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? 'var(--orange-soft)' : 'var(--orange-strong)', fontWeight: 'bold' }}>🌟 Você atingiu o mais alto grau de maestria e constância!</p>
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--t-orange-text)', fontWeight: 'bold' }}>🌟 Você atingiu o mais alto grau de maestria e constância!</p>
                   </div>
                 )}
               </div>
@@ -5542,16 +3785,16 @@ ${monthlyReport.desafioCrescimento || '-'}
               {/* GRID COMPACTO DE 3 COLUNAS */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem' }}>
                 <div style={{ background: isDark ? 'rgba(255, 152, 0, 0.1)' : '#fff3e0', padding: '0.75rem 0.5rem', borderRadius: '10px', textAlign: 'center', border: `1px solid ${isDark ? 'rgba(255, 152, 0, 0.3)' : 'rgba(230, 81, 0, 0.2)'}` }}>
-                  <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: isDark ? 'var(--orange-soft)' : 'var(--orange-strong)' }}>{streak}</div>
-                  <div style={{ fontSize: '0.65rem', color: isDark ? 'var(--tan-soft)' : 'var(--umber-muted)', textTransform: 'uppercase', fontWeight: 'bold' }}>Atual</div>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: 'var(--t-orange-text)' }}>{streak}</div>
+                  <div style={{ fontSize: '0.65rem', color: 'var(--t-text-tan)', textTransform: 'uppercase', fontWeight: 'bold' }}>Atual</div>
                 </div>
-                <div style={{ background: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(255, 245, 220, 0.6)', padding: '0.75rem 0.5rem', borderRadius: '10px', textAlign: 'center', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}` }}>
-                  <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: isDark ? 'var(--gold)' : 'var(--umber)' }}>{longestStreak}</div>
-                  <div style={{ fontSize: '0.65rem', color: isDark ? 'var(--tan-soft)' : 'var(--umber-muted)', textTransform: 'uppercase', fontWeight: 'bold' }}>Recorde</div>
+                <div style={{ background: isDark ? 'rgba(212, 175, 55, 0.1)' : 'rgba(255, 245, 220, 0.6)', padding: '0.75rem 0.5rem', borderRadius: '10px', textAlign: 'center', border: `1px solid var(--t-divider-strong)` }}>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: 'var(--t-accent)' }}>{longestStreak}</div>
+                  <div style={{ fontSize: '0.65rem', color: 'var(--t-text-tan)', textTransform: 'uppercase', fontWeight: 'bold' }}>Recorde</div>
                 </div>
-                <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.5)' : 'white', padding: '0.75rem 0.5rem', borderRadius: '10px', textAlign: 'center', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}` }}>
-                  <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: isDark ? 'var(--gold)' : 'var(--umber)' }}>{entries.length}</div>
-                  <div style={{ fontSize: '0.65rem', color: isDark ? 'var(--tan-soft)' : 'var(--umber-muted)', textTransform: 'uppercase', fontWeight: 'bold' }}>Total</div>
+                <div style={{ background: isDark ? 'rgba(26, 26, 46, 0.5)' : 'white', padding: '0.75rem 0.5rem', borderRadius: '10px', textAlign: 'center', border: `1px solid var(--t-divider)` }}>
+                  <div style={{ fontSize: '1.4rem', fontWeight: 'bold', color: 'var(--t-accent)' }}>{entries.length}</div>
+                  <div style={{ fontSize: '0.65rem', color: 'var(--t-text-tan)', textTransform: 'uppercase', fontWeight: 'bold' }}>Total</div>
                 </div>
               </div>
 
@@ -5562,12 +3805,12 @@ ${monthlyReport.desafioCrescimento || '-'}
         {/* MODAL DE SEGURANÇA */}
         {showInactivityWarning && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(5px)' }}>
-            <div style={{ background: isDark ? 'var(--bg-dark)' : 'var(--bg-light)', padding: '2.5rem', borderRadius: '16px', maxWidth: '450px', width: '100%', border: `2px solid var(--danger)`, textAlign: 'center', boxShadow: '0 10px 40px rgba(231, 76, 60, 0.4)' }}>
+            <div style={{ background: 'var(--t-page-bg)', padding: '2.5rem', borderRadius: '16px', maxWidth: '450px', width: '100%', border: `2px solid var(--danger)`, textAlign: 'center', boxShadow: '0 10px 40px rgba(231, 76, 60, 0.4)' }}>
               <AlertCircle size={56} color="var(--danger)" style={{ margin: '0 auto 1rem' }} />
-              <h2 style={{ margin: '0 0 1rem 0', fontFamily: "'Cinzel', serif", color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.5rem' }}>Você ainda está aí?</h2>
-              <p style={{ margin: '0 0 1rem 0', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontSize: '1.1rem', lineHeight: '1.6' }}>Para sua segurança, o diário será fechado em <strong style={{ color: 'var(--danger)', fontSize: '1.3rem' }}>{logoutCountdown}</strong> segundos.</p>
-              <p className="animate-fadeIn" style={{ margin: '0 0 1.5rem 0', color: isDark ? 'var(--success-soft)' : 'var(--success-strong)', fontSize: '0.95rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}><CheckCircle size={16} /> Fique tranquilo, seu progresso foi salvo automaticamente.</p>
-              <button onClick={keepAlive} style={{ width: '100%', padding: '1rem', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>Continuar conectado</button>
+              <h2 style={{ margin: '0 0 1rem 0', fontFamily: "'Cinzel', serif", color: 'var(--t-text)', fontSize: '1.5rem' }}>Você ainda está aí?</h2>
+              <p style={{ margin: '0 0 1rem 0', color: 'var(--t-text-muted)', fontSize: '1.1rem', lineHeight: '1.6' }}>Para sua segurança, o diário será fechado em <strong style={{ color: 'var(--danger)', fontSize: '1.3rem' }}>{logoutCountdown}</strong> segundos.</p>
+              <p className="animate-fadeIn" style={{ margin: '0 0 1.5rem 0', color: 'var(--t-success-text)', fontSize: '0.95rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem' }}><CheckCircle size={16} /> Fique tranquilo, seu progresso foi salvo automaticamente.</p>
+              <button onClick={keepAlive} style={{ width: '100%', padding: '1rem', background: 'var(--t-accent)', color: 'var(--t-surface)', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>Continuar conectado</button>
             </div>
           </div>
         )}
@@ -5575,17 +3818,17 @@ ${monthlyReport.desafioCrescimento || '-'}
 {/* MODAL: CONVITE ATIVO DE NOTIFICAÇÃO */}
         {showNotificationPrompt && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(5px)' }}>
-            <div className="animate-fadeIn" style={{ background: isDark ? 'var(--bg-dark)' : 'var(--bg-light)', padding: '2.5rem', borderRadius: '16px', maxWidth: '400px', width: '100%', border: `2px solid ${isDark ? 'var(--gold)' : 'var(--umber)'}`, textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.3)', position: 'relative' }}>
-              <button onClick={() => setShowNotificationPrompt(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: isDark ? 'var(--parchment)' : 'var(--ink)', cursor: 'pointer' }}><X size={24} /></button>
+            <div className="animate-fadeIn" style={{ background: 'var(--t-page-bg)', padding: '2.5rem', borderRadius: '16px', maxWidth: '400px', width: '100%', border: `2px solid var(--t-accent)`, textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.3)', position: 'relative' }}>
+              <button onClick={() => setShowNotificationPrompt(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: 'var(--t-text)', cursor: 'pointer' }}><X size={24} /></button>
               
-              <Bell size={56} color={isDark ? 'var(--gold)' : 'var(--umber)'} style={{ margin: '0 auto 1rem' }} />
-              <h2 style={{ margin: '0 0 1rem 0', fontFamily: "'Cinzel', serif", color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.5rem' }}>Mantenha a Chama Acesa!</h2>
-              <p style={{ margin: '0 0 1.5rem 0', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontSize: '1.05rem', lineHeight: '1.6' }}>
+              <Bell size={56} color={'var(--t-accent)'} style={{ margin: '0 auto 1rem' }} />
+              <h2 style={{ margin: '0 0 1rem 0', fontFamily: "'Cinzel', serif", color: 'var(--t-text)', fontSize: '1.5rem' }}>Mantenha a Chama Acesa!</h2>
+              <p style={{ margin: '0 0 1.5rem 0', color: 'var(--t-text-muted)', fontSize: '1.05rem', lineHeight: '1.6' }}>
                 Ative os lembretes para não esquecer de fazer o seu Diário Filosófico e o Exame Noturno.
               </p>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                <button onClick={() => { toggleNotifications(); setShowNotificationPrompt(false); }} style={{ width: '100%', padding: '1rem', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                <button onClick={() => { toggleNotifications(); setShowNotificationPrompt(false); }} style={{ width: '100%', padding: '1rem', background: 'var(--t-accent)', color: 'var(--t-surface)', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
                   <CheckCircle size={20} /> Ativar Lembretes
                 </button>
                 <button onClick={() => setShowNotificationPrompt(false)} style={{ width: '100%', padding: '1rem', background: 'transparent', color: isDark ? 'var(--gold-muted)' : 'var(--umber)', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(107, 68, 35, 0.3)'}`, borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif' }}>
@@ -5599,31 +3842,31 @@ ${monthlyReport.desafioCrescimento || '-'}
 {/* MODAL DE SUGESTÕES */}
         {showSuggestionModal && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(5px)' }}>
-            <div className="animate-fadeIn" style={{ background: isDark ? 'var(--bg-dark)' : 'var(--bg-light)', padding: '2rem', borderRadius: '16px', maxWidth: '450px', width: '100%', border: `2px solid ${isDark ? 'var(--gold)' : 'var(--umber)'}`, textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.3)', position: 'relative' }}>
-              <button onClick={() => setShowSuggestionModal(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: isDark ? 'var(--parchment)' : 'var(--ink)', cursor: 'pointer' }}><X size={24} /></button>
+            <div className="animate-fadeIn" style={{ background: 'var(--t-page-bg)', padding: '2rem', borderRadius: '16px', maxWidth: '450px', width: '100%', border: `2px solid var(--t-accent)`, textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.3)', position: 'relative' }}>
+              <button onClick={() => setShowSuggestionModal(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: 'var(--t-text)', cursor: 'pointer' }}><X size={24} /></button>
               
-              <MessageSquare size={48} color={isDark ? 'var(--gold)' : 'var(--umber)'} style={{ margin: '0 auto 1rem' }} />
-              <h2 style={{ margin: '0 0 0.5rem 0', fontFamily: "'Cinzel', serif", color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.6rem' }}>Caixa de Ideias</h2>
-              <p style={{ margin: '0 0 1.5rem 0', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontSize: '1rem', lineHeight: '1.5' }}>Encontrou um erro ou tem uma sugestão para melhorar nossa ferramenta? Nos avise!</p>
+              <MessageSquare size={48} color={'var(--t-accent)'} style={{ margin: '0 auto 1rem' }} />
+              <h2 style={{ margin: '0 0 0.5rem 0', fontFamily: "'Cinzel', serif", color: 'var(--t-text)', fontSize: '1.6rem' }}>Caixa de Ideias</h2>
+              <p style={{ margin: '0 0 1.5rem 0', color: 'var(--t-text-muted)', fontSize: '1rem', lineHeight: '1.5' }}>Encontrou um erro ou tem uma sugestão para melhorar nossa ferramenta? Nos avise!</p>
               
               <textarea 
                 value={suggestionText} 
                 onChange={(e) => setSuggestionText(e.target.value)} 
                 placeholder="Descreva sua ideia, sugestão ou relato de erro..." 
                 rows={5} 
-                style={{ width: '100%', padding: '1rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : 'var(--umber)'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', resize: 'vertical', marginBottom: '1.5rem' }} 
+                style={{ width: '100%', padding: '1rem', border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.5)' : 'var(--umber)'}`, borderRadius: '8px', fontSize: '1rem', fontFamily: 'Georgia, serif', background: 'var(--t-surface-glass)', color: 'var(--t-text)', resize: 'vertical', marginBottom: '1.5rem' }} 
               />
               
               <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
                 <button onClick={handleSendWhatsApp} style={{ flex: 1, padding: '0.8rem', background: '#25D366', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1.05rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(37, 211, 102, 0.2)' }}>
                   WhatsApp
                 </button>
-                <button onClick={handleSendEmail} style={{ flex: 1, padding: '0.8rem', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.05rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                <button onClick={handleSendEmail} style={{ flex: 1, padding: '0.8rem', background: 'var(--t-accent)', color: 'var(--t-surface)', border: 'none', borderRadius: '8px', fontSize: '1.05rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
                   E-mail
                 </button>
                 {/* BOTÃO DE CONFIGURAÇÕES (ENGRENAGEM) */}
-              <button onClick={() => setShowSettingsModal(true)} style={{ padding: '0.5rem', background: 'transparent', border: `2px solid ${isDark ? 'var(--gold)' : 'var(--umber)'}`, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s ease' }} title="Configurações">
-                <Settings size={20} color={isDark ? 'var(--gold)' : 'var(--umber)'} />
+              <button onClick={() => setShowSettingsModal(true)} style={{ padding: '0.5rem', background: 'transparent', border: `2px solid var(--t-accent)`, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s ease' }} title="Configurações">
+                <Settings size={20} color={'var(--t-accent)'} />
               </button>
               </div>
             </div>
@@ -5631,8 +3874,8 @@ ${monthlyReport.desafioCrescimento || '-'}
         )}
 
         {/* ESPAÇO GLOBAL PARA ANÚNCIO DO GOOGLE (COMPACTO) */}
-        <div style={{ padding: '8px', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(107, 68, 35, 0.05)', borderRadius: '8px', marginTop: '2rem', border: `1px dashed ${isDark ? 'var(--gold)' : 'var(--umber)'}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80px' }}>
-          <span style={{ fontSize: '0.65rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Publicidade</span>
+        <div style={{ padding: '8px', background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(107, 68, 35, 0.05)', borderRadius: '8px', marginTop: '2rem', border: `1px dashed var(--t-accent)`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80px' }}>
+          <span style={{ fontSize: '0.65rem', color: 'var(--t-text-muted)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Publicidade</span>
           
           <div style={{ width: '100%', maxWidth: '728px' }}>
             <AdBanner slotId="9558175523" />
@@ -5642,23 +3885,23 @@ ${monthlyReport.desafioCrescimento || '-'}
 {/* MODAL DE AÇÃO DAS PRÁTICAS (REALIZAR OU JÁ REALIZADO) */}
         {activeActionMenu && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(3px)' }} onClick={() => setActiveActionMenu(null)}>
-            <div className="animate-fadeIn" style={{ background: isDark ? 'var(--bg-dark)' : 'var(--bg-light)', padding: '2rem', borderRadius: '16px', maxWidth: '350px', width: '100%', border: `2px solid ${isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'}`, textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.3)', position: 'relative' }} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setActiveActionMenu(null)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: isDark ? 'var(--parchment)' : 'var(--ink)', cursor: 'pointer' }}><X size={24} /></button>
+            <div className="animate-fadeIn" style={{ background: 'var(--t-page-bg)', padding: '2rem', borderRadius: '16px', maxWidth: '350px', width: '100%', border: `2px solid var(--t-accent-bright)`, textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.3)', position: 'relative' }} onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setActiveActionMenu(null)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: 'var(--t-text)', cursor: 'pointer' }}><X size={24} /></button>
               
-              <h3 style={{ margin: '0 0 1.5rem 0', fontFamily: "'Cinzel', serif", color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', fontSize: '1.3rem' }}>{activeActionMenu.label}</h3>
+              <h3 style={{ margin: '0 0 1.5rem 0', fontFamily: "'Cinzel', serif", color: 'var(--t-accent-bright)', fontSize: '1.3rem' }}>{activeActionMenu.label}</h3>
               
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <button onClick={() => handleRealizarPratica(activeActionMenu.key)} style={{ width: '100%', padding: '1rem', background: 'linear-gradient(135deg, var(--gold-bright) 0%, #FFA500 100%)', color: 'var(--black)', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(255,215,0,0.2)' }}>
                   <Zap size={20} /> Realizar no App
                 </button>
                 
-                <button onClick={() => { handleFvDailyPracticeChange(activeActionMenu.key, true); setActiveActionMenu(null); }} style={{ width: '100%', padding: '1rem', background: isDark ? 'rgba(76, 175, 80, 0.2)' : '#e8f5e9', color: isDark ? 'var(--success-soft)' : 'var(--success-strong)', border: `2px solid ${isDark ? 'var(--success)' : 'var(--success)'}`, borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+                <button onClick={() => { handleFvDailyPracticeChange(activeActionMenu.key, true); setActiveActionMenu(null); }} style={{ width: '100%', padding: '1rem', background: isDark ? 'rgba(76, 175, 80, 0.2)' : '#e8f5e9', color: 'var(--t-success-text)', border: `2px solid ${isDark ? 'var(--success)' : 'var(--success)'}`, borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', fontFamily: 'Georgia, serif', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
                   <CheckCircle size={20} /> Já Realizado
                 </button>
 
                 {/* Se já estiver marcado, dá a opção de desmarcar */}
                 {fvDaily.praticas?.[activeActionMenu.key] && (
-                  <button onClick={() => { handleFvDailyPracticeChange(activeActionMenu.key, false); setActiveActionMenu(null); }} style={{ width: '100%', padding: '0.75rem', background: 'transparent', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', border: 'none', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', textDecoration: 'underline' }}>
+                  <button onClick={() => { handleFvDailyPracticeChange(activeActionMenu.key, false); setActiveActionMenu(null); }} style={{ width: '100%', padding: '0.75rem', background: 'transparent', color: 'var(--t-text-muted)', border: 'none', borderRadius: '8px', fontSize: '0.9rem', cursor: 'pointer', textDecoration: 'underline' }}>
                     Desmarcar prática
                   </button>
                 )}
@@ -5669,257 +3912,7 @@ ${monthlyReport.desafioCrescimento || '-'}
 
         {/* MODAL IMERSIVO UNIVERSAL: PRÁTICAS GUIADAS */}
         {isPracticeActive && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: isDark ? '#0a0a14' : 'var(--bg-light)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
-            
-            {/* --- 1. PRÁTICA: TRATAK --- */}
-            {activePracticeId === 'tratack' && (
-              <>
-                {/* FASE 1: INSTRUÇÃO */}
-                {practicePhase === 'intro' && (
-                  <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '2rem', maxWidth: '500px' }}>
-                    <Target size={48} color={isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'} style={{ margin: '0 auto 1.5rem' }} />
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', margin: '0 0 1rem 0' }}>
-                      <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', fontSize: '2rem', margin: 0 }}>Prática de Tratak</h2>
-                      <button onClick={() => showToast("O Tratak é um exercício milenar de concentração. Consiste em manter o olhar fixamente cravado em um único ponto (o círculo central) sem piscar e sem mover o corpo ou o celular.\n\nObjetivo: Domar a mente agitada através do controle absoluto do corpo. Se o celular tremer ou você mover o mouse, a prática é cancelada.")} style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'transparent', border: `2px solid ${isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'}`, color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="O que é o Tratak?">?</button>
-                    </div>
-                    
-                    <div style={{ background: isDark ? 'rgba(255,215,0,0.05)' : 'rgba(153,101,21,0.05)', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255,215,0,0.2)' : 'rgba(153,101,21,0.2)'}`, marginBottom: '1.5rem' }}>
-                      <p style={{ fontSize: '1.15rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', lineHeight: '1.6', margin: 0 }}>Posicione o seu dispositivo a cerca de 1 metro de distância, alinhado à altura dos olhos.</p>
-                      <p style={{ fontSize: '1.15rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', lineHeight: '1.6', marginTop: '1rem', marginBottom: 0 }}>Sente-se adequadamente, com a coluna ereta. Respire fundo e clique em iniciar.</p>
-                    </div>
-
-                    <p style={{ fontSize: '0.9rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', marginBottom: '0.5rem', fontStyle: 'italic' }}>A prática durará 3 minutos. Mantenha o olhar fixo no ponto central.</p>
-                    
-                    {/* NOVO: Aviso de Encerramento */}
-                    <p style={{ fontSize: '0.85rem', color: 'var(--danger)', marginBottom: '2rem', fontWeight: 'bold' }}>⚠️ Para encerrar antecipadamente, mova o mouse.</p>
-
-                    <button 
-                      onClick={() => { 
-                        setPracticePhase('practice'); 
-                        setCancelClickCount(0); // Zera os cliques ao começar!
-                        enterFullScreen(); // 👈 LIGA A TELA CHEIA AQUI
-                      }} 
-                      style={{ padding: '1rem 2.5rem', fontSize: '1.2rem', background: 'linear-gradient(135deg, var(--gold-bright) 0%, #FFA500 100%)', color: 'var(--black)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold' }}
-                    >
-                      Iniciar Tratak
-                    </button>
-                    <button onClick={() => setIsPracticeActive(false)} style={{ marginTop: '1rem', display: 'block', width: '100%', padding: '1rem', background: 'transparent', color: isDark ? 'var(--gray)' : 'var(--umber-muted)', border: 'none', cursor: 'pointer', fontFamily: 'Georgia, serif', textDecoration: 'underline' }}>Voltar ao Diário</button>
-                  </div>
-                )}
-
-                {/* FASE 2: O CÍRCULO (CANCELA AO MOVER O MOUSE) */}
-                {practicePhase === 'practice' && (
-                  <div 
-                    className="animate-fadeIn" 
-                    onMouseMove={() => {
-                      if (tratakMouseActive) {
-                        showToast("Prática interrompida.\n\nComo o tempo estipulado não foi atingido, esta sessão não será adicionada ao seu registro de práticas realizadas.");
-                        setIsPracticeActive(false); 
-                        exitFullScreen(); 
-                        setTratakMouseActive(false);
-                      }
-                    }}
-                    style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%', cursor: 'none' }}
-                  >
-                    <div style={{ width: 'min(85vw, 500px)', aspectRatio: '1/1', borderRadius: '50%', border: `8px solid ${isDark ? 'var(--white)' : 'var(--black)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <div style={{ width: 'min(6vw, 36px)', aspectRatio: '1/1', borderRadius: '50%', background: isDark ? 'var(--white)' : 'var(--black)' }}></div>
-                    </div>
-                  </div>
-                )}
-
-                {/* FASE 3: CONCLUSÃO */}
-                {practicePhase === 'done' && (
-                  <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '2rem' }}>
-                    <CheckCircle size={80} color="var(--success)" style={{ margin: '0 auto 1.5rem' }} />
-                    <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '2.5rem', marginBottom: '1rem' }}>Tratak Realizado</h2>
-                    <p style={{ fontSize: '1.2rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', marginBottom: '2.5rem' }}>O foco e a disciplina foram forjados mais um pouco hoje.</p>
-                    <button 
-                      onClick={() => confirmImmersivePractice('tratack')} 
-                      style={{ padding: '1rem 3rem', fontSize: '1.2rem', background: 'var(--success)', color: 'var(--white)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold' }}
-                    >
-                      Confirmar Prática
-                    </button>
-                  </div>
-                )}
-              </>
-            )}
-
-
-            {/* O TOCA-DISCOS INTELIGENTE (Troca a música sozinho) */}
-            <audio 
-              ref={audioRef} 
-              src={activePracticeId === 'templo' ? "/beethoven.mp3" : "/aria-bach.mp3"} 
-              onEnded={() => setPracticePhase('done')}
-            />
-
-            {/* --- 2. PRÁTICA: CÂMARA DE PURIFICAÇÃO --- */}
-            {activePracticeId === 'camara' && (
-              <>
-                {/* FASE 1: INSTRUÇÃO */}
-                {practicePhase === 'intro' && (
-                  <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '2rem', maxWidth: '500px' }}>
-                    <Music size={48} color={isDark ? 'var(--success-soft)' : 'var(--success-strong)'} style={{ margin: '0 auto 1.5rem' }} />
-                    <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? 'var(--success-soft)' : 'var(--success-strong)', fontSize: '2rem', margin: '0 0 1rem 0' }}>Câmara de Purificação</h2>
-                    
-                    <div style={{ background: isDark ? 'rgba(76, 175, 80, 0.05)' : 'rgba(76, 175, 80, 0.1)', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(76, 175, 80, 0.2)' : 'rgba(76, 175, 80, 0.3)'}`, marginBottom: '1.5rem' }}>
-                      <p style={{ fontSize: '1.15rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', lineHeight: '1.6', margin: 0 }}>Sente-se de forma confortável, feche os olhos e respire profundamente.</p>
-                      <p style={{ fontSize: '1.15rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', lineHeight: '1.6', marginTop: '1rem', marginBottom: 0 }}>Ao iniciar, a Ária de Bach começará a tocar. Deixe a música lavar seus pensamentos.</p>
-                    </div>
-
-                    <p style={{ fontSize: '0.9rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', marginBottom: '0.5rem', fontStyle: 'italic' }}>A prática terminará automaticamente ao fim da melodia (~5 min).</p>
-                                        
-                    <button 
-                      onClick={() => { 
-                        setPracticePhase('practice'); 
-                        setCancelClickCount(0); 
-                        enterFullScreen();
-                        if(audioRef.current) audioRef.current.play(); // 👈 DÁ O PLAY NA MÚSICA AQUI!
-                      }} 
-                      style={{ padding: '1rem 2.5rem', fontSize: '1.2rem', background: 'linear-gradient(135deg, var(--success-soft) 0%, var(--success) 100%)', color: 'var(--white)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(76, 175, 80, 0.3)' }}
-                    >
-                      Iniciar Purificação
-                    </button>
-                    <button onClick={() => setIsPracticeActive(false)} style={{ marginTop: '1rem', display: 'block', width: '100%', padding: '1rem', background: 'transparent', color: isDark ? 'var(--gray)' : 'var(--umber-muted)', border: 'none', cursor: 'pointer', fontFamily: 'Georgia, serif', textDecoration: 'underline' }}>Voltar ao Diário</button>
-                  </div>
-                )}
-
-                {/* FASE 2: A PRÁTICA (TELA ESCURA MINIMALISTA) */}
-                {practicePhase === 'practice' && (
-                  <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%', position: 'relative' }}>
-                    <Music size={56} color={isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'} style={{ opacity: 0.5 }} />
-                    <p style={{ marginTop: '2rem', color: isDark ? 'rgba(240, 230, 210, 0.3)' : 'rgba(44, 24, 16, 0.3)', fontStyle: 'italic', fontFamily: 'Georgia, serif', letterSpacing: '2px' }}>Respire e ouça...</p>
-                    
-                    {tempoDecorrido >= 180 && (
-                      <button onClick={(e) => {
-                        e.stopPropagation();
-                        if(audioRef.current) { audioRef.current.pause(); }
-                        setPracticePhase('done');
-                      }} style={{ marginTop: '2rem', padding: '0.8rem 2rem', background: 'var(--success)', color: 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 15px rgba(76,175,80,0.3)', animation: 'fadeIn 1s' }}>
-                        <CheckCircle size={20} /> Finalizar Purificação
-                      </button>
-                    )}
-
-                    {/* BOTÃO DE ENCERRAR */}
-                    <button onClick={(e) => {
-                      e.stopPropagation();
-                      if(audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; }
-                      setIsPracticeActive(false); 
-                      exitFullScreen();
-                    }} style={{ position: 'absolute', bottom: '10%', padding: '1rem 2rem', background: 'transparent', color: 'var(--danger)', border: '2px solid var(--danger)', borderRadius: '8px', fontSize: '1.1rem', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <XCircle size={20} /> Encerrar Prática
-                    </button>
-                  </div>
-                )}
-
-                {/* FASE 3: CONCLUSÃO */}
-                {practicePhase === 'done' && (
-                  <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '2rem' }}>
-                    <CheckCircle size={80} color="var(--success)" style={{ margin: '0 auto 1.5rem' }} />
-                    <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '2.5rem', marginBottom: '1rem' }}>Purificação Concluída</h2>
-                    <p style={{ fontSize: '1.2rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', marginBottom: '2.5rem' }}>Sua mente agora está serena e limpa como um espelho d'água.</p>
-                    <button 
-                      onClick={() => confirmImmersivePractice('camara')} 
-                      style={{ padding: '1rem 3rem', fontSize: '1.2rem', background: 'var(--success)', color: 'var(--white)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold' }}
-                    >
-                      Confirmar Prática
-                    </button>
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* --- 3. PRÁTICA: TEMPLO INTERIOR --- */}
-            {activePracticeId === 'templo' && (
-              <>
-                {/* FASE 1: INSTRUÇÃO */}
-                {practicePhase === 'intro' && (
-                  <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '2rem', maxWidth: '500px' }}>
-                    <Sparkles size={48} color={isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'} style={{ margin: '0 auto 1.5rem' }} />
-                    <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', fontSize: '2rem', margin: '0 0 1rem 0' }}>Templo Interior</h2>
-                    
-                    <div style={{ background: isDark ? 'rgba(255,215,0,0.05)' : 'rgba(153,101,21,0.05)', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255,215,0,0.2)' : 'rgba(153,101,21,0.2)'}`, marginBottom: '1.5rem' }}>
-                      <p style={{ fontSize: '1.15rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', lineHeight: '1.6', margin: 0 }}>Feche os olhos e inicie sua jornada para dentro de si.</p>
-                      <p style={{ fontSize: '1.15rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', lineHeight: '1.6', marginTop: '1rem', marginBottom: 0 }}>Ao som de Beethoven, avance o quanto puder pelas etapas do Templo.</p>
-                    </div>
-
-                    {/* DESTAQUE PARA O TEMPO DE DURAÇÃO */}
-                    <div style={{ marginBottom: '1.5rem' }}>
-                      <p style={{ fontSize: '1rem', color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', margin: '0 0 0.25rem 0', fontWeight: 'bold' }}>⏱️ Duração: ~8 minutos e 30 segundos.</p>
-                      <p style={{ fontSize: '0.9rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', margin: 0, fontStyle: 'italic' }}>Ao final da sinfonia, você registrará seu progresso.</p>
-                    </div>
-              
-                    <button 
-                      onClick={() => { 
-                        setPracticePhase('practice'); 
-                        setCancelClickCount(0); 
-                        enterFullScreen();
-                        if(audioRef.current) { audioRef.current.load(); audioRef.current.play(); } 
-                      }} 
-                      style={{ padding: '1rem 2.5rem', fontSize: '1.2rem', background: 'linear-gradient(135deg, var(--gold-bright) 0%, #FFA500 100%)', color: 'var(--black)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', boxShadow: '0 4px 15px rgba(255, 215, 0, 0.3)' }}
-                    >
-                      Adentrar o Templo
-                    </button>
-                    <button onClick={() => setIsPracticeActive(false)} style={{ marginTop: '1rem', display: 'block', width: '100%', padding: '1rem', background: 'transparent', color: isDark ? 'var(--gray)' : 'var(--umber-muted)', border: 'none', cursor: 'pointer', fontFamily: 'Georgia, serif', textDecoration: 'underline' }}>Voltar ao Diário</button>
-                  </div>
-                )}
-
-                {/* FASE 2: A JORNADA (TELA ESCURA MINIMALISTA) */}
-                {practicePhase === 'practice' && (
-                  <div className="animate-fadeIn" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100%', position: 'relative' }}>
-                    <Sparkles size={56} color={isDark ? 'rgba(255, 215, 0, 0.2)' : 'rgba(153, 101, 21, 0.2)'} style={{ opacity: 0.7 }} />
-                    <p style={{ marginTop: '2rem', color: isDark ? 'rgba(255, 215, 0, 0.4)' : 'rgba(153, 101, 21, 0.4)', fontStyle: 'italic', fontFamily: 'Georgia, serif', letterSpacing: '2px' }}>Caminhando pelo Templo...</p>
-
-
-                    {/* BOTÃO DE ENCERRAR */}
-                    <button onClick={(e) => {
-                      e.stopPropagation();
-                      if(audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; }
-                      setIsPracticeActive(false); 
-                      exitFullScreen();
-                    }} style={{ position: 'absolute', bottom: '10%', padding: '1rem 2rem', background: 'transparent', color: 'var(--danger)', border: '2px solid var(--danger)', borderRadius: '8px', fontSize: '1.1rem', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <XCircle size={20} /> Encerrar Prática
-                    </button>
-                  </div>
-                )}
-
-                {/* FASE 3: MARCAÇÃO DOS DEGRAUS (CONCLUSÃO) */}
-                {practicePhase === 'done' && (
-                  <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '2rem', maxWidth: '400px', width: '100%' }}>
-                    <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', fontSize: '2rem', marginBottom: '0.5rem' }}>Jornada Concluída</h2>
-                    <p style={{ fontSize: '1.1rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', marginBottom: '2rem' }}>Até qual etapa você conseguiu se manter consciente hoje?</p>
-                    
-                    {/* AS CAIXINHAS DE SELEÇÃO DO TEMPLO */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginBottom: '2rem', textAlign: 'left', background: isDark ? 'rgba(255,215,0,0.05)' : 'rgba(153,101,21,0.05)', padding: '1.5rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(255,215,0,0.2)' : 'rgba(153,101,21,0.2)'}` }}>
-                      {[
-                        { key: 'porta', label: '1. Porta' },
-                        { key: 'patioAberto', label: '2. Pátio Aberto' },
-                        { key: 'patioColunas', label: '3. Pátio de Colunas' },
-                        { key: 'santuario', label: '4. Santuário' }
-                      ].map(prac => (
-                        <label key={prac.key} style={{ display: 'flex', alignItems: 'center', gap: '1rem', cursor: 'pointer', padding: '0.5rem' }}>
-                          <input 
-                            type="checkbox" 
-                            checked={temploSelections[prac.key]} 
-                            onChange={(e) => setTemploSelections(prev => ({ ...prev, [prac.key]: e.target.checked }))} 
-                            style={{ width: '24px', height: '24px', cursor: 'pointer', accentColor: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)' }} 
-                          />
-                          <span style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.1rem' }}>{prac.label}</span>
-                        </label>
-                      ))}
-                    </div>
-
-                    <button 
-                      onClick={confirmTemploPractice} 
-                      style={{ width: '100%', padding: '1rem', fontSize: '1.2rem', background: 'var(--success)', color: 'var(--white)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontFamily: 'Georgia, serif', fontWeight: 'bold' }}
-                    >
-                      Confirmar Progresso
-                    </button>
-                  </div>
-                )}
-              </>
-            )}
-
-          </div>
+          <Suspense fallback={<ViewFallback />}><PracticeOverlay {...{ activePracticeId, audioRef, confirmImmersivePractice, confirmTemploPractice, enterFullScreen, exitFullScreen, isDark, practicePhase, setCancelClickCount, setIsPracticeActive, setPracticePhase, setTemploSelections, setTratakMouseActive, showToast, temploSelections, tempoDecorrido, tratakMouseActive }} /></Suspense>
         )}
 
         {/* --- 4. PRÁTICA: RECITAÇÕES EM TELA CHEIA --- */}
@@ -5927,16 +3920,16 @@ ${monthlyReport.desafioCrescimento || '-'}
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: isDark ? '#0a0a14' : 'var(--bg-light)', zIndex: 10001, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
             <div className="animate-fadeIn" style={{ textAlign: 'center', padding: '2rem', maxWidth: '600px', width: '100%' }}>
               {activePracticeId === 'formasGeometricas'
-                ? <Landmark size={64} color={isDark ? 'var(--gold)' : 'var(--umber)'} style={{ margin: '0 auto 1.5rem', opacity: 0.8 }} />
-                : <BookOpen size={64} color={isDark ? 'var(--gold)' : 'var(--umber)'} style={{ margin: '0 auto 1.5rem', opacity: 0.8 }} />
+                ? <Landmark size={64} color={'var(--t-accent)'} style={{ margin: '0 auto 1.5rem', opacity: 0.8 }} />
+                : <BookOpen size={64} color={'var(--t-accent)'} style={{ margin: '0 auto 1.5rem', opacity: 0.8 }} />
               }
 
-              <h2 style={{ fontFamily: "'Cinzel', serif", color: isDark ? 'var(--gold)' : 'var(--umber)', fontSize: '2.5rem', margin: '0 0 1.5rem 0' }}>
+              <h2 style={{ fontFamily: "'Cinzel', serif", color: 'var(--t-accent)', fontSize: '2.5rem', margin: '0 0 1.5rem 0' }}>
                 {activePracticeId === 'recitarHonra' ? 'Código de Dignidade' : (activePracticeId === 'recitar7Fases' ? '7 Fases da ED' : 'Formas Geométricas')}
               </h2>
 
-              <div style={{ background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(139, 115, 85, 0.05)', padding: '2rem', borderRadius: '12px', border: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, marginBottom: '3rem' }}>
-                <p style={{ fontSize: '1.2rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', lineHeight: '1.8', margin: 0, fontStyle: 'italic' }}>
+              <div style={{ background: isDark ? 'rgba(212, 175, 55, 0.05)' : 'rgba(139, 115, 85, 0.05)', padding: '2rem', borderRadius: '12px', border: `1px solid var(--t-divider)`, marginBottom: '3rem' }}>
+                <p style={{ fontSize: '1.2rem', color: 'var(--t-text)', lineHeight: '1.8', margin: 0, fontStyle: 'italic' }}>
                   {activePracticeId === 'formasGeometricas' ? (
                     <>
                       Visualize e trace mentalmente as formas geométricas básicas (círculo, quadrado, triângulo) com atenção plena, sustentando cada forma na mente antes de passar à seguinte.
@@ -5967,7 +3960,7 @@ ${monthlyReport.desafioCrescimento || '-'}
               
               <button 
                 onClick={() => { setIsPracticeActive(false); exitFullScreen(); }} 
-                style={{ display: 'block', width: '100%', padding: '1rem', background: 'transparent', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', border: 'none', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '1.1rem', textDecoration: 'underline' }}
+                style={{ display: 'block', width: '100%', padding: '1rem', background: 'transparent', color: 'var(--t-text-muted)', border: 'none', cursor: 'pointer', fontFamily: 'Georgia, serif', fontSize: '1.1rem', textDecoration: 'underline' }}
               >
                 Cancelar e Voltar
               </button>
@@ -6018,18 +4011,18 @@ ${monthlyReport.desafioCrescimento || '-'}
         {/* MODAL: CRIAR GRUPO DE ESTUDO (GDVE) */}
         {showCreateGroupModal && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 10002, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(3px)' }} onClick={() => setShowCreateGroupModal(false)}>
-            <div style={{ background: isDark ? 'var(--bg-dark)' : 'var(--bg-light)', padding: '1.5rem', borderRadius: '16px', maxWidth: '380px', width: '100%', border: `2px solid ${isDark ? 'var(--success)' : 'var(--success-strong)'}`, position: 'relative', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setShowCreateGroupModal(false)} style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: 'transparent', border: 'none', color: isDark ? 'var(--parchment)' : 'var(--ink)', cursor: 'pointer' }}><X size={20} /></button>
-              <h2 style={{ margin: '0 0 1rem', fontFamily: "'Cinzel', serif", color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Users size={22} /> Criar Grupo de Estudo</h2>
+            <div style={{ background: 'var(--t-page-bg)', padding: '1.5rem', borderRadius: '16px', maxWidth: '380px', width: '100%', border: `2px solid ${isDark ? 'var(--success)' : 'var(--success-strong)'}`, position: 'relative', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
+              <button onClick={() => setShowCreateGroupModal(false)} style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: 'transparent', border: 'none', color: 'var(--t-text)', cursor: 'pointer' }}><X size={20} /></button>
+              <h2 style={{ margin: '0 0 1rem', fontFamily: "'Cinzel', serif", color: 'var(--t-text)', fontSize: '1.3rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Users size={22} /> Criar Grupo de Estudo</h2>
               <input
                 type="text"
                 autoFocus
                 value={newGroupName}
                 onChange={(e) => setNewGroupName(e.target.value)}
                 placeholder="Nome do grupo (opcional — deixe em branco para um nome egípcio)"
-                style={{ width: '100%', padding: '0.7rem', borderRadius: '8px', border: '1px solid var(--border-light)', background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', marginBottom: '0.4rem' }}
+                style={{ width: '100%', padding: '0.7rem', borderRadius: '8px', border: '1px solid var(--border-light)', background: 'var(--t-field-bg)', color: 'var(--t-text)', marginBottom: '0.4rem' }}
               />
-              <p style={{ margin: '0 0 1rem', fontSize: '0.8rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)' }}>
+              <p style={{ margin: '0 0 1rem', fontSize: '0.8rem', color: 'var(--t-text-soft)' }}>
                 Não precisa pensar em um nome: se deixar em branco, o grupo recebe o nome de uma divindade egípcia.
               </p>
               <button
@@ -6060,167 +4053,40 @@ ${monthlyReport.desafioCrescimento || '-'}
 
         {/* MODAL: PAINEL DE ADMINISTRAÇÃO DE ACESSOS */}
         {showAdminPanel && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(5px)' }}>
-            <div className="animate-fadeIn" style={{ background: isDark ? 'var(--bg-dark)' : 'var(--bg-light)', padding: '2rem', borderRadius: '16px', maxWidth: '560px', width: '100%', maxHeight: '85vh', overflowY: 'auto', border: `2px solid ${isDark ? 'var(--gold)' : 'var(--umber)'}`, boxShadow: '0 10px 40px rgba(0,0,0,0.3)', position: 'relative' }}>
-
-              <button onClick={() => setShowAdminPanel(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: isDark ? 'var(--parchment)' : 'var(--ink)', cursor: 'pointer' }}>
-                <X size={24} />
-              </button>
-
-              <ShieldAlert size={40} color={isDark ? 'var(--gold)' : 'var(--umber)'} style={{ marginBottom: '0.5rem' }} />
-              <h2 style={{ margin: '0 0 0.3rem 0', fontFamily: "'Cinzel', serif", color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.5rem' }}>Pedidos de Acesso</h2>
-              <p style={{ margin: '0 0 1.5rem 0', fontSize: '0.8rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)', fontStyle: 'italic' }}>
-                {isSuperAdmin ? 'Admin geral — você vê pedidos de todas as unidades.' : `Mostrando pedidos de: ${myAdminUnits.join(', ') || 'nenhuma unidade vinculada'}`}
-              </p>
-
-              {pendingRequests.length === 0 ? (
-                <p style={{ color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)', textAlign: 'center', padding: '1rem 0' }}>Nenhum pedido pendente no momento.</p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '2rem' }}>
-                  {pendingRequests.map(req => (
-                    <div key={req.uid} style={{ padding: '1rem', background: isDark ? 'rgba(255,255,255,0.03)' : 'var(--gray-bg)', borderRadius: '10px', border: `1px solid ${isDark ? '#333' : 'var(--border-soft)'}` }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
-                        <div style={{ textAlign: 'left' }}>
-                          <strong style={{ color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>{req.requestName || 'Sem nome'}</strong>
-                          <div style={{ fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)' }}>{req.requestUnit || 'Unidade não informada'}</div>
-                          <div style={{ fontSize: '0.8rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontWeight: 'bold' }}>{req.requestEmail || 'sem e-mail'}</div>
-                          {req.email && req.requestEmail && req.email !== req.requestEmail && (
-                            <div style={{ fontSize: '0.75rem', color: 'var(--danger)' }}>⚠️ E-mail de login diferente: {req.email}</div>
-                          )}
-                          {req.requestDate && <div style={{ fontSize: '0.75rem', color: isDark ? 'var(--gray-text)' : '#aaa' }}>{new Date(req.requestDate).toLocaleString('pt-BR')}</div>}
-                        </div>
-                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
-                          <button disabled={isLoadingAdminPanel} onClick={() => decidePendingRequest(req.uid, 'approve')} style={{ padding: '0.5rem 0.8rem', background: 'var(--success)', color: 'white', border: 'none', borderRadius: '6px', cursor: isLoadingAdminPanel ? 'default' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.3rem', opacity: isLoadingAdminPanel ? 0.6 : 1 }}>
-                            <CheckCircle size={16}/> Aprovar
-                          </button>
-                          <button disabled={isLoadingAdminPanel} onClick={() => decidePendingRequest(req.uid, 'reject')} style={{ padding: '0.5rem 0.8rem', background: 'transparent', color: 'var(--danger)', border: '1px solid var(--danger)', borderRadius: '6px', cursor: isLoadingAdminPanel ? 'default' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.3rem', opacity: isLoadingAdminPanel ? 0.6 : 1 }}>
-                            <XCircle size={16}/> Recusar
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {isSuperAdmin && (
-                <>
-                  <div style={{ borderTop: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'var(--border-soft)'}`, paddingTop: '1.5rem', textAlign: 'left', marginBottom: '1.5rem' }}>
-                    <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px', color: isDark ? 'var(--gold)' : 'var(--umber-bright)' }}>Unidades</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem' }}>
-                      {unitsList.map(unit => (
-                        <div key={unit} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0.6rem', background: isDark ? 'rgba(255,255,255,0.03)' : 'var(--gray-bg)', borderRadius: '6px' }}>
-                          <span style={{ fontSize: '0.85rem', color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>{unit}</span>
-                          <button disabled={isLoadingAdminPanel} onClick={() => removeUnit(unit)} style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: isLoadingAdminPanel ? 'default' : 'pointer' }} title="Remover unidade">
-                            <Trash2 size={14}/>
-                          </button>
-                        </div>
-                      ))}
-                      {unitsList.length === 0 && <p style={{ margin: 0, fontSize: '0.8rem', color: isDark ? 'var(--gray)' : '#999', fontStyle: 'italic' }}>Nenhuma unidade cadastrada ainda — o formulário de solicitação vai usar texto livre até você cadastrar a primeira.</p>}
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                      <textarea
-                        value={newUnitName}
-                        onChange={(e) => setNewUnitName(e.target.value)}
-                        placeholder={"Nome da unidade...\n(pode colar várias — uma por linha ou separadas por vírgula)"}
-                        rows={4}
-                        style={{ width: '100%', padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'var(--gray-strong)' : 'var(--border-light)'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontFamily: 'inherit', resize: 'vertical' }}
-                      />
-                      <button disabled={isLoadingAdminPanel || !newUnitName.trim()} onClick={addUnit} style={{ padding: '0.6rem 1rem', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: isLoadingAdminPanel ? 'default' : 'pointer', opacity: isLoadingAdminPanel ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}>
-                        <Plus size={16}/> Adicionar
-                      </button>
-                    </div>
-                  </div>
-
-                  <div style={{ borderTop: `1px solid ${isDark ? 'rgba(212,175,55,0.2)' : 'var(--border-soft)'}`, paddingTop: '1.5rem', textAlign: 'left' }}>
-                    <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px', color: isDark ? 'var(--gold)' : 'var(--umber-bright)' }}>Administradores</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1rem' }}>
-                      {adminRecordsList.map(a => (
-                        <div key={a.email} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.4rem 0.6rem', background: isDark ? 'rgba(255,255,255,0.03)' : 'var(--gray-bg)', borderRadius: '6px', gap: '0.5rem' }}>
-                          <div>
-                            <div style={{ fontSize: '0.85rem', color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>{a.email}</div>
-                            <div style={{ fontSize: '0.7rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray-text)' }}>{a.units.length === 0 ? 'Admin geral (todas as unidades)' : a.units.join(', ')}</div>
-                          </div>
-                          <button disabled={isLoadingAdminPanel} onClick={() => removeAdminEmail(a.email)} style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: isLoadingAdminPanel ? 'default' : 'pointer', flexShrink: 0 }} title="Remover admin">
-                            <Trash2 size={14}/>
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                      <input
-                        type="email"
-                        value={newAdminEmail}
-                        onChange={(e) => setNewAdminEmail(e.target.value)}
-                        placeholder="novo-admin@exemplo.com"
-                        style={{ padding: '0.6rem', borderRadius: '6px', border: `1px solid ${isDark ? 'var(--gray-strong)' : 'var(--border-light)'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)' }}
-                      />
-                      {unitsList.length > 0 && (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                          {unitsList.map(unit => (
-                            <label key={unit} style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem', color: isDark ? 'var(--tan-soft)' : 'var(--umber-muted)', cursor: 'pointer' }}>
-                              <input
-                                type="checkbox"
-                                checked={newAdminUnits.includes(unit)}
-                                onChange={(e) => setNewAdminUnits(prev => e.target.checked ? [...prev, unit] : prev.filter(u => u !== unit))}
-                              />
-                              {unit}
-                            </label>
-                          ))}
-                        </div>
-                      )}
-                      <p style={{ margin: 0, fontSize: '0.75rem', color: isDark ? 'var(--gray)' : '#999', fontStyle: 'italic' }}>Sem nenhuma unidade marcada, o admin vê pedidos de todas as unidades.</p>
-                      <button disabled={isLoadingAdminPanel || !newAdminEmail.trim()} onClick={addAdminEmail} style={{ padding: '0.6rem 1rem', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: isLoadingAdminPanel ? 'default' : 'pointer', opacity: isLoadingAdminPanel ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}>
-                        <Plus size={16}/> Adicionar Admin
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
+          <Suspense fallback={<ViewFallback />}><AdminPanel {...{ addAdminEmail, addUnit, adminRecordsList, decidePendingRequest, isDark, isLoadingAdminPanel, isSuperAdmin, myAdminUnits, newAdminEmail, newAdminUnits, newUnitName, pendingRequests, removeAdminEmail, removeUnit, setNewAdminEmail, setNewAdminUnits, setNewUnitName, setShowAdminPanel, unitsList }} /></Suspense>
         )}
 
-        {/* MODAL DE CONFIGURAÇÕES (HORÁRIOS) */}
+        {/* MODAL DE CONFIGURAÇÕES (LEMBRETES) */}
         {showSettingsModal && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(5px)' }}>
-            <div className="animate-fadeIn" style={{ background: isDark ? 'var(--bg-dark)' : 'var(--bg-light)', padding: '2rem', borderRadius: '16px', maxWidth: '400px', width: '100%', border: `2px solid ${isDark ? 'var(--gold)' : 'var(--umber)'}`, textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.3)', position: 'relative' }}>
+            <div className="animate-fadeIn" style={{ background: 'var(--t-page-bg)', padding: '2rem', borderRadius: '16px', maxWidth: '400px', width: '100%', border: `2px solid var(--t-accent)`, textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.3)', position: 'relative' }}>
               
               {/* Botão de Fechar */}
-              <button onClick={() => setShowSettingsModal(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: isDark ? 'var(--parchment)' : 'var(--ink)', cursor: 'pointer' }}>
+              <button onClick={() => setShowSettingsModal(false)} style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', color: 'var(--t-text)', cursor: 'pointer' }}>
                 <X size={24} />
               </button>
               
-              <Settings size={48} color={isDark ? 'var(--gold)' : 'var(--umber)'} style={{ margin: '0 auto 1rem' }} />
-              <h2 style={{ margin: '0 0 1.5rem 0', fontFamily: "'Cinzel', serif", color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.6rem' }}>Configurações</h2>
+              <Settings size={48} color={'var(--t-accent)'} style={{ margin: '0 auto 1rem' }} />
+              <h2 style={{ margin: '0 0 1.5rem 0', fontFamily: "'Cinzel', serif", color: 'var(--t-text)', fontSize: '1.6rem' }}>Configurações</h2>
               
-              {/* Escolha da Manhã */}
-              <div style={{ textAlign: 'left', marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', color: isDark ? 'var(--gold)' : 'var(--umber)', fontWeight: 'bold' }}>☀️ Horário do Prólogo</label>
-                <select value={morningTime} onChange={(e) => setMorningTime(e.target.value)} style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: `1px solid ${isDark ? 'var(--gold)' : 'var(--border-light)'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.1rem' }}>
-                  {['05:00', '06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '12:00'].map(h => <option key={h} value={h}>{h}</option>)}
-                </select>
-              </div>
-
-              {/* Escolha da Noite */}
-              <div style={{ textAlign: 'left', marginBottom: '2rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', color: isDark ? 'var(--gold)' : 'var(--umber)', fontWeight: 'bold' }}>🌙 Horário do Epílogo</label>
-                <select value={eveningTime} onChange={(e) => setEveningTime(e.target.value)} style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: `1px solid ${isDark ? 'var(--gold)' : 'var(--border-light)'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.1rem' }}>
-                  {['18:00', '19:00', '20:00', '21:00', '22:00', '23:00'].map(h => <option key={h} value={h}>{h}</option>)}
-                </select>
-                <p style={{ marginTop: '0.5rem', marginBottom: 0, fontSize: '0.8rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray)', fontStyle: 'italic', lineHeight: '1.4' }}>
-                  * Estes horários apenas organizam as janelas do seu diário. As notificações de lembrete no seu dispositivo estão atualmente <strong style={{ color: notificationsActive ? 'var(--success)' : 'var(--danger)' }}>{notificationsActive ? 'ATIVADAS' : 'DESATIVADAS'}</strong>.
+              {/* Lembretes: o que de fato acontece */}
+              <div style={{ textAlign: 'left', marginBottom: '1.5rem', lineHeight: '1.6', color: 'var(--t-text)' }}>
+                <p style={{ margin: '0 0 0.75rem' }}>
+                  ☀️ <strong>08:00</strong> · lembrete do Prólogo, se você ainda não o fez.
+                </p>
+                <p style={{ margin: '0 0 1rem' }}>
+                  🌙 <strong>20:00</strong> · lembrete da virtude do dia e do Epílogo, se o dia ainda estiver aberto.
+                </p>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--t-text-muted)' }}>
+                  Notificações neste aparelho: <strong style={{ color: notificationsActive ? 'var(--success)' : 'var(--danger)' }}>{notificationsActive ? 'ativadas' : 'desativadas'}</strong>
                 </p>
               </div>
 
-              <div style={{ textAlign: 'left', marginBottom: '2rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', color: isDark ? 'var(--gold)' : 'var(--umber)', fontWeight: 'bold' }}>⚔️ Lembrete de Missões e Práticas</label>
-                <input type="time" value={taskReminderTime} onChange={(e) => setTaskReminderTime(e.target.value)} style={{ width: '100%', padding: '0.8rem', borderRadius: '8px', border: `1px solid ${isDark ? 'var(--gold)' : 'var(--border-light)'}`, background: isDark ? 'rgba(26, 26, 46, 0.8)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.1rem' }} />
-              </div>
-
-              {/* Botão de Salvar */}
-              <button onClick={saveNotificationTimes} style={{ width: '100%', padding: '1rem', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '8px', fontSize: '1.1rem', fontWeight: 'bold', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', transition: 'transform 0.2s' }} onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'} onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}>
-                <Save size={20} /> Salvar Configurações
+              <button onClick={toggleNotifications} style={{ width: '100%', padding: '1rem', background: 'var(--t-accent)', color: 'var(--t-surface)', border: 'none', borderRadius: '12px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                <Bell size={20} /> {notificationsActive ? 'Silenciar lembretes' : 'Ativar lembretes'}
+              </button>
+              <button onClick={() => { setShowSettingsModal(false); setView('notifications'); }} style={{ width: '100%', padding: '0.9rem', background: 'transparent', color: 'var(--t-accent)', border: `1px solid var(--t-accent)`, borderRadius: '12px', fontSize: '0.95rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                <Smartphone size={18} /> Lembretes por WhatsApp
               </button>
               
             </div>
@@ -6229,7 +4095,7 @@ ${monthlyReport.desafioCrescimento || '-'}
 
       </main>
         
-      <footer style={{ padding: '2rem', textAlign: 'center', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', borderTop: `1px solid ${isDark ? 'rgba(212, 175, 55, 0.2)' : 'rgba(139, 115, 85, 0.2)'}`, marginTop: '2rem' }}>
+      <footer style={{ padding: '2rem', textAlign: 'center', color: 'var(--t-text-muted)', borderTop: `1px solid var(--t-divider)`, marginTop: '2rem' }}>
         <p style={{ margin: 0, fontSize: '0.95rem', fontStyle: 'italic' }}>"Que ninguém durma sem antes examinar as ações do dia"</p>
         <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.85rem', opacity: 0.8 }}>Versos de Ouro de Pitágoras</p>
       </footer>
@@ -6238,18 +4104,18 @@ ${monthlyReport.desafioCrescimento || '-'}
       {/* MODAL DE PRÁTICAS (Abre ao clicar no Badge "Às vezes/Frequente") */}
       {showPracticesModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(3px)' }} onClick={() => setShowPracticesModal(false)}>
-          <div className="animate-fadeIn" style={{ background: isDark ? 'var(--bg-dark)' : 'var(--bg-light)', padding: '1.5rem', borderRadius: '16px', maxWidth: '380px', width: '100%', border: `2px solid ${pb.color}`, position: 'relative', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => setShowPracticesModal(false)} style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: 'transparent', border: 'none', color: isDark ? 'var(--parchment)' : 'var(--ink)', cursor: 'pointer' }}><X size={20} /></button>
+          <div className="animate-fadeIn" style={{ background: 'var(--t-page-bg)', padding: '1.5rem', borderRadius: '16px', maxWidth: '380px', width: '100%', border: `2px solid ${pb.color}`, position: 'relative', boxShadow: '0 10px 40px rgba(0,0,0,0.3)' }} onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setShowPracticesModal(false)} style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: 'transparent', border: 'none', color: 'var(--t-text)', cursor: 'pointer' }}><X size={20} /></button>
             
             <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
               <PraticaIcon size={46} color={pb.color} style={{ margin: '0 auto 0.5rem' }} />
-              <h2 style={{ margin: 0, fontFamily: "'Cinzel', serif", color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1.5rem' }}>Constância de Práticas</h2>
+              <h2 style={{ margin: 0, fontFamily: "'Cinzel', serif", color: 'var(--t-text)', fontSize: '1.5rem' }}>Constância de Práticas</h2>
             </div>
 
             <div style={{ background: isDark ? 'rgba(255, 255, 255, 0.03)' : 'var(--white)', padding: '1.2rem', borderRadius: '12px', border: `1px solid ${pb.color}`, textAlign: 'center', marginBottom: '1.5rem' }}>
               <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '2px', fontWeight: 'bold', color: pb.color, display: 'block', marginBottom: '0.2rem' }}>Grau Atual</span>
-              <h3 style={{ margin: '0 0 0.25rem', fontFamily: "'Cinzel', serif", fontSize: '1.4rem', color: isDark ? 'var(--parchment)' : 'var(--ink)' }}>{pb.label}</h3>
-              <p style={{ margin: '0 0 1rem', fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontStyle: 'italic' }}>Realizadas em {statsMenu.diasPraticas} dias neste ciclo.</p>
+              <h3 style={{ margin: '0 0 0.25rem', fontFamily: "'Cinzel', serif", fontSize: '1.4rem', color: 'var(--t-text)' }}>{pb.label}</h3>
+              <p style={{ margin: '0 0 1rem', fontSize: '0.85rem', color: 'var(--t-text-muted)', fontStyle: 'italic' }}>Realizadas em {statsMenu.diasPraticas} dias neste ciclo.</p>
               
               {(() => {
                  const dias = statsMenu.diasPraticas;
@@ -6261,8 +4127,8 @@ ${monthlyReport.desafioCrescimento || '-'}
                  
                  if (next) {
                    return (
-                     <div style={{ marginTop: '0.5rem', paddingTop: '1rem', borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}` }}>
-                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', marginBottom: '0.4rem', fontWeight: 'bold' }}>
+                     <div style={{ marginTop: '0.5rem', paddingTop: '1rem', borderTop: `1px solid var(--t-line-subtle)` }}>
+                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--t-text-muted)', marginBottom: '0.4rem', fontWeight: 'bold' }}>
                          <span>Rumo a: {next.title}</span>
                          <span>Faltam {next.min - dias} dias</span>
                        </div>
@@ -6273,7 +4139,7 @@ ${monthlyReport.desafioCrescimento || '-'}
                    );
                  } else {
                    return (
-                     <div style={{ marginTop: '0.5rem', paddingTop: '1rem', borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}` }}>
+                     <div style={{ marginTop: '0.5rem', paddingTop: '1rem', borderTop: `1px solid var(--t-line-subtle)` }}>
                        <p style={{ margin: 0, fontSize: '0.85rem', color: pb.color, fontWeight: 'bold' }}>🌟 Você manteve práticas impecáveis neste ciclo!</p>
                      </div>
                    );
@@ -6294,9 +4160,9 @@ ${monthlyReport.desafioCrescimento || '-'}
           
           {/* Painel Aberto */}
           {showQuickFv && (
-            <div className="animate-fadeIn" style={{ background: isDark ? 'rgba(26, 26, 46, 0.98)' : 'rgba(253, 251, 247, 0.98)', backdropFilter: 'blur(10px)', padding: '1.5rem', borderRadius: '16px', border: `2px solid ${isDark ? 'var(--gold-bright)' : 'var(--umber-bright)'}`, boxShadow: '0 10px 30px rgba(0,0,0,0.4)', width: 'max-content', maxWidth: '340px' }}>
+            <div className="animate-fadeIn" style={{ background: isDark ? 'rgba(26, 26, 46, 0.98)' : 'rgba(253, 251, 247, 0.98)', backdropFilter: 'blur(10px)', padding: '1.5rem', borderRadius: '16px', border: `2px solid var(--t-accent-bright)`, boxShadow: '0 10px 30px rgba(0,0,0,0.4)', width: 'max-content', maxWidth: '340px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: `1px solid ${isDark ? 'rgba(255,215,0,0.2)' : 'rgba(153,101,21,0.2)'}`, paddingBottom: '0.5rem' }}>
-                <h4 style={{ margin: 0, color: isDark ? 'var(--gold-bright)' : 'var(--umber-bright)', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '1.1rem' }}><Star size={18} /> Missões e Práticas</h4>
+                <h4 style={{ margin: 0, color: 'var(--t-accent-bright)', fontFamily: "'Cinzel', serif", display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '1.1rem' }}><Star size={18} /> Missões e Práticas</h4>
                 <button onClick={() => setShowQuickFv(false)} style={{ background: 'transparent', border: 'none', color: isDark ? '#aaa' : '#777', cursor: 'pointer' }}><X size={20} /></button>
               </div>
               
@@ -6305,8 +4171,8 @@ ${monthlyReport.desafioCrescimento || '-'}
                 {/* BLOCO ESPECIAL: LEITURA DE BASTIÃO DO CICLO */}
                 {fvGdveBastiaoName && (
                   <div style={{ padding: '0.8rem', background: isDark ? 'rgba(0,0,0,0.4)' : 'var(--white)', borderRadius: '8px', border: `1px solid ${fvGdveCycleStatus['bastiao'] ? 'var(--success)' : (isDark ? 'var(--gold)' : 'var(--umber-bright)')}`, marginBottom: '0.5rem', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
-                    <span style={{ display: 'block', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '0.3rem' }}>Leitura do Ciclo</span>
-                    <span style={{ display: 'block', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '0.95rem', fontWeight: 'bold', marginBottom: '0.8rem', lineHeight: '1.3' }}>{fvGdveBastiaoName}</span>
+                    <span style={{ display: 'block', color: 'var(--t-text-muted)', fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '0.3rem' }}>Leitura do Ciclo</span>
+                    <span style={{ display: 'block', color: 'var(--t-text)', fontSize: '0.95rem', fontWeight: 'bold', marginBottom: '0.8rem', lineHeight: '1.3' }}>{fvGdveBastiaoName}</span>
                     
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                       <button onClick={async () => {
@@ -6323,13 +4189,13 @@ ${monthlyReport.desafioCrescimento || '-'}
                              showToast('⚠️ Não foi possível salvar. Verifique sua conexão e tente novamente.');
                            }
                          }
-                      }} style={{ flex: 1, padding: '0.5rem', background: fvGdveCycleStatus['bastiao'] ? 'var(--success)' : 'transparent', color: fvGdveCycleStatus['bastiao'] ? 'white' : (isDark ? 'var(--parchment)' : 'var(--ink)'), border: `1px solid ${fvGdveCycleStatus['bastiao'] ? 'var(--success)' : (isDark ? 'var(--gray-strong)' : 'var(--border-light)')}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', transition: 'all 0.2s' }}>
+                      }} style={{ flex: 1, padding: '0.5rem', background: fvGdveCycleStatus['bastiao'] ? 'var(--success)' : 'transparent', color: fvGdveCycleStatus['bastiao'] ? 'white' : 'var(--t-text)', border: `1px solid ${fvGdveCycleStatus['bastiao'] ? 'var(--success)' : 'var(--t-field-border)'}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', transition: 'all 0.2s' }}>
                          {fvGdveCycleStatus['bastiao'] ? <CheckCircle size={14}/> : <div style={{width:'14px', height:'14px', borderRadius:'50%', border:'1px solid currentColor'}}></div>}
                          {fvGdveCycleStatus['bastiao'] ? 'Já Li' : 'Marcar Lido'}
                       </button>
                       
                       {fvGdveBastiaoLink && (
-                         <a href={fvGdveBastiaoLink} target="_blank" rel="noopener noreferrer" style={{ flex: 1, padding: '0.5rem', background: isDark ? 'rgba(74, 144, 226, 0.2)' : '#e3f2fd', color: isDark ? '#6cb2eb' : 'var(--blue)', border: `1px solid ${isDark ? '#6cb2eb' : 'var(--blue)'}`, borderRadius: '6px', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', transition: 'all 0.2s' }}>
+                         <a href={fvGdveBastiaoLink} target="_blank" rel="noopener noreferrer" style={{ flex: 1, padding: '0.5rem', background: isDark ? 'rgba(74, 144, 226, 0.2)' : '#e3f2fd', color: 'var(--t-blue-text)', border: `1px solid var(--t-blue-text)`, borderRadius: '6px', textDecoration: 'none', fontSize: '0.8rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem', transition: 'all 0.2s' }}>
                            <BookOpen size={14} /> Ler Agora
                          </a>
                       )}
@@ -6355,12 +4221,12 @@ ${monthlyReport.desafioCrescimento || '-'}
                     }
                     
                     return (
-                      <div key={task.id} onClick={() => toggleGdveTask(task)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 1rem', background: isCompleted ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(0,0,0,0.3)' : 'var(--white)'), borderRadius: '8px', border: `1px solid ${isCompleted ? 'var(--success)' : (isDark ? 'var(--gray-strong)' : 'var(--border-light)')}`, cursor: 'pointer', transition: 'all 0.2s', gap: '1rem', marginBottom: '0.2rem' }}>
+                      <div key={task.id} onClick={() => toggleGdveTask(task)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 1rem', background: isCompleted ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : 'var(--t-field-bg)', borderRadius: '8px', border: `1px solid ${isCompleted ? 'var(--success)' : 'var(--t-field-border)'}`, cursor: 'pointer', transition: 'all 0.2s', gap: '1rem', marginBottom: '0.2rem' }}>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <span style={{ color: isCompleted ? (isDark ? 'var(--success-soft)' : 'var(--success-strong)') : (isDark ? 'var(--parchment)' : 'var(--ink)'), fontSize: '0.9rem', fontWeight: isCompleted ? 'bold' : 'normal', textDecoration: isCompleted ? 'line-through' : 'none' }}>{task.name}</span>
-                          {isCycle && <span style={{ fontSize: '0.65rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray)', textTransform: 'uppercase', marginTop: '0.2rem', fontWeight: 'bold' }}>Missão do Ciclo</span>}
+                          <span style={{ color: isCompleted ? 'var(--t-success-text)' : 'var(--t-text)', fontSize: '0.9rem', fontWeight: isCompleted ? 'bold' : 'normal', textDecoration: isCompleted ? 'line-through' : 'none' }}>{task.name}</span>
+                          {isCycle && <span style={{ fontSize: '0.65rem', color: 'var(--t-text-faint)', textTransform: 'uppercase', marginTop: '0.2rem', fontWeight: 'bold' }}>Missão do Ciclo</span>}
                         </div>
-                        <div style={{ background: isCompleted ? 'var(--success)' : (isDark ? '#333' : 'var(--border-soft)'), color: isCompleted ? 'var(--white)' : (isDark ? 'var(--gold-muted)' : 'var(--gray-text)'), padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                        <div style={{ background: isCompleted ? 'var(--success)' : (isDark ? '#333' : 'var(--border-soft)'), color: isCompleted ? 'var(--white)' : 'var(--t-text-soft)', padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold' }}>
                           {displayValue}
                         </div>
                       </div>
@@ -6369,22 +4235,22 @@ ${monthlyReport.desafioCrescimento || '-'}
                 )}
 
                 {fvConfig?.praticas && (
-                  <div style={{ height: '1px', background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)', margin: '0.5rem 0' }}></div>
+                  <div style={{ height: '1px', background: 'var(--t-line-subtle)', margin: '0.5rem 0' }}></div>
                 )}
 
                 {/* 2. PRÁTICAS FIXAS DA ESCOLA */}
                 {fvConfig?.praticas?.map(prac => {
                   const isCompleted = !!fvDaily.praticas?.[prac.key];
                   return (
-                    <div key={prac.key} onClick={() => setActiveActionMenu({ key: prac.key, label: prac.label })} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 1rem', background: isCompleted ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : (isDark ? 'rgba(0,0,0,0.3)' : 'var(--white)'), borderRadius: '8px', border: `1px solid ${isCompleted ? 'var(--success)' : (isDark ? 'rgba(212,175,55,0.3)' : 'var(--border-light)')}`, cursor: 'pointer', transition: 'all 0.2s', gap: '1rem', marginBottom: '0.2rem' }}>
-                      <span style={{ color: isCompleted ? (isDark ? 'var(--success-soft)' : 'var(--success-strong)') : (isDark ? 'var(--parchment)' : 'var(--ink)'), fontSize: '0.9rem', fontWeight: isCompleted ? 'bold' : 'normal', textDecoration: isCompleted ? 'line-through' : 'none' }}>{prac.label}</span>
+                    <div key={prac.key} onClick={() => setActiveActionMenu({ key: prac.key, label: prac.label })} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 1rem', background: isCompleted ? (isDark ? 'rgba(76, 175, 80, 0.15)' : '#e8f5e9') : 'var(--t-field-bg)', borderRadius: '8px', border: `1px solid ${isCompleted ? 'var(--success)' : (isDark ? 'rgba(212,175,55,0.3)' : 'var(--border-light)')}`, cursor: 'pointer', transition: 'all 0.2s', gap: '1rem', marginBottom: '0.2rem' }}>
+                      <span style={{ color: isCompleted ? 'var(--t-success-text)' : 'var(--t-text)', fontSize: '0.9rem', fontWeight: isCompleted ? 'bold' : 'normal', textDecoration: isCompleted ? 'line-through' : 'none' }}>{prac.label}</span>
                       {isCompleted ? <CheckCircle size={16} color="var(--success)" /> : <Zap size={16} color={isDark ? 'var(--gold-muted)' : 'var(--border-light)'} />}
                     </div>
                   );
                 })}
                 
                 {(!fvGdveBastiaoName && fvGdveTasks.length === 0 && (!fvConfig?.praticas || fvConfig.praticas.length === 0)) && (
-                   <p style={{ margin: 0, fontSize: '0.85rem', color: isDark ? 'var(--gold-muted)' : 'var(--gray)', fontStyle: 'italic', textAlign: 'center' }}>Nenhuma prática ou missão pendente.</p>
+                   <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--t-text-faint)', fontStyle: 'italic', textAlign: 'center' }}>Nenhuma prática ou missão pendente.</p>
                 )}
               </div>
             </div>
@@ -6461,11 +4327,11 @@ ${monthlyReport.desafioCrescimento || '-'}
       {/* MODAL DE CONFIRMAÇÃO (substitui window.confirm) */}
       {confirmModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', zIndex: 20000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(3px)' }} onClick={() => { const fn = confirmModal.onCancel; setConfirmModal(null); fn?.(); }}>
-          <div className="animate-fadeIn" style={{ background: isDark ? 'var(--bg-dark)' : 'var(--bg-light)', padding: '1.75rem', borderRadius: '16px', maxWidth: '380px', width: '100%', border: `2px solid ${confirmModal.danger ? 'var(--danger)' : (isDark ? 'var(--gold)' : 'var(--umber)')}`, boxShadow: '0 10px 40px rgba(0,0,0,0.35)' }} onClick={(e) => e.stopPropagation()}>
-            <p style={{ margin: '0 0 1.5rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1rem', lineHeight: 1.6, whiteSpace: 'pre-line' }}>{confirmModal.message}</p>
+          <div className="animate-fadeIn" style={{ background: 'var(--t-page-bg)', padding: '1.75rem', borderRadius: '16px', maxWidth: '380px', width: '100%', border: `2px solid ${confirmModal.danger ? 'var(--danger)' : 'var(--t-accent)'}`, boxShadow: '0 10px 40px rgba(0,0,0,0.35)' }} onClick={(e) => e.stopPropagation()}>
+            <p style={{ margin: '0 0 1.5rem', color: 'var(--t-text)', fontSize: '1rem', lineHeight: 1.6, whiteSpace: 'pre-line' }}>{confirmModal.message}</p>
             <div style={{ display: 'flex', gap: '0.75rem' }}>
-              <button onClick={() => { const fn = confirmModal.onCancel; setConfirmModal(null); fn?.(); }} style={{ flex: 1, padding: '0.75rem', background: 'transparent', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', border: `1px solid ${isDark ? '#555' : 'var(--border-light)'}`, borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'Georgia, serif' }}>{confirmModal.cancelLabel}</button>
-              <button onClick={() => { const fn = confirmModal.onConfirm; setConfirmModal(null); fn?.(); }} style={{ flex: 1, padding: '0.75rem', background: confirmModal.danger ? 'var(--danger)' : (isDark ? 'var(--gold)' : 'var(--umber)'), color: confirmModal.danger ? 'white' : (isDark ? 'var(--bg-dark)' : 'white'), border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'Georgia, serif' }}>{confirmModal.confirmLabel}</button>
+              <button onClick={() => { const fn = confirmModal.onCancel; setConfirmModal(null); fn?.(); }} style={{ flex: 1, padding: '0.75rem', background: 'transparent', color: 'var(--t-text-muted)', border: `1px solid ${isDark ? '#555' : 'var(--border-light)'}`, borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'Georgia, serif' }}>{confirmModal.cancelLabel}</button>
+              <button onClick={() => { const fn = confirmModal.onConfirm; setConfirmModal(null); fn?.(); }} style={{ flex: 1, padding: '0.75rem', background: confirmModal.danger ? 'var(--danger)' : 'var(--t-accent)', color: confirmModal.danger ? 'white' : 'var(--t-surface)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'Georgia, serif' }}>{confirmModal.confirmLabel}</button>
             </div>
           </div>
         </div>
@@ -6474,8 +4340,8 @@ ${monthlyReport.desafioCrescimento || '-'}
       {/* MODAL DE ENTRADA DE TEXTO (substitui window.prompt) */}
       {promptModalState && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', zIndex: 20000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', backdropFilter: 'blur(3px)' }} onClick={() => setPromptModalState(null)}>
-          <div className="animate-fadeIn" style={{ background: isDark ? 'var(--bg-dark)' : 'var(--bg-light)', padding: '1.75rem', borderRadius: '16px', maxWidth: '400px', width: '100%', border: `2px solid ${isDark ? 'var(--gold)' : 'var(--umber)'}`, boxShadow: '0 10px 40px rgba(0,0,0,0.35)' }} onClick={(e) => e.stopPropagation()}>
-            <p style={{ margin: '0 0 1rem', color: isDark ? 'var(--parchment)' : 'var(--ink)', fontSize: '1rem', lineHeight: 1.6, whiteSpace: 'pre-line' }}>{promptModalState.message}</p>
+          <div className="animate-fadeIn" style={{ background: 'var(--t-page-bg)', padding: '1.75rem', borderRadius: '16px', maxWidth: '400px', width: '100%', border: `2px solid var(--t-accent)`, boxShadow: '0 10px 40px rgba(0,0,0,0.35)' }} onClick={(e) => e.stopPropagation()}>
+            <p style={{ margin: '0 0 1rem', color: 'var(--t-text)', fontSize: '1rem', lineHeight: 1.6, whiteSpace: 'pre-line' }}>{promptModalState.message}</p>
             <input
               type={promptModalState.inputType}
               autoFocus
@@ -6483,11 +4349,11 @@ ${monthlyReport.desafioCrescimento || '-'}
               onChange={(e) => setPromptInputValue(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') { const fn = promptModalState.onSubmit; const v = promptInputValue; setPromptModalState(null); fn?.(v); } }}
               placeholder={promptModalState.placeholder}
-              style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? '#555' : 'var(--border-light)'}`, background: isDark ? 'rgba(0,0,0,0.3)' : 'white', color: isDark ? 'var(--parchment)' : 'var(--ink)', marginBottom: '1.25rem', fontFamily: 'Georgia, serif', fontSize: '1rem' }}
+              style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: `1px solid ${isDark ? '#555' : 'var(--border-light)'}`, background: 'var(--t-field-bg)', color: 'var(--t-text)', marginBottom: '1.25rem', fontFamily: 'Georgia, serif', fontSize: '1rem' }}
             />
             <div style={{ display: 'flex', gap: '0.75rem' }}>
-              <button onClick={() => setPromptModalState(null)} style={{ flex: 1, padding: '0.75rem', background: 'transparent', color: isDark ? 'var(--gold-muted)' : 'var(--umber-muted)', border: `1px solid ${isDark ? '#555' : 'var(--border-light)'}`, borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'Georgia, serif' }}>Cancelar</button>
-              <button onClick={() => { const fn = promptModalState.onSubmit; const v = promptInputValue; setPromptModalState(null); fn?.(v); }} style={{ flex: 1, padding: '0.75rem', background: isDark ? 'var(--gold)' : 'var(--umber)', color: isDark ? 'var(--bg-dark)' : 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'Georgia, serif' }}>{promptModalState.submitLabel}</button>
+              <button onClick={() => setPromptModalState(null)} style={{ flex: 1, padding: '0.75rem', background: 'transparent', color: 'var(--t-text-muted)', border: `1px solid ${isDark ? '#555' : 'var(--border-light)'}`, borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'Georgia, serif' }}>Cancelar</button>
+              <button onClick={() => { const fn = promptModalState.onSubmit; const v = promptInputValue; setPromptModalState(null); fn?.(v); }} style={{ flex: 1, padding: '0.75rem', background: 'var(--t-accent)', color: 'var(--t-surface)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontFamily: 'Georgia, serif' }}>{promptModalState.submitLabel}</button>
             </div>
           </div>
         </div>

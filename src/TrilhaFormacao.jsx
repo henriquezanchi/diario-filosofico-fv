@@ -64,9 +64,9 @@ export default function TrilhaFormacao({ books, isDark, setNewBook, setShowAddBo
 
   return (
     <div style={{ 
-      background: isDark ? 'rgba(26, 26, 46, 0.6)' : 'white', 
+      background: 'var(--t-surface-soft)', 
       borderRadius: '16px', 
-      border: `2px solid ${isDark ? 'rgba(212, 175, 55, 0.3)' : 'rgba(139, 115, 85, 0.2)'}`,
+      border: `2px solid var(--t-divider-strong)`,
       overflow: 'hidden',
       marginBottom: '2rem'
     }}>

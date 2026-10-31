@@ -1,19 +1,4 @@
-import admin from 'firebase-admin';
-
-const formatPrivateKey = (key) => {
-  if (!key) return undefined;
-  return key.replace(/\\n/g, '\n');
-};
-
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: formatPrivateKey(process.env.FIREBASE_PRIVATE_KEY),
-    }),
-  });
-}
+import { admin, requireUser, serverError } from './_lib/shared.js';
 
 // Único lugar autorizado a ler a whitelist (admin/whitelist) e a aprovar o
 // acesso ao módulo FV (users/{uid}.fvStatus / fvUnlocked). As regras do
@@ -23,18 +8,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const authHeader = req.headers.authorization || '';
-  const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  if (!idToken) {
-    return res.status(401).json({ error: 'Missing Authorization token' });
-  }
-
-  let decoded;
-  try {
-    decoded = await admin.auth().verifyIdToken(idToken);
-  } catch (e) {
-    return res.status(401).json({ error: 'Invalid or expired token' });
-  }
+  const decoded = await requireUser(req, res);
+  if (!decoded) return;
 
   try {
     const db = admin.firestore();
@@ -85,6 +60,6 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ isVip, fvStatus, fvUnlocked, units });
   } catch (e) {
-    return res.status(500).json({ error: e.message });
+    return serverError(res, 'fv-access', e);
   }
 }
